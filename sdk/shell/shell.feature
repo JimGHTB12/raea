@@ -12,7 +12,7 @@ Feature: @raea/shell, the agent's shell
       And a symlink can't lead out: following one that resolves outside the folder fails ("permission denied
         (outside the project)"), and an absolute link target is a project path (it reads back as written)
       And a link the host placed (fs.place_link: a space's media, a project's takes) may lead outside the folder:
-        what's behind it reads (cat, ls, stat, cp from it, rdb opening it), never writes (a write, an append, an rm
+        what's behind it reads (cat, ls, stat, cp from it, raea opening it), never writes (a write, an append, an rm
         through it fails), and no outside name shows (readlink says "(outside the project)", readlink -f gives the
         shell's path); the shell itself can't make such a link: a symlink whose target climbs out, or a hard link to
         a file outside, is refused
@@ -29,20 +29,24 @@ Feature: @raea/shell, the agent's shell
         command that changed nothing leaves it as it was)
       And contents are kept by hash in .raea/objects/, so `undo()` puts the last command's paths back as they were and
         `redo()` makes them again (each is a row of its own); a reopened project keeps its history
-      And a tool that writes outside RaeaFs (rdb, raea-motion, sqlite3, a WASI tool) has every path argument
+      And a tool that writes outside RaeaFs (raea, sqlite3, a WASI tool) has every path argument
         kept first (fs.touch), so its row and its undo cover what it wrote
 
   Rule: raea's tools are commands, run natively in process
     Scenario: The engine's command lines
-      Then `rdb` and `raea-motion` run their own command lines in this process (no subprocess, so the same on
-        the iPhone) in the shell's folder, with their stdout and stderr captured; an absolute or climbing path argument
-        is the project's file, and the project's root never shows in what they print
+      Then `raea` is one command (docs/sdk.feature S1e): the project's own verbs (init, part, cut, brand, check, craft,
+        the record) are @raea/cli's, and every other verb is the engine's command line, run in this process (no
+        subprocess, so the same on the iPhone) in the shell's folder, with its stdout and stderr captured; an absolute or
+        climbing path argument is the project's file, and the project's root never shows in what it prints
+      And `raea render FILE.tsx` (a file, or -o) and `raea media probe|...` are the engine's, while bare `raea render` and
+        `raea media` are the project's; `raea add` is npm packages, and the registry's parts are `raea part add`
+      And there's no `raea-motion` command in the shell, nor a binary of that name any more
     Scenario: The engine's libraries as small command lines
-      Then `solid EXPR [volume|bounds|triangles|empty|slice Z]` builds a Manifold solid from rdb's shape expression
+      Then `solid EXPR [volume|bounds|triangles|empty|slice Z]` builds a Manifold solid from the engine's shape expression
       And `ecs WORLD.json spawn|set|despawn|query|count|rows|column ...` keeps a world's rows in a project file and
         runs each step on the engine's tables
       And `media transcode IN OUT [--from --to --height --kbps]` is the native trim, scale and encode with sound; `media
-        size FILE`; `rdb media ...` has the rest of the media verbs (and `rdb ffmpeg`, `rdb ffprobe`)
+        size FILE`; `raea media ...` has the rest of the media verbs (and `raea ffmpeg`, `raea ffprobe`)
 
   Rule: The heavy extras are native
     Scenario: sqlite3
@@ -50,7 +54,6 @@ Feature: @raea/shell, the agent's shell
         from the argument or stdin; its modes are -list (default, "|"), -csv, -json, -line, -column, -table, -box,
         -markdown, -tabs, -quote, -html, -ascii, with -header, -separator, -newline, -nullvalue, -readonly, -echo, -cmd
       And an error ends the script with exit 1 and "Error: ..." on stderr
-      And (rdb's own SQL is for edits: `rdb query EDIT.rdb`; sqlite3 is for the databases people bring)
     Scenario: js-exec
       Then `js-exec -c CODE | FILE [ARGS]` runs JavaScript or TypeScript as an ES module in a fresh JavaScriptCore context on its own
         thread (transpiled in process by raea-modules, deno_ast: no bun, so the same on the iPhone), with console to
@@ -66,18 +69,11 @@ Feature: @raea/shell, the agent's shell
     Scenario: python
       Then there is no python (raea ships none): `python3` is "command not found", exit 127
 
-  Rule: One terminal per space, for hosts outside JavaScript
+  Rule: One terminal per space
     Scenario: Kept between commands
       Then a Shell is one terminal: a `cd` or an `export` carries over to the next command (just-bash resets them per
         exec; the Shell passes the last folder and exported variables back in), and /dev/null, /dev/stdin, /dev/stdout,
         /dev/stderr are devices, not project files
-    Scenario: The server and the CLI (void's agent, in Rust)
-      Then `raea-motion shell-serve ROOT [--network POLICY.json]` keeps one Shell and answers JSON lines: a request
-        {id, op: exec|undo|redo|log, cmd?, timeout_ms?, last?} gets one reply {id, stdout, stderr, exitCode, row}
-        (undo and redo: row; log: rows; a bad request: error); the first line says {ready, root}
-      And a command past timeout_ms stops at its next statement with exit 124 and the shell goes on; stdout and stderr
-        are cut at 64 KB each, saying how much was left out
-      And `raea-motion shell ROOT -c CMD [--timeout MS] [--network POLICY.json]` answers one request the same way
 
   Rule: just-bash and wsx split the work
     Scenario: Who runs what

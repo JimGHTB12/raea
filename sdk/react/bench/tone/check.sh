@@ -1,14 +1,14 @@
 #!/bin/bash
-# Tone on the one mixer core (@raea/motion/tone): the song (a timeline cut on the bar) and the game (state-machine
+# Tone on the one mixer core (raea/tone): the song (a timeline cut on the bar) and the game (state-machine
 # one-shots, a music bed ducked under a voice line), each rendered (the core's bounce, before the encoder) and played
-# (the core's tap), the two held sample against sample (raea-motion ci bounce-vs-live), with each one's loudness, true peak and
+# (the core's tap), the two held sample against sample (raea ci bounce-vs-live), with each one's loudness, true peak and
 # clicks; and the ducking measured: the music bus under the voice against the same music with ducking off.
 # Plays measure timing: run it holding the measurement lock. Build first (lane build -- cargo build --release).
 #   sdk/react/bench/tone/check.sh
 cd "$(dirname "$0")/../.."
 OUT=${TMPDIR:-/tmp}/raea-tone-check
 mkdir -p "$OUT"
-M=target/release/raea-motion
+M=target/release/raea
 # a bounce-vs-live report's numbers for one line (tab-separated), its live play's report as Python printed a dict
 SAME='def pyrepr: if type == "object" then "{" + ([to_entries[] | (.key | pyrepr) + ": " + (.value | pyrepr)] | join(", ")) + "}"
     elif type == "array" then "[" + (map(pyrepr) | join(", ")) + "]"
@@ -33,9 +33,9 @@ status=0
 pieces="song game gaps"; [ -x "${RAEA_TOKENSYNTH:-$HOME/.cache/raea-tokensynth}/.venv/bin/python" ] && pieces="$pieces tokensynth"
 for t in $pieces; do
   edit=bench/tone/$t/edit.tsx
-  RAEA_AUDIO_BOUNCE=$OUT/$t-bounce.wav target/release/raea-motion render $edit -o $OUT/$t.mp4 > $OUT/$t-render.log 2>&1 || { echo "$t: the render failed"; status=1; continue; }
+  RAEA_AUDIO_BOUNCE=$OUT/$t-bounce.wav target/release/raea render $edit -o $OUT/$t.mp4 > $OUT/$t-render.log 2>&1 || { echo "$t: the render failed"; status=1; continue; }
   baked=""; [ $t != game ] && baked=--baked
-  RAEA_PLAY_WAIT_MASTER=60 RAEA_AUDIO_MUTE=1 RAEA_AUDIO_TAP=$OUT/$t-live.wav target/release/raea-motion play $edit $baked --offscreen --seconds end > $OUT/$t-play.log 2>&1 || { echo "$t: the play failed"; status=1; continue; }
+  RAEA_PLAY_WAIT_MASTER=60 RAEA_AUDIO_MUTE=1 RAEA_AUDIO_TAP=$OUT/$t-live.wav target/release/raea play $edit $baked --offscreen --seconds end > $OUT/$t-play.log 2>&1 || { echo "$t: the play failed"; status=1; continue; }
   $M ci bounce-vs-live $OUT/$t-bounce.wav $OUT/$t-live.wav --json $OUT/$t-same.json > /dev/null || { echo "$t: bounce against live failed"; status=1; }
 done
 # ducking, on the game without its <Mix> (each variant's own loudness would give it its own gain) and 14 dB down at the
@@ -47,11 +47,11 @@ sed -e "$nomix" $G/edit.tsx > $G/.duck.tsx
 sed -e "$nomix" -e 's/amount: -12/amount: 0/' $G/edit.tsx > $G/.noduck.tsx
 sed -e "$nomix" -e 's/amount: -12/amount: 0/' -e 's#<Audio src={staticFile("voice.wav")} bus="voice" />##' $G/edit.tsx > $G/.novoice.tsx
 for v in duck noduck novoice; do
-  RAEA_AUDIO_BOUNCE=$OUT/game-$v.wav target/release/raea-motion render $G/.$v.tsx -o $OUT/game-$v.mp4 > /dev/null 2>&1
+  RAEA_AUDIO_BOUNCE=$OUT/game-$v.wav target/release/raea render $G/.$v.tsx -o $OUT/game-$v.mp4 > /dev/null 2>&1
 done
 rm -f $G/.duck.tsx $G/.noduck.tsx $G/.novoice.tsx
 # the judgement: each piece's bounce against its live tap, with the loudness, true peak and clicks of its bounce and
-# its render (raea-motion ci clicks: ffmpeg's ebur128 meter); then the ducking, from the three variants' bounces
+# its render (raea ci clicks: ffmpeg's ebur128 meter); then the ducking, from the three variants' bounces
 judge() {
   local t ok=1 during before duck
   for t in song game gaps tokensynth; do

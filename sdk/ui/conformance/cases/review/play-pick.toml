@@ -1,0 +1,36 @@
+area = "review"
+title = "paused, a press on the live game picks the element under it and the inspector names it; a held key moves it, step by step"
+route = "/feed/f-pong-all/i-build"
+window = [1440, 900]
+
+[[steps]]
+wait = { all = [{ id = "game", visible = true }, { id = "stage-pause", name = "Pause" }] }
+# Pong's player paddle (x 190 of the 1920 court) held up against the top wall (its middle at 216 of 1080: 0.2)
+[[steps]]
+input = { type = "key", key = "ArrowUp", state = "down" }
+[[steps]]
+snap = "a"
+[[steps]]
+wait = { id = "game-clock", field = "value", gt = 90 }
+[[steps]]
+input = { type = "click", at = "stage-pause" }
+[[steps]]
+wait = { id = "stage-pause", name = "Play" }
+[[steps]]
+input = { type = "click", at = { id = "game", fx = 0.099, fy = 0.2 } }
+[[steps]]
+expect = { all = [{ id = "inspector", visible = true }, { id = "inspect-name", text = "Paddle" }, { id = "picked-box", visible = true }] }
+budget = 8
+# ArrowDown held instead: ten steps move the paddle down the stage, and the inspector follows it
+[[steps]]
+input = { type = "key", key = "ArrowUp", state = "up" }
+[[steps]]
+input = { type = "key", key = "ArrowDown", state = "down" }
+[[steps]]
+snap = "top"
+[[steps]]
+repeat = { times = 10, steps = [{ input = { type = "click", at = "stage-step" } }, { wait = { id = "game-clock", field = "value", changed = true, since = "last" } }] }
+[[steps]]
+wait = { id = "inspect-box", field = "value", gt = 160 }
+[[steps]]
+input = { type = "key", key = "ArrowDown", state = "up" }

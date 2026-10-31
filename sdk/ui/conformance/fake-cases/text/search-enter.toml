@@ -1,0 +1,15 @@
+area = "text"
+title = "Enter in feed.search keeps the query, lets the box go and the feed shows what matches"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "feed.search", visible = true }
+[[steps]]
+input = { type = "click", at = "feed.search" }
+[[steps]]
+input = { type = "keys", text = "concept" }
+[[steps]]
+input = { type = "press", key = "Enter" }
+[[steps]]
+expect = { all = [{ id = "feed.search", value = "concept" }, { id = "feed.search", focused = false }, { id = "feed.card.0", value_contains = "concept" }, { id = "feed.card.*", visible = true, count = 2 }] }

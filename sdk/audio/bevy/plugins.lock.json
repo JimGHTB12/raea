@@ -1,0 +1,8 @@
+{
+  "bevy": "0.20",
+  "plugins": {
+    "audio": {
+      "raea": true
+    }
+  }
+}

@@ -1,0 +1,34 @@
+[package]
+name = "raea-runtime-export"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A composition rendered to frames and files: React stepped frame by frame, its pages, 3D and sound made into one raea-render program; and its commits baked by frame"
+
+[dependencies]
+raea-runtime-view = { path = "../view" }
+raea-io-assets = { path = "../../io/assets" }
+raea-runtime-react = { path = "../../runtime/react", default-features = false }
+raea-runtime-page = { path = "../page" }
+raea-runtime-sound = { path = "../sound", default-features = false }
+raea-runtime-bake = { path = "../bake" }
+raea-render = { path = "../../engine/render", default-features = false, features = ["native"] }
+# renders to files: RenderOpts, render, render_fed
+raea-runtime-encode = { path = "../encode" }
+raea-page = { path = "../../engine/page" }
+raea-sys-page = { path = "../../systems/page" }
+raea-gpu-device = { path = "../../gpu/device" }
+raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio", "apple"] }
+raea-core-program = { path = "../../core/program" }
+raea-core-scene = { path = "../../core/scene" }
+raea-runtime-scene = { path = "../scene" }
+raea-sys-contact = { path = "../../systems/contact" }
+raea-sys-light-meter = { path = "../../systems/light-meter" }
+raea-sys-mix = { path = "../../systems/mix" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app"] }
+image = { version = "0.25", default-features = false, features = ["png", "hdr"] }
+serde_json = "1"
+# a page's identity in a render (pages.rs store_page): xxHash3, many GB/s
+twox-hash = { version = "2", default-features = false, features = ["xxhash3_64"] }
+wgpu = "=30.0.1"

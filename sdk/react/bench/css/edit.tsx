@@ -1,7 +1,7 @@
 // CSS: a composition's CSS imports and CSS modules reach its page (docs/vite-in-raea.md A2; sdk/react/bench/css/check.sh).
 // Left half red with a yellow dot (site.css, its @import and nesting), right half blue (card.module.css: composes,
 // color-mix()).
-import { Composition, registerRoot } from "@raea/motion";
+import { Composition, registerRoot } from "raea";
 import "./site.css";
 import card from "./card.module.css";
 

@@ -1,10 +1,10 @@
-// raea's own commands inside the agent's shell, each a native call: rdb and raea-motion run in process (their own
-// command lines, output captured), and solid, ecs and media are small command lines over the engine's Manifold
-// solids, ECS worlds and coders. Paths are the shell's: an argument that names a project path ("/a", "./a", "../a", or
+// raea's own commands inside the agent's shell, each a native call: the engine's `raea` runs in process behind
+// @raea/cli's `raea` (its own command line, output captured), and solid, ecs and media are small command lines over the
+// engine's Manifold solids, ECS worlds and coders. Paths are the shell's: an argument that names a project path ("/a", "./a", "../a", or
 // a file that's there) is given to the tool as the real file under the project's root, and the root never shows in what
 // comes back. Big outputs stay in files (renders, transcodes); what's printed is what a person would read.
 import { defineCommand, type CustomCommand } from "just-bash/browser";
-import { native } from "@raea/motion/native";
+import { native } from "raea/native";
 import type { RaeaFs } from "./fs";
 
 type Ctx = { cwd: string; stdin: unknown; fs: { exists(p: string): Promise<boolean> } };
@@ -54,13 +54,15 @@ function touchArgs(fs: RaeaFs, cwd: string, args: string[]) {
   }
 }
 
-function tool(name: "rdb" | "raea-motion", fs: RaeaFs): CustomCommand {
-  return defineCommand(name, async (args, ctx) => {
+/** The engine's own command line (the native `raea`, in process: cli.raea), run in the shell's folder with project paths.
+ * The shell's `raea` (@raea/cli) passes it every verb that isn't the project's own (docs/sdk.feature S1e). */
+export function engine(fs: RaeaFs) {
+  return async (args: string[], ctx: unknown) => {
     const c = ctx as unknown as Ctx;
     touchArgs(fs, c.cwd, args);
-    const r = native(`cli.${name}` as "cli.rdb", { args: mapArgs(fs.root, c, args), cwd: realOf(fs.root, vpath(c.cwd, ".")) });
+    const r = native("cli.raea", { args: mapArgs(fs.root, c, args), cwd: realOf(fs.root, vpath(c.cwd, ".")) });
     return ok(unroot(fs.root, r.stdout), r.exit, unroot(fs.root, r.stderr));
-  });
+  };
 }
 
 // ---- solid: Manifold from an expression ----------------------------------------------------------------------------
@@ -185,7 +187,7 @@ function ecsCommand(fs: RaeaFs): CustomCommand {
 // ---- media: probe and the heavy jobs, natively ----------------------------------------------------------------------
 const MEDIA_HELP = `media transcode IN OUT [--from S] [--to S] [--height H] [--kbps K]   trim, scale, encode with sound (MP4), natively
 media size FILE                                                       bytes
-  (rdb media probe|trim|proxy|... has the rest)
+  (raea media probe|trim|proxy|... has the rest)
 `;
 function mediaCommand(fs: RaeaFs): CustomCommand {
   return defineCommand("media", async (args, ctx) => {
@@ -397,32 +399,6 @@ export function wasiCommands(fs: RaeaFs, taken: Set<string>): CustomCommand[] {
     );
 }
 
-// ---- browser: agent-browser's words, in process ------------------------------------------------------------------
-/** `browser WORDS...`: agent-browser's command line (open, snapshot -i, click @e2, fill @e3 TEXT, get, screenshot,
- * eval, diff, batch, ...) on the host's browser, where it has one (the Mac: Chrome over CDP). A file argument
- * (screenshot, pdf, diff baselines, state files) is the project's. */
-function browserCommand(fs: RaeaFs): CustomCommand[] {
-  if (!native("host.has", { name: "browser.run" })) return [];
-  return [
-    defineCommand("browser", async (args, ctx) => {
-      const c = ctx as unknown as Ctx;
-      if (!args.length) return ok("", 2, "browser: give agent-browser's words (open URL, snapshot -i, click @e1, ...)\n");
-      const fileArg = (a: string) => /\.(png|jpe?g|pdf|json|txt|html|webm|mp4|zip)$/i.test(a) && !/^[a-z]+:\/\//i.test(a);
-      // an output's folder made first (agent-browser writes into existing folders only), through RaeaFs so it's
-      // recorded; then the files kept as they are, so the row has them
-      for (const a of args.filter(fileArg)) {
-        const dir = vpath(c.cwd, a).replace(/\/[^/]*$/, "") || "/";
-        if (dir !== "/") await fs.mkdir(dir, { recursive: true });
-      }
-      touchArgs(fs, c.cwd, args.filter(fileArg));
-      const words = args.map((a) => (fileArg(a) ? realOf(fs.root, vpath(c.cwd, a)) : a));
-      const r = native("browser.run" as never, { args: words } as never) as { success: boolean; text: string; error: string | null };
-      const text = unroot(fs.root, r.text);
-      return r.success ? ok(text) : ok("", 1, text || `browser: ${r.error ?? "failed"}\n`);
-    }),
-  ];
-}
-
 // ---- tar and html-to-markdown, natively -----------------------------------------------------------------------------
 function tarCommand(fs: RaeaFs): CustomCommand {
   return defineCommand("tar", async (args, ctx) => {
@@ -484,7 +460,7 @@ function markdownCommand(): CustomCommand {
 
 /** raea's commands for a shell over `fs`. */
 export function raeaCommands(fs: RaeaFs): CustomCommand[] {
-  return [tool("rdb", fs), tool("raea-motion", fs), solidCommand(), ecsCommand(fs), mediaCommand(fs), sqliteCommand(fs), jsCommand(fs), tarCommand(fs), markdownCommand(), ...browserCommand(fs)];
+  return [solidCommand(), ecsCommand(fs), mediaCommand(fs), sqliteCommand(fs), jsCommand(fs), tarCommand(fs), markdownCommand()];
 }
 
 /** A just-bash fetch over the native network under a policy (net.policy): the allow-list and credentials live in Rust. */

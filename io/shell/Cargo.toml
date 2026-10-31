@@ -1,0 +1,25 @@
+[package]
+name = "raea-io-shell"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The shell's natives as raea's native calls: a project's files with undo, the network under a policy, SQLite, tar, gzip and HTML-to-markdown"
+
+[features]
+default = ["net"]
+# the shell's network (net.rs): plain HTTP(S) under a policy, through raea-io-net; an exported game's player goes without
+net = ["dep:raea-io-net", "dep:url"]
+
+[dependencies]
+raea-core-calls = { path = "../../core/calls" }
+serde_json = "1"
+sha2 = "0.10"
+flate2 = "1"
+url = { version = "2", optional = true }
+raea-io-net = { path = "../net", optional = true }
+# the shell's sqlite3, natively (SQLite is public domain; rusqlite MIT)
+rusqlite = { version = "0.37", features = ["bundled"] }
+# the shell's html-to-markdown (Apache-2.0) and tar (MIT/Apache)
+htmd = "0.5"
+tar = "0.4"

@@ -1,0 +1,36 @@
+{
+  "name": "@raea/render",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's 3D drawing (meshes, cameras, lights, materials, post-processing), as bevy_render, bevy_pbr, bevy_light and bevy_camera are Bevy's. Authors import it through \"raea\" (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./daylight": "./src/daylight.tsx",
+    "./bevy3d": "./src/bevy3d.tsx",
+    "./paint": "./src/paint.tsx",
+    "./matchmove": "./src/matchmove.tsx",
+    "./scene": "./src/scene.tsx",
+    "./solid": "./src/solid.ts",
+    "./pick": "./src/pick.ts",
+    "./splat": "./src/splat.tsx",
+    "./3d": "./src/3d.tsx",
+    "./plugin": "./src/plugin.ts",
+    "./screen": "./src/screen.tsx",
+    "./bevy-own": "./src/bevy-own.gen.tsx"
+  },
+  "raea": {
+    "plugins": {
+      "render": {
+        "crate": "raea-render",
+        "raea": true,
+        "types": [
+          "raea_render::"
+        ],
+        "note": "RaeaPlugins: raea's looks, fog, fire, splats, screens, outlines and passes (engine/render/src/engine/raea_plugins.rs), in every Engine"
+      }
+    }
+  }
+}

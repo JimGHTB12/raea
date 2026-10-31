@@ -1,0 +1,43 @@
+[package]
+name = "raea-sys-page"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "HTML and CSS pages in Bevy: a Blitz document restyled, laid out and painted by Vello on Bevy's own GPU device into a Bevy Image"
+
+[dependencies]
+raea-sys-fonts = { path = "../fonts" }
+raea-sys-image = { path = "../image" }
+# a 3D view's clearColor parsed as CSS parses a colour (view3d/props.rs): linebender's, as peniko and Vello take it
+color = "=0.3.3"
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_asset", "bevy_image", "bevy_log", "bevy_window", "ui_bevy_render", "bevy_picking", "ui_picking", "bevy_input_focus", "3d_bevy_render"] }
+# the document: stylo's styles, Taffy's and Blitz's layout (floats on, as Chrome lays them out)
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false, features = ["svg", "woff", "system-fonts", "floats", "text-transform-icu", "complex-scripts", "custom-widget"] }
+blitz-traits = "=0.3.0-beta.4"
+# the paint: blitz-paint through raea-sys-filters' painter, Vello on Bevy's wgpu device (no vello_cpu, B1c)
+blitz-paint = { version = "=0.3.0-beta.4", default-features = false, features = ["svg", "apple-font-embolden", "custom-widget"] }
+vello = { version = "=0.11.0", default-features = false, features = ["wgpu"] }
+wgpu = "=30.0.1"
+# a canvas element's bitmap, drawn from its display list
+raea-sys-canvas = { path = "../canvas" }
+# the op wire (ops.rs)
+raea-core-wire = { path = "../../core/wire" }
+# a page's loads (net)
+raea-sys-page-net = { path = "../page-net" }
+# the GPU canary, bump and memory checks, and refusals
+raea-gpu-device = { path = "../../gpu/device" }
+# CSS filters on the GPU
+raea-sys-filters = { path = "../filters" }
+serde_json = "1"
+# text layout as Blitz lays it out (its parley, B0d); the faces are raea-sys-fonts'
+parley = { version = "=0.12.0", default-features = false, features = ["std"] }
+# an iframe's HTML parsed by Blitz
+blitz-html = "=0.3.0-beta.4"
+# an element's damage when its picture changes (blitz-dom's own type)
+stylo = "=0.22.0"
+
+[dev-dependencies]
+# a custom widget's scene, in widgets.rs's test
+anyrender = "=0.14.0"
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_core_pipeline", "bevy_log", "png", "bevy_window"] }

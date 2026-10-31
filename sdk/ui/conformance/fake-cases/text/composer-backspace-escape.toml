@@ -1,0 +1,22 @@
+area = "text"
+title = "Backspace and Esc in chat.composer do what they say"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+input = { type = "click", at = "chat.composer" }
+[[steps]]
+input = { type = "keys", text = "draftx" }
+[[steps]]
+input = { type = "press", key = "Backspace" }
+[[steps]]
+expect = { id = "chat.composer", value = "draft" }
+[[steps]]
+input = { type = "press", key = "Escape" }
+[[steps]]
+expect = { id = "chat.composer", focused = false }

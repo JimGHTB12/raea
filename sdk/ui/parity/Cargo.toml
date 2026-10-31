@@ -1,0 +1,22 @@
+[package]
+name = "ui-parity"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The ts-native differential harness (docs/ts-native.feature P30): each case rendered by React DOM in headless Chrome (the oracle) and by @raea/ui on Bevy (raea-page-host, headless), fed the same input step by step, compared on layout, pixels and behaviour"
+
+# Its own workspace: a small test tool kept out of the root's lock (it doesn't link Bevy; it drives raea-page-host's binary
+# over BRP), as sdk/ui/conformance is
+[workspace]
+
+[[bin]]
+name = "ui-parity"
+path = "src/main.rs"
+
+[dependencies]
+# Chrome's side and the comparison
+ui-parity-compare = { path = "compare" }
+serde_json = "1"
+image = { version = "0.25", default-features = false, features = ["png"] }
+base64 = "0.22"

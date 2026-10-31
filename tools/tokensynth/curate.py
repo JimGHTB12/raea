@@ -1,7 +1,7 @@
 """Pick the cleanest TokenSynth take of every root note. For each (timbre, note) an edit rendered with several seeds (its
 assets/ folder, through Samplers), measure the pitch against the note asked for, the share of energy above 4 kHz (hiss, buzz),
 the spectrum's flatness (noise), whether the sound has died away by the file's end (else a held note stops with a
-click), and how late it starts. Writes {timbre: {midi: seed}} of the notes that pass (apps/void/prompts/craft/motion/music.md,
+click), and how late it starts. Writes {timbre: {midi: seed}} of the notes that pass (sdk/guides/craft/motion/music.md,
 "Instruments from TokenSynth").
 
   uv run --with numpy --with soundfile python3 -I tools/tokensynth/curate.py EDIT_DIR [--out picks.json]

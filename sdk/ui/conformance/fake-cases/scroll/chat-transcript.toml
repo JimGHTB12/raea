@@ -1,0 +1,24 @@
+area = "scroll"
+title = "pixel and line wheels scroll the chat transcript (back up from the newest) by at least the distance moved"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+repeat = { times = 12, steps = [{ input = { type = "click", at = "chat.composer" } }, { input = { type = "keys", text = "line {i} of a transcript long enough to scroll" } }, { input = { type = "press", key = "Enter" } }, { wait = { id = "chat.message.*", text_contains = "line {i} of", count = 2 } }] }
+[[steps]]
+wait = { id = "chat.transcript", field = "scroll.max", gt = 400 }
+[[steps]]
+wait = { id = "chat.transcript", field = "scroll.top", ge = 300 }
+[[steps]]
+input = { type = "wheel", at = "chat.transcript", dy = 120, unit = "pixel", natural = true }
+[[steps]]
+expect = { id = "chat.transcript", field = "scroll.top", decreased_by = 120 }
+[[steps]]
+input = { type = "wheel", at = "chat.transcript", dy = 3, unit = "line", natural = false }
+[[steps]]
+expect = { id = "chat.transcript", field = "scroll.top", decreased_by = 96 }

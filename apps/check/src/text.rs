@@ -1,0 +1,313 @@
+use super::*;
+
+/// A text as it stays on screen: from the frame it comes on to the frame it leaves. Typing (a text growing into the
+/// next) and counting (only its digits changing) are one run, judged by its last text.
+#[derive(Clone)]
+pub(crate) struct Run {
+    pub(crate) text: String,
+    pub(crate) from: f64,
+    pub(crate) to: f64,
+    pub(crate) box_: [f64; 4],
+    /// its box on every frame it shows its whole text: a text the camera carries (a sign on a panning street) moves
+    /// through the frame's edges and zones, which only counts against it when no frame shows it clear
+    pub(crate) boxes: Vec<[f64; 4]>,
+    pub(crate) color: String,
+    pub(crate) size: f64,
+}
+
+/// The brand kit the cut was styled from (brand/ at or above the manifest's or the video's folder, as render finds
+/// brand.css): a kit `raea brand` read from a thin fetch that nobody corrected by hand is a placeholder, P1; a brand.css
+/// with no brand.json beside it wasn't read from the brand at all, P2
+pub(crate) fn brand_kit(near: &[&str], issues: &mut Vec<Issue>, passed: &mut Vec<String>) {
+    let mut seen = std::collections::HashSet::new();
+    for start in near.iter().filter(|p| !p.is_empty()) {
+        let abs = std::path::Path::new(start).canonicalize().unwrap_or_else(|_| std::path::PathBuf::from(start));
+        let mut d = abs.parent();
+        for _ in 0..5 {
+            let Some(here) = d else { break };
+            let dir = here.join("brand");
+            if dir.join("brand.css").is_file() || dir.join("brand.json").is_file() {
+                if !seen.insert(dir.clone()) {
+                    return;
+                }
+                let kit: Option<Value> = std::fs::read_to_string(dir.join("brand.json")).ok().and_then(|t| serde_json::from_str(&t).ok());
+                let Some(kit) = kit else {
+                    issues.push(Issue { rule: "brand", p: 2, at: None, says: format!("{} wasn't read from the brand (no brand.json beside it): if the brief names a brand, run `raea brand DOMAIN` and style from its kit", dir.join("brand.css").display()) });
+                    return;
+                };
+                let thin: Vec<&str> = kit["source"]["thin"].as_array().map(|a| a.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
+                let by_hand = kit["source"]["by_hand"].as_object().is_some_and(|o| !o.is_empty());
+                if !thin.is_empty() && !by_hand {
+                    issues.push(Issue { rule: "brand", p: 1, at: None, says: format!("styled from a placeholder kit: raea brand's fetch of {} was thin ({}) and nothing in brand.json's source.by_hand says it was checked; read the live site in a browser and fix the kit (raea guide brand, \"When the fetch was thin\")", kit["domain"].as_str().unwrap_or("the site"), thin.join("; ")) });
+                } else {
+                    passed.push(format!("brand: the cut is styled from {}'s kit{}", kit["domain"].as_str().unwrap_or("the brand"), if by_hand { ", checked by hand" } else { "" }));
+                }
+                return;
+            }
+            d = here.parent();
+        }
+    }
+}
+
+pub(crate) fn text_runs(manifest: &Value) -> Vec<Run> {
+    let fps = manifest["fps"].as_f64().unwrap_or(30.0);
+    let frames = manifest["frames"].as_array().cloned().unwrap_or_default();
+    let mut open: Vec<Run> = Vec::new();
+    let mut done = Vec::new();
+    let key = |s: &str| s.chars().filter(|c| !c.is_ascii_digit()).collect::<String>().trim().to_lowercase();
+    for f in &frames {
+        let t = f["frame"].as_f64().unwrap_or(0.0) / fps;
+        let shown: Vec<&Value> = f["text"].as_array().map(|a| a.iter().filter(|x| x["opacity"].as_f64().unwrap_or(1.0) > 0.05 && !x["text"].as_str().unwrap_or("").trim().is_empty()).collect()).unwrap_or_default();
+        let mut next = Vec::new();
+        for x in shown {
+            let text = x["text"].as_str().unwrap_or("").trim().to_string();
+            let b = x["box"].as_array().map(|b| [0, 1, 2, 3].map(|i| b.get(i).and_then(Value::as_f64).unwrap_or(0.0))).unwrap_or([0.0; 4]);
+            let k = key(&text);
+            let found = open.iter().position(|r| {
+                let rk = key(&r.text);
+                rk == k || (!rk.is_empty() && k.starts_with(&rk)) || (!k.is_empty() && rk.starts_with(&k) && k.len() * 2 > rk.len())
+            });
+            let mut r = match found {
+                Some(i) => open.remove(i),
+                None => Run { text: text.clone(), from: t, to: t, box_: b, boxes: Vec::new(), color: String::new(), size: 0.0 },
+            };
+            if text.len() > r.text.len() {
+                r.boxes.clear();
+            }
+            if text.len() >= r.text.len() {
+                r.text = text;
+                r.box_ = b;
+                r.boxes.push(b);
+            }
+            r.to = t + 1.0 / fps;
+            r.color = x["color"].as_str().unwrap_or("rgb(255, 255, 255)").to_string();
+            r.size = x["size"].as_f64().unwrap_or(0.0);
+            next.push(r);
+        }
+        done.append(&mut open);
+        open = next;
+    }
+    done.append(&mut open);
+    done.sort_by(|a, b| a.from.total_cmp(&b.from));
+    done
+}
+
+/// The share of the face's area a text may cover before it's a fault (@raea/video's proofBoxes keeps the same 8%)
+pub(crate) const FACE_COVER: f64 = 0.08;
+
+/// The face over time from a perception.json (`raea cut`: each clip's first frame, the face at its middle in the
+/// edit's px): [from, to) in seconds and the face's box, for the stretches that have one
+pub(crate) fn faces_of(perception: &Value, fps: f64) -> Vec<(f64, f64, [f64; 4])> {
+    let mut keys: Vec<(f64, Option<[f64; 4]>)> = perception.as_object().into_iter().flatten().filter_map(|(k, v)| {
+        let face = v["face"].as_object().map(|f| ["x", "y", "w", "h"].map(|n| f.get(n).and_then(Value::as_f64).unwrap_or(0.0)));
+        Some((k.parse::<f64>().ok()? / fps, face))
+    }).collect();
+    keys.sort_by(|a, b| a.0.total_cmp(&b.0));
+    (0..keys.len()).filter_map(|i| Some((keys[i].0, keys.get(i + 1).map_or(f64::INFINITY, |k| k.0), keys[i].1?))).collect()
+}
+
+/// Text over the face: a run that covers more than FACE_COVER of the face's area while that face is up, on every frame
+/// that shows it whole (a text the camera carries counts only when no frame shows it clear)
+pub(crate) fn face_cover(runs: &[Run], faces: &[(f64, f64, [f64; 4])], issues: &mut Vec<Issue>, passed: &mut Vec<String>) {
+    let share = |b: &[f64; 4], f: &[f64; 4]| {
+        let ox = (b[0] + b[2]).min(f[0] + f[2]) - b[0].max(f[0]);
+        let oy = (b[1] + b[3]).min(f[1] + f[3]) - b[1].max(f[1]);
+        if ox > 0.0 && oy > 0.0 { ox * oy / (f[2] * f[3]).max(1.0) } else { 0.0 }
+    };
+    let mut over = 0;
+    for r in runs {
+        let boxes: &[[f64; 4]] = if r.boxes.is_empty() { std::slice::from_ref(&r.box_) } else { &r.boxes };
+        for &(from, _, f) in faces.iter().filter(|(from, to, _)| r.from < *to && r.to > *from) {
+            let least = boxes.iter().map(|b| share(b, &f)).fold(f64::INFINITY, f64::min);
+            if least > FACE_COVER {
+                over += 1;
+                issues.push(Issue { rule: "face", p: 1, at: Some(r.from.max(from)), says: format!("{} covers {:.0}% of the face (at {:.0},{:.0} {:.0}x{:.0}): put it in a <Region> (it keeps off the face) or make it smaller", quote(&r.text), (least * 100.0).min(100.0), f[0], f[1], f[2], f[3]) });
+                break;
+            }
+        }
+    }
+    if over == 0 && !faces.is_empty() {
+        passed.push(format!("face: no text covers more than {:.0}% of the face", FACE_COVER * 100.0));
+    }
+}
+
+/// the zones where text can't go, as [top, right, bottom, left] at 1080 wide (sdk/guides/craft/floor.md)
+pub(crate) fn zones(w: f64, h: f64, shape: Option<&str>, platform: Option<&str>) -> [f64; 4] {
+    let r = w / h;
+    let shape = shape.unwrap_or(if r < 0.7 { "9:16" } else if r < 0.9 { "4:5" } else if r < 1.2 { "1:1" } else { "16:9" });
+    let z = match (shape, platform) {
+        ("9:16", Some("tiktok")) => [108.0, 120.0, 320.0, 60.0],
+        ("9:16", Some("reels")) => [210.0, 84.0, 310.0, 60.0],
+        ("9:16", Some("shorts")) => [120.0, 96.0, 300.0, 60.0],
+        ("9:16", _) => [220.0, 140.0, 420.0, 60.0],
+        ("4:5", _) => [110.0, 60.0, 170.0, 60.0],
+        ("1:1", _) => [70.0, 60.0, 120.0, 60.0],
+        _ => return [120.0 * h / 1080.0, 60.0 * w / 1920.0, 120.0 * h / 1080.0, 60.0 * w / 1920.0],
+    };
+    let s = w / 1080.0;
+    z.map(|v| v * s)
+}
+
+/// A caption the voice reads out: every word of the text is said while it's on screen (from a little before it comes
+/// on). The viewer hears it as it shows, so it needs no reading time of its own (karaoke groups are up for as long as
+/// they take to say).
+pub(crate) fn spoken(r: &Run, words: &[Word]) -> bool {
+    let tokens: Vec<String> = r.text.split_whitespace().map(norm).filter(|t| !t.is_empty()).collect();
+    !tokens.is_empty() && tokens.iter().all(|t| words.iter().any(|w| norm(&w.text) == *t && w.start >= r.from - 0.3 && w.start <= r.to + 0.1))
+}
+
+pub(crate) fn text_rules(runs: &[Run], heard: Option<&[Word]>, w: f64, h: f64, shape: Option<&str>, platform: Option<&str>, issues: &mut Vec<Issue>, passed: &mut Vec<String>) {
+    let [zt, zr, zb, zl] = zones(w, h, shape, platform);
+    let (mut clipped, mut unsafe_, mut brief) = (0, 0, 0);
+    for r in runs {
+        let [x, y, bw, bh] = r.box_;
+        let q = quote(&r.text);
+        let off = |&[x, y, bw, bh]: &[f64; 4]| x < -1.0 || y < -1.0 || x + bw > w + 1.0 || y + bh > h + 1.0;
+        let zoned = |&[x, y, bw, bh]: &[f64; 4]| y < zt || x + bw > w - zr || y + bh > h - zb || x < zl;
+        if r.boxes.iter().all(off) {
+            clipped += 1;
+            issues.push(Issue { rule: "clipped", p: 0, at: Some(r.from), says: format!("{q} runs off the frame (box {x:.0},{y:.0} {bw:.0}x{bh:.0} in {w:.0}x{h:.0}); fit it or break the line") });
+        } else if r.boxes.iter().all(zoned) {
+            unsafe_ += 1;
+            issues.push(Issue { rule: "safe-area", p: 1, at: Some(r.from), says: format!("{q} sits in the app's UI zone (keep {zt:.0} px top, {zb:.0} bottom, {zl:.0} left, {zr:.0} right clear)") });
+        }
+        let words = r.text.split_whitespace().count() as f64;
+        let need = (0.3 * words).max(1.0);
+        let held = r.to - r.from;
+        if held + 0.05 < need && r.size >= 24.0 && !heard.is_some_and(|ws| spoken(r, ws)) {
+            brief += 1;
+            issues.push(Issue { rule: "reading", p: 2, at: Some(r.from), says: format!("{q} is on for {held:.1} s; {words:.0} words need {need:.1} s to read") });
+        }
+    }
+    if clipped == 0 {
+        passed.push(format!("clipped: all {} texts fit the frame", runs.len()));
+    }
+    if unsafe_ == 0 {
+        passed.push("safe areas: no text in the UI zones".into());
+    }
+    if brief == 0 {
+        passed.push("reading: every text holds long enough".into());
+    }
+}
+
+pub(crate) fn quote(s: &str) -> String {
+    let s: String = s.chars().take(40).collect();
+    format!("\u{201c}{s}\u{201d}")
+}
+
+pub(crate) fn rgb_of(css: &str) -> [f64; 3] {
+    let n: Vec<f64> = css.split(|c: char| !(c.is_ascii_digit() || c == '.')).filter(|s| !s.is_empty()).filter_map(|s| s.parse().ok()).collect();
+    [n.first().copied().unwrap_or(255.0), n.get(1).copied().unwrap_or(255.0), n.get(2).copied().unwrap_or(255.0)]
+}
+
+/// relative luminance (WCAG) of an sRGB colour 0-255
+pub(crate) fn lum([r, g, b]: [f64; 3]) -> f64 {
+    let c = |v: f64| {
+        let v = v / 255.0;
+        if v <= 0.04045 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) }
+    };
+    0.2126 * c(r) + 0.7152 * c(g) + 0.0722 * c(b)
+}
+
+/// Caption contrast: at each text's middle frame, the pixels behind it against its colour, at least 3:1. The pixels
+/// behind are the half of the box least like the text.
+pub(crate) fn contrast(video: &str, runs: &[Run], w: f64, h: f64, probe: &Probe, issues: &mut Vec<Issue>, passed: &mut Vec<String>) {
+    let (sx, sy) = (probe.w / w, probe.h / h);
+    let mut low = 0;
+    let mut measured = 0;
+    for r in runs.iter().filter(|r| r.size >= 20.0).take(80) {
+        let [x, y, bw, bh] = r.box_;
+        // even sizes and offsets: the decoder's 4:2:0 frame crops to them
+        let (cx, cy, cw, ch) = ((x * sx).max(0.0) as u32 & !1, (y * sy).max(0.0) as u32 & !1, ((bw * sx) as u32).max(2) & !1, ((bh * sy) as u32).max(2) & !1);
+        if cx + cw > probe.w as u32 || cy + ch > probe.h as u32 {
+            continue;
+        }
+        let t = (r.from + r.to) / 2.0;
+        let Ok(out) = Command::new("ffmpeg")
+            .args(["-v", "error", "-ss", &format!("{t:.3}"), "-i", video, "-frames:v", "1", "-vf", &format!("crop={cw}:{ch}:{cx}:{cy}"), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"])
+            .output()
+        else {
+            continue;
+        };
+        if out.stdout.len() < (cw * ch * 3) as usize {
+            continue;
+        }
+        let text = lum(rgb_of(&r.color));
+        let mut ls: Vec<f64> = out.stdout.chunks_exact(3).map(|p| lum([p[0] as f64, p[1] as f64, p[2] as f64])).collect();
+        ls.sort_by(|a, b| (b - text).abs().total_cmp(&(a - text).abs()));
+        let behind = &ls[..ls.len() / 2];
+        let mut sorted = behind.to_vec();
+        sorted.sort_by(f64::total_cmp);
+        let bg = sorted[sorted.len() / 2];
+        let ratio = (text.max(bg) + 0.05) / (text.min(bg) + 0.05);
+        measured += 1;
+        if ratio < 3.0 {
+            low += 1;
+            issues.push(Issue { rule: "contrast", p: 1, at: Some(t), says: format!("{} is {ratio:.1}:1 against what's behind it; make it at least 3:1 (a band, a shadow for separation, or another colour)", quote(&r.text)) });
+        }
+    }
+    if measured > 0 && low == 0 {
+        passed.push(format!("contrast: {measured} texts at 3:1 or better against their pixels"));
+    }
+}
+
+pub(crate) struct Word {
+    pub(crate) text: String,
+    pub(crate) start: f64,
+    /// when the word ends, in seconds (its start when the transcript doesn't say)
+    pub(crate) end: f64,
+}
+
+/// raea's transcript shape (an array of {text|word, start|from|start_ms, …}), or a flat array of {w, t}
+/// A transcript's words: {text, start} in seconds (or t, or start_ms), or {text, from} in frames at `fps`, as the app's
+/// words.json and `raea render --words` have them.
+pub(crate) fn transcript(path: &str, fps: f64) -> R<Vec<Word>> {
+    let v: Value = serde_json::from_str(&std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?).map_err(|e| format!("{path}: {e}"))?;
+    let list = v.as_array().ok_or_else(|| format!("{path}: expected an array of words ({{text, start}} in seconds or {{text, from}} in frames)"))?;
+    Ok(list
+        .iter()
+        .filter_map(|w| {
+            let text = w.get("text").or_else(|| w.get("word")).or_else(|| w.get("w"))?.as_str()?.to_string();
+            // the time keys a transcript may use, each with what turns it into seconds
+            let secs = |keys: &[(&str, f64)]| keys.iter().find_map(|(k, to_s)| Some(w.get(*k)?.as_f64()? * to_s));
+            let start = secs(&[("start", 1.0), ("t", 1.0), ("a", 1.0), ("start_ms", 0.001), ("from", 1.0 / fps)])?;
+            let end = secs(&[("end", 1.0), ("b", 1.0), ("end_ms", 0.001), ("to", 1.0 / fps)]).unwrap_or(start);
+            Some(Word { text, start, end })
+        })
+        .collect())
+}
+
+pub(crate) fn norm(s: &str) -> String {
+    s.chars().filter(|c| c.is_alphanumeric()).collect::<String>().to_lowercase()
+}
+
+pub(crate) const SMALL: [&str; 24] = ["the", "and", "you", "your", "for", "with", "that", "this", "its", "it's", "are", "was", "our", "out", "from", "into", "then", "than", "but", "not", "all", "can", "has", "have"];
+
+/// Cues land on their words: a text whose words the voice says nearby comes on with the first of them, not after it.
+/// The text is found by its first word of weight, and then measured from the first word it shows: a caption "of the
+/// spend" comes on with "of", when the voice says "of the" just before "spend".
+pub(crate) fn cues(runs: &[Run], words: &[Word], issues: &mut Vec<Issue>, passed: &mut Vec<String>) {
+    let (mut checked, mut off) = (0, 0);
+    for r in runs {
+        let shown: Vec<String> = r.text.split_whitespace().map(norm).filter(|t| !t.is_empty()).collect();
+        let Some((k, i)) = shown.iter().enumerate().filter(|(_, t)| t.len() >= 3 && !SMALL.contains(&t.as_str())).find_map(|(k, t)| {
+            words.iter().enumerate().filter(|(_, w)| norm(&w.text) == *t && (w.start - r.from).abs() <= 2.0).min_by(|(_, a), (_, b)| (a.start - r.from).abs().total_cmp(&(b.start - r.from).abs())).map(|(i, _)| (k, i))
+        }) else {
+            continue;
+        };
+        // back over the words the text shows before it, while the voice says them in the same order just before
+        let back = (1..=k.min(i)).take_while(|&n| norm(&words[i - n].text) == shown[k - n]).last().unwrap_or(0);
+        let w = &words[i - back];
+        let tok = norm(&w.text);
+        checked += 1;
+        let drift = r.from - w.start;
+        if !(-0.25..=0.15).contains(&drift) {
+            off += 1;
+            let when = if drift > 0.0 { format!("{drift:.2} s after") } else { format!("{:.2} s before", -drift) };
+            issues.push(Issue { rule: "cue", p: 1, at: Some(r.from), says: format!("{} comes on {when} the voice says \u{201c}{tok}\u{201d} ({:.2} s); time it from the transcript's word", quote(&r.text), w.start) });
+        }
+    }
+    if checked > 0 && off == 0 {
+        passed.push(format!("cues: {checked} texts land on their words"));
+    }
+}

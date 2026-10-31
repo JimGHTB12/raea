@@ -1,0 +1,25 @@
+{
+  "name": "@raea/video",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's video, which Bevy has no crate for: footage, sound files and pictures by the frame (media), sequences and series (timeline), compositions (registry), words, regions, overlays and panels. Authors import it through \"raea\" (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./media": "./src/media.tsx",
+    "./timeline": "./src/timeline.tsx",
+    "./registry": "./src/registry.tsx",
+    "./nudge": "./src/nudge.tsx",
+    "./words": "./src/words.tsx",
+    "./region": "./src/region.tsx",
+    "./overlay": "./src/overlay.tsx",
+    "./panel": "./src/panel.ts",
+    "./codecs": "./src/codecs.ts",
+    "./arena": "./src/arena.tsx",
+    "./input-region": "./src/input-region.tsx",
+    "./css": "./src/css.ts"
+  },
+  "peerDependencies": { "react": "19.2.0" }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@raea/ui",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's DOM on the engine: React through react-reconciler onto a typed op wire, a browser's DOM and platform APIs, canvas 2D and the HTML runtime, for the Blitz page",
+  "type": "module",
+  "exports": {
+    "./react": "./src/react.ts",
+    "./react-dom": "./src/react-dom.ts",
+    "./platform": "./src/platform.ts",
+    "./wire": "./src/wire.ts",
+    "./plugin": "./src/plugin.ts"
+  },
+  "scripts": {
+    "test": "bun test test"
+  },
+  "peerDependencies": {
+    "react": "19.2.0",
+    "react-reconciler": "0.33.0"
+  },
+  "raea": {
+    "plugins": {
+      "page": {
+        "crate": "raea-sys-page",
+        "raea": true,
+        "note": "the Blitz page (PaintPlugin): Blitz's extension points as Bevy resources (PageNet, PageNavigation, PageHtmlParser, PageFonts) and custom widgets (PageWidgets, a declaration's \"widgets\"; docs/sdk.feature S6d)"
+      }
+    }
+  }
+}

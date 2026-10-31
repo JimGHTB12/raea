@@ -1,0 +1,17 @@
+[package]
+name = "raea-sys-filters"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "CSS filters on the GPU: a filtered layer painted into a scene of its own, drawn by Vello and run through colour-matrix, blur, shadow, offset and flood passes in WGSL on Bevy's device"
+
+[dependencies]
+anyrender = "=0.14.0"
+anyrender_vello = { version = "=0.15.0", default-features = false }
+# a background's tile pattern, painted as blitz-paint gives it
+blitz-paint = { version = "=0.3.0-beta.4", default-features = false }
+# every call's arguments hashed, so the same print draws the same picture
+rustc-hash = "2"
+vello = { version = "=0.11.0", default-features = false, features = ["wgpu"] }
+wgpu = "=30.0.1"

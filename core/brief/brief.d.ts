@@ -1,0 +1,191 @@
+// Generated from raea-core-brief (core/brief) by its `declarations`; edit the Rust, not this.
+
+export type Brief = { title: string, logline?: string, 
+/**
+ * who the work is for (a person or a client)
+ */
+for?: string, 
+/**
+ * YYYY-MM-DD
+ */
+due?: string, 
+/**
+ * who watches or plays it, and where
+ */
+audience?: string, 
+/**
+ * the one thing they should think afterwards
+ */
+believe?: string, 
+/**
+ * pitch, explain, story, play, tool: an open set, one guide each; a piece can mix two
+ */
+mode?: Array<string>, 
+/**
+ * the narrator and the tone
+ */
+voice?: string, sound?: string, 
+/**
+ * the project's committed world: palette by role, type, camera language, light, references
+ */
+look?: string, 
+/**
+ * the anti-goals
+ */
+notDoing?: Array<string>, 
+/**
+ * facts an agent wrote and the person hasn't confirmed, by key ("voice", "audience")
+ */
+assumed?: Array<string>, 
+/**
+ * prose sections beyond the fields above (Goal, Background), in order
+ */
+sections?: Array<Section>, deliver?: Array<Deliverable>, references?: Array<Reference>, 
+/**
+ * the tasks, in stages ("Act one", "The cut")
+ */
+stages?: Array<Stage>, agents?: Array<Agent>, };
+
+export type Section = { heading: string, text: string, };
+
+export type Deliverable = { name: string, 
+/**
+ * "90 s", "16:9", "with sound"
+ */
+specs?: Array<string>, 
+/**
+ * the feed item it lands as
+ */
+item?: string, 
+/**
+ * its own brief module, when it differs from the project in mode, look or audience
+ */
+brief?: string, 
+/**
+ * its script module (storyboard or screenplay)
+ */
+script?: string, };
+
+export type Reference = { target: string, note?: string, };
+
+export type Stage = { name: string, tasks: Array<Task>, };
+
+export type Mark = "todo" | "done" | "dropped";
+
+export type Task = { text: string, 
+/**
+ * a task linked to an item takes the item's state (the work is the truth); this is for unlinked ones
+ */
+mark?: Mark, agents?: Array<string>, item?: string, tags?: Array<string>, due?: string, 
+/**
+ * the craft verb it was written as ("quieter"): agents read it, the page shows the text
+ */
+verb?: string, };
+
+export type Agent = { name: string, role?: string, };
+
+export type Script = { title: string, logline?: string, scenes: Array<Scene>, };
+
+export type Scene = { 
+/**
+ * where and when ("INT. SENATE - NIGHT", or "The brief page")
+ */
+heading?: string, beats: Array<Beat>, 
+/**
+ * what the scene must land
+ */
+payoff?: string, };
+
+export type Beat = { 
+/**
+ * what's seen (a screenplay's action)
+ */
+onScreen: string, 
+/**
+ * the move ("push in on the knife", "orbit left, keeps moving through the cut")
+ */
+camera?: string, 
+/**
+ * how this beat is cut into ("match on motion", "hard cut")
+ */
+cut?: string, lines?: Array<Line>, 
+/**
+ * sound and music cues ("strings drop out", "the theme's second hit")
+ */
+cues?: Array<string>, seconds?: number, 
+/**
+ * the word the beat cuts on, so a new take keeps the cut in sync with the transcript
+ */
+onWord?: string, };
+
+export type Line = { 
+/**
+ * a character, or "narrator"
+ */
+who: string, says: string, 
+/**
+ * a screenplay's parenthetical ("quietly")
+ */
+how?: string, };
+
+export type Taste = { title: string, 
+/**
+ * when this file is read ("Read for pitch, explain and story")
+ */
+note?: string, for?: string, 
+/**
+ * the kinds of work with their own taste file (motion, games, sound, ui)
+ */
+kinds?: Array<string>, sections: Array<TasteSection>, };
+
+export type TasteSection = { 
+/**
+ * "Always", "Never", "Camera"
+ */
+heading: string, rules: Array<Rule>, };
+
+export type Rule = { text: string, check?: Check, };
+
+export type Check = { "form": "text-hold", "value": number } | { "form": "text-above", "value": number } | { "form": "text-below", "value": number } | { "form": "text-margin", "value": number } | { "form": "loudness", "value": number } | { "form": "still-max", "value": number };
+
+export type Plan = { concept: Concept, 
+/**
+ * by name; the build's parts are typed from these keys, so a planned part the build skips is a tsc error
+ */
+parts: { [key in string]: Part }, };
+
+export type Concept = { 
+/**
+ * what it is ("flight feather", "toy rocking horse")
+ */
+what: string, style: string, 
+/**
+ * its largest extent, in metres
+ */
+size: number, 
+/**
+ * how close it's seen, in metres: sets how much detail up close must hold
+ */
+seenFrom: number, material?: string, use?: string, };
+
+export type Level = "primary" | "secondary" | "tertiary";
+
+export type Count = number | { min: number, max: number, };
+
+export type Part = { 
+/**
+ * the label it carries into the world ("seat", "leaf", "gem")
+ */
+role: string, level: Level, 
+/**
+ * the part it sits on or in; none for the root
+ */
+parent?: string, count?: Count, 
+/**
+ * its own, else its parent's, else the concept's
+ */
+material?: string, style?: string, 
+/**
+ * what a near crop of it must show
+ */
+near?: string, };

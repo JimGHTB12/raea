@@ -1,0 +1,12 @@
+{
+  "//": "bench/tsc.sh's check (docs/sdk.feature S8a): the SDK's library sources and the committed compositions typed as bun runs them (bun's own types, declaration files not re-checked). The packages' tsconfig.json is unchanged by it.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "typeRoots": ["./node_modules", "./node_modules/@types"],
+    "types": ["bun-types", "react"]
+  },
+  "include": ["../*/src/**/*.ts", "../*/src/**/*.tsx", "../../content/**/*.ts", "../../content/**/*.tsx", "../../examples/**/*.ts", "../../examples/**/*.tsx"],
+  "exclude": ["../../content/**/target/**", "../../content/**/node_modules/**"]
+}

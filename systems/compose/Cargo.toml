@@ -1,0 +1,16 @@
+[package]
+name = "raea-sys-compose"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Composition passes (which pass drew each pixel, frame-wide effects held back from some) and a frame's passes in place of its picture (depth, normal, albedo)"
+
+[dependencies]
+raea-sys-frame = { path = "../frame" }
+raea-sys-rt = { path = "../rt" }
+raea-core-program = { path = "../../core/program" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render", "ui_bevy_render"] }
+serde_json = "1"
+# a schedule build pass's signature (compose.rs orders its passes around Bevy's crate-private post systems); already in the tree
+indexmap = "2"

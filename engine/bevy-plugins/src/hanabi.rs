@@ -44,14 +44,16 @@ pub(crate) fn install(app: &mut App) {
     app.add_plugins(HanabiPlugin);
     // hanabi re-seeds every effect's GPU random state on every update (compile_effects), so particles depended on how
     // many updates a frame took; compiled and re-seeded only on updates that step a frame, they depend on frames
-    app.configure_sets(PostUpdate, EffectSystems::CompileEffects.run_if(rdb::engine::plugins::advancing));
+    // (always when no plugin clock runs)
+    let advancing = |c: Option<Res<raea_runtime_plugins::PluginClock>>| c.is_none_or(|c| c.advancing);
+    app.configure_sets(PostUpdate, EffectSystems::CompileEffects.run_if(advancing));
     // hanabi seeds its CPU random source from the OS at build: a fixed one instead
     app.insert_resource(bevy_hanabi::Random(rand_pcg::Pcg32::new(0xcafe_f00d_d15e_a5e5, 0xa02b_dbf7_bb3c_0a7)));
     app.register_type::<Particles>();
     app.add_systems(Update, build_particles);
 }
 
-/// hanabi's `x11` feature switches bevy_winit on; rdb drives its own updates and has no window.
+/// hanabi's `x11` feature switches bevy_winit on; raea-render drives its own updates and has no window.
 pub(crate) fn group(b: PluginGroupBuilder) -> PluginGroupBuilder {
     b.disable::<bevy::winit::WinitPlugin>()
 }
@@ -84,4 +86,9 @@ fn build_particles(mut commands: Commands, mut effects: ResMut<Assets<EffectAsse
         effect.prng_seed = Some(p.seed);
         commands.entity(e).insert(effect);
     }
+}
+
+/// The adapter's registration (the declaration's `"adapter": "hanabi"`).
+pub fn register() {
+    raea_runtime_plugins::register(raea_runtime_plugins::Registered { name: "hanabi", install, group: Some(group), on_demand: false });
 }

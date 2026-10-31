@@ -1,0 +1,14 @@
+area = "text"
+title = "a press in feed.search focuses it and typed text lands, no key lost however fast, the first after the press included"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "feed.search", visible = true }
+[[steps]]
+input = { type = "click", at = "feed.search" }
+[[steps]]
+input = { type = "keys", text = "hello world v2 takes" }
+[[steps]]
+expect = { all = [{ id = "feed.search", focused = true }, { id = "feed.search", value = "hello world v2 takes" }] }
+hold = 10

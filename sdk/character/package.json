@@ -1,0 +1,40 @@
+{
+  "name": "@raea/character",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's characters, which Bevy has no crate for: clips, motion matching and its database, styles, effects, feet, grasping, items and things, courses and lint. Until 3d, character, codecs and room move, it reaches them through the umbrella (raea/3d ...). Authors import it through \"raea\" (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./clip": "./src/clip.ts",
+    "./course": "./src/course.ts",
+    "./effects": "./src/effects.ts",
+    "./feet": "./src/feet.ts",
+    "./grasp": "./src/grasp.ts",
+    "./items": "./src/items.ts",
+    "./lint": "./src/lint.ts",
+    "./matching": "./src/matching.ts",
+    "./clips": "./src/clips.ts",
+    "./clips-bun": "./src/clips-bun.ts",
+    "./style": "./src/style.ts",
+    "./things": "./src/things.ts",
+    "./character": "./src/character.tsx",
+    "./ragdoll": "./src/ragdoll.ts",
+    "./plugin": "./src/plugin.ts"
+  },
+  "peerDependencies": { "react": "19.2.0" },
+  "raea": {
+    "plugins": {
+      "character": {
+        "crate": "raea-runtime-plugins",
+        "raea": true,
+        "types": [
+          "raea_runtime_plugins::character::"
+        ],
+        "note": "the one motion engine as an App system (docs/sdk.feature S6e): a CharacterGoal moves its entity, its CharacterPose written each frame by @raea/character/plugin's CharacterPlugin"
+      }
+    }
+  }
+}

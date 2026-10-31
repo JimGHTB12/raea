@@ -3,9 +3,11 @@
 # JS while it plays), snapshots taken at frames across it, the same frames rendered (React, RGB readback), each pair
 # compared (SSIM >= 0.999 passes); the bake's time comes from the playtest's open.
 #   sdk/react/bench/timelines/check.sh [TIMELINE...]      (default: titles)
-# Build first: lane build -- cargo build --release --bin raea-motion (in react/).
+# Build first: lane build -- cargo build --release -p raea-cli.
 set -e
 cd "$(dirname "$0")/../.."
+# pixel checks: no Content Credentials or TrustMark id in the frames (a still's mark moves its pixels: 0.997 for 1.0)
+export RAEA_SIGN=0 RAEA_MARK=0
 OUT=${TMPDIR:-/tmp}/raea-timelines-check
 mkdir -p "$OUT"
 # the smaller of two SSIMs, as the worst so far is printed: the first unless the second is lower (an empty one is 0),
@@ -24,11 +26,11 @@ for t in ${*:-titles}; do
   snaps=""
   for f in $frames; do snaps="$snaps --snapshot $(at $f) $OUT/$t-play-$f.png"; done
   last=$(awk -v fps="$fps" 'BEGIN { printf "%.17g", 599 / fps + 0.2 }')
-  RAEA_AUDIO_MUTE=1 target/release/raea-motion play "$edit" --baked --offscreen --seconds "$last" --json "$OUT/$t.json" $snaps > "$OUT/$t.log" 2>&1 || { echo "$t: the baked play failed (see $OUT/$t.log)"; status=1; continue; }
+  RAEA_AUDIO_MUTE=1 target/release/raea play "$edit" --baked --offscreen --seconds "$last" --json "$OUT/$t.json" $snaps > "$OUT/$t.log" 2>&1 || { echo "$t: the baked play failed (see $OUT/$t.log)"; status=1; continue; }
   worst=1
   line=""
   for f in $frames; do
-    RAEA_READBACK=rgba target/release/raea-motion render "$edit" -o "$OUT/$t-render-$f.png" --frame "$f" > /dev/null 2>&1
+    RAEA_READBACK=rgba target/release/raea render "$edit" -o "$OUT/$t-render-$f.png" --frame "$f" > /dev/null 2>&1
     s=$(ffmpeg -v error -i "$OUT/$t-render-$f.png" -i "$OUT/$t-play-$f.png" -filter_complex "[0]format=rgb24[a];[1]format=rgb24[b];[a][b]ssim=stats_file=-" -f null - 2>&1 | grep -o 'All:[0-9.]*' | tail -1 | cut -d: -f2)
     line="$line $f:$s"
     worst=$(minf "$worst" "$s")
@@ -37,7 +39,7 @@ for t in ${*:-titles}; do
   # every jump goes backwards or far, compared with the same renders
   seeks=""
   for f in $(echo $frames | tr ' ' '\n' | sort -rn); do seeks="$seeks --seek $f $OUT/$t-seek-$f.png"; done
-  RAEA_AUDIO_MUTE=1 target/release/raea-motion play "$edit" --baked --offscreen $seeks > "$OUT/$t-seek.log" 2>&1 || { echo "$t: the seeks failed (see $OUT/$t-seek.log)"; status=1; continue; }
+  RAEA_AUDIO_MUTE=1 target/release/raea play "$edit" --baked --offscreen $seeks > "$OUT/$t-seek.log" 2>&1 || { echo "$t: the seeks failed (see $OUT/$t-seek.log)"; status=1; continue; }
   sline=""
   for f in $frames; do
     s=$(ffmpeg -v error -i "$OUT/$t-render-$f.png" -i "$OUT/$t-seek-$f.png" -filter_complex "[0]format=rgb24[a];[1]format=rgb24[b];[a][b]ssim=stats_file=-" -f null - 2>&1 | grep -o 'All:[0-9.]*' | tail -1 | cut -d: -f2)
@@ -57,17 +59,17 @@ for t in ${*:-titles}; do
     sed "${first}s/damping: [0-9]*/damping: 5/" "$edit" > "$OUT/$t-edit/edit.tsx"
     esnaps=""
     for f in $frames; do esnaps="$esnaps --snapshot $(at $f) $OUT/$t-eplay-$f.png"; done
-    RAEA_BAKE_FROM="$PWD/$edit" RAEA_AUDIO_MUTE=1 target/release/raea-motion play "$OUT/$t-edit/edit.tsx" --baked --offscreen --seconds "$last" $esnaps > "$OUT/$t-edit.log" 2>&1 || { echo "$t: the incremental play failed (see $OUT/$t-edit.log)"; status=1; continue; }
+    RAEA_BAKE_FROM="$PWD/$edit" RAEA_AUDIO_MUTE=1 target/release/raea play "$OUT/$t-edit/edit.tsx" --baked --offscreen --seconds "$last" $esnaps > "$OUT/$t-edit.log" 2>&1 || { echo "$t: the incremental play failed (see $OUT/$t-edit.log)"; status=1; continue; }
     inc=$(grep -o "raea bake: incremental, [0-9]* of [0-9]* frames stepped, [0-9]* ms" "$OUT/$t-edit.log" | sed "s/raea bake: incremental, //")
     eworst=1
     eline=""
     for f in $frames; do
-      RAEA_READBACK=rgba target/release/raea-motion render "$OUT/$t-edit/edit.tsx" -o "$OUT/$t-erender-$f.png" --frame "$f" > /dev/null 2>&1
+      RAEA_READBACK=rgba target/release/raea render "$OUT/$t-edit/edit.tsx" -o "$OUT/$t-erender-$f.png" --frame "$f" > /dev/null 2>&1
       s=$(ffmpeg -v error -i "$OUT/$t-erender-$f.png" -i "$OUT/$t-eplay-$f.png" -filter_complex "[0]format=rgb24[a];[1]format=rgb24[b];[a][b]ssim=stats_file=-" -f null - 2>&1 | grep -o 'All:[0-9.]*' | tail -1 | cut -d: -f2)
       eline="$eline $f:$s"
       eworst=$(minf "$eworst" "$s")
     done
-    RAEA_BAKE_FROM="$PWD/$edit" RAEA_AUDIO_MUTE=1 target/release/raea-motion play "$OUT/$t-edit/edit.tsx" --baked --offscreen --scrub 60 > "$OUT/$t-escrub.log" 2>&1 && scrub=ok || scrub=failed
+    RAEA_BAKE_FROM="$PWD/$edit" RAEA_AUDIO_MUTE=1 target/release/raea play "$OUT/$t-edit/edit.tsx" --baked --offscreen --scrub 60 > "$OUT/$t-escrub.log" 2>&1 && scrub=ok || scrub=failed
     eok=$(passf "$eworst" "$([ "$scrub" = ok ] && [ -n "$inc" ] && echo 1)")
     [ "$eok" = PASS ] || status=1
     echo "$t, edited: $eok  baked from the bake before ($inc), render vs play:$eline (worst $eworst); scrub $scrub"

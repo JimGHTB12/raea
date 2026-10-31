@@ -1,0 +1,1 @@
+{ "1": { "keys": [], "gamepads": [{ "buttons": [], "axes": { "LeftStickX": 1 } }] }, "2": { "keys": ["Pad0:LeftStickX=1"] }, "3": { "keys": ["Pad0:LeftStickX=1", "Pad0:South"] } }

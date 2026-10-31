@@ -18,7 +18,7 @@ wasmtime = { version = "48.0.5", default-features = false, features = ["runtime"
 wasmtime-wasi = { version = "48.0.5", default-features = false, features = ["p1"] }
 serde_json = "1"
 # the one native-call layer (its registry; no V8 here): the sandbox's commands as wsx.* calls
-raea-native = { path = "../../native" }
+raea-core-calls = { path = "../../../core/calls" }
 [profile.release]
 lto = true
 codegen-units = 1

@@ -1,11 +1,11 @@
-// A game with sound (@raea/motion/tone): a ball run by a state machine (sdk/motion/src/machine.ts), its landings firing a
+// A game with sound (raea/tone): a ball run by a state machine (sdk/raea/src/machine.ts), its landings firing a
 // MembraneSynth one-shot on their exact frame (<Sfx>: seeded pitch and volume variation, at most 4 voices, the oldest
 // stolen), a coin every 45th frame (an SAO sound, made once, round-robin over two pitches); a Tone music bed on the
 // music bus, ducked 12 dB under a voice line on the voice bus (voice.wav, made by the check: `say`, not committed).
 // The render's bounce and a play's tap must be the same samples (sdk/react/bench/tone/check.sh).
-import { AbsoluteFill, Audio, Composition, Mix, Sequence, machine, registerRoot, staticFile, useCurrentFrame, useGameEvents, useGameState } from "@raea/motion";
-import type { Snapshot } from "@raea/motion/machine";
-import * as Tone from "@raea/motion/tone";
+import { AbsoluteFill, Audio, Composition, Mix, Sequence, machine, registerRoot, staticFile, useCurrentFrame, useGameEvents, useGameState } from "raea";
+import type { Snapshot } from "raea/machine";
+import * as Tone from "raea/tone";
 
 const FLOOR = 300;
 

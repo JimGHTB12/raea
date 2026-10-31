@@ -1,0 +1,17 @@
+area = "live"
+title = "as messages arrive the transcript scrolls (following the newest) rather than squashing them"
+space = "feed"
+window = [1180, 820]
+timeout_ms = 5000
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+snap = "open"
+[[steps]]
+repeat = { times = 14, steps = [{ input = { type = "click", at = "chat.composer" } }, { input = { type = "keys", text = "arrival {i} with enough words to wrap a line or two in the chat" } }, { input = { type = "press", key = "Enter" } }, { wait = { id = "chat.message.*", text_contains = "arrival {i} with", count = 2 } }] }
+[[steps]]
+expect = { all = [{ id = "chat.transcript", field = "scroll.max", gt = 0 }, { id = "chat.transcript", field = "scroll.top", eq_field = "scroll.max" }, { id = "chat.message.*", field = "rect.h", ge = 16, quant = "all" }, { id = "chat.transcript", field = "rect", eq_snap = { snap = "open", id = "chat.transcript", field = "rect" } }, { id = "chat.composer", visible = true }] }

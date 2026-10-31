@@ -1,5 +1,5 @@
 import { Bash } from "just-bash/browser";
-import { print } from "@raea/motion/native";
+import { print } from "raea/native";
 export default async function main() {
   const bash = new Bash({ files: { "/data/a.txt": "banana\napple\ncherry\napple\n" } });
   const cmds = [

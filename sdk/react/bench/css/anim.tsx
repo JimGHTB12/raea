@@ -1,7 +1,7 @@
 // CSS animations and transitions in a composition (sdk/react/bench/css/check.sh): A runs from 0, B from its <Sequence>s
 // start (frame 10), C transitions when its style changes at frame 1. A frame alone and the same frame in a render agree
 // for A and B.
-import { AbsoluteFill, Composition, Sequence, registerRoot, useCurrentFrame } from "@raea/motion";
+import { AbsoluteFill, Composition, Sequence, registerRoot, useCurrentFrame } from "raea";
 const CSS = `@keyframes slide { from { transform: translateX(0px) } to { transform: translateX(600px) } }
 .k { animation: slide 1s linear forwards }
 .t { transition: transform 1s linear }`;

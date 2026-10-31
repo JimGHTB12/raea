@@ -1,0 +1,28 @@
+[package]
+name = "raea-io-media"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's media plane under one name: the backends compiled in (ffmpeg, portable software, Apple hardware, AV1), each encoder signing what it finishes"
+
+[features]
+default = ["soft", "av1", "apple"]
+# b: portable software, no ffmpeg: openh264 (H.264), MP4 demux/mux in Rust, Symphonia (audio decode), Opus encode
+soft = ["soft-audio", "h264"]
+# soft without H.264: audio decode, Opus, MP4 demux and mux (an exported game's player: lightspeed R7)
+soft-audio = ["dep:raea-io-soft"]
+h264 = ["soft-audio", "raea-io-soft/h264"]
+# d: royalty-free AV1: dav1d decode, rav1e encode
+av1 = ["dep:raea-io-av1"]
+# c: platform hardware on Apple (AVFoundation / VideoToolbox); other platforms slot in behind the same trait
+apple = ["dep:raea-io-apple"]
+
+[dependencies]
+raea-io-codec = { path = "../codec" }
+raea-io-ffmpeg = { path = "../ffmpeg" }
+raea-io-soft = { path = "../soft", optional = true }
+raea-io-av1 = { path = "../av1", optional = true }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+raea-io-apple = { path = "../apple", optional = true }

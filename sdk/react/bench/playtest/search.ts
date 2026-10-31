@@ -1,7 +1,7 @@
 // Tier (i) playtesters (sdk/react/docs/playtest.md): bots with no model that step a game's pure fold headlessly. States are
 // values, so any state a bot has seen can be restored and searched from; every run is an input timeline that
-// `raea-motion render --input` replays as the same frames. Deterministic: a seeded RNG, no clocks.
-import type { Playtest } from "../../../motion/src/games";
+// `raea render --input` replays as the same frames. Deterministic: a seeded RNG, no clocks.
+import type { Playtest } from "raea/games";
 import type { MachineTrace } from "./machines";
 
 export type Act = { a: number; hold: number };

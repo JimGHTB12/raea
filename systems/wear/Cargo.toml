@@ -1,0 +1,14 @@
+[package]
+name = "raea-sys-wear"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Worn surfaces: the standard material with chipped edges, grime, rust streaks and mottled paint over it, its noise in the mesh's own space so the wear stays on a moving part"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_pbr"] }
+# a mesh row's values
+raea-core-program = { path = "../../core/program" }
+# a material's `wear` prop, as the SDK sends it
+serde_json = "1"

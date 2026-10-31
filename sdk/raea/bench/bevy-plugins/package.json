@@ -1,0 +1,1433 @@
+{
+  "name": "raea-bevy-plugins-bench",
+  "private": true,
+  "description": "The Bevy plugins raea builds in (sdk/raea/docs/bevy-plugins.md): Bevy's optional features and the ecosystem plugins game developers and animators use, each declared once for tools/bevy-plugins.sh, typed into sdk/plugins/src (raea/plugins/<name>) and proved headless by run.sh",
+  "raea": {
+      "generated": "../../../plugins/src",
+      "plugins": {
+        "avian": {
+          "crate": "avian3d",
+          "types": ["avian3d::", "bevy_transform_interpolation::"],
+          "versions": {
+            "0.19": "=0.7.0",
+            "0.20": "=0.8.0"
+          },
+          "features": {
+            "0.19": [
+              "3d",
+              "f32",
+              "parry-f32",
+              "xpbd_joints",
+              "collider-from-mesh"
+            ],
+            "0.20": [
+              "3d",
+              "parry-f32",
+              "xpbd_joints",
+              "collider-from-mesh"
+            ]
+          },
+          "plugin": "avian3d::prelude::PhysicsPlugins::default()",
+          "calls": "avian",
+          "headless": [
+            "assets",
+            "mesh"
+          ],
+          "note": "parallel stays off: with it, render and play sum the solver in different orders"
+        },
+        "hanabi": {
+          "crate": "bevy_hanabi",
+          "proof": "draws GPU particles: needs the renderer's AssetServer and compute shaders",
+          "versions": {
+            "0.19": "=0.19.0",
+            "0.20": {
+              "git": "https://github.com/djeedai/bevy_hanabi",
+              "rev": "77630ff1eed8b104f34e91d23e9440428dc5ab01"
+            }
+          },
+          "features": [
+            "3d"
+          ],
+          "adapter": "hanabi",
+          "deps": {
+            "rand_pcg": {
+              "version": "0.10"
+            }
+          },
+          "types": [
+            "bevy_hanabi::",
+            "raea_bevy_plugins::hanabi::"
+          ]
+        },
+        "tweening": {
+          "crate": "bevy_tweening",
+          "versions": {
+            "0.19": "=0.16.0",
+            "0.20": {
+              "git": "https://github.com/djeedai/bevy_tweening",
+              "rev": "2341b0c3e4d18cc11825ba2d7cd6c5f6f41f4152"
+            }
+          },
+          "features": ["bevy_sprite", "bevy_ui", "bevy_text"],
+          "plugin": "bevy_tweening::TweeningPlugin",
+          "calls": "tweening"
+        },
+        "lightyear": {
+          "crate": "lightyear",
+          "versions": {
+            "0.19": "=0.30.1",
+            "0.20": "=0.31.0"
+          },
+          "features": [
+            "std",
+            "client",
+            "server",
+            "replication",
+            "prediction",
+            "crossbeam",
+            "input_native",
+            "raw_connection"
+          ],
+          "deps": {
+            "lightyear_core": {
+              "versions": {
+                "0.19": "=0.30.1",
+                "0.20": "=0.31.0"
+              },
+              "features": [
+                "test_utils"
+              ]
+            },
+            "mock_instant": {
+              "version": "0.6"
+            }
+          },
+          "adapter": "lightyear",
+          "onDemand": true,
+          "types": [
+            "lightyear",
+            "bevy_replicon::",
+            "raea_bevy_plugins::lightyear::",
+            "aeronet_io::"
+          ]
+        },
+        "remote": {
+          "crate": "bevy_remote",
+          "versions": {
+            "0.19": "=0.19.1",
+            "0.20": "=0.20.0"
+          },
+          "features": [
+            "http"
+          ],
+          "builtin": true,
+          "note": "the call bridge and the dev tool: BRP's method table in every plugin App, its HTTP server when an App asks to be served"
+        },
+        "bevy": {
+          "crate": "bevy",
+          "builtin": true,
+          "versions": {
+            "0.19": "=0.19.1",
+            "0.20": "=0.20.0"
+          },
+          "adapter": "bevy",
+          "headless": ["assets", "mesh", "image", "input", "primary-window", "picking"],
+          "features": {
+            "0.19": [
+              "bevy_gilrs",
+              "gamepad",
+              "area_light_luts",
+              "experimental_pbr_pcss",
+              "dfg_lut",
+              "smaa_luts",
+              "tonemapping_luts",
+              "bluenoise_texture",
+              "bevy_gizmos",
+              "bevy_gizmos_render",
+              "bevy_dev_tools",
+              "debug",
+              "bevy_ui_debug",
+              "file_watcher",
+              "embedded_watcher",
+              "asset_processor",
+              "png",
+              "jpeg",
+              "ktx2",
+              "zstd_rust",
+              "basis-universal",
+              "exr",
+              "hdr",
+              "webp",
+              "dds",
+              "tga",
+              "bmp",
+              "gif",
+              "ico",
+              "qoi",
+              "pnm",
+              "tiff",
+              "compressed_image_saver",
+              "picking",
+              "bevy_picking",
+              "mesh_picking",
+              "sprite_picking",
+              "ui_picking",
+              "meshlet",
+              "meshlet_processor",
+              "bevy_solari",
+              "bevy_animation",
+              "gltf_animation",
+              "morph",
+              "morph_animation",
+              "bevy_gltf",
+              "bevy_sprite",
+              "bevy_sprite_render",
+              "2d_bevy_render",
+              "3d_bevy_render",
+              "ui_bevy_render",
+              "bevy_ui_widgets",
+              "bevy_feathers",
+              "bevy_input_focus",
+              "bevy_camera_controller",
+              "free_camera",
+              "pan_camera",
+              "bevy_text",
+              "system_font_discovery",
+              "scene",
+              "bevy_state",
+              "serialize",
+              "reflect_functions",
+              "reflect_documentation",
+              "sysinfo_plugin",
+              "bevy_clipboard",
+              "system_clipboard",
+              "clipboard_image",
+              "ghost_nodes",
+              "bevy_settings",
+              "shader_format_spirv",
+              "bevy_debug_stepping",
+              "bevy_world_serialization",
+              "bevy_audio",
+              "mp3",
+              "flac",
+              "vorbis",
+              "wav",
+              "aac",
+              "mp4",
+              "http",
+              "https",
+              "web_asset_cache",
+              "shader_format_glsl",
+              "shader_format_wesl"
+            ],
+            "0.20": [
+              "bevy_gilrs",
+              "gamepad",
+              "area_light_luts",
+              "experimental_pbr_pcss",
+              "dfg_lut",
+              "smaa_luts",
+              "tonemapping_luts",
+              "bluenoise_texture",
+              "bevy_gizmos",
+              "bevy_gizmos_render",
+              "bevy_dev_tools",
+              "debug",
+              "bevy_ui_debug",
+              "file_watcher",
+              "embedded_watcher",
+              "asset_processor",
+              "png",
+              "jpeg",
+              "ktx2",
+              "zstd_rust",
+              "basis-universal",
+              "exr",
+              "hdr",
+              "webp",
+              "dds",
+              "tga",
+              "bmp",
+              "gif",
+              "ico",
+              "qoi",
+              "pnm",
+              "tiff",
+              "compressed_image_saver",
+              "picking",
+              "bevy_picking",
+              "mesh_picking",
+              "sprite_picking",
+              "ui_picking",
+              "meshlet",
+              "meshlet_processor",
+              "bevy_solari",
+              "bevy_animation",
+              "gltf_animation",
+              "morph",
+              "morph_animation",
+              "bevy_gltf",
+              "bevy_sprite",
+              "bevy_sprite_render",
+              "2d_bevy_render",
+              "3d_bevy_render",
+              "ui_bevy_render",
+              "bevy_ui_widgets",
+              "bevy_feathers",
+              "custom_cursor",
+              "bevy_input_focus",
+              "bevy_camera_controller",
+              "free_camera",
+              "pan_camera",
+              "bevy_text",
+              "system_font_discovery",
+              "scene",
+              "bevy_state",
+              "serialize",
+              "reflect_functions",
+              "reflect_documentation",
+              "sysinfo_plugin",
+              "bevy_clipboard",
+              "system_clipboard",
+              "clipboard_image",
+              "ghost_nodes",
+              "bevy_settings",
+              "shader_format_spirv",
+              "bevy_debug_stepping",
+              "bevy_world_serialization",
+              "bevy_audio",
+              "mp3",
+              "flac",
+              "vorbis",
+              "wav",
+              "aac",
+              "mp4",
+              "http",
+              "https",
+              "web_asset_cache",
+              "bevy_curve",
+              "complex_script_segmentation",
+              "compressed_image_saver_universal",
+              "pan_orbit_camera",
+              "pan_orbit_gizmo",
+              "render_dev_tools"
+            ]
+          },
+          "types": [
+            "bevy_gilrs::",
+            "bevy_input::",
+            "bevy_picking::",
+            "bevy_gizmos::",
+            "bevy_dev_tools::",
+            "bevy_audio::",
+            "bevy_camera_controller::",
+            "bevy_feathers::",
+            "bevy_ui_widgets::",
+            "bevy_input_focus::",
+            "bevy_light::",
+            "bevy_solari::",
+            "bevy_pbr::",
+            "bevy_a11y::",
+            "bevy_animation::",
+            "bevy_anti_alias::",
+            "bevy_app::",
+            "bevy_asset::",
+            "bevy_camera::",
+            "bevy_core_pipeline::",
+            "bevy_ecs::",
+            "bevy_gizmos_render::",
+            "bevy_gltf::",
+            "bevy_image::",
+            "bevy_mesh::",
+            "bevy_post_process::",
+            "bevy_render::",
+            "bevy_scene::",
+            "bevy_sprite::",
+            "bevy_sprite_render::",
+            "bevy_text::",
+            "bevy_time::",
+            "bevy_transform::",
+            "bevy_ui::",
+            "bevy_ui_render::",
+            "bevy_window::",
+            "bevy_world_serialization::"
+          ],
+          "deps": {
+            "symphonia": {
+              "version": "0.5",
+              "features": [
+                "vorbis",
+                "ogg",
+                "pcm",
+                "adpcm",
+                "alac",
+                "aiff",
+                "caf"
+              ]
+            }
+          },
+          "note": "Bevy's optional features for games and animation, behind the cargo feature bevy: only the plugin build gets them. shader_format_glsl and shader_format_wesl are gone in 0.20. custom_cursor is on for 0.20: bevy_feathers turns on bevy_window's half through bevy_picking, and hanabi's x11 brings bevy_winit, which fails to compile without its half. bevy_audio plays to the device, not into raea's mixer, so the engine leaves its AudioPlugin out (a TypeScript App can open it: plugins [\"bevy_audio\"]); symphonia's vorbis/ogg/alac/aiff join raea-media's decoders (raea's audio path) by feature unification. Left off: dlss (NVIDIA), hotpatching and dynamic_linking (dev builds), trace_* (profiling builds), webgl2/webgpu/web (wasm), x11/wayland/winit (raea draws headless), glam_assert (glam features broke 0.20 once), and the pbr_*_textures (transmission, multi_layer_material, anisotropy, specular, clustered_decals, light): each adds texture and sampler bindings to StandardMaterial, and on Metal, where bindless is off, its opaque pipeline then needs 24 samplers against the limit of 16, so the layout is invalid and the 3D pass draws nothing (10-24, P26 build/physics blank); turn them on only on a device with bindless. vox leaves its pbr_transmission_textures off for the same reason"
+        },
+        "leafwing": {
+          "crate": "leafwing-input-manager",
+          "versions": {
+            "0.19": "=0.21.0",
+            "0.20": "=0.22.0"
+          },
+          "features": [
+            "asset",
+            "mouse",
+            "keyboard",
+            "gamepad",
+            "picking"
+          ],
+          "adapter": "leafwing",
+          "headless": [
+            "input"
+          ],
+          "types": [
+            "leafwing_input_manager::",
+            "raea_bevy_plugins::leafwing::"
+          ]
+        },
+        "enhanced_input": {
+          "crate": "bevy_enhanced_input",
+          "versions": {
+            "0.19": "=0.26.0",
+            "0.20": "=0.27.0"
+          },
+          "features": [
+            "reflect",
+            "state",
+            "serialize"
+          ],
+          "adapter": "enhanced_input",
+          "headless": [
+            "input"
+          ],
+          "types": [
+            "bevy_enhanced_input::",
+            "raea_bevy_plugins::enhanced_input::"
+          ]
+        },
+        "tnua": {
+          "crate": "bevy-tnua",
+          "versions": {
+            "0.19": "=0.32.0",
+            "0.20": "=0.33.0"
+          },
+          "deps": {
+            "bevy-tnua-avian3d": {
+              "versions": {
+                "0.19": "=0.12.1",
+                "0.20": "=0.13.0"
+              },
+              "features": []
+            }
+          },
+          "needs": [
+            "avian"
+          ],
+          "adapter": "tnua",
+          "headless": [
+            "assets",
+            "mesh"
+          ],
+          "types": [
+            "bevy_tnua",
+            "raea_bevy_plugins::tnua::"
+          ]
+        },
+        "avian2d": {
+          "crate": "avian2d",
+          "types": ["avian2d::"],
+          "versions": {
+            "0.19": "=0.7.0",
+            "0.20": "=0.8.0"
+          },
+          "features": {
+            "0.19": [
+              "2d",
+              "f32",
+              "parry-f32",
+              "default-collider",
+              "xpbd_joints"
+            ],
+            "0.20": [
+              "2d",
+              "parry-f32",
+              "default-collider",
+              "xpbd_joints"
+            ]
+          },
+          "plugin": "avian2d::prelude::PhysicsPlugins::default()",
+          "onDemand": true,
+          "note": "onDemand: avian2d and avian3d both add bevy_transform_interpolation's TransformInterpolationPlugin, which Bevy refuses twice in one App; a game picks one physics, so only an App that names avian2d gets it"
+        },
+        "rapier3d": {
+          "crate": "bevy_rapier3d",
+          "versions": {
+            "0.19": "=0.36.0",
+            "0.20": "=0.37.0"
+          },
+          "features": [
+            "dim3",
+            "async-collider",
+            "to-bevy-mesh",
+            "debug-render-3d"
+          ],
+          "plugin": "bevy_rapier3d::prelude::RapierPhysicsPlugin::<bevy_rapier3d::prelude::NoUserData>::default()",
+          "adapter": "rapier3d",
+          "types": ["bevy_rapier3d::", "raea_bevy_adapters::rapier3d::"]
+        },
+        "rapier2d": {
+          "crate": "bevy_rapier2d",
+          "versions": {
+            "0.19": "=0.36.0",
+            "0.20": "=0.37.0"
+          },
+          "features": [
+            "dim2",
+            "async-collider",
+            "to-bevy-mesh",
+            "debug-render-2d"
+          ],
+          "plugin": "bevy_rapier2d::prelude::RapierPhysicsPlugin::<bevy_rapier2d::prelude::NoUserData>::default()",
+          "adapter": "rapier2d",
+          "types": ["bevy_rapier2d::", "raea_bevy_adapters::rapier2d::"]
+        },
+        "avian_pickup": {
+          "crate": "avian_pickup",
+          "versions": {
+            "0.19": "=0.6.0",
+            "0.20": null
+          },
+          "verdict": "blocked: avian_pickup 0.6.0, its latest, is on bevy ^0.19.0 (crates.io index, checked 10-28)",
+          "plugin": "avian_pickup::prelude::AvianPickupPlugin::default()",
+          "needs": [
+            "avian"
+          ]
+        },
+        "ahoy": {
+          "crate": "bevy_ahoy",
+          "versions": {
+            "0.19": "=0.2.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_ahoy 0.2.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "plugin": "bevy_ahoy::AhoyPlugins::default()",
+          "needs": [
+            "avian"
+          ]
+        },
+        "fps_controller": {
+          "crate": "bevy_fps_controller",
+          "versions": {
+            "0.19": "=19.0.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_fps_controller 19.0.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "plugin": "bevy_fps_controller::controller::FpsControllerPlugin",
+          "needs": [
+            "avian"
+          ],
+          "features": [
+            "avian"
+          ]
+        },
+        "tilemap": {
+          "crate": "bevy_ecs_tilemap",
+          "proof": "draws tilemaps: needs the renderer's AssetServer and shaders",
+          "versions": {
+            "0.19": "=0.19.0",
+            "0.20": "=0.20.0"
+          },
+          "features": [
+            "render"
+          ],
+          "plugin": "bevy_ecs_tilemap::TilemapPlugin",
+          "adapter": "tilemap",
+          "types": ["bevy_ecs_tilemap::"]
+        },
+        "ldtk": {
+          "crate": "bevy_ecs_ldtk",
+          "versions": {
+            "0.19": "=0.15.0",
+            "0.20": "=0.16.0"
+          },
+          "features": [
+            "render",
+            "internal_levels",
+            "derive"
+          ],
+          "plugin": "bevy_ecs_ldtk::LdtkPlugin",
+          "adapter": "ldtk",
+          "types": ["bevy_ecs_ldtk::", "raea_bevy_adapters::ldtk::"],
+          "proof": "draws LDtk levels through tilemap: needs the renderer",
+          "needs": [
+            "tilemap"
+          ]
+        },
+        "tiled": {
+          "crate": "bevy_ecs_tiled",
+          "proof": "draws Tiled maps: loads them through the renderer's AssetServer",
+          "versions": {
+            "0.19": "=0.13.4",
+            "0.20": "=0.14.0"
+          },
+          "features": [
+            "render",
+            "png",
+            "user_properties"
+          ],
+          "plugin": "bevy_ecs_tiled::prelude::TiledPlugin(bevy_ecs_tiled::prelude::TiledPluginConfig { tiled_types_export_file: None, ..Default::default() })",
+          "needs": [
+            "tilemap"
+          ],
+          "note": "the types export off: by default TiledPlugin writes tiled_types_export.json into the working directory at startup, and walking every plugin's reflected types overflows a task-pool stack"
+        },
+        "simple_tilemap": {
+          "crate": "bevy_simple_tilemap",
+          "versions": {
+            "0.19": "=0.20.0",
+            "0.20": "=0.21.0"
+          },
+          "plugin": "bevy_simple_tilemap::prelude::SimpleTileMapPlugin",
+          "calls": "simple_tilemap",
+          "headless": [
+            "shader",
+            "image"
+          ]
+        },
+        "common_assets": {
+          "crate": "bevy_common_assets",
+          "versions": {
+            "0.19": "=0.17.0",
+            "0.20": "=0.18.0"
+          },
+          "features": [
+            "json",
+            "ron",
+            "toml",
+            "yaml",
+            "csv",
+            "msgpack",
+            "xml",
+            "postcard",
+            "cbor"
+          ],
+          "adapter": "common_assets",
+          "headless": [
+            "assets"
+          ],
+          "types": [
+            "bevy_common_assets::",
+            "raea_bevy_plugins::common_assets::"
+          ]
+        },
+        "embedded_assets": {
+          "crate": "bevy_embedded_assets",
+          "versions": {
+            "0.19": "=0.16.0",
+            "0.20": null
+          },
+          "verdict": "replaced: 0.17.0 is on bevy 0.20 (crates.io, 10-28), but its build script embeds one game's asset folder at compile time (BEVY_ASSET_PATH) and fails without one; raea's shared binary has none, and raea's own media rows and asset paths do the loading",
+          "features": [
+            "default-source"
+          ],
+          "library": true
+        },
+        "obj": {
+          "crate": "bevy_obj",
+          "versions": {
+            "0.19": "=0.19.0",
+            "0.20": "=0.20.0"
+          },
+          "features": [
+            "mesh",
+            "scene"
+          ],
+          "plugin": "bevy_obj::ObjPlugin",
+          "headless": ["assets", "mesh", "pbr"]
+        },
+        "asset_loader": {
+          "crate": "bevy_asset_loader",
+          "versions": {
+            "0.19": "=0.27.0",
+            "0.20": "=0.28.1"
+          },
+          "library": true
+        },
+        "progress": {
+          "crate": "iyes_progress",
+          "versions": {
+            "0.19": "=0.17.0",
+            "0.20": "=0.18.0"
+          },
+          "library": true
+        },
+        "save": {
+          "crate": "moonshine-save",
+          "versions": {
+            "0.19": "=0.7.0",
+            "0.20": "=0.8.0"
+          },
+          "library": true
+        },
+        "svg": {
+          "crate": "bevy_svg",
+          "versions": {
+            "0.19": "=0.19.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_svg 0.19.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "features": [
+            "2d",
+            "3d"
+          ],
+          "plugin": "bevy_svg::SvgPlugin"
+        },
+        "vox": {
+          "crate": "bevy_vox_scene",
+          "types": ["bevy_vox_scene::", "flipbook::"],
+          "headless": ["assets", "mesh", "image", "pbr", "scene"],
+          "versions": {
+            "0.19": "=0.22.0",
+            "0.20": "=0.23.0"
+          },
+          "features": [
+            "modify_voxels",
+            "generate_voxels"
+          ],
+          "plugin": "bevy_vox_scene::VoxScenePlugin::default()"
+        },
+        "aseprite": {
+          "crate": "bevy_aseprite_ultra",
+          "proof": "draws sprites: the render case bevy-ts/cases/plugin-aseprite.tsx (an .aseprite's two frames played)",
+          "versions": {
+            "0.19": "=0.9.0",
+            "0.20": "=0.10.0"
+          },
+          "features": [
+            "3d"
+          ],
+          "plugin": "bevy_aseprite_ultra::AsepriteUltraPlugin",
+          "reflect": {
+            "components": [
+              "bevy_aseprite_ultra::prelude::AseAnimation",
+              "bevy_aseprite_ultra::prelude::AnimationState",
+              "bevy_aseprite_ultra::prelude::AseSlice"
+            ],
+            "messages": [
+              "bevy_aseprite_ultra::prelude::AnimationEvents"
+            ]
+          }
+        },
+        "egui": {
+          "crate": "bevy_egui",
+          "versions": {
+            "0.19": "=0.42.0",
+            "0.20": "=0.43.1"
+          },
+          "features": [
+            "render",
+            "default_fonts",
+            "bevy_ui",
+            "picking"
+          ],
+          "plugin": "bevy_egui::EguiPlugin::default()",
+          "calls": "egui",
+          "headless": ["shader", "image", "input", "window"],
+          "reflect": {
+            "components": [
+              "bevy_egui::EguiContextSettings"
+            ],
+            "resources": [
+              "bevy_egui::EguiGlobalSettings"
+            ]
+          }
+        },
+        "inspector": {
+          "crate": "bevy-inspector-egui",
+          "versions": {
+            "0.19": "=0.37.0",
+            "0.20": "=0.38.0"
+          },
+          "features": [
+            "bevy_render",
+            "bevy_pbr",
+            "3d",
+            "2d",
+            "highlight_changes"
+          ],
+          "plugin": "bevy_inspector_egui::quick::WorldInspectorPlugin::new()",
+          "noCalls": "it is an editor over what the App already registers: the World Inspector draws every reflected type and resource, so its API is the registry and BRP's methods (world.query, world.insert_components), which every App answers; it has no types or functions of its own to call",
+          "onDemand": true,
+          "note": "onDemand: its World Inspector window draws over every frame of every App it joins, so only an App that names it gets it",
+          "needs": [
+            "egui"
+          ]
+        },
+        "debugdump": {
+          "crate": "bevy_mod_debugdump",
+          "versions": {
+            "0.19": "=0.16.0",
+            "0.20": "=0.17.0"
+          },
+          "library": true,
+          "calls": "debugdump"
+        },
+        "console": {
+          "crate": "bevy_console",
+          "versions": {
+            "0.19": "=0.18.0",
+            "0.20": "=0.19.0"
+          },
+          "features": [
+            "default-commands"
+          ],
+          "plugin": "bevy_console::ConsolePlugin",
+          "calls": "console",
+          "headless": ["shader", "image", "input", "window"],
+          "deps": {
+            "shlex": {
+              "version": "1"
+            }
+          },
+          "needs": [
+            "egui"
+          ]
+        },
+        "transform_gizmo": {
+          "crate": "transform-gizmo-bevy",
+          "versions": {
+            "0.19": "=0.11.0",
+            "0.20": null
+          },
+          "verdict": "blocked: transform-gizmo-bevy 0.11.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "features": [
+            "gizmo_picking_backend",
+            "mouse_interaction"
+          ],
+          "plugin": "transform_gizmo_bevy::TransformGizmoPlugin"
+        },
+        "skein": {
+          "crate": "bevy_skein",
+          "proof": "reads glTF extras: needs the glTF loader the render Engine has",
+          "versions": {
+            "0.19": "=0.6.0",
+            "0.20": "=0.7.0-rc.1"
+          },
+          "plugin": "bevy_skein::SkeinPlugin { handle_brp: false }",
+          "noCalls": "it applies a glTF's Blender extras as the components other crates register, as the glTF loads: a scene that loads a glTF made with Skein gets them with no call, and handle_brp is off because raea's bridge already serves BRP"
+        },
+        "outline": {
+          "crate": "bevy_mod_outline",
+          "versions": {
+            "0.19": "=0.13.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_mod_outline 0.13.0, its latest, is on bevy ^0.19.0 (crates.io index, checked 10-28)",
+          "features": [
+            "reflect"
+          ],
+          "plugin": "bevy_mod_outline::OutlinePlugin"
+        },
+        "vector_shapes": {
+          "crate": "bevy_vector_shapes",
+          "proof": "draws vector shapes: its shaders are embedded assets of the renderer",
+          "versions": {
+            "0.19": "=0.13.1",
+            "0.20": "=0.14.0"
+          },
+          "plugin": "bevy_vector_shapes::ShapePlugin::default()",
+          "reflect": {
+            "components": [
+              "bevy_vector_shapes::prelude::DiscComponent",
+              "bevy_vector_shapes::prelude::LineComponent",
+              "bevy_vector_shapes::prelude::RectangleComponent",
+              "bevy_vector_shapes::prelude::RegularPolygonComponent",
+              "bevy_vector_shapes::prelude::TriangleComponent",
+              "bevy_vector_shapes::prelude::ShapeMaterial",
+              "bevy_vector_shapes::prelude::ShapeFill",
+              "bevy_vector_shapes::prelude::Shape3d",
+              "bevy_vector_shapes::prelude::ShapeOrigin",
+              "bevy_vector_shapes::prelude::Canvas"
+            ]
+          }
+        },
+        "lyon": {
+          "crate": "bevy_prototype_lyon",
+          "versions": {
+            "0.19": "=0.17.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_prototype_lyon 0.17.0, its latest, is on bevy ^0.19.0 (crates.io index, checked 10-28)",
+          "plugin": "bevy_prototype_lyon::prelude::ShapePlugin"
+        },
+        "sprite3d": {
+          "crate": "bevy_sprite3d",
+          "versions": {
+            "0.19": "=9.0.0",
+            "0.20": "=10.1.0"
+          },
+          "plugin": "bevy_sprite3d::Sprite3dPlugin",
+          "calls": "sprite3d",
+          "types": ["bevy_sprite3d::", "raea_bevy_calls::sprite3d::"],
+          "headless": [
+            "image",
+            "mesh",
+            "pbr"
+          ]
+        },
+        "spritesheet": {
+          "crate": "bevy_spritesheet_animation",
+          "proof": "draws sprite sheets: loads them through the renderer's AssetServer",
+          "versions": {
+            "0.19": "=7.0.1",
+            "0.20": "=8.0.1"
+          },
+          "features": [
+            "3d"
+          ],
+          "adapter": "spritesheet",
+          "types": ["bevy_spritesheet_animation::", "raea_bevy_adapters::spritesheet::"]
+        },
+        "light_2d": {
+          "crate": "bevy_light_2d",
+          "proof": "draws 2D lights: its shaders are embedded assets of the renderer",
+          "versions": {
+            "0.19": "=0.10.0",
+            "0.20": "=0.11.0"
+          },
+          "plugin": "bevy_light_2d::prelude::Light2dPlugin",
+          "adapter": "light_2d",
+          "types": ["bevy_light_2d::", "raea_bevy_adapters::light_2d::"]
+        },
+        "text3d": {
+          "crate": "bevy_rich_text3d",
+          "proof": "draws 3D text meshes: loads fonts through the renderer's AssetServer",
+          "versions": {
+            "0.19": "=0.7.0",
+            "0.20": "=0.8.0"
+          },
+          "features": {
+            "0.19": [
+              "2d",
+              "3d",
+              "reflect"
+            ],
+            "0.20": [
+              "reflect"
+            ]
+          },
+          "adapter": "text3d",
+          "types": ["bevy_rich_text3d::", "raea_bevy_adapters::text3d::"]
+        },
+        "smud": {
+          "crate": "bevy_smud",
+          "versions": {
+            "0.19": "=0.14.0",
+            "0.20": "=0.15.0"
+          },
+          "plugin": "bevy_smud::SmudPlugin",
+          "headless": ["shader", "mesh"]
+        },
+        "mipmaps": {
+          "crate": "bevy_mod_mipmap_generator",
+          "versions": {
+            "0.19": "=0.2.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_mod_mipmap_generator 0.2.0, its latest, is on bevy ^0.19.0 (crates.io index, checked 10-28)",
+          "plugin": "bevy_mod_mipmap_generator::MipmapGeneratorPlugin"
+        },
+        "enoki": {
+          "crate": "bevy_enoki",
+          "proof": "draws particles: needs the renderer's shaders",
+          "versions": {
+            "0.19": "=0.7.0",
+            "0.20": "=0.8.0"
+          },
+          "plugin": "bevy_enoki::EnokiPlugin",
+          "adapter": "enoki",
+          "types": ["bevy_enoki::", "raea_bevy_adapters::enoki::"]
+        },
+        "firework": {
+          "crate": "bevy_firework",
+          "versions": {
+            "0.19": "=0.10.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_firework 0.10.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "plugin": "bevy_firework::plugin::ParticleSystemPlugin::default()"
+        },
+        "big_space": {
+          "crate": "big_space",
+          "versions": {
+            "0.19": "=0.13.0",
+            "0.20": "=0.14.0-rc.0"
+          },
+          "features": [
+            "std",
+            "camera"
+          ],
+          "plugin": "big_space::prelude::BigSpaceDefaultPlugins",
+          "headless": [
+            "own-transform",
+            "input"
+          ],
+          "onDemand": true,
+          "note": "onDemand: big_space replaces Bevy's TransformPlugin (it panics unless DefaultPlugins disable it), so only an App that names it gets it, and that App leaves TransformPlugin out"
+        },
+        "kira": {
+          "crate": "bevy_kira_audio",
+          "versions": {
+            "0.19": "=0.26.0",
+            "0.20": "=0.27.1"
+          },
+          "features": [
+            "ogg",
+            "mp3",
+            "flac",
+            "wav"
+          ],
+          "plugin": "bevy_kira_audio::AudioPlugin",
+          "onDemand": true,
+          "calls": "kira",
+          "headless": ["assets"]
+        },
+        "panorbit": {
+          "crate": "bevy_panorbit_camera",
+          "proof": "places a 3D camera: the render case bevy-ts/cases/plugin-panorbit.tsx (a headless App has no camera to move)",
+          "versions": {
+            "0.19": "=0.35.1",
+            "0.20": "=0.36.0"
+          },
+          "plugin": "bevy_panorbit_camera::PanOrbitCameraPlugin",
+          "reflect": { "defaults": ["bevy_panorbit_camera::PanOrbitCamera"] }
+        },
+        "pancam": {
+          "crate": "bevy_pancam",
+          "versions": {
+            "0.19": "=0.21.1",
+            "0.20": "=0.22.0"
+          },
+          "plugin": "bevy_pancam::PanCamPlugin",
+          "headless": ["input", "primary-window"],
+          "reflect": { "defaults": ["bevy_pancam::PanCam"] }
+        },
+        "editor_cam": {
+          "crate": "bevy_editor_cam",
+          "versions": {
+            "0.19": "=0.10.1",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_editor_cam 0.9.3, its latest, is on bevy ^0.18 (crates.io index, checked 10-28)",
+          "plugin": "bevy_editor_cam::DefaultEditorCamPlugins"
+        },
+        "lunex": {
+          "crate": "bevy_lunex",
+          "versions": {
+            "0.19": "=0.7.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_lunex 0.7.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "plugin": "bevy_lunex::UiLunexPlugins"
+        },
+        "hui": {
+          "crate": "bevy_hui",
+          "proof": "draws UI from templates loaded through the renderer's AssetServer",
+          "versions": {
+            "0.19": "=0.7.0",
+            "0.20": "=0.8.0"
+          },
+          "features": [
+            "picking"
+          ],
+          "plugin": "bevy_hui::prelude::HuiPlugin",
+          "reflect": {
+            "components": [
+              "bevy_hui::prelude::HtmlNode",
+              "bevy_hui::prelude::Tags",
+              "bevy_hui::prelude::TemplateProperties",
+              "bevy_hui::prelude::TemplateScope",
+              "bevy_hui::prelude::UiId",
+              "bevy_hui::prelude::UiTarget",
+              "bevy_hui::prelude::UiWatch",
+              "bevy_hui::prelude::OnUiPress",
+              "bevy_hui::prelude::OnUiSpawn",
+              "bevy_hui::prelude::OnUiEnter",
+              "bevy_hui::prelude::OnUiExit",
+              "bevy_hui::prelude::OnUiChange",
+              "bevy_hui::prelude::HtmlStyle",
+              "bevy_hui::prelude::InteractionTimer",
+              "bevy_hui::prelude::PressedTimer",
+              "bevy_hui::prelude::HoverTimer"
+            ]
+          }
+        },
+        "flair": {
+          "crate": "bevy_flair",
+          "proof": "draws particles: needs the renderer's AssetServer and shaders",
+          "versions": {
+            "0.19": "=0.8.1",
+            "0.20": "=0.9.0"
+          },
+          "features": [
+            "ghost_nodes"
+          ],
+          "plugin": "bevy_flair::FlairPlugin",
+          "types": [
+            "bevy_flair::",
+            "bevy_flair_core::",
+            "bevy_flair_style::"
+          ]
+        },
+        "text_input": {
+          "crate": "bevy_simple_text_input",
+          "versions": {
+            "0.19": "=0.15.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_simple_text_input 0.15.0, its latest, is on bevy ^0.19.0 (crates.io index, checked 10-28)",
+          "features": [
+            "std"
+          ],
+          "plugin": "bevy_simple_text_input::TextInputPlugin"
+        },
+        "ui_anchor": {
+          "crate": "bevy_ui_anchor",
+          "versions": {
+            "0.19": "=0.12.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_ui_anchor 0.12.0, its latest, is on bevy ^0.19.0 (crates.io index, checked 10-28)",
+          "plugin": "bevy_ui_anchor::AnchorUiPlugin::<bevy::prelude::Camera3d>::new()"
+        },
+        "navigator": {
+          "crate": "vleue_navigator",
+          "versions": {
+            "0.19": "=0.16.0",
+            "0.20": "=0.17.0"
+          },
+          "features": [
+            "debug-with-gizmos"
+          ],
+          "plugin": "vleue_navigator::prelude::VleueNavigatorPlugin",
+          "calls": "navigator",
+          "headless": ["assets", "mesh", "gizmos"]
+        },
+        "northstar": {
+          "crate": "bevy_northstar",
+          "versions": {
+            "0.19": "=0.7.0",
+            "0.20": "=0.8.0"
+          },
+          "features": [
+            "parallel"
+          ],
+          "plugin": "bevy_northstar::prelude::NorthstarPlugin::<bevy_northstar::prelude::OrdinalNeighborhood3d>::default()",
+          "calls": "northstar"
+        },
+        "tween": {
+          "crate": "bevy_tween",
+          "types": ["bevy_tween::", "bevy_time_runner::"],
+          "versions": {
+            "0.19": "=0.13.0",
+            "0.20": "=0.14.1"
+          },
+          "features": [
+            "bevy_asset",
+            "bevy_render",
+            "bevy_sprite",
+            "bevy_ui"
+          ],
+          "plugin": "bevy_tween::DefaultTweenPlugins::default()",
+          "adapter": "tween"
+        },
+        "easings": {
+          "crate": "bevy_easings",
+          "versions": {
+            "0.19": "=0.19.0",
+            "0.20": "=0.20.0"
+          },
+          "features": [
+            "render",
+            "sprite",
+            "ui",
+            "color"
+          ],
+          "plugin": "bevy_easings::EasingsPlugin::<()>::default()",
+          "adapter": "easings",
+          "types": ["bevy_easings::", "raea_bevy_adapters::easings::"]
+        },
+        "animation_graph": {
+          "crate": "bevy_animation_graph",
+          "versions": {
+            "0.19": "=0.11.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_animation_graph 0.11.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "plugin": "bevy_animation_graph::core::AnimationGraphPlugin"
+        },
+        "lookup_curve": {
+          "crate": "bevy_lookup_curve",
+          "versions": {
+            "0.19": "=0.12.0",
+            "0.20": "=0.13.0"
+          },
+          "features": [
+            "bevy_app",
+            "bevy_asset",
+            "bevy_reflect",
+            "ron",
+            "serialize"
+          ],
+          "plugin": "bevy_lookup_curve::LookupCurvePlugin",
+          "calls": "lookup_curve",
+          "headless": [
+            "assets"
+          ]
+        },
+        "ik": {
+          "crate": "bevy_mod_inverse_kinematics",
+          "versions": {
+            "0.19": "=0.12.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_mod_inverse_kinematics 0.12.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "plugin": "bevy_mod_inverse_kinematics::InverseKinematicsPlugin"
+        },
+        "trauma_shake": {
+          "crate": "bevy_trauma_shake",
+          "versions": {
+            "0.19": "=0.8.0",
+            "0.20": "=0.9.0"
+          },
+          "features": [
+            "events",
+            "commands",
+            "system_param"
+          ],
+          "plugin": "bevy_trauma_shake::TraumaPlugin",
+          "calls": "trauma_shake",
+          "reflect": {
+            "components": [
+              "bevy_trauma_shake::Shake",
+              "bevy_trauma_shake::ShakeSettings"
+            ]
+          }
+        },
+        "noise": {
+          "crate": "noise",
+          "versions": {
+            "0.19": "=0.9.0",
+            "0.20": "=0.9.0"
+          },
+          "features": [
+            "std"
+          ],
+          "library": true,
+          "calls": "noise",
+          "deps": {
+            "fastnoise-lite": {
+              "version": "=1.1.1",
+              "features": [
+                "std"
+              ]
+            }
+          }
+        },
+        "hexx": {
+          "crate": "hexx",
+          "versions": {
+            "0.19": "=0.25.0",
+            "0.20": null
+          },
+          "verdict": "blocked: hexx 0.25.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "features": [
+            "bevy",
+            "bevy_reflect",
+            "mesh",
+            "algorithms",
+            "grid"
+          ],
+          "library": true
+        },
+        "proc_gen": {
+          "crate": "bevy_ghx_proc_gen",
+          "versions": {
+            "0.19": "=0.9.0",
+            "0.20": "=0.10.0"
+          },
+          "features": [
+            "reflect",
+            "default-bundle-inserters"
+          ],
+          "library": true,
+          "types": [
+            "bevy_ghx_proc_gen::",
+            "ghx_proc_gen::",
+            "ghx_grid::",
+            "bevy_ghx_grid::"
+          ],
+          "reflect": {
+            "components": [
+              "bevy_ghx_proc_gen::proc_gen::generator::model::ModelInstance",
+              "bevy_ghx_proc_gen::proc_gen::generator::rules::ModelInfo",
+              "bevy_ghx_proc_gen::proc_gen::ghx_grid::cartesian::coordinates::CartesianPosition",
+              "bevy_ghx_proc_gen::proc_gen::ghx_grid::cartesian::coordinates::GridDelta",
+              "bevy_ghx_proc_gen::proc_gen::ghx_grid::cartesian::grid::CartesianGrid<bevy_ghx_proc_gen::proc_gen::ghx_grid::cartesian::coordinates::Cartesian3D>",
+              "bevy_ghx_proc_gen::proc_gen::ghx_grid::cartesian::grid::CartesianGrid<bevy_ghx_proc_gen::proc_gen::ghx_grid::cartesian::coordinates::Cartesian2D>"
+            ]
+          }
+        },
+        "noisy": {
+          "crate": "noisy_bevy",
+          "versions": {
+            "0.19": "=0.14.0",
+            "0.20": "=0.15.0"
+          },
+          "features": [
+            "cpu",
+            "gpu"
+          ],
+          "plugin": "noisy_bevy::NoisyShaderPlugin",
+          "calls": "noisy",
+          "headless": [
+            "shader"
+          ]
+        },
+        "rand": {
+          "crate": "bevy_rand",
+          "versions": {
+            "0.19": "=0.15.2",
+            "0.20": "=0.16.0"
+          },
+          "features": [
+            "std",
+            "wyrand",
+            "bevy_reflect",
+            "thread_local_entropy"
+          ],
+          "plugin": "bevy_rand::prelude::EntropyPlugin::<bevy_rand::prelude::WyRand>::default()",
+          "types": [
+            "bevy_rand::",
+            "bevy_prng::"
+          ]
+        },
+        "voxel_world": {
+          "crate": "bevy_voxel_world",
+          "versions": {
+            "0.19": "=0.17.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_voxel_world 0.17.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "plugin": "bevy_voxel_world::prelude::VoxelWorldPlugin::<bevy_voxel_world::prelude::DefaultWorld>::default()"
+        },
+        "renet": {
+          "crate": "bevy_renet",
+          "versions": {
+            "0.19": "=5.0.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_renet 5.0.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "features": [
+            "netcode"
+          ],
+          "plugin": "(bevy_renet::RenetServerPlugin, bevy_renet::RenetClientPlugin, bevy_renet::netcode::NetcodeServerPlugin, bevy_renet::netcode::NetcodeClientPlugin)",
+          "onDemand": true
+        },
+        "quinnet": {
+          "crate": "bevy_quinnet",
+          "versions": {
+            "0.19": "=0.21.0",
+            "0.20": "=0.22.0"
+          },
+          "features": [
+            "client",
+            "server",
+            "shared-client-id",
+            "recv_channels"
+          ],
+          "plugin": "(bevy_quinnet::server::QuinnetServerPlugin::default(), bevy_quinnet::client::QuinnetClientPlugin::default())",
+          "onDemand": true,
+          "calls": "quinnet"
+        },
+        "ggrs": {
+          "crate": "bevy_ggrs",
+          "versions": {
+            "0.19": "=0.22.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_ggrs 0.22.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "library": true
+        },
+        "http": {
+          "crate": "bevy_http_client",
+          "versions": {
+            "0.19": "=0.11.0",
+            "0.20": "=0.12.0"
+          },
+          "plugin": "bevy_http_client::HttpClientPlugin",
+          "calls": "http"
+        },
+        "yarn": {
+          "crate": "bevy_yarnspinner",
+          "versions": {
+            "0.19": "=0.9.0",
+            "0.20": null
+          },
+          "verdict": "blocked: bevy_yarnspinner 0.9.0, its latest, is on bevy ^0.19 (crates.io index, checked 10-28)",
+          "plugin": "bevy_yarnspinner::prelude::YarnSpinnerPlugin::with_yarn_sources(Vec::<bevy_yarnspinner::prelude::YarnFileSource>::new())"
+        },
+        "yoleck": {
+          "crate": "bevy-yoleck",
+          "versions": {
+            "0.19": "=0.33.0",
+            "0.20": "=0.34.0"
+          },
+          "features": [
+            "vpeol_3d",
+            "bevy_reflect"
+          ],
+          "library": true,
+          "needs": [
+            "egui"
+          ],
+          "reflect": {
+            "components": [
+              "bevy_yoleck::vpeol::VpeolOverrideDragPlane"
+            ],
+            "resources": [
+              "bevy_yoleck::vpeol::VpeolDragPlane"
+            ]
+          }
+        },
+        "trenchbroom": {
+          "crate": "bevy_trenchbroom",
+          "types": ["bevy_trenchbroom::", "bevy_materialize::"],
+          "versions": {
+            "0.19": "=0.14.0",
+            "0.20": "=0.15.0"
+          },
+          "features": [
+            "client"
+          ],
+          "plugin": "bevy_trenchbroom::TrenchBroomPlugins(bevy_trenchbroom::config::TrenchBroomConfig::new(\"raea\"))",
+          "headless": ["assets", "mesh", "shader", "image", "pbr"]
+        },
+        "swatch": {
+          "crate": "raea-bench-swatch",
+          "note": "a Blitz widget crate with no Bevy in it (docs/sdk.feature S8b): its tag is drawn in every page",
+          "versions": {
+            "0.20": { "path": "../../bench/bridge/swatch" }
+          },
+          "library": true,
+          "widgets": { "x-swatch": "raea_bench_swatch::Swatch::default()" },
+          "proof": "a page widget, not a Bevy plugin: drawn on a page, proved by bench/bridge/widget.tsx"
+        }
+      }
+  }
+}

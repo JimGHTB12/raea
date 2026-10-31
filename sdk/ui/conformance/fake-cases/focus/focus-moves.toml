@@ -1,0 +1,20 @@
+area = "focus"
+title = "a press in chat.composer takes the focus from feed.search, and the first key after it lands there"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+input = { type = "click", at = "feed.search" }
+[[steps]]
+wait = { id = "feed.search", focused = true }
+[[steps]]
+input = { type = "click", at = "chat.composer" }
+[[steps]]
+input = { type = "keys", text = "x" }
+[[steps]]
+expect = { all = [{ id = "chat.composer", focused = true }, { id = "feed.search", focused = false }, { id = "chat.composer", value = "x" }, { id = "feed.search", value = "" }] }

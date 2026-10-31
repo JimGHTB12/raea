@@ -1,0 +1,10 @@
+area = "focus"
+title = "a press in search focuses it, and only it"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "search", visible = true }
+[[steps]]
+input = { type = "click", at = "search" }
+[[steps]]
+expect = { all = [{ id = "search", focused = true }, { id = "*", focused = true, count = 1 }] }

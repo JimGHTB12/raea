@@ -1,10 +1,10 @@
 #!/bin/sh
-# TokenSynth (MIT code and weights: github.com/KyungsuKim42/tokensynth, huggingface.co/KyungsuKim/TokenSynth) for rdb's
+# TokenSynth (MIT code and weights: github.com/KyungsuKim42/tokensynth, huggingface.co/KyungsuKim/TokenSynth) for raea-render's
 # asset store: `make("tokensynth", timbre, seed, {midi, velocity, seconds, precision})` renders one note (torch on the CPU:
 # MPS is 6x slower and can't run DAC's decoder on long clips), cached as PCM by everything that decides the bytes.
 # convert.py then makes the smaller runtime run.py defaults to (weights-fp16/, 1.0 GB) and the Core ML models (coreml/).
 # Installs into $RAEA_TOKENSYNTH (default ~/.cache/raea-tokensynth), outside the repo, as SAO's lives in ~/.cache/raea-sao.
-# rdb runs this itself the first time a note is asked for and nothing is installed; `raea-motion setup-audio` runs it on
+# raea-render runs this itself the first time a note is asked for and nothing is installed; `raea setup-audio` runs it on
 # purpose.
 # Size: the model 713 MB, its unconditional twin 713 MB (text timbres need it), DAC 307 MB, CLAP 2.35 GB, three text
 # encoders laion-clap fetches (479 MB), and the venv (1.1 GB). Local only: no API model is called.

@@ -1,0 +1,3 @@
+bevy_rapier2d 0.37.0 ships no licence file of its own. Its Cargo.toml declares Apache-2.0, by Sébastien Crozet <developer@crozet.re>.
+
+---- Apache-2.0: the text is LICENSES/texts/Apache-2.0.txt ----

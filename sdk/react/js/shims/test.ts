@@ -1,6 +1,6 @@
 // The test API on raea's V8: what `bun:test` (and the vitest names the same suites use) offers, enough to run the
-// conformance suite and vendored packages' own tests inside the engine (raea-motion test). Tests register as files load;
-// raea-motion's test entry then calls __raeaTestRun(), which runs them in order and reports each line through print.
+// conformance suite and vendored packages' own tests inside the engine (raea test). Tests register as files load;
+// raea's test entry then calls __raeaTestRun(), which runs them in order and reports each line through print.
 
 type Fn = () => unknown | Promise<unknown>;
 interface Case {

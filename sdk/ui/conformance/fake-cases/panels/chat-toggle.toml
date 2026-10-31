@@ -1,0 +1,17 @@
+area = "panels"
+title = "toggling the chat reflows the middle within the budget: its rect and its cards' rects follow, no stale frame past it"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { all = [{ id = "header.toggle.chat", visible = true }, { id = "feed.card.0", visible = true }] }
+[[steps]]
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+expect = { all = [{ id = "chat", field = "visible", changed = true }, { id = "middle", field = "rect", changed = true }, { check = "inside", id = "feed.card.*", within = "middle", axis = "x" }, { check = "window", unchanged_since = "start" }] }
+hold = 10
+[[steps]]
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+expect = { all = [{ id = "middle", field = "rect", eq_snap = { snap = "start", id = "middle", field = "rect" } }, { id = "feed.card.0", field = "rect", eq_snap = { snap = "start", id = "feed.card.0", field = "rect" } }, { check = "window", unchanged_since = "start" }] }
+hold = 10

@@ -1,9 +1,9 @@
-// A Sampler filled by TokenSynth (@raea/motion/tone `tokensynth`): two root notes of "a warm upright bass" rendered
+// A Sampler filled by TokenSynth (raea/tone `tokensynth`): two root notes of "a warm upright bass" rendered
 // locally once (CPU), cached as PCM by their timbre, note, velocity, seed and device, normalised, and pitched between by
 // the Sampler; a bass line over a kick. Rendering makes the roots if they aren't made (tools/tokensynth/setup.sh); a
 // play only finds them. The render's bounce and a play's tap must be the same samples.
-import { AbsoluteFill, Composition, Mix, registerRoot } from "@raea/motion";
-import * as Tone from "@raea/motion/tone";
+import { AbsoluteFill, Composition, Mix, registerRoot } from "raea";
+import * as Tone from "raea/tone";
 
 Tone.getTransport().bpm.value = 96;
 const bass = new Tone.Sampler({ urls: Tone.tokensynth("a warm upright bass", ["C2", "C3"], { seconds: 1.5 }), release: 0.3 }).connect(Tone.buses.music);

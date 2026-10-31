@@ -1,0 +1,3 @@
+name = "hero"
+speed = 3.5
+tags = ["fast", "brave"]

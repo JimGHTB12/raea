@@ -1,0 +1,17 @@
+[package]
+name = "raea-app-media"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "`raea media|ffmpeg|ffprobe`: the agent's media work on raea-media (probe, stills, sheets, audio, loudness, motion, cuts, freezes, proxies, trims, concats), ffmpeg's command lines read as those verbs, and an HTML page's render and shots"
+
+[dependencies]
+raea-sys-frame = { path = "../../systems/frame" }
+raea-io-home = { path = "../../io/home" }
+raea-render = { path = "../../engine/render", default-features = false, features = ["native"] }
+# renders to files: RenderOpts, render, render_fed, render_file
+raea-runtime-encode = { path = "../../runtime/encode" }
+raea-io-media = { path = "../../io/media", default-features = false }
+raea-page = { path = "../../engine/page" }
+serde_json = "1"

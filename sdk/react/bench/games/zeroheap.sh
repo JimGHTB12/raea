@@ -3,14 +3,14 @@
 # live, held against their budgets (bench/games/zeroheap_budget.json). A game over its budget fails the gate: a change put
 # per-frame allocations back. The counts don't depend on load, so this runs under any load.
 #   sdk/react/bench/games/zeroheap.sh [--seconds S] [--update]
-# RAEA_MOTION_BIN: another raea-motion. --update writes the measured counts, plus the budget's margin, as the new budgets
+# RAEA_BIN: another raea. --update writes the measured counts, plus the budget's margin, as the new budgets
 # (after a change that lowers them).
 cd "$(dirname "$0")/../.."
 BUDGET=bench/games/zeroheap_budget.json
 GAMES="pong platformer arena3d"
 KEYS="ArrowRight,ArrowUp,ArrowLeft+ArrowUp,ArrowDown,"
 MARGIN=1.15
-MOTION=${RAEA_MOTION_BIN:-target/release/raea-motion}
+MOTION=${RAEA_BIN:-target/release/raea}
 SECS=20; UPDATE=0
 while [ $# -gt 0 ]; do
   case $1 in --seconds) SECS=$2; shift ;; --update) UPDATE=1 ;; esac

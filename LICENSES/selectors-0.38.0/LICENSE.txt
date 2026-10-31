@@ -1,0 +1,3 @@
+selectors 0.38.0 ships no licence file of its own. Its Cargo.toml declares MPL-2.0, by The Servo Project Developers.
+
+---- MPL-2.0: the text is LICENSES/texts/MPL-2.0.txt ----

@@ -1,7 +1,7 @@
 // LEDGE's playtest (sdk/react/docs/playtest.md): what clef-omni is shown of a bot's run (views), what it's asked (checks
 // in clef's own question types) and how a model-driven bot moves (a decision). Views are clean for taste and quality,
 // debug (edit.tsx's <Overlay>s drawn) for diagnosis. `bun sdk/react/bench/playtest/compile.ts` writes the check pack.
-import { clean, coversStates, coversTransitions, debug, decide, grade, noSoftlock, noUnreachable, playtest, reaches, rule, yes, LEVELS } from "@raea/motion/playtest";
+import { clean, coversStates, coversTransitions, debug, decide, grade, noSoftlock, noUnreachable, playtest, reaches, rule, yes, LEVELS } from "raea/playtest";
 import { flow, player } from "./edit";
 
 // ---- views ----------------------------------------------------------------------------------------------------------

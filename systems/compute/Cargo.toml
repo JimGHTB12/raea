@@ -1,0 +1,13 @@
+[package]
+name = "raea-sys-compute"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Compute shaders written in TypeScript (docs/shaders.feature SH10): <Compute>, run once a frame before the cameras draw, with storage buffers of its own and render:NAME images any shader reads"
+
+[dependencies]
+raea-sys-material = { path = "../material" }
+raea-sys-shader = { path = "../shader" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+serde_json = "1"

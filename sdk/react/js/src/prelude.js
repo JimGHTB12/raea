@@ -9,7 +9,9 @@
   let seq = 1; const timers = new Map();
   g.setTimeout = (fn, ms = 0, ...args) => { const id = seq++; timers.set(id, { at: __raea_now() + Math.max(0, ms), fn, args }); return id; };
   g.clearTimeout = (id) => { timers.delete(id); };
-  g.setInterval = (fn, ms = 0) => { const id = seq++; const tick = () => { fn(); if (timers.has(id)) timers.set(id, { at: __raea_now() + ms, fn: tick, args: [] }); }; timers.set(id, { at: __raea_now() + ms, fn: tick, args: [] }); return id; };
+  // an interval re-arms before it runs (as engine/native's js.rs does), so a clearInterval inside it still stops it;
+  // it re-armed after only while its id was in `timers`, which __raea_timers had just deleted, so it ran once
+  g.setInterval = (fn, ms = 0, ...args) => { const id = seq++; const ev = Math.max(1, +ms || 0); const t = { at: __raea_now() + ev, fn: () => { t.at = __raea_now() + ev; timers.set(id, t); fn(...args); }, args: [] }; timers.set(id, t); return id; };
   g.clearInterval = g.clearTimeout;
   g.__raea_timers = (now) => {
     for (const [id, t] of [...timers].sort((a, b) => a[1].at - b[1].at)) {
@@ -34,6 +36,8 @@
   const inbox = []; let waiter = null;
   g.__raea_deliver = (json) => {
     const m = json === null ? null : JSON.parse(json);
+    // the World's shared values that changed (B3 H4): to @raea/app's hooks.ts store, not the bridge
+    if (m && m.t === "event" && m.name === "raea-world") { if (g.__raea_world) g.__raea_world(m.value); return; }
     if (waiter) { const w = waiter; waiter = null; w(m); } else inbox.push(m);
   };
   // Number's toLocaleString through one Intl.NumberFormat per locale and options, kept: the spec's toLocaleString(l, o)

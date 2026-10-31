@@ -1,0 +1,78 @@
+[package]
+name = "raea-runtime-react"
+version = "0.1.0"
+edition = "2024"
+description = "React inside Bevy: React's commits become Bevy entities, drawn by bevy_ui (raea-runtime-js)"
+license = "FSL-1.1-ALv2"
+
+[features]
+# Bevy plugins (raea-bevy-plugins): physics, GPU particles, tweens; raea-bevy-sdk generates their TypeScript
+bevy-plugins = ["dep:raea-bevy-plugins"]
+avian = ["bevy-plugins", "raea-bevy-plugins/avian"]
+hanabi = ["bevy-plugins", "raea-bevy-plugins/hanabi"]
+tweening = ["bevy-plugins", "raea-bevy-plugins/tweening"]
+default = ["h264", "av1", "scripts", "modules", "network", "ml"]
+# ONNX models and Pocket TTS speech for compositions (raea-runtime-calls: raea-sys-ml and raea-sys-speech)
+ml = ["raea-runtime-calls/ml"]
+# the soft backend's H.264 (openh264): raea keeps it; the game player goes without and decodes video through
+# AVFoundation (lightspeed R7)
+h264 = ["raea-render/h264", "raea-io-media/h264"]
+# raea-render's AV1 media backend: raea keeps it; the game player (--no-default-features) goes without (lightspeed R7)
+av1 = ["raea-render/av1"]
+# an HTML composition's <script>s and the TypeScript toolchain in process (raea-modules:
+# swc and deno_ast, for js-exec, the module seam and the incremental bake's function spans): raea keeps both;
+# the game player (--no-default-features) goes without (lightspeed R7)
+scripts = ["surfaces", "raea-render/scripts"]
+# app screens (`<Screen app>`, raea-runtime-page's screen.rs): a component on @raea/ui's react-dom in a raea-runtime-js root of its own.
+# raea keeps it; the game player takes it only when asked (raea-app-game `--features player,surfaces`, which export-game checks)
+surfaces = []
+modules = ["raea-native/modules", "raea-runtime-bundle/modules"]
+# the network (the engine's http(s) assets, the shell's net.*: ureq + rustls): raea keeps it; the game player
+# goes without and reads the fonts its export packaged (raea-app-game FONTS)
+network = ["raea-render/network", "raea-native/net"]
+
+[dependencies]
+raea-runtime-plugins = { path = "../../runtime/plugins" }
+raea-runtime-view = { path = "../../runtime/view" }
+raea-io-assets = { path = "../../io/assets" }
+# the one native-call layer (registry, generated types, the V8 binding and web shims)
+raea-native = { path = "../../engine/native", default-features = false }
+# the JS engine React runs on (JavaScriptCore on Apple, QuickJS elsewhere)
+raea-runtime-jsengine = { path = "../jsengine" }
+# the one BRP layer (engine/bevy-world): shared.rs reads and writes React's values through it (B3 H4)
+raea-bevy-world = { path = "../../engine/bevy-world" }
+# the same Bevy and feature set as raea-render, so the two share one build
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust", "jpeg", "webp", "gif", "bmp", "system_font_discovery"] }
+serde_json = { version = "1", features = ["raw_value"] }
+# the op wire: React's batches read (raw), the page's element tree diffed (tree)
+raea-core-wire = { path = "../../core/wire" }
+# the counting allocator's per-thread counts (ZeroHeap Z1): the op apply's and the JS flush's allocations
+raea-core-alloc = { path = "../../core/alloc" }
+# a composition's TSX bundled into the script the engine runs
+raea-runtime-bundle = { path = "../../runtime/bundle" }
+raea-core-scene = { path = "../../core/scene" }
+raea-runtime-calls = { path = "../../runtime/calls" }
+raea-runtime-shared = { path = "../../runtime/shared" }
+raea-runtime-scene = { path = "../../runtime/scene" }
+raea-sys-contact = { path = "../../systems/contact" }
+raea-sys-light-meter = { path = "../../systems/light-meter" }
+# the Blitz page (docs/blitz-bevy.feature), RAEA_PAGE=blitz until it is raea's page (B5)
+raea-page = { path = "../../engine/page" }
+raea-sys-page = { path = "../../systems/page" }
+raea-runtime-twins = { path = "../../runtime/twins" }
+raea-runtime-input = { path = "../../runtime/input" }
+# raea: <Video>/<Audio> decoded natively at their source times (the platform's decoders, Symphonia)
+raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio", "apple"] }
+# raea's native calls: Manifold solids (raea_render::shape) and the scene's rows; with raea-render's native feature (the page
+# engine, media and GPU kernels it renders with), which its default features also bring but the game player's don't
+raea-render = { path = "../../engine/render", default-features = false, features = ["native"] }
+# the animation substrate (a frame-pure fork of Animato): motion's <Animate> declarations sampled from the frame clock
+raea-core-animate = { path = "../../core/animate", features = ["bevy"] }
+raea-sys-animate = { path = "../../systems/animate" }
+# Bevy plugins compiled into the engine, each behind a feature (sdk/raea/docs/bevy-plugins.md); none by default
+raea-bevy-plugins = { path = "../../engine/bevy-plugins", optional = true }
+raea-sys-bake = { path = "../../systems/bake" }
+
+[package.metadata.cargo-shear]
+# raea-io-media is here for its features (h264, provenance), which the platform decoders raea-render reads take
+ignored = ["raea-io-media"]

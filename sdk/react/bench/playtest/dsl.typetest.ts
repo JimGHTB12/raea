@@ -1,6 +1,6 @@
 // The DSL's types against clef-omni's limits: every line marked @ts-expect-error must fail to compile (tsc reports an
 // unused directive if it doesn't). Run: sdk/react/bench/playtest/typecheck.sh
-import { choose, clean, debug, decide, grade, rate, rule, yes } from "../../../motion/src/playtest";
+import { choose, clean, debug, decide, grade, rate, rule, yes } from "raea/playtest";
 
 const look = clean("look", { when: "session", as: "sheet", stride: 60 });
 const boxes = debug("boxes", ["hitboxes"], { when: (m) => m.name === "died", window: [-30, 10], as: "clip", stride: 4 });
@@ -41,8 +41,8 @@ debug("bare", [], { when: "session", as: "stills" });
 clean("pdf", { when: "session", as: "pdf" });
 
 // state machine rules: a state the machine doesn't have is a type error
-import { machine, type Snapshot } from "../../../motion/src/machine";
-import { coversStates, noSoftlock, reaches } from "../../../motion/src/playtest";
+import { machine, type Snapshot } from "raea/machine";
+import { coversStates, noSoftlock, reaches } from "raea/playtest";
 const door = machine<{ sm: Snapshot }, null>()({ id: "door", initial: "shut", states: { shut: { after: { 60: "open" } }, open: { after: { 60: "shut" } } } });
 reaches("ok.reaches", door, "open", { scope: "session", fix: "-" });
 coversStates("ok.covers", door, { scope: "session", min: 0.5, fix: "-" });

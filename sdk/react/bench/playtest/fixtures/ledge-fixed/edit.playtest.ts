@@ -1,7 +1,7 @@
 // The repaired LEDGE fixture's playtest, the same as the gate platformer's (sdk/react/docs/playtest.md): what clef-omni is shown of a bot's run (views), what it's asked (checks
 // in clef's own question types) and how a model-driven bot moves (a decision). Views are clean for taste and quality,
 // debug (edit.tsx's <Overlay>s drawn) for diagnosis. `bun sdk/react/bench/playtest/compile.ts` writes the check pack.
-import { clean, debug, decide, grade, playtest, rule, yes, LEVELS } from "@raea/motion/playtest";
+import { clean, debug, decide, grade, playtest, rule, yes, LEVELS } from "raea/playtest";
 
 // ---- views ----------------------------------------------------------------------------------------------------------
 // a life lost: the second before and a little after, clean (is it readable?) and with hitboxes (why did it happen?)

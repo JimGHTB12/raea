@@ -1,5 +1,5 @@
 # Splat training: footage of a real place or thing made a 3D Gaussian splat (raea's asset store runs this;
-# rdb::assets::Store::splat, `raea-motion splat train`). Writes OUT/splat.ply and OUT/splat.ply.json.
+# raea_render::assets::Store::splat, `raea splat train`). Writes OUT/splat.ply and OUT/splat.ply.json.
 #
 #   python run.py --input VIDEO|IMAGE_DIR --out DIR --brush BIN [--frames N] [--steps N] [--max-res PX] [--from S]
 #                 [--seconds N] [--max-splats N] [--matte none|black] [--match sequential|exhaustive] [--eval-every N]
@@ -142,7 +142,8 @@ else:
     pycolmap.match_exhaustive(db, matching_options=mo, device=pycolmap.Device.cpu)
 say(f"matched ({match}, {time.time() - t1:.0f} s)")
 opts = pycolmap.IncrementalPipelineOptions()
-opts.multiple_models = False
+# multiple_models stays on: with it off the mapper stops at its first model, and a bad first pair (telephoto Buddha:
+# 2-6 of 150) ends there; the largest model is taken below
 opts.random_seed = 1
 os.makedirs(f"{work}/sparse")
 progress = [0]

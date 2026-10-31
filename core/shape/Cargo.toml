@@ -1,0 +1,15 @@
+[package]
+name = "raea-core-shape"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "3D shapes as CSG expressions, built into solids"
+
+[dependencies]
+# CSG in pure Rust (a port of Manifold 3.5, Apache-2.0)
+manifold-rust = "0.16.0"
+# glyph outlines for text3d, from raea-core-fonts' bundled faces
+skrifa = "0.44"
+raea-core-fonts = { path = "../fonts" }
+serde_json = "1"

@@ -1,0 +1,12 @@
+[package]
+name = "raea-app-ci"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "`raea ci`: the sound and process measurements the gates and lightspeed's harnesses make"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value"] }
+regex = "1"

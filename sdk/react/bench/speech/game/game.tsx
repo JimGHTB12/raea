@@ -1,10 +1,10 @@
-// A narrator that talks while you play (@raea/motion/speech): lines asked for on a timer and said live by Pocket TTS,
+// A narrator that talks while you play (raea/speech): lines asked for on a timer and said live by Pocket TTS,
 // captions that follow the voice word by word (speechAt, folded into the state), and an interruption: at CUT_AT (or
 // when Space is pressed) the narrator stops at the next word and a quick reaction follows straight after the cut.
 // The game is a pure fold over its input; the speech read-backs are pure too, so a render of a logged play is the same
 // frames and the same sound (sdk/react/bench/speech/check.sh).
-import { AbsoluteFill, keyEdges, useCurrentFrame, useGameState, type FrameInput } from "@raea/motion";
-import { Speech, prepareSpeech, speechAt, speechStart, type Line } from "@raea/motion/speech";
+import { AbsoluteFill, keyEdges, useCurrentFrame, useGameState, type FrameInput } from "raea";
+import { Speech, prepareSpeech, speechAt, speechStart, type Line } from "raea/speech";
 
 export const FPS = 60;
 

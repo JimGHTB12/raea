@@ -1,7 +1,7 @@
 # Vite apps in raea: Bun built in, and the page engine's DOM gaps (plan, 2026-10-19)
 
 The goal (Shane, 2026-10-19): raea takes a Vite app as it stands, its config, components and CSS, and renders it
-frame-exactly, alone (a page) or inside a raea-motion composition beside motion graphics and 3D, with no Bun CLI
+frame-exactly, alone (a page) or inside a raea composition beside motion graphics and 3D, with no Bun CLI
 and no Node: everything it needs to build and run the app is inside raea. Three workstreams:
 
 - **A. Bun's build crates in raea**: transpile, resolve, bundle and CSS in-process (replacing the 7 places raea
@@ -73,7 +73,7 @@ changes [profile.game], sdk/react/js/lite or the bridge without asking it first.
   per Bun's own LICENSE.md; linking it as a dynamic library instead satisfies that more simply. Shane's call, with
   legal advice, before anything ships with it.
 
-So for B3: B is possible on macOS only (void, raea-motion), and buys speed (T3) and web APIs there; the iPhone and
+So for B3: B is possible on macOS only (void, raea), and buys speed (T3) and web APIs there; the iPhone and
 the exported player stay on the system JavaScriptCore.
 
 ## A1 on Rolldown instead (2026-10-19; Shane's call still open)
@@ -85,7 +85,7 @@ reads as planned for Bun until Shane decides.
 - `bundle/` (raea-bundle): `raea_bundle::bundle(entry)`, Rolldown in process with bun build's settings (IIFE,
   browser, NODE_ENV production, the work folder's tsconfig for JSX and `paths`). Rolldown's own crates are each
   held at 1.2.12 in its manifest (they ask each other for ^1.2.12).
-- raea-motion: `RAEA_BUNDLER=rolldown` makes a render's bundle with it (the `modules` feature; the game player
+- raea: `RAEA_BUNDLER=rolldown` makes a render's bundle with it (the `modules` feature; the game player
   goes without). Live and baked bundles (`--lite`) are still bun's: their Z3 compile is a JS plugin (A3).
 - Measured: pong, titles, animate and solids, five frames each, rendered byte-identical to bun's bundles (20 of 20);
   check.sh titles, animate and solids all 1.000000 (titles edited: 360 of 600 frames stepped); the bundle is half the
@@ -99,13 +99,13 @@ reads as planned for Bun until Shane decides.
   sdk/react/bench/css/check.sh: PASS (global CSS, @import, nesting, a module with composes and color-mix). bun can't
   bundle that composition at all ("Import default will always be undefined"), so this is new, not parity.
 - Feature unification (lightspeed bisected it to f60e0b7, fixed in d91a34f): Rolldown's crates turn on serde_json's
-  preserve_order and arbitrary_precision, and Cargo applies them to the whole binary. In default raea-motion every
+  preserve_order and arbitrary_precision, and Cargo applies them to the whole binary. In default raea every
   JSON map became an IndexMap and every number its text (pong's apply 87 -> 159 allocations a frame; map order and
-  number handling changed for props, the DOM mirror, rdb, bakes, cache keys). raea-bundle is now behind an opt-in
-  `rolldown` feature (`cargo build --release --bin raea-motion --features rolldown`). Before it can be default it
+  number handling changed for props, the DOM mirror, raea-render, bakes, cache keys). raea-bundle is now behind an opt-in
+  `rolldown` feature (`cargo build --release --bin raea-motion --features rolldown`, as it was then). Before it can be default it
   must build apart from raea's graph: its own cdylib behind a C API (bundle(entry, opts) -> js, css, error) or its
   own process, so no dependency's features reach raea's crates.
-- Isolation (18d2801): raea-bundle is a cdylib with a C API that raea-motion loads at run time (libloading); it is
+- Isolation (18d2801): raea-bundle is a cdylib with a C API that raea loads at run time (libloading); it is
   no Cargo dependency of raea, so sdk/react/Cargo.lock is f910193's again and no feature can leak. RAEA_BUNDLE_LIB, the
   binary's folder, or bundle/target/release.
 - A3 step 1 (1efbeff): compile.ts's Z3 compile ported to Rust on oxc (engine/bundle/src/z3.rs), site for site on 29 sources.
@@ -128,10 +128,10 @@ reads as planned for Bun until Shane decides.
 | step | what | done when |
 |---|---|---|
 | A0 | Feasibility, a day: build bun_transpiler, bun_resolver, bun_css, bun_bundler from git in a scratch crate; list what each pulls in (bun_jsc, boringssl, mimalloc?); build them for aarch64-apple-ios; read their entry points | a note: which crates build without JavaScriptCore, on macOS and iOS, and the API to call |
-| A1 | Transpile and resolve in-process: TS/TSX/JSX through bun_transpiler (React's automatic runtime, as today), imports through bun_resolver (tsconfig `paths`, package `exports`, extra module folders) | raea-motion bundles pong, titles and the timelines with no `bun` process, bundles byte-identical or render-identical to the CLI's (replay, check.sh 1.000000) |
+| A1 | Transpile and resolve in-process: TS/TSX/JSX through bun_transpiler (React's automatic runtime, as today), imports through bun_resolver (tsconfig `paths`, package `exports`, extra module folders) | raea bundles pong, titles and the timelines with no `bun` process, bundles byte-identical or render-identical to the CLI's (replay, check.sh 1.000000) |
 | A2 | CSS: `import "./x.css"`, CSS modules, nesting, through bun_css; the CSS a bundle imports reaches the page | a fixture with CSS imports and a module renders as Chrome does |
 | A3 | Replace the CLI everywhere: bundle_composition and the lite bundle (react/js/lite/build.ts and serve.ts become calls into the crates; the Z3 JSX compile stays as a transform pass), void's host, workspace and brain | `rg 'Command::new\("bun"\)'` finds nothing; void's edit-to-swap no slower (33-61 ms); every gate passes |
-| A4 | A Vite app's config: aliases, `define` and `import.meta.env` read from vite.config (evaluated in raea's JS engine, or a declared subset) and from tsconfig; packages from the app's own or a shared node_modules; Vite's asset queries (`?url`, `?raw`, `svg?react`), `import.meta.glob` | Jetflow's components (the `@/` alias, packages/npm) import into a raea-motion composition and render |
+| A4 | A Vite app's config: aliases, `define` and `import.meta.env` read from vite.config (evaluated in raea's JS engine, or a declared subset) and from tsconfig; packages from the app's own or a shared node_modules; Vite's asset queries (`?url`, `?raw`, `svg?react`), `import.meta.glob` | Jetflow's components (the `@/` alias, packages/npm) import into a raea composition and render |
 | A5 | Tailwind v4 from the app's own entry (`@import "tailwindcss"`, its @theme and @source): Tailwind's compiler (JS) run inside raea's JS engine, its class scanner (tailwindcss-oxide, Rust) as a crate | Jetflow's styles.css compiles in raea; its screens match a Vite build's in Chrome |
 
 Not covered by A: a Vite app's own JS plugins beyond React and Tailwind. They run only if B's step B4 works (Vite on
@@ -142,12 +142,17 @@ an embedded runtime); otherwise such an app builds with its own Vite outside rae
 | step | what | done when |
 |---|---|---|
 | B0 | Feasibility: bun_jsc and bun_runtime built into a scratch raea binary on macOS; on iOS (JIT isn't allowed there for apps: does Bun's JavaScriptCore build run interpreted?); WebKit fork's build offline (prebuilt libraries?); the LGPL plan (object-file distribution for raea and every exported game) | a note with yes/no on each and the binary size added |
-| B1 | Behind a flag: raea's JS host (sdk/react/src/lib.rs js_thread_jsc, the page engine's script layer) on bun_jsc instead of the system framework | pong, titles and a page render identically (replay, check.sh, parity corpus unchanged) |
-| B2 | Measure as lightspeed's rows do: T3 (check.sh titles, incremental and full bake; the logged lever is ~4x a JS frame, ~50 against ~13 us), R1/R2 (jsheap.py on pong's three fixtures: another JavaScriptCore changes its garbage too), F5, R7 (player size), and which of the missing web APIs bun_runtime brings (streams, AbortController, text streams, fetch, Blob, URL) | a table for Shane: speed, size, coverage, licence |
+| B1 | Behind a flag: raea's JS host (runtime/react/src/lib.rs js_thread_jsc, the page engine's script layer) on bun_jsc instead of the system framework | pong, titles and a page render identically (replay, check.sh, parity corpus unchanged) |
+| B2 | Measure as lightspeed's rows do: T3 (check.sh titles, incremental and full bake; the logged lever is ~4x a JS frame, ~50 against ~13 us), R1/R2 (jsheap.sh on pong's three fixtures: another JavaScriptCore changes its garbage too), F5, R7 (player size), and which of the missing web APIs bun_runtime brings (streams, AbortController, text streams, fetch, Blob, URL) | a table for Shane: speed, size, coverage, licence |
 | B3 | Shane's decision: ship B (raea's engine is Bun's JavaScriptCore everywhere it's allowed), keep it for authoring only, or drop it. Default for the exported game player: it keeps the system JavaScriptCore (R7: every byte in the player counts against 65 MB, and a vendored WebKit is many times what R7's splits save), unless the bytes are counted and accepted | decided |
 | B4 | Vite itself on the embedded runtime: `vite build` (Rolldown, plugins and all) run inside raea, no Node | a Vite app with a non-trivial plugin builds in raea as `vite build` does under Node |
 
 ## C. The page engine's 11 DOM gaps
+
+Status 2026-10-24: the fixes below (C0, #1-#11) lived in engine/html (blitz-v8-script, blitz-dom, the page path) and
+were deleted with it in f1b4a17e; only web.js's AbortController fix is left (engine/native/src/web/), and pages are
+raea-runtime-js's (@raea/ui reimplements IntersectionObserver). The list stays as the gaps a Blitz page in Bevy
+(docs/blitz-bevy.feature) will meet again, each with its Chrome fixture.
 
 Each gets a fixture first: a small standalone page from jetway-f2 (asked 2026-10-19), no Jetflow code, that shows the
 gap in raea and works in Chrome. Layout and paint items are gated against Chrome (Q2's parity harness, its corpus
@@ -199,15 +204,14 @@ one of jetway's stubs removed.
 4. B1 to B4, if Shane says go after B0.
 
 The finish line: Jetflow's tutorial video built and rendered by raea alone (no Bun CLI, no Node), its components mixed
-into a raea-motion timeline, and none of jetway's stubs.
+into a raea timeline, and none of jetway's stubs.
 
 ## Owners and files
 
-- A and B: an agent session. Touches sdk/react/src/motion.rs (bundling), react/js/lite/build.ts and serve.ts, void's host,
+- A and B: an agent session. Touches runtime/react/src/scene.rs (bundling), react/js/lite/build.ts and serve.ts, void's host,
   workspace and brain, a new crate for the Bun build pieces.
-- C: an agent session (Shane asked for it directly, 2026-10-19; no other agent holds it). Touches engine/html/vendor/blitz-v8-script, engine/html/vendor/blitz-dom, engine/html/src's page path, font mapping.
-  engine/html/docs/parity-plan.feature (@owner:unicorn) gets the layout items' parity cases.
+- C: an agent session (Shane asked for it directly, 2026-10-19); its files went with engine/html (see C's status).
 - lightspeed: performance; consulted before any change to sdk/react/js/lite, the bridge or [profile.game]. Z4 builds
   on JavaScriptCore's C API (JSObjectMakeArrayBufferWithBytesNoCopy for its op ring): if B changes the API the host
-  calls, lightspeed hears first. Its files in flight (2026-10-19): media (soft audio / h264 split), rdb's h264 gates,
-  the Cargo feature lists of react, mixer, void and sdk/react/ios, sdk/react/src/zeroheap.rs, lib.rs and play.rs.
+  calls, lightspeed hears first. Its files in flight (2026-10-19): media (soft audio / h264 split), raea-render's h264 gates,
+  the Cargo feature lists of react, mixer, void and sdk/react/ios, runtime/react/src/zeroheap.rs, lib.rs and play.rs.

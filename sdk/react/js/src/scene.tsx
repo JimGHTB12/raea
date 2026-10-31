@@ -1,5 +1,5 @@
-// A JetFlow-style 3D UI scene (engine/html/docs/bevy.feature B4): UI cards are DOM on surfaces in a lit 3D scene, with
-// meshes and a headline in 3D. Lowered into an edit by raea-react (src/lower.rs); motion is the edit's rules.
+// A JetFlow-style 3D UI scene (docs/bevy.feature B4): UI cards are DOM on surfaces in a lit 3D scene, with
+// meshes and a headline in 3D. Lowered into an edit by raea-runtime-react (src/lower.rs); motion is the edit's rules.
 const card = (accent: string): React.CSSProperties => ({
   width: 1024, height: 640, boxSizing: "border-box", padding: 56, borderRadius: 48,
   background: "rgba(18, 20, 38, 0.92)", color: "#f4f1ea", fontFamily: "Helvetica, Arial, sans-serif",

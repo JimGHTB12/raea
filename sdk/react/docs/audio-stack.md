@@ -19,8 +19,8 @@ Written 2026-10-18 on the M5 Pro.
 
 **The output lane (deterministic DSP).**
 - A frame's sounds (each `<Audio>`/`<Video>` element's source at its source time, gain, rate and fades) and its notes
-  (`<audio data-note>` from @raea/motion/music) become voice events.
-- One rule makes them (`engine/mixer/src/score.rs`). An element whose source time moved on by its rate is the same voice. A
+  (`<audio data-note>` from raea/music) become voice events.
+- One rule makes them (`systems/mix/src/score.rs`). An element whose source time moved on by its rate is the same voice. A
   new element, or one that jumped (a cut, a seek, a loop), starts a voice. One that's gone stops its voice. A changed
   gain ramps over one frame.
 - Every event lands on its frame's sample of the timeline, `round(f * rate / fps)`. A note lands on its own sample.
@@ -50,16 +50,16 @@ TSX frame ──► sounds + notes ──► Score (one rule) ──► events o
 | Component | Lane | Role | Where it lives |
 |---|---|---|---|
 | Firewheel 0.12 | output | the graph: scheduled events, the voices and master nodes, the processor pulled live and offline | `mixer/` (raea-mixer) |
-| cpal 0.15 | output | the device; the callback pulls Firewheel's processor | `engine/mixer/src/live.rs` |
-| Score | output | the one rule from frames to events, shared by play and render | `engine/mixer/src/score.rs` |
-| @raea/motion/tone | authoring | Tone.js's API (instruments, effects, channels, Transport, Loop/Part/Sequence/Pattern) compiled to a graph and events | `sdk/motion/src/tone.tsx` |
-| Tone graph on the core | output | the edit's Tone graph as Firewheel nodes: instruments (tone.rs), effects and channels with ducking (fx.rs) | `engine/mixer/src/tonegraph.rs` |
-| @raea/motion/music | authoring | the shorthand: Part and Sequence on named instruments, `<Music>`, MIDI in and out, played through Tone | `sdk/motion/src/music.tsx` |
-| bevy_seedling 0.8 | output | a game's samples, pools and effect chains (raea's Tone effects and limiter registered as seedling nodes) in seedling's graph stepped beside the game, a chunk a frame into the core | `seedling/` (raea-seedling), `<Seedling>` in @raea/motion/seedling |
-| TokenSynth | generation (offline) | a Sampler's root notes from a timbre prompt, made once and cached as PCM | rdb assets `tokensynth`, tools/tokensynth |
+| cpal 0.15 | output | the device; the callback pulls Firewheel's processor | `systems/mix/src/live.rs` |
+| Score | output | the one rule from frames to events, shared by play and render | `systems/mix/src/score.rs` |
+| raea/tone | authoring | Tone.js's API (instruments, effects, channels, Transport, Loop/Part/Sequence/Pattern) compiled to a graph and events | `sdk/raea/src/tone.tsx` |
+| Tone graph on the core | output | the edit's Tone graph as Firewheel nodes: instruments (tone.rs), effects and channels with ducking (fx.rs) | `systems/tone/src/tonegraph.rs` |
+| raea/music | authoring | the shorthand: Part and Sequence on named instruments, `<Music>`, MIDI in and out, played through Tone | `sdk/raea/src/music.tsx` |
+| bevy_seedling 0.8 | output | a game's samples, pools and effect chains (raea's Tone effects and limiter registered as seedling nodes) in seedling's graph stepped beside the game, a chunk a frame into the core | `seedling/` (raea-seedling), `<Seedling>` in raea/seedling |
+| TokenSynth | generation (offline) | a Sampler's root notes from a timbre prompt, made once and cached as PCM | raea-render assets `tokensynth`, tools/tokensynth |
 | DAC 44 kHz | generation and meaning | TokenSynth's codec; 9 x 86 Hz tokens as symbols | phase 4 and 5 |
 | CLAP (htsat-unfused; music checkpoint) | meaning (and generation) | 512-d sound embeddings; TokenSynth's timbre | phase 5 (and 4) |
-| Tone.js (the library) | none | its runtime needs Web Audio; its API is @raea/motion/tone | not used |
+| Tone.js (the library) | none | its runtime needs Web Audio; its API is raea/tone | not used |
 
 ## Verdicts
 
@@ -82,15 +82,18 @@ Hugging Face model cards, and arXiv. The Firewheel API was read from the 0.12.0 
   in 23 ms, and 8 s of the music fixture in 29 ms.
 - **Custom nodes.** An `AudioNode` trait (info and construct_processor) and an `AudioNodeProcessor` trait (events,
   process). Custom events are `NodeEventType::custom(T)`, dropped off the audio thread by Firewheel's collector. The
-  voices node and the master node (our limiter) are about 350 lines (`engine/mixer/src/nodes.rs`).
+  voices node and the master node (our limiter) are about 350 lines (`systems/mix/src/nodes/mod.rs`).
 - **CPAL backend.** firewheel-cpal 0.12 requires cpal 0.18. cpal 0.18 can't link in the same dependency graph as
-  void's and react's cpal 0.15, because both link `alsa-sys` (Cargo fails to resolve). raea-mixer therefore leaves
-  out Firewheel's backend and pulls the processor from its own cpal 0.15 callback (`engine/mixer/src/live.rs`, about 60
+  the legacy app's and react's cpal 0.15, because both link `alsa-sys` (Cargo fails to resolve). raea-mixer therefore leaves
+  out Firewheel's backend and pulls the processor from its own cpal 0.15 callback (`systems/mix/src/live.rs`, about 60
   lines). It asks for 48 kHz and 256-frame blocks. Firewheel's default is 1024 frames (21 ms).
-- **Why 0.12 and not 0.14.** bevy_seedling 0.8, the Bevy 0.19 release, pins Firewheel 0.12. One Firewheel for raea
+- **Why 0.12 and not 0.14.** bevy_seedling 0.8 (released for Bevy 0.19, vendored for 0.20) pins Firewheel 0.12. One Firewheel for raea
   and Bevy matters more than the two point releases.
 
-### bevy_seedling: viable with work, Bevy 0.19 is supported
+### bevy_seedling: vendored, ported to Bevy 0.20
+
+Since the 0.20 cutover (2026-10-22) seedling 0.8.0 is vendored at vendor/bevy_seedling, ported to Bevy 0.20
+(its changes marked "raea:", the root Cargo.toml's [patch]). The facts below are as read for 0.19.
 
 - **Facts.** Licence MIT OR Apache-2.0 on crates.io; GitHub's detector shows Apache-2.0 only. Version 0.8.0, released
   2026-08-09. Its README's table maps Bevy 0.19 to seedling 0.8 (and 0.18 to 0.7, 0.17 to 0.6). Firewheel is pinned
@@ -111,14 +114,14 @@ Hugging Face model cards, and arXiv. The Firewheel API was read from the 0.12.0 
 - **Registered nodes.** `ToneFx` (any of raea's Tone effects by Tone's class name and options: Filter, Freeverb,
   Convolver, PitchShift, EQ3, ...) and `CoreLimiter` (the core's true-peak limiter), each wrapping the mixer's own
   processor (`FxNode::processor`, `MasterNode::processor`). Seedling's `SampleEffects` chains use them per player.
-- **For TSX games.** `<Seedling src id volume speed loop fx>` (@raea/motion/seedling): a player while the element is on
+- **For TSX games.** `<Seedling src id volume speed loop fx>` (raea/seedling): a player while the element is on
   the page, started on the frame it first shows, stopped when it's gone. `src` is a media file or a generated sound
   (`sao(...)`) from the asset store. Rust can drive `raea_seedling::Host::app` directly.
-- **Dependencies.** bevy_seedling 0.8.0 is vendored (`engine/seedling/vendor/bevy_seedling`, patched from react's and void's
+- **Dependencies.** bevy_seedling 0.8.0 is vendored (`vendor/bevy_seedling`, patched from react's and the legacy app's
   manifests) with its backends and hrtf removed, its wasm32 Firewheel dependency removed, and Firewheel's `tracing`
   feature off. Cargo's lockfile takes even a weak dependency's package (`firewheel-cpal?/tracing`) and every target's
-  dependencies, so any of these brought cpal 0.18, whose alsa-sys can't link beside the cpal 0.15 react and void use.
-  The changes are marked "raea:" in its Cargo.toml. react's `seedling` feature (on by default; void turns it on) is
+  dependencies, so any of these brought cpal 0.18, whose alsa-sys can't link beside the cpal 0.15 react and the legacy app use.
+  The changes are marked "raea:" in its Cargo.toml. react's `seedling` feature (on by default; the legacy app turns it on) is
   the way out.
 - **What it measured** (sdk/react/bench/games/seedling: pong with every sound played by seedling, its room tone looping
   through raea's Freeverb as a seedling node):
@@ -132,7 +135,7 @@ Hugging Face model cards, and arXiv. The Firewheel API was read from the 0.12.0 
   - Before mastering, seedling's default game graph sits about 12.5 dB under the same sounds as plain `<Audio>`
     (its buses' gains); the `<Mix>` master takes both to -14 LUFS.
 
-### Tone.js: its API, yes, on the core (@raea/motion/tone); its Web Audio runtime, no
+### Tone.js: its API, yes, on the core (raea/tone); its Web Audio runtime, no
 
 - **Facts.** tone: MIT, 15.1.22 stable (2025-04-27), with 15.5.57 on `next`; the repo was pushed 2026-10-17.
 - **Why it can't run here.** It is coupled to Web Audio throughout. `TransportClass extends ToneWithContext` and
@@ -191,13 +194,13 @@ Hugging Face model cards, and arXiv. The Firewheel API was read from the 0.12.0 
   the sandwich). TokenSynth conditions on a different CLAP checkpoint (`music_audioset_epoch_15_esc_90.14.pt`,
   2.35 GB), not this one.
 
-## Tone.js on the core (@raea/motion/tone)
+## Tone.js on the core (raea/tone)
 
-Tone.js's own API runs on the one mixer core, with no Web Audio: `import * as Tone from "@raea/motion/tone"`. Snippets
-from Tone's docs run unchanged (sdk/motion/conformance/tone.test.tsx runs 18 of them).
+Tone.js's own API runs on the one mixer core, with no Web Audio: `import * as Tone from "raea/tone"`. Snippets
+from Tone's docs run unchanged (sdk/raea/conformance/tone.test.tsx runs 18 of them).
 
 **How it works:**
-- **TS side (sdk/motion/src/tone.tsx).** Every Tone object registers in the edit's Tone graph (a node id, Tone's kind,
+- **TS side (sdk/raea/src/tone.tsx).** Every Tone object registers in the edit's Tone graph (a node id, Tone's kind,
   its options with Tone's names and defaults filled in) and records its connections.
 - **Triggers become events.** `triggerAttackRelease`, `start`/`stop` and Param ramps become events, each with its
   key, node, time on the timeline and what it does.
@@ -207,11 +210,11 @@ from Tone's docs run unchanged (sdk/motion/conformance/tone.test.tsx runs 18 of 
 - **What a frame emits.** The registry renders `ToneOut` in every composition once the module is imported. Each frame
   it emits the graph (`<audio data-tone-graph>`, the same every frame) and the events whose time falls in the last
   three frames (`<audio data-tone-evs>`). Both are ordinary elements: they bake, replay and seek like any other.
-- **Core side: the graph** (engine/mixer/src/tonegraph.rs). Each instrument plays from its own pair of the voices node's 32
+- **Core side: the graph** (systems/tone/src/tonegraph.rs). Each instrument plays from its own pair of the voices node's 32
   stereo outputs. Every other node (effects, Channel, Volume, Gain, Panner, buses, the Destination) is a ToneFx node
-  (engine/mixer/src/fx.rs). Tone's connections are Firewheel edges; a ducked channel's key goes to its sidechain input.
+  (systems/tone/src/fx/). Tone's connections are Firewheel edges; a ducked channel's key goes to its sidechain input.
   Instruments are mixer/src/tone.rs.
-- **Core side: the events** (engine/mixer/src/score.rs `tone`). Each event fires once, by its key, on its own sample:
+- **Core side: the events** (systems/mix/src/score.rs `tone`). Each event fires once, by its key, on its own sample:
   `round(t * 48000)`, not the frame's sample. Parameter ramps are sample-exact. LFOs run on the timeline's time (from
   the origin the node is given), so they're the same live and offline and stay right after a seek.
 
@@ -246,7 +249,7 @@ Missing means it isn't there.
 - `vary(instrument, {pitch, volume})`: seeded variation per event.
 - Generated sources: `sao`, `lyria`, `fish` and `tokensynth(timbre, notes)`.
 - `Time(...).toFrames(fps)`: cuts on bars and beats.
-- `@raea/motion/music` (Part and Sequence on named instruments, MIDI in and out) is a shorthand. It plays through
+- `raea/music` (Part and Sequence on named instruments, MIDI in and out) is a shorthand. It plays through
   this layer: each instrument name is a Tone preset.
 
 ## Generated sources
@@ -257,7 +260,7 @@ A Sampler's `urls` and a Player's `url` take a media path, or a generated asset:
 - `Tone.sao(prompt, {seconds})`: foley, by Stable Audio Open Small on Core ML, local.
 - `Tone.fish(text, {voice})`: narration over the picture, by Fish, paid.
 - `Tone.lyria(prompt)`: a music bed, by Lyria, paid. Still wired; the guides no longer use it.
-- A file from an open sample library in the media folder: `raea-motion sounds get PACK/INSTRUMENT` (below).
+- A file from an open sample library in the media folder: `raea sounds get PACK/INSTRUMENT` (below).
 
 How a source is made and played:
 - **Policy** (2026-10-19). Music is Tone.js instruments: TokenSynth notes, an open sample library's notes, or
@@ -265,7 +268,7 @@ How a source is made and played:
   (no images, video or remote sound effects); Lyria stays in the code for older edits. Nothing in this work spent money: the fixtures' sounds come from SAO and TokenSynth (local) and the
   voice from macOS `say` at test time.
 - **Resolution.** The graph's sources are resolved by react (audio.rs `tone_of`): media paths through the media
-  folder, generated ones through the asset store (engine/rdb/src/assets.rs). A render makes an asset that isn't made yet;
+  folder, generated ones through the asset store (io/assets/src/lib.rs). A render makes an asset that isn't made yet;
   live play only finds it, and an asset never made is left out (silent, with a note on stderr).
 - **Caching.** The store keys a make by everything that decides the bytes: the model, the prompt, the seed, and the
   params with sorted keys and whole numbers written as integers (a Tone graph's `seconds: 1` and an `<Audio>`'s
@@ -286,18 +289,18 @@ How a source is made and played:
   94 MB venv (numpy, coremltools, tokenizers). tools/sao/run.py is the 2026-10-15 spike's coreml_run.py without
   torch or stable-audio-tools: the same prompt and seed give byte-identical WAVs (checked 2026-10-19, and with a T5
   converted from scratch). A sound takes about 10 s, 2.2 GB peak.
-- **Installed on first use.** rdb's `ensure_installed` runs a model's setup.sh the first time a make asks for it and
+- **Installed on first use.** raea-render's `ensure_installed` runs a model's setup.sh the first time a make asks for it and
   nothing is installed, its progress on stderr; `RAEA_AUDIO_AUTOSETUP=0` makes it an error naming the command
   instead. `$RAEA_SAO_FROM` / `$RAEA_TOKENSYNTH_FROM` name an install to copy from (APFS clones), defaulting to the
   standard folders, so a second install on the same Mac costs neither download nor disk. An install from before
   tools/sao (the spike's coreml_run.py) is still served as it is.
-- **From the command line.** `raea-motion sao "PROMPT" [--seconds 2] [--seed 1] -o OUT.wav` and `raea-motion
+- **From the command line.** `raea sao "PROMPT" [--seconds 2] [--seed 1] -o OUT.wav` and `raea
   tokensynth "TIMBRE" --notes C2,C3,C4 [--seconds 2] [--velocity 100] [--seed 1234] [--precision fp16] -o DIR/` make
   through the asset store beside `--dir`/edit.tsx (default the working folder) with the TypeScript functions'
-  defaults, so a sound made there is the one the edit's call finds made. `raea-motion setup-audio [--check]`
-  installs or checks both and prints their sizes. void's agent reaches them as `raea sao`, `raea tokensynth` and
+  defaults, so a sound made there is the one the edit's call finds made. `raea setup-audio [--check]`
+  installs or checks both and prints their sizes. The legacy app's agent reaches them as `raea sao`, `raea tokensynth` and
   `raea sounds` (the host's `audio` op).
-- **Open sample libraries.** `raea-motion sounds [WORDS]` searches sdk/motion/library/sounds/catalog.json
+- **Open sample libraries.** `raea sounds [WORDS]` searches sdk/raea/library/sounds/catalog.json
   (tools/sounds/catalog.py writes it): FluidR3 General MIDI (128 instruments, CC-BY 3.0), the Salamander grand
   piano (CC-BY 3.0), tonejs-instruments (20 instruments; public-domain and CC-BY sources) and the Versilian Community
   Sample Library (104 instruments and percussion, CC0). `sounds get PACK/INSTRUMENT [--notes ..]` downloads one take
@@ -313,14 +316,14 @@ How a source is made and played:
 - **Ducking.** `buses.music.duck(buses.voice, {amount: -12, threshold: -45, attack: 0.04, release: 0.4})` puts the
   voice bus's output on the music bus's sidechain. A level detector (5 ms attack, 100 ms release on the key) takes
   the channel down by `amount` while the key is over the threshold, with the attack and release times on the gain.
-- **The master.** `<Mix lufs ceiling>` is measured on the core's own sound, Tone included (sdk/react/src/motion.rs
+- **The master.** `<Mix lufs ceiling>` is measured on the core's own sound, Tone included (runtime/react/src/scene.rs
   `core_master`):
   1. bounce once without limiting;
   2. take the gain to the target loudness (media's `master_gained`);
   3. bounce again with that gain and the limiter at the ceiling;
   4. on Apple, lower the ceiling by any AAC overshoot and bounce again.
 
-  A live play gets the same gain and ceiling from `raea-motion master-gain`, which runs the same function, and play
+  A live play gets the same gain and ceiling from `raea master-gain`, which runs the same function, and play
   waits for it before its clock starts (live.rs `wait_master`).
 - **Games.**
   - `<Tone.Sfx when={...} play={(t, frame) => ...}>` fires on the exact frame `when` is true. Its events are keyed by
@@ -329,7 +332,7 @@ How a source is made and played:
   - An instrument's `maxPolyphony` caps its voices; past it, the core steals the oldest with a 5 ms fade.
   - Round-robin over a set of samples is chosen by the frame (`frame % n`), so it is the same every run.
 - **Timelines.** Parts sit on the Transport, which starts at frame 0, and `Tone.Time("1m").toFrames(fps)` gives a bar
-  in frames, so cuts land on downbeats. Beats found in a music bed (engine/rdb/src/beats.rs, used by the mix lints) aren't
+  in frames, so cuts land on downbeats. Beats found in a music bed (engine/render/src/beats.rs, used by the mix lints) aren't
   yet fed to the Transport. A bed that is itself Tone needs no beat tracking.
 
 ## What the spikes measured
@@ -343,19 +346,19 @@ On the core (the default):
 - a render writes the core's bounce before the encoder (`RAEA_AUDIO_BOUNCE=OUT.wav`);
 - a play writes the core's output before the mute and the device (`RAEA_AUDIO_TAP=OUT.wav`), with a JSON beside it
   that records where the timeline sat on the device clock;
-- `raea-motion ci bounce-vs-live` (sdk/react/src/ci.rs) aligns the two by that origin and compares every sample. It also searches
+- `raea ci bounce-vs-live` (apps/ci) aligns the two by that origin and compares every sample. It also searches
   ±50 ms for the offset where they agree best, as a check on the alignment.
 
 | Piece | Compared | Max difference | Samples over 1e-6 | Best offset | Late events | Load (1 min) |
 |---|---|---|---|---|---|---|
 | pong (game, live, no input; its master and AAC-held ceiling) | 38.9 s | 0 | 0 | 0 | 0 | 6.65 |
 | tones fixture (starts, a cut, an overlap, a gain ramp, stops) | 10.0 s | 0 | 0 | 0 | 0 | 6.65 |
-| music fixture (@raea/motion/music: drums, bass, chords) | 8.0 s | 0 | 0 | 0 | 0 | 6.65 |
+| music fixture (raea/music: drums, bass, chords) | 8.0 s | 0 | 0 | 0 | 0 | 6.65 |
 | k4: the 4K edit (3 cuts on two AAC takes), baked play | 19.0 s | 0 | 0 | 0 | 0 | 4.47 |
 | TokenSynth stems as clips (44.1 kHz, resampled in the voices) plus synth drums | 8.0 s | 0 | 0 | 0 | 0 | 27.5 |
 
 - So the play is the render's bounce, sample for sample, before the device. The mixer tests prove the same of the
-  graph in isolation (`engine/mixer/src/offline.rs`). Played like a device, with an arbitrary origin, blocks of 1 to 700
+  graph in isolation (`systems/mix/src/offline.rs`). Played like a device, with an arbitrary origin, blocks of 1 to 700
   frames and events sent ahead by varying margins, it gives the bounce with a worst difference of 0.0.
 - Getting there took six fixes, each found from the tap's report:
   1. The device clock has to run past CoreAudio's startup burst before the timeline is placed. Placed earlier, it
@@ -418,7 +421,7 @@ export's critical path.
 
 - The gaps piece, each part switched off in turn against the whole (RMS of the difference, 0.24 for the tempo ramp,
   0.035 for the Convolver's wet, 0.07-0.10 for the rest) changes the sound, and a second render is identical. Its
-  conformance snippets (sdk/motion/conformance/tone.test.tsx) run Tone's doc examples unchanged: an LFO on a filter's
+  conformance snippets (sdk/raea/conformance/tone.test.tsx) run Tone's doc examples unchanged: an LFO on a filter's
   frequency, exponential ramps, the Transport looping a measure, a Loop inside setLoopPoints, `bpm.rampTo` (6 beats
   in the 4 s ramp from 60 to 120 bpm), a Convolver, PitchShift and EQ3, and Offline's error. The Convolver's
   partitioned convolution equals the direct sum within 1e-3 (mixer test).
@@ -434,8 +437,8 @@ export's critical path.
 
 ### The music API
 
-- @raea/motion/music has Transport, Part, Sequence and `<Music>`, plus MIDI out and in.
-- `sdk/motion/conformance/music.test.tsx` passes 5 tests: Tone's time notation at 120 bpm, a Sequence's nested steps and
+- raea/music has Transport, Part, Sequence and `<Music>`, plus MIDI out and in.
+- `sdk/raea/conformance/music.test.tsx` passes 5 tests: Tone's time notation at 120 bpm, a Sequence's nested steps and
   loop, a Part's chords and loop, `<Music>` showing a note from the frame its start falls in until it ends, and MIDI
   out and back in keeping every note's time, length, pitch and velocity.
 - The fixture's MIDI round trip (sdk/react/bench/games/music) has 92 notes: 36 hats, 18 bass, 18 pad, 12 kick, 8 snare.
@@ -503,7 +506,7 @@ export's critical path.
 `tools/tokensynth/run.py --precision fp32|fp16|bf16|int8|coreml`, with a smaller runtime that `convert.py` writes
 into the install (`weights-fp16/`: both transformers, DAC's quantizer and decoder, CLAP's text tower alone; `coreml/`:
 DAC's decoder and the transformer step). setup.sh runs it. TSX's `tokensynth()` and the CLI ask for fp16, and
-since 2026-10-19 rdb's asset store also treats a note with no `precision` as fp16, run.py's default (it was fp32;
+since 2026-10-19 raea-render's asset store also treats a note with no `precision` as fp16, run.py's default (it was fp32;
 nothing writes a note without a precision any more).
 
 | Variant | Weights | Load | Generation (s per s of audio: 1.5 s note, 3 s note) | Per note | Peak RSS | Same top token as fp32, fed fp32's tokens | KL to fp32 |
@@ -544,15 +547,15 @@ nothing writes a note without a precision any more).
 
 ## The classic mixer, retired
 
-The classic mixer (sdk/react/src/audio.rs `Engine::Classic`: a cpal callback of its own with its own voices and limiter,
+The classic mixer (runtime/react/src/audio.rs `Engine::Classic`: a cpal callback of its own with its own voices and limiter,
 behind `RAEA_AUDIO_ENGINE=classic` and `raea_mixer::engine_is_firewheel()`) is gone, on Shane's call before CI's
 14-night audio streak was reached. The core was already the default for everything. With it went the switch, the
-classic branches in react's motion.rs, live.rs and play.rs and in rdb's `sound_tl`, rdb's `FedSound::Rows` fallback
+classic branches in react's motion.rs, live.rs and play.rs and in raea-render's `sound_tl`, raea-render's `FedSound::Rows` fallback
 (`render_fed`'s sound is now the core's mastered bounce or nothing), the `audio:streak` CI gate and its script.
-The core's master node keeps its own copy of the limiter (engine/mixer/src/nodes.rs `Limiter`, with its tests). The caches
+The core's master node keeps its own copy of the limiter (systems/mix/src/nodes/mod.rs `Limiter`, with its tests). The caches
 keyed by engine keep their `fw{version}-{build}` prefix, which still versions the core's master.
 
-Still on media's `mix`: rdb's `stems` export and mixline.rs mix lanes with `lanes_tl` and `mastered`. They aren't a
+Still on media's `mix`: raea-render's `stems` export and mixline.rs mix lanes with `lanes_tl` and `mastered`. They aren't a
 second live mixer, but porting them to `cues_tl` and the core's bounce (a stem is one lane's cues bounced alone) would
 leave media's `mix` with nothing to do for output.
 
@@ -565,11 +568,11 @@ leave media's `mix` with nothing to do for output.
     the page-file and 3D-file renders.
   - The mastered track is the core's own bounce and passes the master untouched; every other play gets the
     render's master.
-  - void's stage opens the mixer's device before its clock starts.
-- **Tone.js on the core** (@raea/motion/tone): the API, buses, ducking, game one-shots and generated sources.
+  - The legacy app's stage opens the mixer's device before its clock starts.
+- **Tone.js on the core** (raea/tone): the API, buses, ducking, game one-shots and generated sources.
 
 **Next:**
-- **rdb's own renders** take the core (ae5e3a1: `sound_tl` -> `sound_core`). rdb's stems and mix-line exports
+- **raea-render's own renders** take the core (ae5e3a1: `sound_tl` -> `sound_core`). raea-render's stems and mix-line exports
   (`stems`, mixline.rs) still mix its lanes with media's `mix`; port them to `cues_tl` and the core (above, "The
   classic mixer, retired").
 - **Bevy:** seedling runs on the core (above). Still to do:
@@ -581,7 +584,7 @@ leave media's `mix` with nothing to do for output.
   - Envelopes and Signals connected to parameters, and LFOs on instruments' parameters (LFOs on effects and channels,
     tempo automation, Transport loops, exponential ramps, Convolver, PitchShift and Tone's EQ3 are done: below).
   - A convolution Reverb, if the algorithmic one isn't enough.
-  - Feed engine/rdb/src/beats.rs's beats from a music bed to the Transport, for cuts on a generated bed's beats.
+  - Feed engine/render/src/beats.rs's beats from a music bed to the Transport, for cuts on a generated bed's beats.
 - **TokenSynth:** a Core ML or ONNX export, and fp16 weights (about 2 GB fewer). Render a Sampler's roots in one
   process; each note is a process today, mostly model loading.
 - **Meaning lane:** CLAP embeddings (512-d, 5 s windows or longer) and DAC tokens into the HDC sandwich, after their

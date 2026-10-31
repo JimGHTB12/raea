@@ -1,0 +1,152 @@
+//! A page's `video` and `audio` sources (raea-runtime-dom's media.rs draws and tells them), decoded by raea-media on a
+//! thread of their own. Images are raea-sys-page's (decode.rs).
+
+#[cfg(feature = "media")]
+pub mod stream {
+    //! A video's or audio's source decoded on a thread of its own by raea-media.
+    use std::path::{Path, PathBuf};
+    use std::sync::Mutex;
+    use std::sync::mpsc::{Receiver, Sender, channel};
+
+    /// What a decoder tells: the source's metadata, a frame at a time (after the first, a seek's), or its failure.
+    pub enum Msg {
+        Meta { w: u32, h: u32, duration: f64 },
+        Frame(f64, raea_io_media::Frame),
+        Fail(String),
+    }
+
+    pub struct Stream {
+        tx: Sender<f64>,
+        rx: Mutex<Receiver<Msg>>,
+    }
+
+    impl Stream {
+        pub fn seek(&mut self, t: f64) {
+            let _ = self.tx.send(t);
+        }
+
+        /// The decoder's next news, if it has any now.
+        pub fn next(&self) -> Option<Msg> {
+            self.rx.lock().unwrap().try_recv().ok()
+        }
+    }
+
+    /// Where a src's bytes are as a file: a data: URL written to the temp folder once, named by its content (so a
+    /// process killed mid-decode leaves nothing new behind, and the same source reuses its file).
+    pub(crate) fn file_of(src: &str) -> Option<PathBuf> {
+        if src.starts_with("data:") {
+            let (mime, bytes) = raea_io_net::data_url(src)?;
+            let ext = match mime.rsplit('/').next().unwrap_or("") {
+                "webm" => "webm",
+                "mp4" => "mp4",
+                "quicktime" => "mov",
+                "ogg" => "ogg",
+                "mpeg" => "mp3",
+                "wav" | "x-wav" | "wave" => "wav",
+                "flac" => "flac",
+                "aac" => "aac",
+                _ => "bin",
+            };
+            use std::hash::{Hash, Hasher};
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            bytes.hash(&mut h);
+            let dir = std::env::temp_dir().join("raea-runtime-js-media");
+            std::fs::create_dir_all(&dir).ok()?;
+            let p = dir.join(format!("{:016x}-{}.{ext}", h.finish(), bytes.len()));
+            if std::fs::metadata(&p).ok().map(|m| m.len()) != Some(bytes.len() as u64) {
+                // written aside, then moved in whole: another process may be reading it
+                let tmp = dir.join(format!("{:016x}.{}.part", h.finish(), std::process::id()));
+                std::fs::write(&tmp, &bytes).ok()?;
+                std::fs::rename(&tmp, &p).ok()?;
+            }
+            return Some(p);
+        }
+        let s = src.strip_prefix("file://").unwrap_or(src);
+        (!s.is_empty()).then(|| PathBuf::from(s))
+    }
+
+    fn run(path: &Path, video: bool, ticket: u64, rx: Receiver<f64>, tx: Sender<Msg>) {
+        let (lock, cv) = &TURN;
+        let mut turn = cv.wait_while(lock.lock().unwrap(), |t| *t < ticket).unwrap();
+        let done = |turn: &mut std::sync::MutexGuard<u64>| {
+            **turn = (**turn).max(ticket + 1);
+            cv.notify_all();
+        };
+        let r = first(path, video, &tx);
+        done(&mut turn);
+        drop(turn);
+        let Some(mut dec) = r else { return };
+        while let Ok(mut t) = rx.recv() {
+            // only the latest time asked for
+            while let Ok(n) = rx.try_recv() {
+                t = n;
+            }
+            let m = match dec.frame_at(t) {
+                Ok(f) => Msg::Frame(t, f),
+                Err(e) => Msg::Fail(e),
+            };
+            if tx.send(m).is_err() {
+                return;
+            }
+        }
+    }
+
+    /// The source opened: audio's duration, or a video's metadata and its first frame (its decoder, to seek on).
+    fn first(path: &Path, video: bool, tx: &Sender<Msg>) -> Option<Box<dyn raea_io_media::VideoDecoder>> {
+        let mut errs = vec![];
+        if !video {
+            for b in raea_io_media::preferred() {
+                match b.decode_audio(path) {
+                    Ok(a) if a.len() > 0 => {
+                        let _ = tx.send(Msg::Meta { w: 0, h: 0, duration: a.duration() });
+                        return None;
+                    }
+                    Ok(_) => errs.push(format!("{}: no sound", b.name())),
+                    Err(e) => errs.push(format!("{}: {e}", b.name())),
+                }
+            }
+            let _ = tx.send(Msg::Fail(errs.join("; ")));
+            return None;
+        }
+        let mut dec = None;
+        for b in raea_io_media::preferred() {
+            match b.open_video(path) {
+                Ok(d) => {
+                    dec = Some(d);
+                    break;
+                }
+                Err(e) => errs.push(format!("{}: {e}", b.name())),
+            }
+        }
+        let Some(mut dec) = dec else {
+            let _ = tx.send(Msg::Fail(errs.join("; ")));
+            return None;
+        };
+        let i = dec.info().clone();
+        let _ = tx.send(Msg::Meta { w: i.width, h: i.height, duration: i.duration });
+        let _ = tx.send(match dec.frame_at(0.0) {
+            Ok(f) => Msg::Frame(0.0, f),
+            Err(e) => Msg::Fail(e),
+        });
+        Some(dec)
+    }
+
+    /// Decoders open, and send their metadata and first frame, one at a time in the order they were made (the
+    /// document's), so their events go in that order as a browser's do for sources that load alike.
+    static TURN: (std::sync::Mutex<u64>, std::sync::Condvar) = (std::sync::Mutex::new(0), std::sync::Condvar::new());
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+    pub fn open(src: &str, video: bool) -> Option<Stream> {
+        let path = file_of(src)?;
+        let ticket = NEXT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let (ttx, trx) = channel::<f64>();
+        let (mtx, mrx) = channel::<Msg>();
+        std::thread::Builder::new()
+            .name("raea-runtime-js-media".into())
+            .spawn(move || {
+                run(&path, video, ticket, trx, mtx);
+            })
+            .ok()?;
+        Some(Stream { tx: ttx, rx: Mutex::new(mrx) })
+    }
+}

@@ -1,0 +1,16 @@
+area = "text"
+title = "Backspace in search deletes the character before the caret"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "search", visible = true }
+[[steps]]
+input = { type = "click", at = "search" }
+[[steps]]
+input = { type = "keys", text = "takes" }
+[[steps]]
+wait = { id = "search", value = "takes" }
+[[steps]]
+input = { type = "press", key = "Backspace" }
+[[steps]]
+expect = { all = [{ id = "search", value = "take" }, { id = "search", field = "caret", eq = [4, 4] }] }

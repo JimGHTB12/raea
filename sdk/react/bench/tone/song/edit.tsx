@@ -1,8 +1,8 @@
-// A timeline with a Tone track (@raea/motion/tone), cut on the bar: eight cards, one a bar (Tone.Time("1m").toFrames),
+// A timeline with a Tone track (raea/tone), cut on the bar: eight cards, one a bar (Tone.Time("1m").toFrames),
 // over drums, bass, chords and a lead written as Tone's docs write them, through effects into the music bus, mastered
 // to -14 LUFS. The render's bounce and a play's tap must be the same samples (sdk/react/bench/tone/check.sh).
-import { AbsoluteFill, Composition, Mix, Series, registerRoot, useCurrentFrame } from "@raea/motion";
-import * as Tone from "@raea/motion/tone";
+import { AbsoluteFill, Composition, Mix, Series, registerRoot, useCurrentFrame } from "raea";
+import * as Tone from "raea/tone";
 
 const FPS = 30;
 const BARS = 8;

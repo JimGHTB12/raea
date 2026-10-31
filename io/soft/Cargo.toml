@@ -1,0 +1,18 @@
+[package]
+name = "raea-io-soft"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's portable software media backend: re_mp4 demux, Symphonia audio, Opus, muxide, and H.264 through openh264 (the h264 feature)"
+
+[features]
+h264 = ["dep:openh264"]
+
+[dependencies]
+raea-io-codec = { path = "../codec", features = ["mux"] }
+openh264 = { version = "0.9", optional = true }
+re_mp4 = "0.5"
+muxide = "0.2"
+symphonia = { version = "0.5", features = ["aac", "isomp4", "mp3", "wav", "pcm", "flac"] }
+opus = "0.4"

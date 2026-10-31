@@ -14,7 +14,7 @@ distilled for, on the exact schedule stable-audio-tools uses.
 This is ~/.cache/raea-sao/coreml_run.py (the 2026-10-15 spike) cut to what inference needs: numpy, coremltools and
 Hugging Face's `tokenizers` reading t5-base's tokenizer.json from the install, so a run needs neither torch nor
 stable-audio-tools nor the network. Same prompt and seed, same samples as the spike's runner (checked 2026-10-19)."""
-import argparse, os, subprocess, sys
+import argparse, os, shutil, subprocess, sys
 
 SR, LAT, AUDIO = 44100, 256, 524288
 TOKENS = 64
@@ -56,8 +56,19 @@ def main():
 
     units = {"cpu": ct.ComputeUnit.CPU_ONLY, "gpu": ct.ComputeUnit.CPU_AND_GPU, "all": ct.ComputeUnit.ALL}
     ref = f"{a.dir}/coreml-ref"
-    load = lambda n, u: ct.models.MLModel(f"{ref}/StableAudio{n}.mlpackage", compute_units=units[u])
-    t5 = ct.models.MLModel(f"{a.dir}/coreml/T5EncoderFP32.mlpackage", compute_units=units["gpu"])
+
+    # Each package is compiled once to a .mlmodelc beside it and loaded from there. MLModel(.mlpackage) compiles to a
+    # new temp path every run, and Core ML caches a compiled bundle per path for good: 116 GB of them by 10-26.
+    def compiled(pkg, u):
+        out = pkg[: -len(".mlpackage")] + ".mlmodelc"
+        if not os.path.isdir(out) or os.path.getmtime(out) < os.path.getmtime(pkg):
+            tmp = ct.models.utils.compile_model(pkg)
+            shutil.rmtree(out, ignore_errors=True)
+            shutil.move(tmp, out)
+        return ct.models.CompiledMLModel(out, compute_units=units[u])
+
+    load = lambda n, u: compiled(f"{ref}/StableAudio{n}.mlpackage", u)
+    t5 = compiled(f"{a.dir}/coreml/T5EncoderFP32.mlpackage", "gpu")
     num, dit, dec = load("NumberEmbedder", "gpu"), load("DiT", a.dit_units), load("VAEDecoder", "gpu")
 
     secs = min(a.seconds, AUDIO / SR)

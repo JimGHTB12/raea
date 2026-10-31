@@ -1,11 +1,11 @@
-// A model in a game (@raea/motion/ml): a chaser steered by a small neural net (media/policy.onnx, 487 bytes, written by
+// A model in a game (raea/ml): a chaser steered by a small neural net (media/policy.onnx, 487 bytes, written by
 // tools/make_policy.py), run on the engine's ONNX Runtime inside the game's step. A CPU model gives the same outputs for
 // the same inputs, so the fold stays pure: a render of a logged play is the same chase.
 //
 //   "chaser": a game; the arrow keys move the dot, the net chases it
 //   "orbit":  a video; the target circles on its own and the net chases it, one model run per frame of the render
-import { AbsoluteFill, staticFile, useCurrentFrame, useGameState, type FrameInput } from "@raea/motion";
-import { loadModel, tensor } from "@raea/motion/ml";
+import { AbsoluteFill, staticFile, useCurrentFrame, useGameState, type FrameInput } from "raea";
+import { loadModel, tensor } from "raea/ml";
 
 export const W = 960;
 export const H = 540;

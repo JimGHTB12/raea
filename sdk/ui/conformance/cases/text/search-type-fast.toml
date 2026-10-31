@@ -1,0 +1,13 @@
+area = "text"
+title = "a press in search focuses it and typed text lands, no key lost however fast, the first after the press included"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "search", visible = true }
+[[steps]]
+input = { type = "click", at = "search" }
+[[steps]]
+input = { type = "keys", text = "hello world v2 takes" }
+[[steps]]
+expect = { all = [{ id = "search", focused = true }, { id = "search", value = "hello world v2 takes" }] }
+hold = 10

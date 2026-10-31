@@ -1,0 +1,21 @@
+{
+  "name": "@raea/ui-parity",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "The ts-native differential harness's JS side (docs/ts-native.feature P30): each case bundled for React DOM in Chrome and for @raea/ui on Bevy, and the Tailwind build Chrome reads",
+  "type": "module",
+  "dependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "@tanstack/react-virtual": "3.14.22",
+    "basecoat-css": "1.1.0",
+    "radix-ui": "1.8.1",
+    "react": "19.2.0",
+    "react-aria": "3.53.1",
+    "react-dom": "19.2.0",
+    "react-hook-form": "7.90.0",
+    "react-reconciler": "0.33.0",
+    "scheduler": "0.27.0",
+    "tailwindcss": "4.3.3"
+  }
+}

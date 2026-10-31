@@ -1,0 +1,14 @@
+{
+  "name": "@raea/asset",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's assets (bevy_asset): generated assets as values, and the glTF writer. Authors import it through \"raea\" as raea/asset (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./assets": "./src/assets.ts",
+    "./glb": "./src/glb.ts"
+  }
+}

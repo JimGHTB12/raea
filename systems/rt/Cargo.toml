@@ -1,0 +1,11 @@
+[package]
+name = "raea-sys-rt"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The scene as the GPU's ray tracer sees it (a BLAS a mesh, a TLAS a frame), and traced ambient occlusion against it"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+wgpu = "=30.0.1"

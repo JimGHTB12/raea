@@ -1,0 +1,17 @@
+[package]
+name = "raea-sys-tone"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "FSL-1.1-ALv2"
+description = "Tone.js's instruments and effects on raea's mixer core: deterministic DSP, one Firewheel node type for every effect, and the graph built from a Tone graph's JSON"
+
+[dependencies]
+# the audio graph: sample-accurate scheduled events, custom nodes, a CPAL stream live and a processor pulled by hand
+# offline. 0.12 because bevy_seedling 0.8 pins it: one Firewheel for raea and Bevy. On Bevy 0.20 both are vendored and
+# ported (vendor/firewheel*, vendor/bevy_seedling) until their releases catch up.
+firewheel = { version = "=0.12.1", default-features = false, features = ["std", "scheduled_events"] }
+# sources and impulse responses decoded in 4 s windows (Symphonia)
+raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio"] }
+# the Tone graph and its events, as JSON
+serde_json = "1"

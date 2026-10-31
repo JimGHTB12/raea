@@ -4,6 +4,8 @@
 # must be the same pixels. Prints SSIM per frame and PASS when every frame is >= 0.999.
 #   sdk/react/bench/games/replay.sh [GAME...]     (default pong, platformer and arena3d, whose 3D is drawn live)
 cd "$(dirname "$0")/../.."
+# pixel checks: no Content Credentials or TrustMark id in the frames (a still's mark moves its pixels: 0.997 for 1.0)
+export RAEA_SIGN=0 RAEA_MARK=0
 GAMES=${*:-pong platformer arena3d}
 OUT=${TMPDIR:-/tmp}/raea-games-replay
 mkdir -p "$OUT"
@@ -31,14 +33,14 @@ for g in $GAMES; do
   # the page size: the edit's CW/VW and CH/VH constants (1920x1080 without them)
   w=$(grep -oE 'const (CW|VW) = [0-9]+' "bench/games/$g/edit.tsx" | head -1 | grep -oE '[0-9]+$'); w=${w:-1920}
   h=$(grep -oE 'const (CH|VH) = [0-9]+' "bench/games/$g/edit.tsx" | head -1 | grep -oE '[0-9]+$'); h=${h:-1080}
-  RAEA_INPUT_KEYS="$keys" RAEA_AUDIO_MUTE=1 target/release/raea-motion play "bench/games/$g/edit.tsx" --input --offscreen --size ${w}x${h} \
+  RAEA_INPUT_KEYS="$keys" RAEA_AUDIO_MUTE=1 target/release/raea play "bench/games/$g/edit.tsx" --input --offscreen --size ${w}x${h} \
     --seconds "$PLAY_SECS" --input-log "$OUT/$g-input.json" $snaps > "$OUT/$g-play.log" 2>&1 || { echo "$g: the play failed (see $OUT/$g-play.log)"; status=1; continue; }
   line="$g:"
   worst=1
   for s in $SECS; do
     f=$(awk -v s="$s" -v fps="$fps" 'BEGIN { printf "%.0f", s * fps }')
     if [ ! -f "$OUT/$g-play-$s.png" ]; then line="$line $f:unreached"; worst=0; continue; fi
-    RAEA_READBACK=rgba target/release/raea-motion render "bench/games/$g/edit.tsx" --frame "$f" --input "$OUT/$g-input.json" -o "$OUT/$g-render-$s.png" > "$OUT/$g-render.log" 2>&1 \
+    RAEA_READBACK=rgba target/release/raea render "bench/games/$g/edit.tsx" --frame "$f" --input "$OUT/$g-input.json" -o "$OUT/$g-render-$s.png" > "$OUT/$g-render.log" 2>&1 \
       || { echo "$g: the render of frame $f failed (see $OUT/$g-render.log)"; status=1; continue 2; }
     v=$(ffmpeg -i "$OUT/$g-play-$s.png" -i "$OUT/$g-render-$s.png" -lavfi ssim -f null - 2>&1 | grep -o 'All:[0-9.]*' | cut -d: -f2)
     line="$line $f:$v"

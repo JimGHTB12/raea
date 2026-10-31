@@ -1,5 +1,5 @@
 #!/bin/bash
-# A model in a game, render equals play (@raea/motion/ml): the chaser (chaser/edit.tsx), a dot steered by a 487-byte
+# A model in a game, render equals play (raea/ml): the chaser (chaser/edit.tsx), a dot steered by a 487-byte
 # policy net run on ONNX Runtime inside the game's step.
 #   chaser   a live play pressed by a random hand on the arrow keys, its input logged, snapshotted at a few frames;
 #            the same frames rendered from the log (RGB readback, as play reads back). The net's outputs feed the
@@ -10,7 +10,7 @@
 # RAEA_MOTION names another binary).
 #   sdk/react/bench/ml/check.sh
 cd "$(dirname "$0")/../.."
-BIN=${RAEA_MOTION:-target/release/raea-motion}
+BIN=${RAEA_MOTION:-target/release/raea}
 OUT=${TMPDIR:-/tmp}/raea-ml-check
 rm -rf "$OUT"; mkdir -p "$OUT"
 [ "${RAEA_ML_KEEP:-0}" = 1 ] || trap 'rm -rf "$OUT"' EXIT

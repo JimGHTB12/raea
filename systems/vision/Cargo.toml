@@ -1,0 +1,24 @@
+[package]
+name = "raea-sys-vision"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Apple Vision and Core ML models on frames: faces, hands, hair, depth, objects, flow, text, the camera's move, sound classes"
+
+[dependencies]
+# frames come from the media plane (VideoToolbox on Apple, ffmpeg or the software decoders elsewhere)
+raea-io-media = { path = "../../io/media", default-features = false, features = ["apple"] }
+raea-sys-layout = { path = "../layout" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSURL", "NSError", "NSDictionary", "NSArray", "NSValue"] }
+objc2-core-ml = { version = "0.3", features = ["MLModel", "MLModelConfiguration", "MLFeatureProvider", "MLDictionaryFeatureProvider", "MLFeatureValue", "MLMultiArray", "MLModel_MLModelCompilation", "MLModelDescription", "MLFeatureDescription", "MLModelMetadataKeys", "objc2-core-video"] }
+objc2-core-video = { version = "0.3", features = ["CVPixelBuffer", "CVImageBuffer", "CVBuffer", "CVReturn"] }
+objc2-core-foundation = "0.3"
+objc2-core-graphics = { version = "0.3", features = ["CGImage", "CGColorSpace", "CGDataProvider"] }
+objc2-vision = { version = "0.3", features = ["VNRequestHandler", "VNRequest", "VNDetectFaceRectanglesRequest", "VNGeneratePersonSegmentationRequest", "VNRecognizeTextRequest", "VNDetectRectanglesRequest", "VNClassifyImageRequest", "VNDetectHumanRectanglesRequest", "VNGenerateAttentionBasedSaliencyImageRequest", "VNCalculateImageAestheticsScoresRequest", "VNGenerateImageFeaturePrintRequest", "VNGenerateOpticalFlowRequest", "VNTargetedImageRequest", "VNObservation", "VNTypes", "VNStatefulRequest", "objc2-core-video", "objc2-core-image", "objc2-core-graphics"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }

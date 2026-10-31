@@ -102,8 +102,8 @@ Feature: ZeroHeap: a running world allocates nothing; its memory is fixed at loa
       And done: the counting allocator reads 0 on frame threads after warmup
 
     Scenario: Z6 GPU and audio pools are fixed at open
-      Then quads keeps one set of page textures per size (already partly: ad90377), a fixed glyph atlas, reused staging
-        belts and bind groups, and no per-frame buffer creation; rdb's live engine likewise
+      Then raea-render's live engine and the page path keep a fixed glyph atlas, reused staging belts and bind groups,
+        and create no buffers per frame (quads, which kept page textures per size, went with engine/html in f1b4a17e)
       And the mixer has a fixed voice pool and block budget, with voice stealing instead of growth
       And done: GPU resources created per frame = 0; mixer allocations per frame = 0
 

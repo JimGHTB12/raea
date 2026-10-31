@@ -1,0 +1,13 @@
+[package]
+name = "raea-sys-contact"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Where a 3D scene's parts meet, from their geometry: what each rests on, and the parts that float, sink or clip"
+
+[dependencies]
+raea-core-scene = { path = "../../core/scene" }
+raea-core-shape = { path = "../../core/shape" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
+serde_json = "1"

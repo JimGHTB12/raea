@@ -1,0 +1,25 @@
+area = "text"
+title = "proposed: Shift+Enter in chat.composer breaks the line and sends nothing; Enter then sends both lines"
+space = "feed"
+window = [1440, 900]
+tier = "full"
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+input = { type = "click", at = "chat.composer" }
+[[steps]]
+input = { type = "keys", text = "one" }
+[[steps]]
+input = { type = "press", key = "Enter", mods = ["shift"] }
+[[steps]]
+input = { type = "keys", text = "two" }
+[[steps]]
+expect = { all = [{ id = "chat.composer", value = "one\ntwo" }, { id = "chat.message.0", exists = false }] }
+[[steps]]
+input = { type = "press", key = "Enter" }
+[[steps]]
+expect = { all = [{ id = "chat.composer", value = "" }, { id = "chat.message.0", text_contains = "two" }] }

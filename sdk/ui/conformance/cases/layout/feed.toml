@@ -1,0 +1,7 @@
+area = "layout"
+title = "the feed at its first route shows its list of cards"
+route = "/feed/f-ides-all"
+window = [1440, 900]
+
+[[steps]]
+expect = { all = [{ id = "feed", visible = true }, { id = "card-*", visible = true, quant = "any" }] }

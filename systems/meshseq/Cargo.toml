@@ -1,0 +1,15 @@
+[package]
+name = "raea-sys-meshseq"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Baked simulations played back by the frame (<MeshSequence>, <Goo>) and glitches on any mesh"
+
+[dependencies]
+raea-sys-material = { path = "../material" }
+raea-sys-frame = { path = "../frame" }
+raea-core-program = { path = "../../core/program" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+# baked simulations as a mesh a frame (.rseq, raea_io_assets::meshseq)
+raea-io-assets = { path = "../../io/assets" }

@@ -1,0 +1,13 @@
+area = "scroll"
+title = "a pixel wheel (natural scrolling on) scrolls the feed by at least the distance the device moved"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "feed.list", field = "scroll.max", gt = 240 }
+[[steps]]
+input = { type = "move", at = "feed.list" }
+[[steps]]
+input = { type = "wheel", at = "feed.list", dy = -240, unit = "pixel", natural = true, phase = "changed" }
+[[steps]]
+expect = { id = "feed.list", field = "scroll.top", increased_by = 240 }

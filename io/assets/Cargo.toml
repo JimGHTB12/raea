@@ -1,0 +1,17 @@
+[package]
+name = "raea-io-assets"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Made assets: a composition's make(model, prompt, seed, params) kept once under its content hash, from the local models (SAO, TokenSynth, splats, matchmove) or raea's API"
+
+[features]
+
+[dependencies]
+raea-io-home = { path = "../home" }
+serde_json = "1"
+sha2 = "0.10"
+image = { version = "0.25", default-features = false, features = ["png"] }
+# mesh sequences' frames (meshseq.rs): zstd, the decoder Bevy's ktx2 already links
+ruzstd = "0.8"

@@ -1,26 +1,32 @@
-//! raea's one native-call layer. TypeScript running on JavaScriptCore (raea-motion render, run and test, the iPhone
+//! raea's one native-call layer. TypeScript running on JavaScriptCore (raea render, run and test, the iPhone
 //! probes, HostCore's composition scripts) reaches Rust through one function, `__raea_call(name, json) -> json`; every
 //! name it can call is registered here once, with the TypeScript types of its arguments and answer, by whichever crate
-//! implements it (raea-react's solids, worlds and coders; the sandbox's commands; the web shims' own calls below). A
+//! implements it (raea-runtime-react's solids, worlds and coders; the sandbox's commands; the web shims' own calls below). A
 //! host links the crates it wants and calls their `register()`; `typescript()` writes the types the SDK imports, so a
 //! call that doesn't exist, or takes the wrong arguments, fails to type-check.
 //!
-//! The registry needs no JS engine (the sandbox links it without one); on Apple platforms `jsc::install` binds it into a
-//! JavaScriptCore context.
+//! The registry needs no JS engine (the sandbox links it without one); `host::install` binds it into one.
 
-use std::collections::BTreeMap;
-use std::sync::{Arc, OnceLock, RwLock};
+use std::sync::Arc;
 
 use serde_json::{Value, json};
 
-/// The flight recorder: each run's events, glitches, memory, stderr, panics and crashes in a session folder
-pub mod trace;
-/// JavaScriptCore (macOS and iOS): raea's JS engine
-#[cfg(target_vendor = "apple")]
-pub mod jsc;
+/// `__raea_call` and the web shims on a JS engine (raea-runtime-jsengine: JavaScriptCore on Apple, QuickJS elsewhere)
+pub mod host;
 
-/// The web shims' source (plain JS, run once per context after the host's own prelude), for either engine.
-pub const WEB_JS: &str = include_str!("web.js");
+/// The web shims' source (plain JS, run once per context after the host's own prelude), for either engine: the globals
+/// bundled npm packages expect from a browser or Node, each defined only where the context lacks it. Anything with real
+/// work behind it (randomness, digests, URL parsing) is a native call through __raea_call; the rest is plain JS. The
+/// pieces in web/ are one function's body, in this order.
+pub const WEB_JS: &str = concat!(
+    "(function (g) {\n\"use strict\";\n",
+    include_str!("web/base.js"),
+    include_str!("web/events.js"),
+    include_str!("web/url.js"),
+    include_str!("web/data.js"),
+    include_str!("web/streams.js"),
+    "})(globalThis);\n"
+);
 
 thread_local! {
     /// The native calls this thread's context may make (names, or "prefix.*"); None: all. js-exec's contexts are limited.
@@ -30,114 +36,55 @@ thread_local! {
 pub(crate) fn allowed(name: &str) -> bool {
     ALLOW.with(|a| a.borrow().as_ref().is_none_or(|list| list.iter().any(|p| p == name || p.strip_suffix('*').is_some_and(|pre| name.starts_with(pre)))))
 }
-mod fs;
-// the shell's network (ureq + rustls): off in an exported game's player, which fetches nothing (lightspeed R7)
-#[cfg(feature = "net")]
-mod net;
-mod sql;
-mod archive;
 #[cfg(feature = "modules")]
 pub mod js;
-/// Node's core for raea's own tools on JavaScriptCore (js::run_node)
+/// Node's core for raea's own tools (js::run_node)
 #[cfg(feature = "modules")]
 pub mod node;
 
-pub type R<T> = Result<T, String>;
+pub use raea_core_calls::{Call, Handler, R, dec64, enc64, register, s};
 
-/// A native call's handler: JSON arguments in, a JSON answer or a message out.
-pub type Handler = Arc<dyn Fn(&Value) -> R<Value> + Send + Sync>;
-
-/// One registered call.
-#[derive(Clone)]
-pub struct Call {
-    pub name: String,
-    /// TypeScript type of the arguments object
-    pub args: String,
-    /// TypeScript type of the answer
-    pub answer: String,
-    /// one line for the generated types
-    pub doc: String,
-    pub f: Handler,
-}
-
-fn table() -> &'static RwLock<BTreeMap<String, Call>> {
-    static T: OnceLock<RwLock<BTreeMap<String, Call>>> = OnceLock::new();
-    T.get_or_init(|| {
-        let mut m = BTreeMap::new();
-        let mut all: Vec<Call> = web_calls().into_iter().chain(fs::calls()).collect();
-        #[cfg(feature = "net")]
-        all.extend(net::calls());
-        all.extend(sql::calls().into_iter().chain(archive::calls()));
-        for c in all {
-            m.insert(c.name.clone(), c);
-        }
+/// The shell's own calls (the web shims', fs, net, sql, archive, js.run) in the registry, once; everything here that
+/// reads the registry seeds it first.
+fn seed() {
+    static SEEDED: std::sync::Once = std::sync::Once::new();
+    SEEDED.call_once(|| {
+        #[allow(unused_mut)] // js.run joins only with modules
+        let mut all: Vec<Call> = web_calls().into_iter().chain(raea_io_shell::calls()).collect();
         #[cfg(feature = "modules")]
-        m.insert("js.run".into(), Call {
+        all.push(Call {
             name: "js.run".into(),
             args: "{ root: string; cwd: string; file?: string; code?: string; ts?: boolean; argv?: string[]; env?: Record<string, string>; stdin?: string; allow?: string[]; timeoutMs?: number }".into(),
             answer: "{ exit: number; stdout: string; stderr: string }".into(),
             doc: "JavaScript or TypeScript run as an ES module in a fresh isolate (imports only inside root, native calls only from allow)".into(),
             f: Arc::new(js::call),
         });
-        RwLock::new(m)
-    })
-}
-
-/// Registers (or replaces) a call.
-pub fn register(name: &str, args: &str, answer: &str, doc: &str, f: impl Fn(&Value) -> R<Value> + Send + Sync + 'static) {
-    let c = Call { name: name.into(), args: args.into(), answer: answer.into(), doc: doc.into(), f: Arc::new(f) };
-    table().write().unwrap().insert(name.into(), c);
+        raea_core_calls::register_all(all);
+    });
 }
 
 /// Whether `name` is registered.
 pub fn has(name: &str) -> bool {
-    table().read().unwrap().contains_key(name)
+    seed();
+    raea_core_calls::has(name)
 }
 
 /// Runs a call; an unknown name says so.
 pub fn call(name: &str, args: &Value) -> R<Value> {
-    let f = table().read().unwrap().get(name).map(|c| c.f.clone());
-    match f {
-        Some(f) => f(args),
-        None => Err(format!("no native call \"{name}\" in this host")),
-    }
+    seed();
+    raea_core_calls::call(name, args)
 }
 
 /// Every registered call, by name.
 pub fn calls() -> Vec<Call> {
-    table().read().unwrap().values().cloned().collect()
+    seed();
+    raea_core_calls::calls()
 }
 
-/// The TypeScript the SDK imports (sdk/motion/src/native-calls.ts): one entry per call, its arguments and answer.
+/// The TypeScript the SDK imports (sdk/raea/src/native-calls.ts): one entry per call, its arguments and answer.
 pub fn typescript() -> String {
-    let mut out = String::from(
-        "// Generated by `raea-motion types` from raea-native's registry (every host's calls); don't edit by hand.\n\
-         // native(name, args) is typed by this table: a call that isn't registered, or wrong arguments, fails to check.\n\n\
-         export interface NativeCalls {\n",
-    );
-    for c in calls() {
-        if !c.doc.is_empty() {
-            out += &format!("  /** {} */\n", c.doc);
-        }
-        out += &format!("  {:?}: {{ args: {}; answer: {} }};\n", c.name, c.args, c.answer);
-    }
-    out += "}\n\nexport type NativeName = keyof NativeCalls;\n";
-    out
-}
-
-/// A string argument.
-pub fn s<'a>(v: &'a Value, k: &str) -> R<&'a str> {
-    v.get(k).and_then(Value::as_str).ok_or_else(|| format!("{k}: a string"))
-}
-
-/// Bytes as standard base64, and back.
-pub fn enc64(b: &[u8]) -> String {
-    use base64::Engine as _;
-    base64::engine::general_purpose::STANDARD.encode(b)
-}
-pub fn dec64(t: &str) -> R<Vec<u8>> {
-    use base64::Engine as _;
-    base64::engine::general_purpose::STANDARD.decode(t).map_err(|e| e.to_string())
+    seed();
+    raea_core_calls::typescript()
 }
 
 /// A WHATWG URL's parts, as the shims' URL class reads them.
@@ -160,27 +107,12 @@ fn url_parts(u: &url::Url) -> Value {
 /// The host's own calls (its environment, its platform) and the ones the web shims stand on: randomness, digests and URL
 /// parsing (the `url` crate is WHATWG's parser).
 fn web_calls() -> Vec<Call> {
-    let mk = |name: &str, args: &str, answer: &str, doc: &str, f: Handler| Call { name: name.into(), args: args.into(), answer: answer.into(), doc: doc.into(), f };
+    let mk = Call::new;
     vec![
         mk("host.env", "{ name: string }", "string | null", "an environment variable of the host process (null when unset)", Arc::new(|v| {
             Ok(std::env::var(s(v, "name")?).map(Value::String).unwrap_or(Value::Null))
         })),
         mk("host.has", "{ name: string }", "boolean", "whether this host answers a native call", Arc::new(|v| Ok(json!(has(s(v, "name")?))))),
-        mk("host.readline", "{}", "string | null", "one line from the host process's stdin (null at its end): a JSON-lines server's next request", Arc::new(|_| {
-            let mut line = String::new();
-            match std::io::stdin().read_line(&mut line) {
-                Ok(0) => Ok(Value::Null),
-                Ok(_) => Ok(json!(line.trim_end_matches(['\n', '\r']))),
-                Err(e) => Err(e.to_string()),
-            }
-        })),
-        mk("host.write", "{ text: string }", "null", "text written to the host process's stdout, flushed: a JSON-lines server's reply", Arc::new(|v| {
-            use std::io::Write as _;
-            let mut o = std::io::stdout().lock();
-            o.write_all(s(v, "text")?.as_bytes()).map_err(|e| e.to_string())?;
-            o.flush().map_err(|e| e.to_string())?;
-            Ok(Value::Null)
-        })),
         mk("host.platform", "{}", "\"macos\" | \"ios\" | \"linux\" | \"windows\" | \"other\"", "the host's platform", Arc::new(|_| {
             Ok(json!(if cfg!(target_os = "ios") { "ios" } else if cfg!(target_os = "macos") { "macos" } else if cfg!(target_os = "linux") { "linux" } else if cfg!(windows) { "windows" } else { "other" }))
         })),
@@ -303,7 +235,7 @@ mod tests {
 }
 
 /// Runs `f` in `cwd` with this process's stdout and stderr captured (into temporary files, so a long output can't
-/// block), then puts both back: how an in-process command line (rdb, raea-motion) answers a shell that can't spawn processes
+/// block), then puts both back: how an in-process command line (raea-render, raea) answers a shell that can't spawn processes
 /// (the iPhone). One at a time: the descriptors and the working folder are the process's own.
 #[cfg(unix)]
 pub fn capture<T>(cwd: &std::path::Path, f: impl FnOnce() -> T) -> R<(T, String, String)> {

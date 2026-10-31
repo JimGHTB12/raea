@@ -3,26 +3,28 @@
 # folder outside the repo, and its self-test run there with a scrubbed environment (PATH=/usr/bin:/bin, no RAEA_*
 # variables, HOME an empty folder): offscreen, scripted keys and pointer, sound mixed silently, no window. Then the
 # self-test's snapshots are held against the dev tree's render of the same frames from the input the self-test logged
-# (`raea-motion render --input`), SSIM >= 0.999.
+# (`raea render --input`), SSIM >= 0.999.
 #
-#   sdk/react/bench/games/export.sh [EDIT.tsx ...]     (default: pong, the platformer, arena3d, the golden 50-game, a void game)
+#   sdk/react/bench/games/export.sh [EDIT.tsx ...]     (default: pong, the platformer, arena3d, the golden 50-game, a feed agent's game)
 #   KEEP=1 keeps the exports; SECS=5 the self-test's length
 #
-# Needs target/release/raea-motion and a player, best the game profile's (target/game: fat LTO, ~74 MB; the release
+# Needs target/release/raea and a player, best the game profile's (target/game: fat LTO, ~74 MB; the release
 # build's ships ~128 MB, and export-game takes whichever is newer):
-#   cargo build --release && cargo build --profile game --bin raea-game --no-default-features --features game
+#   cargo build --release && cargo build --profile game -p raea-app-game --bin raea-game --features player
 cd "$(dirname "$0")/../.." || exit 1
+# pixel checks: no Content Credentials or TrustMark id in the frames (a still's mark moves its pixels: 0.997 for 1.0)
+export RAEA_SIGN=0 RAEA_MARK=0
 REACT=$(pwd)
 ROOT=$(cd .. && pwd)
 SECS=${SECS:-5}
 # outside the repo, and away from TMPDIR's other users
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/raea-game-export.XXXXXX")
 case "$WORK" in "$ROOT"*) echo "the work folder is inside the repo: $WORK"; exit 1 ;; esac
-VOID_GAME="$HOME/.raea-void/evals/runs/20261017-project-glm3/project--an-ad-and-a-game-in-one-project-switching-between-them/spaces/pong/edit.tsx"
+FEED_GAME="$HOME/.raea-feed/evals/runs/20261017-project-glm3/project--an-ad-and-a-game-in-one-project-switching-between-them/spaces/pong/edit.tsx"
 if [ $# -gt 0 ]; then GAMES=("$@"); else
-  GAMES=("$REACT/bench/games/pong/edit.tsx" "$REACT/bench/games/platformer/edit.tsx" "$REACT/bench/games/arena3d/edit.tsx" "$ROOT/engine/media/golden/50-game/edit.tsx" "$VOID_GAME")
+  GAMES=("$REACT/bench/games/pong/edit.tsx" "$REACT/bench/games/platformer/edit.tsx" "$REACT/bench/games/arena3d/edit.tsx" "$ROOT/engine/media/golden/50-game/edit.tsx" "$FEED_GAME")
 fi
-for b in raea-motion raea-game; do
+for b in raea raea-game; do
   [ -x "target/release/$b" ] || { echo "no target/release/$b (see the header)"; exit 1; }
 done
 
@@ -52,12 +54,12 @@ for edit in "${GAMES[@]}"; do
   if [ ! -f "$edit" ]; then echo "SKIP $edit (missing)"; continue; fi
   dir=$(dirname "$edit")
   g=$(basename "$dir")
-  case "$edit" in */.raea-void/*) g="void-$(basename "$dir")" ;; esac
+  case "$edit" in */.raea-feed/*) g="feed-$(basename "$dir")" ;; esac
   out="$WORK/$g"
   mkdir -p "$out"
   lock
   t0=$(python3 -c 'import time;print(time.time())')
-  nice -n 15 target/release/raea-motion export-game "$edit" -o "$out/$g.app" --keys "$(keys_for "$edit")" > "$out/export.log" 2>&1
+  nice -n 15 target/release/raea export-game "$edit" -o "$out/$g.app" --keys "$(keys_for "$edit")" > "$out/export.log" 2>&1
   if ! grep -q '^EXPORTED' "$out/export.log"; then echo "FAIL $g: the export failed: $(grep -m1 REFUSED "$out/export.log")"; status=1; unlock; continue; fi
   te=$(python3 -c "import time;print(round(time.time()-$t0,1))")
   # the app alone, somewhere else, run with nothing of the dev tree's around it
@@ -79,7 +81,7 @@ for edit in "${GAMES[@]}"; do
   for s in 1 2.5 4; do
     f=$(python3 -c "print(round($s * $fps))")
     if [ ! -f "$run/snap-$s.png" ]; then eq="$eq $f:none"; worst=0; continue; fi
-    RAEA_READBACK=rgba nice -n 15 target/release/raea-motion render "$edit" --frame "$f" --input "$run/input.json" -o "$run/render-$s.png" > "$run/render-$s.log" 2>&1
+    RAEA_READBACK=rgba nice -n 15 target/release/raea render "$edit" --frame "$f" --input "$run/input.json" -o "$run/render-$s.png" > "$run/render-$s.log" 2>&1
     v=$(ffmpeg -hide_banner -i "$run/snap-$s.png" -i "$run/render-$s.png" -lavfi ssim -f null - 2>&1 | grep -o 'All:[0-9.]*' | cut -d: -f2)
     eq="$eq $f:${v:-err}"
     worst=$(python3 -c "print(min($worst, float('${v:-0}')))")

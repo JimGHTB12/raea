@@ -1,0 +1,19 @@
+area = "review"
+title = "a game item plays live on the engine's stage: its clock runs and the stage fills the item's frame"
+route = "/feed/f-pong-all/i-build"
+window = [1440, 900]
+
+[[steps]]
+wait = { all = [{ id = "detail-i-build", visible = true }, { id = "game", visible = true }] }
+# the game's own clock, its frame over its fps in the toolbar, runs while it plays
+[[steps]]
+snap = "a"
+[[steps]]
+wait = { id = "game-clock", field = "text", changed = true, since = "a" }
+[[steps]]
+snap = "b"
+[[steps]]
+wait = { id = "game-clock", field = "text", changed = true, since = "b" }
+# the stage is the frame's picture: inside the item, wider than a thumbnail
+[[steps]]
+expect = { all = [{ check = "inside", id = "game", within = "detail-i-build" }, { id = "game", field = "rect.w", gt = 600 }] }

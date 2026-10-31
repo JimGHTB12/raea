@@ -3,7 +3,7 @@
 // someone plays, a scripted run (a simple autopilot) when nobody does. The level is drawn in its own units and scaled to
 // the stage.
 //
-// Its logic is state machines (sdk/motion/src/machine.ts, sdk/react/docs/state-machines.md), each stepped once a frame inside
+// Its logic is state machines (sdk/raea/src/machine.ts, sdk/react/docs/state-machines.md), each stepped once a frame inside
 // the fold: the game's flow (playing, won, game over), the player (idle, run, jump, fall, land, hurt, respawn, dead) and
 // one per walker (patrolling right and left, looking round at each end). Each machine's snapshot is plain data inside
 // the state, so a render, a play and a playtest bot all see the same states on the same frames.
@@ -13,9 +13,9 @@
 import {
   Composition, Overlay, machine, registerRoot, stepAll, useCurrentFrame, useGameEvents, useGameState, useInput, useVideoConfig,
   type Snapshot,
-} from "@raea/motion";
-import { AbsoluteFill } from "@raea/motion";
-import type { Playtest } from "@raea/motion";
+} from "raea";
+import { AbsoluteFill } from "raea";
+import type { Playtest } from "raea";
 
 // ---- the level ------------------------------------------------------------------------------------------
 export const VW = 1920;

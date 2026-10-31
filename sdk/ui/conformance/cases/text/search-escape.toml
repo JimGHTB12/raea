@@ -1,0 +1,16 @@
+area = "text"
+title = "Esc in search clears it and lets it go"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "search", visible = true }
+[[steps]]
+input = { type = "click", at = "search" }
+[[steps]]
+input = { type = "keys", text = "v2" }
+[[steps]]
+wait = { id = "search", value = "v2" }
+[[steps]]
+input = { type = "press", key = "Escape" }
+[[steps]]
+expect = { all = [{ id = "search", value = "" }, { id = "search", focused = false }] }

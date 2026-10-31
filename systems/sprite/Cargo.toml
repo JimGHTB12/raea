@@ -1,0 +1,12 @@
+[package]
+name = "raea-sys-sprite"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "2D over the 3D (<Sprite>, <Shape2D>): Bevy's Sprite and Mesh2d drawn by a Camera2d over the scene's camera"
+
+[dependencies]
+raea-sys-frame = { path = "../frame" }
+raea-core-program = { path = "../../core/program" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render", "ui_bevy_render"] }

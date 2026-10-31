@@ -1,0 +1,24 @@
+area = "scroll"
+title = "a scroll scrolls only what's under the pointer: the feed, not the chat transcript beside it, and back"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+repeat = { times = 10, steps = [{ input = { type = "click", at = "chat.composer" } }, { input = { type = "keys", text = "message {i} to fill the transcript" } }, { input = { type = "press", key = "Enter" } }, { wait = { id = "chat.message.*", text_contains = "message {i} to", count = 2 } }] }
+[[steps]]
+wait = { all = [{ id = "chat.transcript", field = "scroll.max", gt = 200 }, { id = "feed.list", field = "scroll.max", gt = 240 }] }
+[[steps]]
+input = { type = "wheel", at = "feed.list", dy = -240, unit = "pixel", natural = true }
+[[steps]]
+expect = { all = [{ id = "feed.list", field = "scroll.top", increased_by = 240 }, { id = "chat.transcript", field = "scroll.top", unchanged = true }] }
+hold = 5
+[[steps]]
+input = { type = "wheel", at = "chat.transcript", dy = 120, unit = "pixel", natural = true }
+[[steps]]
+expect = { all = [{ id = "chat.transcript", field = "scroll.top", decreased_by = 120 }, { id = "feed.list", field = "scroll.top", unchanged = true }] }
+hold = 5

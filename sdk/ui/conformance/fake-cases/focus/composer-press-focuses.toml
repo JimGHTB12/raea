@@ -1,0 +1,14 @@
+area = "focus"
+title = "a press in chat.composer focuses it, and only it"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+input = { type = "click", at = "chat.composer" }
+[[steps]]
+expect = { all = [{ id = "chat.composer", focused = true }, { id = "*", focused = true, count = 1 }] }

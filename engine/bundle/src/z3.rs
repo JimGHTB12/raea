@@ -28,7 +28,7 @@ const PURE: &[&str] = &["interpolate", "interpolateColors", "spring", "measureSp
 /// motion's modules, as an edit imports them (the SDK by name, or rewritten to its files) and as they import each other:
 /// compile.ts's SDK pattern (the TypeScript original)
 fn is_sdk(source: &str) -> bool {
-    if source.starts_with("@raea/motion") || source == "motion" || source.starts_with("motion/") || source.contains("/motion/") || source.ends_with("/motion") {
+    if source == "raea" || source.starts_with("raea/") || source.starts_with("@raea/math") || source.contains("/math/") || source == "motion" || source.starts_with("motion/") || source.contains("/motion/") || source.ends_with("/motion") {
         return true;
     }
     let Some(rest) = source.strip_prefix("./") else { return false };
@@ -72,7 +72,7 @@ fn transpile(source: &str, jsx: bool) -> Result<String, String> {
     let st = if jsx { SourceType::jsx() } else { SourceType::tsx() };
     let parsed = Parser::new(&alloc, source, st).parse();
     if let Some(e) = first_error(&parsed.diagnostics) {
-        return Err(e.to_string());
+        return Err(located(source, e));
     }
     let mut program = parsed.program;
     let scoping = SemanticBuilder::new().build(&program).semantic.into_scoping();
@@ -87,6 +87,31 @@ fn transpile(source: &str, jsx: bool) -> Result<String, String> {
         return Err(e.to_string());
     }
     Ok(Codegen::new().build(&program).code)
+}
+
+/// `e` with where it is in `source`: line and column, the line itself and a caret under the spot, and oxc's help, so a
+/// writer handed the error can find what to fix without the file open
+fn located(source: &str, e: &oxc::diagnostics::OxcDiagnostic) -> String {
+    let mut s = e.message.to_string();
+    let label = e.labels.iter().find(|l| l.primary()).or_else(|| e.labels.first());
+    if let Some(l) = label {
+        let at = (l.offset() as usize).min(source.len());
+        let start = source[..at].rfind('\n').map_or(0, |n| n + 1);
+        let end = source[at..].find('\n').map_or(source.len(), |n| at + n);
+        let line = source[..at].matches('\n').count() + 1;
+        let col = source[start..at].chars().count() + 1;
+        let text = &source[start..end];
+        let gutter = line.to_string().len();
+        let under = "^".repeat((l.len() as usize).min(end - at).max(1));
+        s += &format!(" at line {line}, column {col}:\n{line} | {text}\n{:gutter$} | {}{under}", "", " ".repeat(col - 1));
+        if let Some(why) = l.label() {
+            s += &format!(" {why}");
+        }
+    }
+    if let Some(help) = &e.help {
+        s += &format!("\nhelp: {help}");
+    }
+    s
 }
 
 fn first_error(d: &[oxc::diagnostics::OxcDiagnostic]) -> Option<&oxc::diagnostics::OxcDiagnostic> {
@@ -379,6 +404,14 @@ mod tests {
         // compile.ts: (__S.b${fnv1a(text).toString(36)} ??= text)
         assert_eq!(base36(0x811c_9dc5), "ztntfp");
         assert_eq!(json("a\"b\n"), "\"a\\\"b\\n\"");
+    }
+
+    #[test]
+    fn parse_errors_say_where() {
+        let e = compile("export function A() {\n  return <div><span>hi</div>;\n}\n", false).unwrap_err();
+        assert!(e.contains(" at line 2, column "), "{e}");
+        assert!(e.contains("\n2 |   return <div><span>hi</div>;\n  | "), "{e}");
+        assert!(e.contains('^'), "{e}");
     }
 
     #[test]

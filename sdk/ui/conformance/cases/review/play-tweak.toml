@@ -1,0 +1,43 @@
+area = "review"
+title = "paused, a picked element's value typed over in the inspector is written into the game's next version, which plays on from the same frame with it"
+route = "/feed/f-pong-all/i-build"
+window = [1440, 900]
+
+[[steps]]
+wait = { all = [{ id = "game", visible = true }, { id = "stage-pause", name = "Pause" }] }
+# Pong's player paddle held up against the top wall, paused, picked (as play-pick)
+[[steps]]
+input = { type = "key", key = "ArrowUp", state = "down" }
+[[steps]]
+wait = { id = "game-clock", field = "value", gt = 90 }
+[[steps]]
+input = { type = "click", at = "stage-pause" }
+[[steps]]
+wait = { id = "stage-pause", name = "Play" }
+[[steps]]
+input = { type = "key", key = "ArrowUp", state = "up" }
+[[steps]]
+input = { type = "click", at = { id = "game", fx = 0.099, fy = 0.2 } }
+[[steps]]
+expect = { all = [{ id = "inspect-name", text = "Paddle" }, { id = "inspect-style-height", text = "300" }] }
+budget = 8
+# its height (Pong's PADDLE_LEN) typed over: 300 -> 500
+[[steps]]
+input = { type = "click", at = "edit-style-height" }
+[[steps]]
+input = { type = "press", key = "End" }
+[[steps]]
+repeat = { times = 6, steps = [{ input = { type = "press", key = "Backspace" } }] }
+[[steps]]
+input = { type = "keys", text = "500" }
+[[steps]]
+input = { type = "press", key = "Enter" }
+# the next version is written beside pong.tsx and the stage plays it, still paused, the paddle as tall as it says
+[[steps]]
+wait = { id = "inspect-said", text_contains = "Wrote pong-v" }
+[[steps]]
+wait = { id = "inspect-style-height", field = "value", gt = 400 }
+# timed from the Enter: the version written, opened and stepped through every frame played so far (about 125)
+[[steps]]
+expect = { all = [{ id = "stage-pause", name = "Play" }, { id = "picked-box", visible = true }] }
+budget = 60

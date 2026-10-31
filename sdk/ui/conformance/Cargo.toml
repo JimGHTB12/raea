@@ -1,0 +1,23 @@
+[package]
+name = "conformance"
+version = "0.1.0"
+edition = "2021"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The UI conformance suite (sdk/ui/conformance/conformance.feature): reads cases, launches a UI substrate headless, drives it through MCP input and reads it back through MCP ui"
+
+# Its own workspace: a small test tool kept out of the root's lock (it links no app).
+[workspace]
+
+[[bin]]
+name = "conformance"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+toml = "1"
+libc = "0.2"
+
+[dev-dependencies]
+# the fake substrate the runner's own tests run against (src/selftest.rs)
+conformance-fake = { path = "fake" }

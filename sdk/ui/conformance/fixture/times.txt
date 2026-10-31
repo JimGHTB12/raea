@@ -1,0 +1,16 @@
+# How old each fixture file is when a run starts (seconds), so the feed's newest-first order is the same every run:
+# feed.card.0 is v2-g, .1 the storyboard, .2 v2-f, .3 s3b, .4 v2-e, ... (conformance.feature's cases lean on it)
+intro/renders/v2-g.mp4 600
+storyboard/board.md 900
+intro/renders/v2-f.mp4 1200
+outro/renders/s3b.mp4 1800
+intro/renders/v2-e.mp4 2400
+intro/renders/v2-d.mp4 3000
+outro/renders/s3.mp4 3600
+intro/renders/i1-room.png 4200
+intro/renders/v2-c.mp4 4800
+intro/renders/v2-b.mp4 5400
+intro/renders/v2-a.mp4 6000
+media/gen/concept-2.jpg 7200
+media/gen/concept-1.jpg 7800
+refs/swipe-1.png 9000

@@ -1,0 +1,16 @@
+[package]
+name = "raea-sys-matchmove"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Matchmove's engine side: footage behind the 3D, its lens's distortion undone, and a camera that sees a window of a larger view"
+
+[features]
+# footage plates (decoded through the frame's Media)
+native = ["raea-sys-frame/native"]
+
+[dependencies]
+raea-sys-frame = { path = "../frame" }
+raea-core-program = { path = "../../core/program" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }

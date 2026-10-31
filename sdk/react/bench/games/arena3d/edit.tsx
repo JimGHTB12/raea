@@ -2,12 +2,17 @@
 // the sentries. The camera follows the player. The game is a pure fold: live arrow keys when someone plays, a scripted
 // run (an autopilot towards the nearest coin) when nobody does, so a render of a play's logged input is the same game.
 //
-// What it exercises in live 3D (sdk/react/src/motion/scene3d.rs LiveScene): a mesh moved, turned and squashed by keys, a
+// What it exercises in live 3D (runtime/scene LiveScene): a mesh moved, turned and squashed by keys, a
 // colour that changes (hurt), a mesh that blinks out and back (the respawn blink), coins taken (despawned) and new ones
 // placed with fresh names (spawned), sentries on state machines (patrol, look round, chase, return), a point light
 // following the player, and a chase camera.
-import { AbsoluteFill, Audio, Composition, Sequence, machine, registerRoot, sao, stepAll, useCurrentFrame, useGameEvents, useGameState, type FrameInput, type Playtest, type Snapshot } from "@raea/motion";
-import { AmbientLight, Box, Canvas3D, Cylinder, DirectionalLight, Mesh, MeshStandardMaterial, PerspectiveCamera, PointLight, Sphere, Torus } from "@raea/motion/3d";
+import { AbsoluteFill, Audio, Composition, Sequence, machine, registerRoot, sao, stepAll, useCurrentFrame, useGameEvents, useGameState, type FrameInput, type Playtest, type Snapshot } from "raea";
+import { Cylinder, Sphere, Torus } from "raea/3d";
+import { StandardMaterial } from "raea/pbr";
+import { Cuboid, Mesh3d } from "raea/mesh";
+import { AmbientLight, DirectionalLight, PointLight } from "raea/light";
+import { Quat, Transform } from "raea/transform";
+import { Camera3d } from "raea/camera";
 
 export const CW = 1280;
 export const CH = 720;
@@ -118,8 +123,8 @@ function scripted(g: Game): string[] {
 }
 
 function step(g: Game, input: FrameInput): Game {
-  // a person playing (live input) is never driven by the autopilot, keys or none
-  const keys = input.keys.length || (input as { live?: boolean }).live ? input.keys : scripted(g);
+  // no key down, live or in a render: the autopilot plays, so the stage is never idle
+  const keys = input.keys.length ? input.keys : scripted(g);
   const over = flow.is(g, "over");
   const dx = over ? 0 : (keys.includes("ArrowRight") ? 1 : 0) - (keys.includes("ArrowLeft") ? 1 : 0);
   const dz = over ? 0 : (keys.includes("ArrowDown") ? 1 : 0) - (keys.includes("ArrowUp") ? 1 : 0);
@@ -166,44 +171,44 @@ function Arena() {
   const t = (g.next * 37 + g.score) % 360;
   return (
     <AbsoluteFill style={{ background: "#0b1020" }}>
-      <Canvas3D>
-        <PerspectiveCamera position={[p.x * 0.6, 7.5, p.z * 0.6 + 8.5]} lookAt={[p.x * 0.8, 0, p.z * 0.8]} fov={55} />
-        <AmbientLight intensity={0.3} />
-        <DirectionalLight position={[4, 10, 6]} intensity={1.1} />
-        <PointLight position={[p.x, 1.6, p.z]} intensity={hurt ? 0.9 : 0.35} color={hurt ? "#ff5a5a" : "#9cc4ff"} distance={6} />
-        <Mesh name="floor" position={[0, -0.05, 0]}>
-          <Box args={[2 * R + 1, 0.1, 2 * R + 1]} />
-          <MeshStandardMaterial color="#1b2540" roughness={0.95} />
-        </Mesh>
+      <>
+        <Camera3d transform={Transform.fromXyz(p.x * 0.6, 7.5, p.z * 0.6 + 8.5).lookingAt([p.x * 0.8, 0, p.z * 0.8])} projection={{ Perspective: { fov: 0.959931088596881 } }} />
+        <AmbientLight brightness={120} />
+        <DirectionalLight transform={Transform.fromXyz(4, 10, 6).lookingAt([0, 0, 0])} illuminance={8800} shadow_maps_enabled />
+        <PointLight color={hurt ? "#ff5a5a" : "#9cc4ff"} transform={Transform.fromXyz(p.x, 1.6, p.z)} intensity={(hurt ? 0.9 : 0.35) * 900000} range={6} />
+        <Mesh3d transform={Transform.fromXyz(0, -0.05, 0)} name="floor">
+          <Cuboid half_size={[(2 * R + 1) / 2, 0.05, (2 * R + 1) / 2]} />
+          <StandardMaterial base_color="#1b2540" perceptual_roughness={0.95} />
+        </Mesh3d>
         {[0, 1, 2, 3].map((i) => (
-          <Mesh key={"wall" + i} name={"wall-" + i} position={[i < 2 ? (i ? R + 0.5 : -R - 0.5) : 0, 0.3, i < 2 ? 0 : i === 3 ? R + 0.5 : -R - 0.5]}>
-            <Box args={i < 2 ? [0.3, 0.6, 2 * R + 1.3] : [2 * R + 1.3, 0.6, 0.3]} />
-            <MeshStandardMaterial color="#33415f" roughness={0.8} />
-          </Mesh>
+          <Mesh3d key={"wall" + i} transform={Transform.fromXyz(i < 2 ? (i ? R + 0.5 : -R - 0.5) : 0, 0.3, i < 2 ? 0 : i === 3 ? R + 0.5 : -R - 0.5)} name={"wall-" + i}>
+            <Cuboid {...Cuboid.fromSize(i < 2 ? [0.3, 0.6, 2 * R + 1.3] : [2 * R + 1.3, 0.6, 0.3])} />
+            <StandardMaterial base_color="#33415f" perceptual_roughness={0.8} />
+          </Mesh3d>
         ))}
         {!blink && (
-          <Mesh name="player" position={[p.x, 0.4, p.z]} rotation={[0, p.heading, 0]} scale={moving ? [0.9, 1.1, 0.9] : 1}>
-            <Box args={[0.7, 0.7, 0.7]} />
-            <MeshStandardMaterial color={hurt ? "#ef4444" : "#f0ebd8"} roughness={0.35} />
-          </Mesh>
+          <Mesh3d transform={Transform.fromXyz(p.x, 0.4, p.z).withRotation(Quat.fromEuler("XYZ", 0, p.heading, 0)).withScale(moving ? [0.9, 1.1, 0.9] : 1)} name="player">
+            <Cuboid half_size={[0.35, 0.35, 0.35]} />
+            <StandardMaterial base_color={hurt ? "#ef4444" : "#f0ebd8"} perceptual_roughness={0.35} />
+          </Mesh3d>
         )}
         {g.sentries.map((s) => (
-          <Mesh key={s.id} name={"sentry-" + s.id} position={[s.x, 0.45, s.z]}>
-            <Sphere args={[0.45]} />
-            <MeshStandardMaterial color={sentry.is(s, "chase") ? "#f97316" : sentry.is(s, "look") ? "#facc15" : "#748cab"} roughness={0.6} />
-          </Mesh>
+          <Mesh3d key={s.id} transform={Transform.fromXyz(s.x, 0.45, s.z)} name={"sentry-" + s.id}>
+            <Sphere radius={0.45} />
+            <StandardMaterial base_color={sentry.is(s, "chase") ? "#f97316" : sentry.is(s, "look") ? "#facc15" : "#748cab"} perceptual_roughness={0.6} />
+          </Mesh3d>
         ))}
         {g.coins.map((c) => (
-          <Mesh key={c.id} name={"coin-" + c.id} position={[c.x, 0.5, c.z]} rotation={[Math.PI / 2, (t + c.id * 40) * (Math.PI / 180), 0]}>
-            <Torus args={[0.25, 0.08]} />
-            <MeshStandardMaterial color="#fbbf24" metalness={0.6} roughness={0.3} emissive="#7c4a00" />
-          </Mesh>
+          <Mesh3d key={c.id} transform={Transform.fromXyz(c.x, 0.5, c.z).withRotation(Quat.fromEuler("XYZ", Math.PI / 2, (t + c.id * 40) * (Math.PI / 180), 0))} name={"coin-" + c.id}>
+            <Torus major_radius={0.25} minor_radius={0.08} />
+            <StandardMaterial base_color="#fbbf24" perceptual_roughness={0.3} metallic={0.6} emissive="#7c4a00" />
+          </Mesh3d>
         ))}
-        <Mesh name="pillar" position={[0, 0.6, 0]} rotation={[0, (g.score * 15) * (Math.PI / 180), 0]}>
-          <Cylinder args={[0.2, 0.2, 1.2]} />
-          <MeshStandardMaterial color="#5b6b94" roughness={0.5} />
-        </Mesh>
-      </Canvas3D>
+        <Mesh3d transform={Transform.fromXyz(0, 0.6, 0).withRotation(Quat.fromEuler("XYZ", 0, (g.score * 15) * (Math.PI / 180), 0))} name="pillar">
+          <Cylinder radius={0.2} half_height={0.6} />
+          <StandardMaterial base_color="#5b6b94" perceptual_roughness={0.5} />
+        </Mesh3d>
+      </>
       <div style={{ position: "absolute", left: 32, top: 24, fontFamily: "Inter", fontWeight: 800, fontSize: 36, color: "#f0ebd8" }}>{`COINS ${g.score}`}</div>
       <div style={{ position: "absolute", right: 32, top: 24, fontFamily: "Inter", fontWeight: 800, fontSize: 36, color: "#f0ebd8" }}>{"♥".repeat(Math.max(0, p.lives))}</div>
       {flow.is(g, "over") && (

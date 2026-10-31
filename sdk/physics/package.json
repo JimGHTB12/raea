@@ -1,0 +1,13 @@
+{
+  "name": "@raea/physics",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's physics (bodies, colliders and joints on the engine's solver), raea's own subject. Authors import it through \"raea\" as raea/physics (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./physics": "./src/physics.tsx"
+  }
+}

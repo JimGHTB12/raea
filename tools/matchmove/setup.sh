@@ -1,10 +1,10 @@
 #!/bin/sh
-# Matchmove (camera solve) for rdb's asset store: `Store::matchmove(clip, {from, seconds, subject, height})` solves the
+# Matchmove (camera solve) for raea-render's asset store: `Store::matchmove(clip, {from, seconds, subject, height})` solves the
 # camera of a stretch of footage (COLMAP through pycolmap: BSD; OpenCV for the rotation-only fallback: Apache-2.0) and
 # keeps the solve as JSON, cached by the clip's content and the params. run.py is copied in beside the venv. Installs
-# into $RAEA_MATCHMOVE (default ~/.cache/raea-matchmove), outside the repo, as SAO's lives in ~/.cache/raea-sao. rdb runs
-# this itself the first time a solve is asked for and nothing is installed; `raea-motion track --setup` runs it on
-# purpose. Size: the venv only (pycolmap, numpy, opencv-python-headless, pillow: about 250 MB). No model weights.
+# into $RAEA_MATCHMOVE (default ~/.cache/raea-matchmove), outside the repo, as SAO's lives in ~/.cache/raea-sao. raea-render runs
+# this itself the first time a solve is asked for and nothing is installed (a first `raea track`, a <Matchmove>); run it
+# by hand to install ahead of that. Size: the venv only (pycolmap, numpy, opencv-python-headless, pillow: about 250 MB). No model weights.
 #   tools/matchmove/setup.sh
 set -e
 DIR=${RAEA_MATCHMOVE:-$HOME/.cache/raea-matchmove}

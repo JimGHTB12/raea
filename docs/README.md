@@ -7,4 +7,4 @@ Documentation that spans more than one folder.
 
 Each folder's own README describes that part of the code. Behaviour specs written in Gherkin sit beside the code they
 specify, for example [`sdk/shell/shell.feature`](../sdk/shell/shell.feature) and
-[`sdk/motion/spec/motion.feature`](../sdk/motion/spec/motion.feature).
+[`sdk/raea/spec/motion.feature`](../sdk/raea/spec/motion.feature).

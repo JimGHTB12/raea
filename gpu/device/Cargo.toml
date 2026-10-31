@@ -1,0 +1,26 @@
+[package]
+name = "raea-gpu-device"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The process's one shared GPU device, the windows it presents on, and its telemetry: every wgpu error and lost device put to the subsystem behind it, and each submission's latency, in the run's trace"
+
+[dependencies]
+# trace: RAEA_WGPU_TRACE=DIR records the shared device's calls, what tools/readbacks.sh counts GPU-to-CPU copies in
+# (docs/blitz-bevy.feature B1d); off unless that is set
+wgpu = { version = "=30.0.1", features = ["trace"] }
+pollster = "0.4"
+bytemuck = "1"
+serde_json = "1"
+raea-io-trace = { path = "../../io/trace" }
+# Vello's bump buffer sizes, checked against the device before a render (check.rs)
+vello = { version = "=0.11.0", default-features = false }
+# bump.rs: Vello's coarse stages on the CPU, a page's bump buffer use counted with no GPU work (RAEA_VELLO_BUMP_USE)
+vello_shaders = { version = "=0.11.0", default-features = false, features = ["cpu"] }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+# the canary's own command buffer, its status read (check.rs)
+objc2-metal = { version = "0.3.2", default-features = false, features = ["std", "MTLCommandQueue", "MTLCommandBuffer"] }
+# a window's own background colour and a CAMetalLayer of its own (present.rs)
+objc2 = "0.6"

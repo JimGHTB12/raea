@@ -1,0 +1,22 @@
+[package]
+name = "raea-runtime-encode"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "An edit rendered to a file: Bevy's 3D or the direct GPU path, its sound mixed on the one mixer core, encoded; HTML compositions lowered to an edit and a Blitz page"
+
+[dependencies]
+raea-render = { path = "../../engine/render", default-features = false, features = ["native"] }
+raea-core-program = { path = "../../core/program" }
+raea-sys-frame = { path = "../../systems/frame", features = ["native"] }
+raea-runtime-view = { path = "../view" }
+raea-page = { path = "../../engine/page" }
+raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio", "apple"] }
+raea-io-home = { path = "../../io/home" }
+raea-io-net = { path = "../../io/net" }
+raea-sys-mix = { path = "../../systems/mix" }
+raea-sys-k = { path = "../../systems/k" }
+raea-gpu-device = { path = "../../gpu/device" }
+serde_json = "1"
+wgpu = "=30.0.1"

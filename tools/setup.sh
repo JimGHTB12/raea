@@ -1,6 +1,6 @@
 #!/bin/bash
 # After a clone (and safe to run again): links each workspace crate's target/ to the root's, so the paths scripts and
-# docs name (sdk/react/target/release/raea-motion, apps/void/target/release/void, ...) are the one build's. Cargo
+# docs name (target/release/raea and a crate's own target/release/...) are the one build's. Cargo
 # builds every crate into the root target/ (Cargo.toml's workspace); a crate dir that still holds a real target/ from
 # before the workspace is left alone and named, to delete when nothing runs from it.
 #   tools/setup.sh [ROOT]     ROOT: the checkout (default: this script's)

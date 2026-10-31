@@ -1,0 +1,17 @@
+{
+  "name": "@raea/math",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's math, as bevy_math is Bevy's: easing curves, springs and interpolation, and the keyframed animation (animate) that runs on them. Authors import it through \"raea\" (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./easing": "./src/easing.ts",
+    "./spring": "./src/spring.ts",
+    "./interpolate": "./src/interpolate.ts",
+    "./animate": "./src/animate.tsx",
+    "./animate.gen": "./src/animate.gen.ts"
+  }
+}

@@ -1,9 +1,9 @@
 #!/bin/sh
 # Stable Audio Open Small on Core ML (stabilityai/stable-audio-open-small, Stability AI Community License; the Core ML
-# packages are mlboydaisuke/Stable-Audio-Open-Small-CoreML) for rdb's asset store: `make("sao", prompt, seed, {seconds})`
+# packages are mlboydaisuke/Stable-Audio-Open-Small-CoreML) for raea-render's asset store: `make("sao", prompt, seed, {seconds})`
 # renders one sound locally (run.py, copied in beside the models). Installs into $RAEA_SAO (default ~/.cache/raea-sao),
-# outside the repo, as TokenSynth's lives in ~/.cache/raea-tokensynth. rdb runs this itself the first time a sound is
-# asked for and nothing is installed; `raea-motion setup-audio` runs it on purpose.
+# outside the repo, as TokenSynth's lives in ~/.cache/raea-tokensynth. raea-render runs this itself the first time a sound is
+# asked for and nothing is installed; `raea setup-audio` runs it on purpose.
 #
 # What it fetches, once: the DiT (1.36 GB), the VAE decoder (156 MB) and the number embedder (0.4 MB) at a pinned
 # revision, each checked against its SHA-256; t5-base's tokenizer.json (1.4 MB), so runs never touch the network; and

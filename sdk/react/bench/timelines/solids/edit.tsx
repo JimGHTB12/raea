@@ -10,8 +10,13 @@
 //   7 2D               crossSection booleans, offset, hull, extrude with twist, revolve
 //   8 from 3D to 2D    project and crossSection(z), offset and extruded again
 //   9 meshes          levelSet, warp, fromMesh (solids written under their hash, drawn from obj(...))
-import { AbsoluteFill, Composition, registerRoot, useCurrentFrame } from "@raea/motion";
-import { AmbientLight, Canvas3D, DirectionalLight, Mesh, MeshStandardMaterial, PerspectiveCamera, crossSection, manifold, outline, type Solid } from "@raea/motion/3d";
+import { AbsoluteFill, Composition, registerRoot, useCurrentFrame } from "raea";
+import { crossSection, manifold, outline, type Solid } from "raea/3d";
+import { StandardMaterial } from "raea/pbr";
+import { Mesh3d } from "raea/mesh";
+import { AmbientLight, DirectionalLight } from "raea/light";
+import { Quat, Transform } from "raea/transform";
+import { Camera3d } from "raea/camera";
 
 const W = 1280;
 const H = 720;
@@ -112,16 +117,16 @@ function Solids() {
   const list = getSolids();
   return (
     <AbsoluteFill style={{ background: "#0f1720" }}>
-      <Canvas3D>
-        <PerspectiveCamera position={[0, 0.4 + 0.3 * Math.sin(f / 90), 8.4]} lookAt={[0, 0, 0]} fov={45} />
-        <AmbientLight intensity={0.45} />
-        <DirectionalLight position={[3, 4, 5]} intensity={1.3} />
+      <>
+        <Camera3d transform={Transform.fromXyz(0, 0.4 + 0.3 * Math.sin(f / 90), 8.4).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398163397448 } }} />
+        <AmbientLight brightness={180} />
+        <DirectionalLight transform={Transform.fromXyz(3, 4, 5).lookingAt([0, 0, 0])} illuminance={10400} shadow_maps_enabled />
         {list.map((s, i) => (
-          <Mesh key={BUILDS[i][0]} name={BUILDS[i][0]} shape={s} position={[((i % 3) - 1) * 2.3, (1 - Math.floor(i / 3)) * 2.05, 0]} rotation={[0.25, f * 0.02 + i * 0.7, 0]}>
-            <MeshStandardMaterial color={BUILDS[i][2]} roughness={0.45} metalness={0.1} />
-          </Mesh>
+          <Mesh3d key={BUILDS[i][0]} transform={Transform.fromXyz(((i % 3) - 1) * 2.3, (1 - Math.floor(i / 3)) * 2.05, 0).withRotation(Quat.fromEuler("XYZ", 0.25, f * 0.02 + i * 0.7, 0))} name={BUILDS[i][0]} shape={s}>
+            <StandardMaterial base_color={BUILDS[i][2]} perceptual_roughness={0.45} metallic={0.1} />
+          </Mesh3d>
         ))}
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

@@ -1,7 +1,7 @@
 // A tier (i) playtest (sdk/react/docs/playtest.md): random, novelty and beam bots on a game's `playtest` export, then a
 // ceiling and softlock analysis. Writes, under OUT:
 //   report.json     finished or not, frames to finish, progress ceiling, deaths and stuck spots, softlocks, bot costs
-//   run.input.json  the winning run (or the furthest one) as the input timeline `raea-motion render --input` takes
+//   run.input.json  the winning run (or the furthest one) as the input timeline `raea render --input` takes
 //   trace.jsonl     that run frame by frame (frame, keys, observation, events): the facts views and rules read
 //   moments.json    the run's events and the search's death and stuck spots, by frame (views are timed from these)
 //   transitions.jsonl  with state machines (Playtest.machines): every transition of the run as a row (frame, entity,
@@ -31,7 +31,7 @@ const g = new Game(p);
 let machinesNote: string | null = null;
 if (p.machines) {
   const bad = Object.entries(p.machines(p.initial) ?? {}).filter(([, w]: [string, any]) => !w || !w.machine || !w.snapshot).map(([k]) => k);
-  if (bad.length) machinesNote = `the playtest's machines export isn't machine.watch() for ${bad.join(", ")} (each needs { machine, snapshot }, from a machine() of @raea/motion): machine checks skipped`;
+  if (bad.length) machinesNote = `the playtest's machines export isn't machine.watch() for ${bad.join(", ")} (each needs { machine, snapshot }, from a machine() of raea): machine checks skipped`;
 }
 if (machinesNote) console.error(machinesNote);
 const mt = p.machines && !machinesNote ? new MachineTrace(p.machines) : null;

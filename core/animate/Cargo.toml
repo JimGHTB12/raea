@@ -1,0 +1,17 @@
+[package]
+name = "raea-core-animate"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "Declared animations compiled once, then sampled at any composition frame"
+
+[features]
+# Bevy's Reflect on the wire types, for raea-sys-animate's component and the generated TS types; no systems
+bevy = ["dep:bevy"]
+
+[dependencies]
+raea-core-ease = { path = "../ease" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bevy = { version = "=0.20.0", default-features = false, features = ["std"], optional = true }

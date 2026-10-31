@@ -1,0 +1,10 @@
+[package]
+name = "conformance-fake"
+version = "0.1.0"
+edition = "2021"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A fake UI substrate for the conformance runner's own tests: an MCP server answering input and ui with a toy feed, its knobs making cases slow or failing"
+
+[dependencies]
+serde_json = "1"

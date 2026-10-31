@@ -1,0 +1,14 @@
+area = "pointer"
+title = "a hovered card stops being hovered when the pointer leaves the window"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "card-*", visible = true }
+[[steps]]
+input = { type = "move", at = "card-*" }
+[[steps]]
+expect = { id = "card-*", hovered = true, count = 1 }
+[[steps]]
+input = { type = "leave" }
+[[steps]]
+expect = { id = "*", hovered = true, count = 0 }

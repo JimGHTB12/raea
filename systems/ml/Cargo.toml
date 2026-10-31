@@ -1,0 +1,19 @@
+[package]
+name = "raea-sys-ml"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "raea's ONNX Runtime facility: models loaded once per process and run on tensors from Rust or from a composition's TypeScript, and jobs named by what they compute"
+license = "FSL-1.1-ALv2"
+
+[features]
+# Core ML as an execution provider (display-only results: not bit-exact across runs or machines)
+coreml = ["ort/coreml"]
+
+[dependencies]
+# the same ort pin and prebuilt runtime as the legacy app's voice and raea's perception
+ort = { version = "=2.0.0-rc.13", features = ["half"] }
+half = "2"
+anyhow = "1"
+# models fetched once from Hugging Face into the model cache (models.rs)
+ureq = "2"

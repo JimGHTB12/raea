@@ -1,0 +1,39 @@
+[package]
+name = "raea-bevy-adapters"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Adapters for declared Bevy plugins whose API isn't reflected (sdk/raea/docs/bevy-plugins.md): a reflected component of raea's that builds the plugin's own types when added, one module per plugin behind its feature, registered by raea-bevy-plugins' install"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
+raea-runtime-plugins = { path = "../../runtime/plugins" }
+# Draws2d, the marker that brings up the scene's 2D overlay camera for a plugin's 2D content
+raea-sys-sprite = { path = "../../systems/sprite" }
+# >>> declared dependencies: written by tools/bevy-plugins.sh sync from the projects' package.json; don't edit
+bevy_easings = { version = "=0.20.0", optional = true, default-features = false, features = ["render", "sprite", "ui", "color"] }
+bevy_enoki = { version = "=0.8.0", optional = true, default-features = false, features = [] }
+bevy_ecs_ldtk = { version = "=0.16.0", optional = true, default-features = false, features = ["render", "internal_levels", "derive"] }
+bevy_light_2d = { version = "=0.11.0", optional = true, default-features = false, features = [] }
+bevy_rapier2d = { version = "=0.37.0", optional = true, default-features = false, features = ["dim2", "async-collider", "to-bevy-mesh", "debug-render-2d"] }
+bevy_rapier3d = { version = "=0.37.0", optional = true, default-features = false, features = ["dim3", "async-collider", "to-bevy-mesh", "debug-render-3d"] }
+bevy_spritesheet_animation = { version = "=8.0.1", optional = true, default-features = false, features = ["3d"] }
+bevy_rich_text3d = { version = "=0.8.0", optional = true, default-features = false, features = ["reflect"] }
+bevy_ecs_tilemap = { version = "=0.20.0", optional = true, default-features = false, features = ["render"] }
+bevy_tween = { version = "=0.14.1", optional = true, default-features = false, features = ["bevy_asset", "bevy_render", "bevy_sprite", "bevy_ui"] }
+# <<< declared dependencies
+
+[features]
+# >>> declared features: written by tools/bevy-plugins.sh sync; don't edit
+easings = ["dep:bevy_easings"]
+enoki = ["dep:bevy_enoki"]
+ldtk = ["dep:bevy_ecs_ldtk"]
+light_2d = ["dep:bevy_light_2d"]
+rapier2d = ["dep:bevy_rapier2d"]
+rapier3d = ["dep:bevy_rapier3d"]
+spritesheet = ["dep:bevy_spritesheet_animation"]
+text3d = ["dep:bevy_rich_text3d"]
+tilemap = ["dep:bevy_ecs_tilemap"]
+tween = ["dep:bevy_tween"]
+# <<< declared features

@@ -1,0 +1,17 @@
+area = "text"
+title = "Esc in feed.search clears it and lets it go"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "feed.search", visible = true }
+[[steps]]
+input = { type = "click", at = "feed.search" }
+[[steps]]
+input = { type = "keys", text = "v2" }
+[[steps]]
+wait = { id = "feed.search", value = "v2" }
+[[steps]]
+input = { type = "press", key = "Escape" }
+[[steps]]
+expect = { all = [{ id = "feed.search", value = "" }, { id = "feed.search", focused = false }] }

@@ -1,0 +1,12 @@
+[package]
+name = "raea-runtime-look"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A 3D composition's look as raea-render row columns: the camera, its lens and motion blur, the frame's grade, paint and outline, a part's surface"
+
+[dependencies]
+raea-core-scene = { path = "../../core/scene" }
+raea-core-program = { path = "../../core/program" }
+serde_json = "1"

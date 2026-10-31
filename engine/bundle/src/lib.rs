@@ -259,11 +259,11 @@ impl Plugin for Z3 {
     }
 }
 
-/// The C API raea-motion loads (libraea_bundle.dylib), so raea links none of Rolldown's crates.
+/// The C API raea loads (libraea_bundle.dylib), so raea links none of Rolldown's crates.
 pub mod ffi {
     use std::ffi::{c_char, CStr, CString};
 
-    /// The version of this API: raea-motion refuses a library with another
+    /// The version of this API: raea refuses a library with another
     #[no_mangle]
     pub extern "C" fn raea_bundle_api() -> u32 {
         1
@@ -283,7 +283,6 @@ pub mod ffi {
             let script = opts.get("script").filter(|s| s.is_object()).map(|s| super::script::Script {
                 js: path(&s["js"]),
                 motion: path(&s["motion"]),
-                browser: path(&s["browser"]),
                 shell: path(&s["shell"]),
                 aliases: s["aliases"].as_object().map(|m| m.iter().map(|(k, v)| (k.clone(), path(v))).collect()).unwrap_or_default(),
                 stubs: s["stubs"].as_array().map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default(),

@@ -1,0 +1,29 @@
+[package]
+name = "raea-app-play"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "`raea play`: a composition played live, in a window of its own or offscreen with its numbers"
+
+[features]
+# the models' numbers in play's report
+ml = ["raea-runtime-react/ml", "dep:raea-sys-speech", "raea-runtime-sound/ml"]
+
+[dependencies]
+raea-runtime-plugins = { path = "../../runtime/plugins" }
+raea-runtime-react = { path = "../../runtime/react", default-features = false }
+raea-runtime-live = { path = "../../runtime/live" }
+raea-core-alloc = { path = "../../core/alloc" }
+serde_json = "1"
+winit = "=0.30.13"
+raea-gpu-device = { path = "../../gpu/device" }
+raea-io-trace = { path = "../../io/trace" }
+raea-sys-speech = { path = "../../systems/speech", optional = true }
+# the lines said on a frame, in its sound (raea-runtime-sound's ml)
+raea-runtime-sound = { path = "../../runtime/sound", default-features = false, optional = true }
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[package.metadata.cargo-shear]
+# depended on only to turn its ml feature on
+ignored = ["raea-runtime-sound"]

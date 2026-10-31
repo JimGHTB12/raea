@@ -1,0 +1,354 @@
+//! A composition's 3D (the data-3d elements of raea/3d, read by read3d) as raea-render rows: camera, lights, meshes,
+//! glTF models and pictures in space, with every value that changes from frame to frame keyed on each frame. Rows
+//! are matched across frames by identity, not by position in the tree: a part's `name` if it has one, else its
+//! kind and shape (or source), counted in tree order. A part missing from some frames gets a `visible` column, so one
+//! that appears later (inside a Sequence) shows in play exactly when it shows in a render. Groups compose their
+//! transforms into their children's, in world space. The columns are raea-render's (runtime/scene3d/src/lib.rs).
+
+use std::collections::BTreeMap;
+
+use bevy::math::{EulerRot, Mat4, Vec3};
+use raea_core_program::ir::{Program, V};
+use serde_json::{Map, Value};
+
+use raea_core_scene::*;
+pub use raea_runtime_look::camera;
+use raea_runtime_look::*;
+
+mod parts;
+use parts::*;
+mod models;
+use models::*;
+mod live;
+pub use live::{LiveScene, Shot};
+use live::*;
+mod fast;
+
+/// Gaussian splats' rows (<Splat>).
+mod splat;
+/// 2D parts' rows (<Sprite>, <Shape2D>).
+mod sprite2d;
+/// Baked simulations' and glitches' rows (<MeshSequence>, <Goo>, glitch props).
+mod meshseq;
+
+fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
+    let item = |kind: &'static str, world: Mat4, material: Option<Node3>| Item { kind, props: n.props.clone(), shape: n.shape.clone(), material, world };
+    match &*n.kind {
+        "Group" => {
+            let w = parent * local(&n.props);
+            // a parent entity's own components (<BevyComponent> children of <Entity transform>): an entity at its place
+            // carrying them, as a bare <Entity>'s. Its children are placed in it here, not Bevy ChildOf children of it
+            if n.kids.iter().any(|k| &*k.kind == "BevyComponent") {
+                let mut it = item("entity", w, None);
+                bevy_parts(n, &mut it);
+                out.push(it);
+            }
+            let start = out.len();
+            for k in &n.kids {
+                walk(k, w, out);
+            }
+            // a group's composition pass (`pass`) is every part's inside it that doesn't name its own
+            if let Some(pass) = n.props.get("pass").filter(|v| v.is_string()) {
+                for it in out[start..].iter_mut().filter(|it| matches!(it.kind, "mesh" | "model" | "panel" | "text") && !it.props.contains_key("pass")) {
+                    std::sync::Arc::make_mut(&mut it.props).insert("pass".into(), pass.clone());
+                }
+            }
+        }
+        // <Refinish>: every model inside re-covered (after the model's own MeshStandardMaterial children, which name
+        // theirs more closely)
+        "Refinish" => {
+            let start = out.len();
+            for k in &n.kids {
+                walk(k, parent, out);
+            }
+            let Some(Value::Array(given)) = n.props.get("materials") else { return };
+            let specs: Vec<Value> = given.iter().filter_map(Value::as_object).map(surface_spec).collect();
+            for it in out[start..].iter_mut().filter(|it| it.kind == "model") {
+                let p = std::sync::Arc::make_mut(&mut it.props);
+                let mut all = match p.remove("surfaces") {
+                    Some(Value::Array(own)) => own,
+                    _ => Vec::new(),
+                };
+                all.extend(specs.iter().cloned());
+                p.insert("surfaces".into(), Value::Array(all));
+            }
+        }
+        "Mesh" => {
+            let w = parent * local(&n.props);
+            let mat = n.kids.iter().find(|k| k.kind.ends_with("Material")).cloned();
+            let mut it = item("mesh", w, mat);
+            // a compiled-in Bevy plugin's components on it (<BevyComponent>), applied through the TypeRegistry
+            bevy_parts(n, &mut it);
+            out.push(it);
+            // a mesh's children (three.js parents meshes to meshes) move with it
+            for k in &n.kids {
+                walk(k, w, out);
+            }
+        }
+        "Model" => {
+            let mut it = item("model", parent * local(&n.props), None);
+            bevy_parts(n, &mut it);
+            // MeshToonMaterial children: toon surfaces over its glTF materials (all, or the one each names)
+            let toons: Vec<Value> = n.kids.iter().filter(|k| &*k.kind == "MeshToonMaterial").map(|k| toon_spec(&k.props, true)).collect();
+            if !toons.is_empty() {
+                std::sync::Arc::make_mut(&mut it.props).insert("toon".into(), Value::Array(toons));
+            }
+            // MeshStandardMaterial children: its glTF materials (all, or the one each names) given another colour,
+            // texture or finish, the rest of each kept
+            let mats: Vec<_> = n.kids.iter().filter(|k| matches!(&*k.kind, "MeshStandardMaterial" | "MeshPhysicalMaterial")).collect();
+            let surfaces: Vec<Value> = mats.iter().map(|k| surface_spec(&k.props)).collect();
+            if !surfaces.is_empty() {
+                std::sync::Arc::make_mut(&mut it.props).insert("surfaces".into(), Value::Array(surfaces));
+            }
+            // their shaders (docs/shaders.feature SH2): each over the glTF material it names, or the rest
+            let shaders: Vec<Value> = mats.iter().filter_map(|k| {
+                let Some(Value::Object(sh)) = k.props.get("shader") else { return None };
+                let mut sh = sh.clone();
+                if let Some(m) = k.props.get("material") {
+                    sh.insert("material".into(), m.clone());
+                }
+                Some(Value::Object(sh))
+            }).collect();
+            if !shaders.is_empty() {
+                std::sync::Arc::make_mut(&mut it.props).insert("shader".into(), Value::Array(shaders));
+            }
+            out.push(it)
+        }
+        // a bare Bevy entity (<Entity>): a Transform, and its <BevyComponent> children through the TypeRegistry
+        "Entity" => {
+            let mut it = item("entity", parent * local(&n.props), None);
+            bevy_parts(n, &mut it);
+            out.push(it)
+        }
+        "ImagePlane" => out.push(item("panel", parent * local(&n.props), None)),
+        // a picture pressed onto whatever surface its box crosses (<Decal>: raea-render's forward decal, its +y out of the surface)
+        "Decal" => out.push(item("decal", parent * local(&n.props), None)),
+        // a live picture on a quad (<Screen>): a panel with a `screen` column (raea-render's screen.rs)
+        "Screen" => out.push(item("panel", parent * local(&n.props), None)),
+        // footage behind the 3D, filling the camera's view (<Plate>, <Matchmove>): not moved by groups
+        "Plate" => out.push(item("plate", Mat4::IDENTITY, None)),
+        "PerspectiveCamera" | "DirectionalLight" | "PointLight" | "SpotLight" | "RectAreaLight" => {
+            let kind = match &*n.kind {
+                "PerspectiveCamera" => "camera",
+                "DirectionalLight" => "directional",
+                "PointLight" => "point",
+                "RectAreaLight" => "rect",
+                _ => "spot",
+            };
+            let mut it = item(kind, parent, None);
+            bevy_parts(n, &mut it);
+            out.push(it)
+        }
+        "AmbientLight" => out.push(item("ambient", parent, None)),
+        "Bloom" => out.push(item("bloom", parent, None)),
+        // a procedural sky round the scene (Bevy's Atmosphere): a camera column
+        "Atmosphere" => out.push(item("atmosphere", parent, None)),
+        // text in the 3D world (<RichText>): a block and its glyphs (raea-render's text3d.rs)
+        "RichText" => out.push(item("text", parent * local(&n.props), None)),
+        "Fog" => out.push(item("fog", parent, None)),
+        "ToneMapping" => out.push(item("tonemapping", parent, None)),
+        "DepthOfField" => out.push(item("dof", parent, None)),
+        "Grade" => out.push(item("grade", parent, None)),
+        "VolumetricFog" => out.push(item("volfog", parent, None)),
+        "Environment" => out.push(item("environment", parent, None)),
+        "AmbientOcclusion" => out.push(item("ssao", parent, None)),
+        "AntiAliasing" => out.push(item("aa", parent, None)),
+        "Shadows" => out.push(item("shadows", parent, None)),
+        "FogVolume" => out.push(item("fogvolume", parent * local(&n.props), None)),
+        "Fire" => out.push(item("fire", parent * local(&n.props), None)),
+        "Splat" => out.push(item("splat", parent * local(&n.props), None)),
+        // 2D over the 3D (<Sprite>, <Shape2D>): placed in composition px by their own props, not by groups
+        "Sprite" => out.push(item("sprite", Mat4::IDENTITY, None)),
+        "Shape2D" => out.push(item("shape2d", Mat4::IDENTITY, None)),
+        "MeshSequence" => out.push(item("meshseq", parent * local(&n.props), None)),
+        "Look" => out.push(item("framelook", parent, None)),
+        "Outline" => out.push(item("outline", parent, None)),
+        "Fisheye" => out.push(item("fisheye", parent, None)),
+        "LensDistortion" => out.push(item("distortion", parent, None)),
+        "MotionBlur" => out.push(item("mblur", parent, None)),
+        "BevyResource" => out.push(item("resource", parent, None)),
+        // one shader over every lit standard surface left (<SurfaceShader>, docs/shaders.feature SH4)
+        "SurfaceShader" => out.push(item("surface_shader", parent, None)),
+        // a shader over the frame (<FramePass>, docs/shaders.feature SH6)
+        "FramePass" => out.push(item("frame_pass", parent, None)),
+        // a compute shader run before the cameras draw (<Compute>, docs/shaders.feature SH10)
+        "Compute" => out.push(item("compute", parent, None)),
+        _ => {
+            for k in &n.kids {
+                walk(k, parent, out);
+            }
+        }
+    }
+}
+
+/// A part's SDK name as its row's `name` column: what a Bevy Entity field (a ChildOf's parent) names it by.
+fn name_column(row: &mut BTreeMap<String, V>, props: &Map<String, Value>) {
+    if let Some(Value::String(n)) = props.get("name") {
+        row.insert("name".into(), V::S(n.clone()));
+    }
+}
+
+/// The <BevyComponent> children of a part (a Mesh, a Model, a light, the camera) onto its item as `components`: Bevy's
+/// own reflected components, or a compiled-in plugin's, applied by raea-render through the TypeRegistry (plugins.rs).
+fn bevy_parts(n: &Node3, it: &mut Item) {
+    let comps: Vec<Value> = n.kids.iter().filter(|k| &*k.kind == "BevyComponent").map(|k| Value::Object((*k.props).clone())).collect();
+    if !comps.is_empty() {
+        std::sync::Arc::make_mut(&mut it.props).insert("components".into(), Value::Array(comps));
+    }
+}
+
+/// A frame's scene walked into its parts, each placed in the world.
+pub fn items_of(scene: &[Node3]) -> Vec<Item> {
+    let mut out = Vec::new();
+    for n in scene {
+        walk(n, Mat4::IDENTITY, &mut out);
+    }
+    // a camera's own AmbientLight (<Camera3d>'s <AmbientLight> child, Bevy 0.20's component) lights its view in place of
+    // the scene's others (GlobalAmbientLight)
+    let own = |i: &Item| i.kind == "ambient" && i.props.get("camera") == Some(&Value::Bool(true));
+    if out.iter().any(own) {
+        out.retain(|i| i.kind != "ambient" || own(i));
+    }
+    out
+}
+
+fn visible(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, track: &[Option<Item>]) {
+    if track.iter().any(Option::is_none) {
+        let on: Vec<f64> = track.iter().map(|t| t.is_some() as u8 as f64).collect();
+        column(p, row, id, "visible", &on);
+    }
+}
+
+/// A part's composition pass on each frame (`pass`: 0 "scene", from 1 the piece's passes), stepped.
+fn pass_column(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item], names: &[String]) {
+    if names.is_empty() || !its.iter().any(|i| i.props.contains_key("pass")) {
+        return;
+    }
+    let ids: Vec<f64> = its.iter().map(|i| i.props.get("pass").and_then(Value::as_str).and_then(|n| names.iter().position(|x| x == n)).map_or(0.0, |k| (k + 1) as f64)).collect();
+    row.insert("pass".into(), V::N(ids[0]));
+    if !ids.iter().all(|v| *v == ids[0]) {
+        p.keys.insert((id.to_string(), "pass".to_string()), ids.iter().enumerate().map(|(f, v)| (f as i64, *v, "step".to_string())).collect());
+    }
+}
+
+/// World position, rotation (raea-render's rot_y, rot_x, rot_z: YXZ) and scale of each frame.
+fn placement(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item]) {
+    let per: Vec<[f64; 9]> = its.iter().map(|it| {
+        let (s, q, t) = it.world.to_scale_rotation_translation();
+        let (ry, rx, rz) = q.to_euler(EulerRot::YXZ);
+        [t.x as f64, t.y as f64, t.z as f64, rx as f64, ry as f64, rz as f64, s.x as f64, s.y as f64, s.z as f64]
+    }).collect();
+    for (k, name) in ["x", "y", "z", "rot_x", "rot_y", "rot_z"].iter().enumerate() {
+        column(p, row, id, name, &per.iter().map(|t| t[k]).collect::<Vec<_>>());
+    }
+    let sc: Vec<[f64; 3]> = per.iter().map(|t| [t[6], t[7], t[8]]).collect();
+    if sc.iter().any(|s| s.iter().any(|v| (v - 1.0).abs() > 1e-9)) {
+        for (k, name) in ["scale_x", "scale_y", "scale_z"].iter().enumerate() {
+            column(p, row, id, name, &sc.iter().map(|s| s[k]).collect::<Vec<_>>());
+        }
+    }
+}
+
+/// A screen's columns (<Screen>, <Model screens>): its spec (a panel's `screen`) or a model's `screens` and `hide`,
+/// JSON, from the first frame; the tube's power keyed when it changes.
+fn screen_columns(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item]) {
+    let first = &its[0].props;
+    for (k, col) in [("screen", "screen"), ("screens", "screens"), ("hide", "hide")] {
+        if let Some(v) = first.get(k).filter(|v| !v.is_null()) {
+            row.insert(col.into(), V::S(v.to_string()));
+        }
+    }
+    if its.iter().any(|i| i.props.contains_key("screenPower")) {
+        column(p, row, id, "screen_power", &its.iter().map(|i| n(&i.props, "screenPower", 1.0)).collect::<Vec<_>>());
+    }
+    // a flat screen's brightness over the frames (the spec holds the first; engine/screen.rs's sync_screens reads this)
+    if its.iter().any(|i| screen_bright(&i.props).is_some()) {
+        column(p, row, id, "screen_bright", &its.iter().map(|i| screen_bright(&i.props).unwrap_or(1.0)).collect::<Vec<_>>());
+    }
+}
+
+/// A flat screen's `brightness`, from its spec (Screen's prop)
+fn screen_bright(props: &Map<String, Value>) -> Option<f64> {
+    props.get("screen")?.get("brightness")?.as_f64()
+}
+
+/// The lights, meshes, models and pictures in space, as rows, from each frame's parts.
+pub fn rows(all: &[Vec<Item>], p: &mut Program) {
+    let before = p.spawns.len();
+    rows_into_of(all, &Tracks::of(all), p);
+    // RAEA_SCENE_ROWS=1: the 3D rows printed (what play and render draw), for checking a scene
+    if std::env::var_os("RAEA_SCENE_ROWS").is_some() {
+        for (kind, rows) in p.spawns.iter().filter(|(k, _)| k == "camera").chain(p.spawns[before..].iter()) {
+            for r in rows {
+                let keyed: Vec<&str> = p.keys.keys().filter(|(id, _)| Some(&V::S(id.clone())) == r.get("id")).map(|(_, c)| c.as_str()).collect();
+                eprintln!("3d row {kind}: {r:?} keyed {keyed:?}");
+            }
+        }
+    }
+}
+
+type Track = (String, Vec<Option<Item>>);
+
+/// Each kind group's tracks, worked out once (a live frame worked them out twice: in rows_into and again for its ids)
+struct Tracks {
+    lights: Vec<Track>,
+    meshes: Vec<Track>,
+    models: Vec<Track>,
+    panels: Vec<Track>,
+    decals: Vec<Track>,
+    fogs: Vec<Track>,
+    fires: Vec<Track>,
+    splats: Vec<Track>,
+    sprites: Vec<Track>,
+    shapes2d: Vec<Track>,
+    plates: Vec<Track>,
+    meshseqs: Vec<Track>,
+    entities: Vec<Track>,
+    texts: Vec<Track>,
+}
+
+impl Tracks {
+    fn of(all: &[Vec<Item>]) -> Tracks {
+        Tracks {
+            lights: tracks_of(all, &["directional", "point", "spot", "rect"]),
+            meshes: tracks_of(all, &["mesh"]),
+            models: tracks_of(all, &["model"]),
+            panels: tracks_of(all, &["panel"]),
+            decals: tracks_of(all, &["decal"]),
+            fogs: tracks_of(all, &["fogvolume"]),
+            fires: tracks_of(all, &["fire"]),
+            splats: tracks_of(all, &["splat"]),
+            sprites: tracks_of(all, &["sprite"]),
+            shapes2d: tracks_of(all, &["shape2d"]),
+            plates: tracks_of(all, &["plate"]),
+            meshseqs: tracks_of(all, &["meshseq"]),
+            entities: tracks_of(all, &["entity"]),
+            texts: tracks_of(all, &["text"]),
+        }
+    }
+}
+
+fn rows_into_of(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
+    let names = pass_names(all);
+    resources_rows(all, p);
+    surface_shader_rows(all, p);
+    ordered_shader_rows(all, p, "frame_pass");
+    ordered_shader_rows(all, p, "compute");
+    lights_rows(all, tr, p);
+    meshes_rows(tr, &names, p);
+    entities_rows(tr, p);
+    texts_rows(tr, &names, p);
+    models_rows(tr, &names, p);
+    panels_rows(tr, &names, p);
+    decals_rows(tr, p);
+    plates_rows(tr, p);
+    fogs_rows(tr, p);
+    fires_rows(tr, p);
+    // gaussian splats (<Splat>): splat.rs
+    splat::rows(&tr.splats, p);
+    // 2D over the 3D (<Sprite>, <Shape2D>): sprite2d.rs
+    sprite2d::sprites(&tr.sprites, p);
+    sprite2d::shapes(&tr.shapes2d, p);
+    // baked simulations (<MeshSequence>, <Goo>): meshseq.rs
+    meshseq::rows(&tr.meshseqs, p);
+}

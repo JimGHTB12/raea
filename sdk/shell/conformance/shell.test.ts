@@ -1,7 +1,7 @@
-// @raea/shell on the engine (raea-motion test): bash over a project folder, kept inside it, every command an action
+// @raea/shell on the engine (raea test): bash over a project folder, kept inside it, every command an action
 // row that can be undone and redone, and raea's tools as commands.
 import { describe, expect, test } from "bun:test";
-import { hasNative, native } from "@raea/motion/native";
+import { hasNative, native } from "raea/native";
 import { Shell } from "../src";
 
 const engine = hasNative();
@@ -141,21 +141,36 @@ describe.skipIf(!engine)("raea's commands", () => {
     expect(JSON.parse((await sh.exec("cat w.json")).stdout)).toHaveLength(2);
   });
 
-  test("rdb runs in process, in the shell's folder, with project paths", async () => {
+  test("raea's media verbs run in process, in the shell's folder, with project paths", async () => {
     const sh = fresh();
     await sh.exec("mkdir edits && cd edits");
-    const made = await sh.exec("cd /edits && rdb new e.rdb");
-    expect(made.exitCode).toBe(0);
-    expect(made.stdout).toContain("e.rdb: an empty edit");
-    expect(made.stdout).not.toContain(sh.fs.root);
-    expect((await sh.exec("ls /edits")).stdout).toBe("e.rdb\n");
-    expect((await sh.exec("rdb moves /edits/e.rdb")).exitCode).toBe(0);
-    const missing = await sh.exec("rdb moves /nope.rdb");
-    expect(missing.exitCode).toBe(1);
-    expect(missing.stderr).toContain("/nope.rdb");
-    expect(missing.stderr).not.toContain(sh.fs.root);
-    // rrl the language is retired (2026-10-17): no rrl command
+    const missing = await sh.exec("cd /edits && raea media probe /edits/nope.mp4");
+    expect(missing.exitCode).not.toBe(0);
+    // the media verbs say a refusal on stdout ("REFUSED  ...")
+    const said = missing.stdout + missing.stderr;
+    expect(said).toContain("/edits/nope.mp4");
+    expect(said).not.toContain(sh.fs.root);
+    // rrl the language (2026-10-17) and raea-render's command line (2026-10-23) are retired: no rrl or raea-render command
     expect((await sh.exec("rrl")).exitCode).not.toBe(0);
+    expect((await sh.exec("rdb")).exitCode).not.toBe(0);
+  });
+
+  // one `raea` (docs/sdk.feature S1e): the project's verbs here, the engine's command line for the rest, and no second
+  // command under raea's first name
+  test("raea is one command: parts, the engine's verbs, no raea-motion", async () => {
+    const sh = fresh();
+    expect((await sh.exec("raea part list")).stdout).toContain("face-frame");
+    const added = await sh.exec("raea part add captions && cat components/captions.tsx");
+    expect(added.exitCode).toBe(0);
+    expect(added.stdout).toContain("raea part add captions:");
+    const guides = await sh.exec("raea guide");
+    expect(guides.exitCode).toBe(0);
+    expect(guides.stdout).toContain("motion");
+    // a registry part's name given to npm's `add` is pointed at `raea part add`
+    const npm = await sh.exec("raea add lockup --in /nope");
+    expect(npm.exitCode).not.toBe(0);
+    expect(npm.stderr).toContain("raea part add lockup");
+    expect((await sh.exec("raea-motion guide")).exitCode).not.toBe(0);
   });
 
   test("media: sizes and errors in the shell's paths", async () => {
@@ -286,16 +301,27 @@ describe.skipIf(!engine)("one terminal, kept between commands", () => {
     expect((await sh.exec("pwd; echo $X; echo gone > /dev/null; cat /dev/null")).stdout).toBe("/d\n5\n");
     expect((await sh.exec("ls /")).stdout).toBe("d\n");
   });
-  test("a deadline stops a command (exit 124) and the shell goes on", async () => {
-    const { handle } = await import("../src/serve");
+  test("a signal that aborts stops the command line at its next step, and the shell goes on", async () => {
+    // a deadline checked whenever the interpreter looks at the signal: no timer fires while a command runs, so the
+    // sleep finishes and what follows it doesn't run
+    const sig = new AbortController().signal as AbortSignal & { _abort?: (r: unknown) => void };
+    const end = Date.now() + 200;
+    let real = false;
+    Object.defineProperty(sig, "aborted", {
+      configurable: true,
+      get() {
+        if (!real && Date.now() > end) {
+          real = true;
+          Object.defineProperty(sig, "aborted", { value: false, writable: true, configurable: true });
+          sig._abort?.(new DOMException("timed out after 200 ms", "TimeoutError"));
+        }
+        return real;
+      },
+    });
     const sh = fresh();
-    const r = await handle(sh, { id: 1, op: "exec", cmd: "sleep 2; echo late", timeout_ms: 200 });
-    expect(r.exitCode).toBe(124);
+    const r = await sh.exec("sleep 2; echo late", { signal: sig }).catch(() => ({ stdout: "" }));
     expect(r.stdout).toBe("");
-    expect((await handle(sh, { id: 2, cmd: "echo after" })).stdout).toBe("after\n");
-    const big = await handle(sh, { id: 3, cmd: "seq 1 30000" });
-    expect(String(big.stdout)).toContain("[cut:");
-    expect((await handle(sh, { id: 4, op: "nope" })).error).toContain("no op");
+    expect((await sh.exec("echo after")).stdout).toBe("after\n");
   });
 });
 
@@ -323,8 +349,8 @@ describe.skipIf(!engine)("links the host placed", () => {
     expect((await sh.exec("readlink media")).stdout).toBe("(outside the project)\n");
     expect((await sh.exec("ln -s ../../../../../../etc evil")).exitCode).not.toBe(0);
     expect((await sh.exec("ln media/take01.words.json hard")).exitCode).not.toBe(0);
-    // rdb's media verbs, run in process, open the linked file
-    expect((await sh.exec("rdb media probe media/take01.words.json")).stderr).not.toContain("No such file");
+    // the media verbs, run in process, open the linked file
+    expect((await sh.exec("raea media probe media/take01.words.json")).stderr).not.toContain("No such file");
   });
 });
 

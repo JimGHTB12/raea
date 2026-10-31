@@ -1,0 +1,13 @@
+{
+  "name": "@raea/ml",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's machine learning: models loaded and run on the device. Authors import it through \"raea\" as raea/ml (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ml": "./src/ml.ts"
+  }
+}

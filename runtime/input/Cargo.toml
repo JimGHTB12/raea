@@ -1,0 +1,25 @@
+[package]
+name = "raea-runtime-input"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Pointer and keys sent to the page they hit, on screen and on meshes, and input replay"
+
+[dependencies]
+# the layers under it
+raea-sys-page = { path = "../../systems/page" }
+raea-runtime-twins = { path = "../../runtime/twins" }
+raea-runtime-dom = { path = "../../runtime/dom" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_asset", "bevy_image", "bevy_log", "bevy_window", "ui_bevy_render", "bevy_picking", "ui_picking", "bevy_input_focus"] }
+# the document: stylo's styles, Taffy's and Blitz's layout (floats on, as Chrome lays them out)
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false, features = ["svg", "woff", "system-fonts", "floats", "text-transform-icu", "complex-scripts"] }
+blitz-traits = "=0.3.0-beta.4"
+# keys as Blitz takes them (host.rs WindowInput: a window's KeyboardInput as DOM keys and codes), blitz-traits' own
+keyboard-types = "0.8"
+serde_json = "1"
+# HTML files parsed by Blitz (motion.rs open_html: an HTML page, WPT's tests), and their URLs
+blitz-html = "=0.3.0-beta.4"
+
+[dev-dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_core_pipeline", "bevy_log", "png", "bevy_window"] }

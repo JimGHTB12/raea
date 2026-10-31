@@ -1,0 +1,13 @@
+[package]
+name = "raea-sdk-props"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Every exported SDK component's props, each read by its own body or by the engine; the unread listed (docs/sdk.feature S8c)"
+
+[[bin]]
+name = "raea-sdk-props"
+path = "src/main.rs"
+
+[dependencies]

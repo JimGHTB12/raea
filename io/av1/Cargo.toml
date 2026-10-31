@@ -1,0 +1,15 @@
+[package]
+name = "raea-io-av1"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's royalty-free AV1 media backend: rav1d decode, rav1e encode, Opus audio, muxide"
+
+[dependencies]
+raea-io-codec = { path = "../codec", features = ["mux"] }
+raea-io-soft = { path = "../soft" }
+muxide = "0.2"
+# from the v1.1.0 tag: the crates.io package leaves out src/arm/asm-offsets.h, which its arm assembly includes
+rav1d = { git = "https://github.com/memorysafety/rav1d", tag = "v1.1.0" }
+rav1e = { version = "0.8", default-features = false, features = ["threading"] }

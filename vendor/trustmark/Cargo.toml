@@ -1,0 +1,22 @@
+# Adobe's trustmark 0.4.0 (crates.io, MIT), vendored only to move its ONNX runtime from ort =2.0.0-rc.10 to the
+# workspace's =2.0.0-rc.13 (two ort-sys versions can't link into one build) and ndarray to 0.17 with it. Drop this copy
+# for the crates.io release once upstream reaches the workspace's ort.
+[package]
+edition = "2021"
+name = "trustmark"
+version = "0.4.0"
+description = "A Rust implementation of TrustMark"
+license = "MIT"
+repository = "https://github.com/adobe/trustmark"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+fast_image_resize = { version = "5.1.4", features = ["image", "rayon"] }
+# only the in-memory image types: raea decodes and encodes frames itself
+image = { version = "0.25.6", default-features = false }
+ndarray = "0.17"
+ort = "=2.0.0-rc.13"
+thiserror = "1"

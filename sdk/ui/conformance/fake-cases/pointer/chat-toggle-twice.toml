@@ -1,0 +1,16 @@
+area = "pointer"
+title = "two quick presses on header.toggle.chat open and close the chat and never resize the window"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "header.toggle.chat", visible = true }
+[[steps]]
+snap = "before"
+[[steps]]
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+expect = { all = [{ id = "chat", field = "visible", unchanged = true, since = "before" }, { check = "window", unchanged_since = "start" }] }
+hold = 30

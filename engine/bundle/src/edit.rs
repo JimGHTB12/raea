@@ -1,4 +1,4 @@
-//! A composition's bundle (raea-motion's bundle_fresh), with the edit's own packages: its sources are copied into a
+//! A composition's bundle (raea's bundle_fresh), with the edit's own packages: its sources are copied into a
 //! work folder whose node_modules is the engine's, so `import { motion } from "motion/react"` found nothing the edit
 //! had installed. A bare import from the edit's sources resolves from the edit's own folder first (its node_modules,
 //! then its parents', as Node and Vite would), then the engine's; the packages the engine carries (react, mediabunny,

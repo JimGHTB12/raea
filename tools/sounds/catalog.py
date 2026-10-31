@@ -1,13 +1,13 @@
-"""Writes sdk/motion/library/sounds/catalog.json: the open sample libraries `raea-motion sounds` searches and fetches from,
+"""Writes sdk/raea/library/sounds/catalog.json: the open sample libraries `raea sounds` searches and fetches from,
 each instrument with the files it has, so a search works offline and a fetch knows its URLs without asking GitHub.
 Only libraries whose licence allows use in a commercial piece: CC0, CC-BY (credit the author) and public domain. Tone's
 own drum kits (tonejs.github.io/audio/drum-samples) are CC BY-NC-SA, so they're left out.
-    python3 tools/sounds/catalog.py [--out sdk/motion/library/sounds/catalog.json]
+    python3 tools/sounds/catalog.py [--out sdk/raea/library/sounds/catalog.json]
 Run it again to pick up files the libraries add; it reads GitHub's tree API (four requests)."""
 import argparse, json, os, re, urllib.request
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../sdk/motion/library/sounds/catalog.json"))
+ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../sdk/raea/library/sounds/catalog.json"))
 a = ap.parse_args()
 
 
@@ -103,5 +103,5 @@ packs.append({
 
 os.makedirs(os.path.dirname(a.out), exist_ok=True)
 with open(a.out, "w") as f:
-    json.dump({"note": "written by tools/sounds/catalog.py; raea-motion sounds reads it", "packs": packs}, f, separators=(",", ":"))
+    json.dump({"note": "written by tools/sounds/catalog.py; raea sounds reads it", "packs": packs}, f, separators=(",", ":"))
 print(a.out, os.path.getsize(a.out), "bytes;", ", ".join(f"{p['id']} {len(p['instruments'])}" for p in packs))

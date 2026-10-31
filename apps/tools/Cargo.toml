@@ -1,0 +1,20 @@
+[package]
+name = "raea-app-tools"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The `raea` verbs that run raea's local model tools: sao, tokensynth, setup-audio, sounds, splat and song"
+
+[features]
+# a made sound signed as generated (raea's own API; the public engine goes without)
+service = []
+
+[dependencies]
+raea-io-assets = { path = "../../io/assets" }
+raea-io-home = { path = "../../io/home" }
+raea-io-media = { path = "../../io/media", default-features = false }
+serde_json = "1"
+# the verbs' flags read as a render reads its own
+raea-runtime-bundle = { path = "../../runtime/bundle" }
+raea-runtime-export = { path = "../../runtime/export" }

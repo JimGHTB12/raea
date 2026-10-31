@@ -1,0 +1,11 @@
+area = "pointer"
+title = "a press on a feed row in the left panel selects that row and no other"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "left.feed.concepts", visible = true }
+[[steps]]
+input = { type = "click", at = "left.feed.concepts" }
+[[steps]]
+expect = { all = [{ id = "left.feed.concepts", selected = true }, { id = "left.feed.*", selected = true, count = 1 }] }

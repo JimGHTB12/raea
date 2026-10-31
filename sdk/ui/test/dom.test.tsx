@@ -1,0 +1,266 @@
+// The DOM-like surface (docs/ts-native.feature P18, src/dom.ts) through React's DOM mode on the stand-in host: refs
+// are elements, the tree and attributes are mirrored, geometry comes from a layout snapshot, events go through capture
+// and bubble with React's handlers in Chrome's order, and the observers report. The same behaviours are proved against
+// Chrome by the parity cases (sdk/ui/parity/cases/p18-dom); this is the fast check.
+import { beforeAll, describe, expect, test } from "bun:test";
+import { useEffect, useRef, useState } from "react";
+import { install, layout } from "../src/dom";
+import { createPortal, flushSync, mount } from "../src/react";
+import { restart } from "../src/wire";
+import { Host } from "./host";
+
+beforeAll(() => install());
+const g = globalThis as any;
+
+/** A snapshot with these boxes (by data-testid): [x, y, w, h] and optional scroll [sl, st, sw, sh]. */
+function snap(host: Host, boxes: Record<string, number[]>) {
+  const n: number[] = [];
+  for (const [t, b] of Object.entries(boxes)) {
+    const id = host.tid(t);
+    const [x, y, w, h, sl = 0, st = 0, sw = w, sh = h] = b;
+    n.push(id, x, y, w, h, sl, st, sw, sh, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  }
+  layout(JSON.stringify({ vw: 800, vh: 600, dpr: 2, n }));
+}
+function fresh() {
+  restart();
+  const host = new Host();
+  return host;
+}
+const press = (x: number, y: number, detail = 1) => ({ x: 0, y: 0, clientX: x, clientY: y, button: 0, detail });
+
+describe("P18 DOM surface", () => {
+  test("a ref is an element: tag, attributes, tree, queries, instanceof", () => {
+    const host = fresh();
+    let ref: any;
+    function App() {
+      const r = useRef<any>(null);
+      useEffect(() => void (ref = r.current), []);
+      return (
+        <div data-testid="root" id="app" className="a b">
+          <ul ref={r} data-testid="list" aria-label="things" role="listbox">
+            <li data-testid="x" className="item" data-k="1">
+              one
+            </li>
+            <li data-testid="y" className="item sel" aria-selected={true}>
+              two
+            </li>
+          </ul>
+        </div>
+      );
+    }
+    mount(<App />, 0, { dom: true });
+    expect(ref).toBeInstanceOf(g.HTMLElement);
+    expect(ref).toBeInstanceOf(g.Element);
+    expect(ref.tagName).toBe("UL");
+    expect(ref.getAttribute("aria-label")).toBe("things");
+    expect(ref.ownerDocument).toBe(g.document);
+    expect(ref.ownerDocument.defaultView).toBe(g);
+    expect(ref.isConnected).toBe(true);
+    expect(ref.textContent).toBe("onetwo");
+    expect(ref.children.length).toBe(2);
+    expect(ref.querySelectorAll(".item").length).toBe(2);
+    expect(ref.querySelector("[aria-selected=true]").getAttribute("data-testid")).toBe("y");
+    expect(ref.querySelector("li:not(.sel)").dataset.k).toBe("1");
+    expect(ref.firstElementChild.closest("#app").className).toBe("a b");
+    expect(g.document.getElementById("app").contains(ref)).toBe(true);
+    expect(g.document.body.contains(ref)).toBe(true);
+    expect(g.document.querySelector("#root > #app ul > li + li").getAttribute("data-testid")).toBe("y");
+    expect(ref.matches("ul[role=listbox]")).toBe(true);
+    // setAttribute goes to the host as a prop
+    ref.setAttribute("data-state", "open");
+    g.__flushTest?.();
+  });
+
+  test("geometry from the snapshot; scroll writes to the host", async () => {
+    const host = fresh();
+    let el: any;
+    mount(
+      <div data-testid="root">
+        <div data-testid="box" className="overflow-y-auto" ref={(e: any) => (el = e)}>
+          <div data-testid="inner" />
+        </div>
+      </div>,
+      0,
+      { dom: true },
+    );
+    snap(host, { root: [0, 0, 800, 600], box: [10, 20, 200, 100, 0, 0, 200, 500], inner: [10, 20, 200, 500] });
+    const r = el.getBoundingClientRect();
+    expect([r.x, r.y, r.width, r.height, r.right, r.bottom]).toEqual([10, 20, 200, 100, 210, 120]);
+    expect(el.clientHeight).toBe(100);
+    expect(el.scrollHeight).toBe(500);
+    expect(g.innerWidth).toBe(800);
+    expect(g.devicePixelRatio).toBe(2);
+    const from = host.batches.length;
+    el.scrollTop = 1000;
+    expect(el.scrollTop).toBe(400);
+    await Promise.resolve();
+    const ops = host.since(from);
+    expect(ops.some((o: any) => o.op === "update" && o.set?.scrollTop === 400)).toBe(true);
+  });
+
+  test("a press: capture and bubble through native and React listeners in Chrome's order, then click", () => {
+    const host = fresh();
+    const log: string[] = [];
+    let btn: any;
+    function App() {
+      useEffect(() => {
+        const d = g.document;
+        const cap = () => log.push("doc capture");
+        const bub = () => log.push("doc bubble");
+        d.addEventListener("pointerdown", cap, true);
+        d.addEventListener("pointerdown", bub);
+        btn.addEventListener("pointerdown", (e: any) => log.push(`native at ${e.currentTarget.tagName} phase ${e.eventPhase}`));
+        g.addEventListener("click", () => log.push("window click"));
+      }, []);
+      return (
+        <div data-testid="root" onPointerDownCapture={() => log.push("react capture root")} onPointerDown={() => log.push("react bubble root")} onClick={(e) => log.push(`react click ${(e.target as any).tagName}`)}>
+          <button data-testid="b" ref={(e: any) => (btn = e)} onPointerDown={(e) => log.push(`react ${e.type} ${(e.currentTarget as any).tagName}`)}>
+            <span data-testid="s">hi</span>
+          </button>
+        </div>
+      );
+    }
+    mount(<App />, 0, { dom: true });
+    snap(host, { root: [0, 0, 800, 600], b: [10, 10, 100, 40], s: [20, 20, 30, 20] });
+    host.send("b", "pointerdown", press(25, 25));
+    host.send("b", "pointerup", press(25, 25));
+    expect(log).toEqual([
+      "doc capture",
+      "react capture root",
+      "native at BUTTON phase 3",
+      "react pointerdown BUTTON",
+      "react bubble root",
+      "doc bubble",
+      "react click SPAN",
+      "window click",
+    ]);
+    // the press focused the button (natively focusable)
+    expect(g.document.activeElement).toBe(btn);
+  });
+
+  test("stopPropagation in React stops native listeners above the root; preventDefault on mousedown keeps focus", () => {
+    const host = fresh();
+    const log: string[] = [];
+    function App() {
+      useEffect(() => {
+        const f = () => log.push("doc");
+        g.document.addEventListener("pointerdown", f);
+        return () => g.document.removeEventListener("pointerdown", f);
+      }, []);
+      return (
+        <div data-testid="root">
+          <button data-testid="a">a</button>
+          <button data-testid="b" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.preventDefault()}>
+            b
+          </button>
+        </div>
+      );
+    }
+    mount(<App />, 0, { dom: true });
+    snap(host, { root: [0, 0, 800, 600], a: [0, 0, 50, 20], b: [0, 30, 50, 20] });
+    const a = g.document.querySelector("[data-testid=a]");
+    a.focus();
+    expect(g.document.activeElement).toBe(a);
+    host.send("b", "pointerdown", press(10, 40));
+    expect(log).toEqual([]);
+    expect(g.document.activeElement).toBe(a);
+  });
+
+  test("focus(): blur, focusout, focus, focusin in order, activeElement synchronous, React's onFocus/onBlur bubble", () => {
+    fresh();
+    const log: string[] = [];
+    let a: any;
+    let b: any;
+    mount(
+      <div data-testid="root" onFocus={(e) => log.push(`react focus ${(e.target as any).id}`)} onBlur={(e) => log.push(`react blur ${(e.target as any).id}`)}>
+        <input id="a" data-testid="a" ref={(e: any) => (a = e)} />
+        <button id="b" data-testid="b" ref={(e: any) => (b = e)}>
+          b
+        </button>
+      </div>,
+      0,
+      { dom: true },
+    );
+    for (const t of ["focus", "blur", "focusin", "focusout"]) g.document.addEventListener(t, (e: any) => log.push(`${t} ${e.target.id} ${g.document.activeElement?.id || "body"}`), true);
+    a.focus();
+    b.focus();
+    expect(g.document.activeElement).toBe(b);
+    expect(log).toEqual(["focus a a", "focusin a a", "react focus a", "blur a body", "focusout a body", "react blur a", "focus b b", "focusin b b", "react focus b"]);
+  });
+
+  test("a portal: in body in the DOM, React's events bubble to where it was rendered", () => {
+    const host = fresh();
+    const log: string[] = [];
+    function App() {
+      const [on] = useState(true);
+      return (
+        <div data-testid="root" onClick={() => log.push("root got the portal's click")}>
+          {on && createPortal(<div data-testid="p">portal</div>, g.document.body)}
+        </div>
+      );
+    }
+    mount(<App />, 0, { dom: true });
+    const p = g.document.querySelector("[data-testid=p]");
+    expect(p.parentNode).toBe(g.document.body);
+    expect(g.document.getElementById("root").contains(p)).toBe(false);
+    snap(host, { root: [0, 0, 800, 600], p: [0, 0, 100, 100] });
+    // the host's root hears presses (no element in the portal listens)
+    host.send(0, "pointerdown", press(5, 5));
+    host.send(0, "pointerup", press(5, 5));
+    expect(log).toEqual(["root got the portal's click"]);
+  });
+
+  test("observers: ResizeObserver and IntersectionObserver from the snapshot, MutationObserver from the tree", async () => {
+    const host = fresh();
+    const log: string[] = [];
+    let el: any;
+    function App() {
+      const [n, setN] = useState(1);
+      (g as any).__setN = setN;
+      return (
+        <div data-testid="root">
+          <div data-testid="box" ref={(e: any) => (el = e)}>
+            {Array.from({ length: n }, (_, i) => (
+              <span key={i}>{i}</span>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    mount(<App />, 0, { dom: true });
+    new g.ResizeObserver((es: any[]) => es.forEach((e) => log.push(`resize ${e.contentRect.width}x${e.contentRect.height}`))).observe(el);
+    new g.IntersectionObserver((es: any[]) => es.forEach((e) => log.push(`intersect ${e.isIntersecting} ${e.intersectionRatio}`))).observe(el);
+    new g.MutationObserver((rs: any[]) => rs.forEach((r) => log.push(`mutation ${r.type} +${r.addedNodes.length}`))).observe(el, { childList: true });
+    snap(host, { root: [0, 0, 800, 600], box: [0, 550, 100, 100] });
+    expect(log).toEqual(["resize 100x100", "intersect true 0.5"]);
+    snap(host, { root: [0, 0, 800, 600], box: [0, 550, 100, 100] });
+    expect(log.length).toBe(2);
+    flushSync(() => g.__setN(2));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(log[2]).toBe("mutation childList +1");
+    snap(host, { root: [0, 0, 800, 600], box: [0, 700, 120, 100] });
+    expect(log.slice(3)).toEqual(["resize 120x100", "intersect false 0"]);
+  });
+
+  test("document.createElement goes onto the host once connected; matchMedia; getComputedStyle; TreeWalker", () => {
+    const host = fresh();
+    mount(<div data-testid="root" />, 0, { dom: true });
+    const d = g.document.createElement("div");
+    d.setAttribute("data-testid", "made");
+    d.style.setProperty("width", "40px");
+    expect(() => host.tid("made")).toThrow();
+    g.document.body.appendChild(d);
+    g.__ui_flush; // ops go at the next microtask
+    expect(d.isConnected).toBe(true);
+    expect(g.getComputedStyle(d).display).toBe("block");
+    expect(g.getComputedStyle(d).getPropertyValue("animation-name")).toBe("none");
+    expect(g.matchMedia("(min-width: 640px)").matches).toBe(true);
+    expect(g.matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(false);
+    const w = g.document.createTreeWalker(g.document.body, g.NodeFilter.SHOW_ELEMENT, { acceptNode: (n: any) => (n.tagName === "DIV" ? 1 : 3) });
+    const seen: string[] = [];
+    for (let n = w.nextNode(); n; n = w.nextNode()) seen.push(n.getAttribute("data-testid") ?? n.id);
+    expect(seen).toEqual(["root", "root", "made"]);
+  });
+});

@@ -1,7 +1,7 @@
 // TITLES: a 20 s motion-graphics timeline with no footage, the bake harness's fixture (sdk/react/bench/timelines/check.sh):
 // headlines that slide and spring in, a counter, gradient panels, a progress bar, cards in a grid, a blurred glow. It
 // bakes, plays from its bake with no JS, and renders: the three must agree.
-import { AbsoluteFill, Composition, Easing, Sequence, interpolate, registerRoot, spring, useCurrentFrame, useVideoConfig } from "@raea/motion";
+import { AbsoluteFill, Composition, Easing, Sequence, interpolate, registerRoot, spring, useCurrentFrame, useVideoConfig } from "raea";
 
 const W = 1080;
 const H = 1920;

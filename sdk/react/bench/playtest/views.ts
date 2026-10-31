@@ -9,13 +9,13 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fpsOf, loadModule } from "./load";
-import type { Moment, PlaytestSpec, TraceRow, View } from "../../../motion/src/playtest";
+import type { Moment, PlaytestSpec, TraceRow, View } from "raea/playtest";
 
 const [edit, out] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const onlyAt = process.argv.indexOf("--only");
 const only = onlyAt > 0 ? process.argv[onlyAt + 1].split(",") : null;
 const REACT = path.resolve(import.meta.dir, "../..");
-const BIN = path.join(REACT, "target/release/raea-motion");
+const BIN = path.join(REACT, "target/release/raea");
 const FPS = fpsOf(edit); // the game's own rate: a clip plays at it
 
 const spec: PlaytestSpec = (await loadModule(edit.replace(/\.tsx$/, ".playtest.ts"))).default;
@@ -140,7 +140,7 @@ for (const v of views) {
       const list = base + ".txt";
       fs.writeFileSync(list, fl.map((f) => `file '${frame(log, overlays, f)}'\nduration ${stride / FPS}`).join("\n"));
       const mp4 = base + ".mp4";
-      // as clef was calibrated: x264 at 480 wide, crf 30 (apps/void/src/checks.rs media_for)
+      // as clef was calibrated: x264 at 480 wide, crf 30 (apps/legacy/shell/src/checks.rs media_for)
       sh("ffmpeg", ["-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", list, "-vf", `scale=480:-2,fps=${FPS / stride}`, "-c:v", "libx264", "-crf", "30", "-pix_fmt", "yuv420p", mp4]);
       fs.rmSync(list);
       media = [mp4];

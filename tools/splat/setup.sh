@@ -1,9 +1,9 @@
 #!/bin/sh
-# Splat training for rdb's asset store: `Store::splat(input, {frames, steps, ...})` makes a 3D Gaussian splat from
+# Splat training for raea-render's asset store: `Store::splat(input, {frames, steps, ...})` makes a 3D Gaussian splat from
 # footage (frames, then COLMAP through pycolmap: BSD, then Brush: Apache-2.0, Rust + wgpu, trains on Metal) and keeps
 # the .ply and its sidecar, cached by the input's content and the params. run.py is copied in beside the venv; Brush is
 # its release binary (v0.3.0, aarch64-apple-darwin, checked against its SHA-256). Installs into $RAEA_SPLAT (default
-# ~/.cache/raea-splat), outside the repo. rdb runs this itself the first time a splat is asked for; `raea-motion splat
+# ~/.cache/raea-splat), outside the repo. raea-render runs this itself the first time a splat is asked for; `raea splat
 # setup` runs it on purpose. Size: about 300 MB (the venv, Brush's 60 MB binary). No model weights.
 #   tools/splat/setup.sh
 set -e

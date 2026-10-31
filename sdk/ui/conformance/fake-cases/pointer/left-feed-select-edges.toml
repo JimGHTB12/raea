@@ -1,0 +1,19 @@
+area = "pointer"
+title = "the hit test matches what's drawn: a press near a row's top or bottom edge selects that row, not its neighbour"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "left.feed.storyboards", visible = true }
+[[steps]]
+input = { type = "click", at = { id = "left.feed.storyboards", fy = 0.1 } }
+[[steps]]
+expect = { all = [{ id = "left.feed.storyboards", selected = true }, { id = "left.feed.*", selected = true, count = 1 }] }
+[[steps]]
+input = { type = "click", at = { id = "left.feed.intro", fy = 0.9 } }
+[[steps]]
+expect = { all = [{ id = "left.feed.intro", selected = true }, { id = "left.feed.*", selected = true, count = 1 }] }
+[[steps]]
+input = { type = "click", at = { id = "left.feed.swipe-file", fx = 0.95, fy = 0.5 } }
+[[steps]]
+expect = { all = [{ id = "left.feed.swipe-file", selected = true }, { id = "left.feed.*", selected = true, count = 1 }] }

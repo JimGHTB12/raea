@@ -1,0 +1,16 @@
+// Game: raea
+// Format: Valve
+// entity 0
+{
+"classname" "worldspawn"
+"mapversion" "220"
+// brush 0: a cube 80 units (about 2 m) on a side, centred on the origin
+{
+( -40 -40 -40 ) ( -40 -39 -40 ) ( -40 -40 -39 ) plugin-white [ 0 -1 0 -0 ] [ 0 0 -1 -0 ] -0 1 1
+( -40 -40 -40 ) ( -40 -40 -39 ) ( -39 -40 -40 ) plugin-white [ 1 0 0 -0 ] [ 0 0 -1 -0 ] -0 1 1
+( -40 -40 -40 ) ( -39 -40 -40 ) ( -40 -39 -40 ) plugin-white [ -1 0 0 -0 ] [ 0 -1 0 -0 ] -0 1 1
+( 40 40 40 ) ( 40 41 40 ) ( 41 40 40 ) plugin-white [ 1 0 0 -0 ] [ 0 -1 0 -0 ] -0 1 1
+( 40 40 40 ) ( 41 40 40 ) ( 40 40 41 ) plugin-white [ -1 0 0 -0 ] [ 0 0 -1 -0 ] -0 1 1
+( 40 40 40 ) ( 40 40 41 ) ( 40 41 40 ) plugin-white [ 0 1 0 -0 ] [ 0 0 -1 -0 ] -0 1 1
+}
+}

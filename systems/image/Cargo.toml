@@ -1,0 +1,14 @@
+[package]
+name = "raea-sys-image"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Bevy images for pages and roots: offscreen targets drawn a frame at a time and read back, and image files decoded to RGBA8 sRGB pictures"
+
+[dependencies]
+# images, offscreen targets and their readback
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_render", "bevy_asset", "bevy_image"] }
+
+[dev-dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_core_pipeline", "bevy_log", "png", "bevy_window"] }

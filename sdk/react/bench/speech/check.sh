@@ -1,5 +1,5 @@
 #!/bin/bash
-# Live speech (@raea/motion/speech) on the narrator test game (game/): lines made by Pocket TTS while the game plays,
+# Live speech (raea/speech) on the narrator test game (game/): lines made by Pocket TTS while the game plays,
 # and the same samples in every runner. Checks, each from fresh generation (a private speech cache, off where it says):
 #   start    the first line, asked for at frame 30, is silent before its start frame (speechStart: 30 + 0.15 s = 39)
 #            and heard within 100 ms of it
@@ -12,7 +12,7 @@
 # measurement lock. Build first (cargo build --release; RAEA_MOTION names another binary).
 #   sdk/react/bench/speech/check.sh
 cd "$(dirname "$0")/../.."
-BIN=${RAEA_MOTION:-target/release/raea-motion}
+BIN=${RAEA_MOTION:-target/release/raea}
 OUT=${TMPDIR:-/tmp}/raea-speech-check
 rm -rf "$OUT"; mkdir -p "$OUT"
 # the outputs are a few WAVs (about 15 MB each) and two small MP4s: gone when the check ends unless RAEA_SPEECH_KEEP=1

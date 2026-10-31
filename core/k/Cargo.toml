@@ -1,0 +1,7 @@
+[package]
+name = "raea-core-k"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A small K dialect for the render path's kernels: parsed, interpreted on the CPU as the reference, and the kernels as plain Rust"

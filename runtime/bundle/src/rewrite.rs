@@ -1,0 +1,143 @@
+use super::*;
+
+pub fn copy_dir(from: &Path, to: &Path, depth: usize) -> R<()> {
+    std::fs::create_dir_all(to).map_err(|e| format!("{}: {e}", to.display()))?;
+    for e in std::fs::read_dir(from).map_err(|e| format!("{}: {e}", from.display()))? {
+        let e = e.map_err(|e| e.to_string())?;
+        let name = e.file_name().to_string_lossy().to_string();
+        if name.starts_with('.') || name == "node_modules" || name == "target" {
+            continue;
+        }
+        let p = e.path();
+        if p.is_dir() {
+            if depth < 6 {
+                copy_dir(&p, &to.join(&name), depth + 1)?;
+            }
+        } else if matches!(p.extension().and_then(|x| x.to_str()), Some("ts" | "tsx" | "js" | "jsx" | "json" | "css")) {
+            std::fs::copy(&p, to.join(&name)).map_err(|e| format!("{}: {e}", p.display()))?;
+        }
+    }
+    Ok(())
+}
+
+pub const MEDIA_EXTS: [&str; 10] = ["mp4", "mov", "m4v", "mp3", "wav", "m4a", "png", "jpg", "webp", "gif"];
+
+/// The edit's source with its imports pointed at the bundle's copy of the SDK (its package name, a subpath such as /3d,
+/// or a relative path into raea/motion/src), and media imported as modules turned into their paths (spec: "Media
+/// imported as modules"): `import take from "./media/take01.mp4"` is `const take = "/abs/media/take01.mp4"`. Whole
+/// statements, so an import over several lines is rewritten too. With `portable` a folder, imported media is copied
+/// into its media/ and named `media/<file>`, so the bundle and that folder travel together (to the iPhone).
+pub fn rewrite_into(src: &str, from_dir: &Path, motion_src: &Path, to_motion: &str, portable: Option<&Path>) -> R<String> {
+    // `export ... from` too: a package re-exporting the umbrella (tone.tsx's sao, lyria and fish) was left external
+    let re = regex::Regex::new(r#"(?s)\b(?:(import)\s+([^;'"]*?)|(export)\s+((?:\*|\{|type\s*\{)[^;'"]*?))\s+from\s+(["'])([^"']+)["']"#).unwrap();
+    let mut out = String::new();
+    let mut last = 0;
+    for c in re.captures_iter(src) {
+        let whole = c.get(0).unwrap();
+        let kw = c.get(1).or(c.get(3)).unwrap().as_str();
+        let what = c.get(2).or(c.get(4)).unwrap().as_str().trim();
+        let spec = c.get(6).unwrap().as_str();
+        out.push_str(&src[last..whole.start()]);
+        last = whole.end();
+        let line = src[..whole.start()].matches('\n').count() + 1;
+        let ext = Path::new(spec).extension().and_then(|x| x.to_str()).unwrap_or("").to_lowercase();
+        let local = spec.starts_with('.') || spec.starts_with('/');
+        if kw == "import" && MEDIA_EXTS.contains(&ext.as_str()) && local {
+            let path = from_dir.join(spec);
+            if !path.exists() {
+                return Err(format!("line {line}: {spec} doesn't exist (imported media resolves beside the edit)"));
+            }
+            let path = path.canonicalize().map_err(|e| e.to_string())?;
+            match portable {
+                Some(dir) => {
+                    let name = path.file_name().unwrap().to_string_lossy().to_string();
+                    std::fs::create_dir_all(dir.join("media")).map_err(|e| e.to_string())?;
+                    std::fs::copy(&path, dir.join("media").join(&name)).map_err(|e| format!("{}: {e}", path.display()))?;
+                    out.push_str(&format!("const {what} = {:?}", format!("media/{name}")));
+                }
+                None => out.push_str(&format!("const {what} = {:?}", path.display().to_string())),
+            }
+            continue;
+        }
+        // the SDK by its names (docs/sdk.feature S1, S1d): "raea" is its prelude, "raea/<module>" a module, "@raea/<package>"
+        // a package, each where sdk/tsconfig.base.json's paths put it, and so at its copy (bundle_fresh): motion/ for
+        // sdk/raea/src's files, <package>/ beside it for a package's
+        let named = spec == "raea" || spec.starts_with("raea/") || spec.starts_with("@raea/");
+        let sdk = motion_src.parent().and_then(|m| m.parent());
+        let target = if let Some(f) = sdk.filter(|_| named).and_then(|sdk| raea_io_home::sdk::resolve(sdk, spec)) {
+            sdk.and_then(|sdk| copied(&f, sdk, to_motion))
+        } else if local {
+            let abs = normalize(&from_dir.join(spec));
+            abs.strip_prefix(motion_src).ok().map(|rest| if rest.as_os_str().is_empty() { to_motion.to_string() } else { format!("{to_motion}/{}", rest.display()) })
+        } else {
+            None
+        };
+        match target {
+            Some(t) => out.push_str(&format!("{kw} {what} from \"{t}\"")),
+            None => out.push_str(whole.as_str()),
+        }
+    }
+    out.push_str(&src[last..]);
+    Ok(out)
+}
+
+/// An SDK file `f` (under `sdk`) as its copy's import path from a file whose way to motion/ is `to_motion`:
+/// sdk/raea/src/x.ts is `<to_motion>/x`, sdk/<package>/src/x.ts `<package>/x` beside it
+fn copied(f: &Path, sdk: &Path, to_motion: &str) -> Option<String> {
+    let rel = f.strip_prefix(sdk).ok()?.with_extension("");
+    let mut parts = rel.components().map(|c| c.as_os_str().to_string_lossy().into_owned());
+    let (pkg, _src) = (parts.next()?, parts.next()?);
+    let rest = parts.collect::<Vec<_>>().join("/");
+    Some(if pkg == "raea" { format!("{to_motion}/{rest}") } else { format!("{}{pkg}/{rest}", to_motion.strip_suffix("motion").unwrap_or(to_motion)) })
+}
+
+/// The packages the SDK's code moved into, that a bundle may import (docs/sdk.feature S1d), as sdk/tsconfig.base.json
+/// lists them: each (`@raea/<name>`, its sources from raea's home, sdk/<name>/src) is copied into the work folder
+/// beside motion/ as its package's folder name (app/, math/ ...), its own imports of the SDK pointed at that one copy,
+/// so a controller's hooks read the Clock the engine drives.
+pub fn sdks() -> Vec<(String, String)> {
+    raea_io_home::sdk::packages(&raea_io_home::home().join("sdk")).into_iter().map(|(name, dir)| (name, format!("sdk/{dir}"))).collect()
+}
+
+/// The script sources under a copied folder, as paths relative to it (a file in a subfolder too)
+pub fn sources(root: &Path) -> R<Vec<PathBuf>> {
+    let mut out = vec![];
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(d) = stack.pop() {
+        for e in std::fs::read_dir(&d).map_err(|e| format!("{}: {e}", d.display()))?.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                stack.push(p);
+            } else if matches!(p.extension().and_then(|x| x.to_str()), Some("ts" | "tsx" | "js" | "jsx" | "mjs")) {
+                out.push(p.strip_prefix(root).unwrap().to_path_buf());
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// A file of motion's own copy with its imports of the packages its code moved into (`sdks`) pointed at their copies
+/// beside it, `up` being the way from its folder to the copy's root (motion/x.ts imports "@raea/app/clock":
+/// "../app/clock"; motion/3d/x.ts, "../../app/clock").
+pub fn point_sdks(src: &str, up: &str, sdks: &[(String, String)]) -> String {
+    let re = regex::Regex::new(r#"(\bfrom\s+)(["'])(@raea/[a-z]+)((?:/[^"']*)?)["']"#).unwrap();
+    re.replace_all(src, |c: &regex::Captures| match sdks.iter().find(|(name, _)| *name == &c[3]) {
+        Some((_, dir)) => format!("{}\"{up}{}{}\"", &c[1], dir.rsplit('/').nth(1).unwrap_or(dir), &c[4]),
+        None => c[0].to_string(),
+    })
+    .into_owned()
+}
+
+pub fn normalize(p: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for c in p.components() {
+        match c {
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            std::path::Component::CurDir => {}
+            o => out.push(o),
+        }
+    }
+    out
+}

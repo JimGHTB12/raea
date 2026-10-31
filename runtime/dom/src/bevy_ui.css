@@ -1,0 +1,21 @@
+/* bevy_ui's element kinds as a page draws them (host::BEVY_UI_CSS): what a bevy_ui `Node` is before any class or
+   style sets it (bevy_ui 0.20, Node::DEFAULT), for a space written for raea-runtime-js's host (void's: <node>, <image>,
+   <text>) on a Blitz page. In its own layer, under every author style (Tailwind's layers included). */
+@namespace url(http://www.w3.org/1999/xhtml);
+@layer bevy-ui {
+  node, image {
+    /* display: Display::Flex */
+    display: flex;
+    /* position_type: PositionType::Relative */
+    position: relative;
+    /* box_sizing: BoxSizing::BorderBox */
+    box-sizing: border-box;
+    /* flex_direction: FlexDirection::Row, flex_wrap: FlexWrap::NoWrap, flex_grow: 0.0, flex_shrink: 1.0,
+       flex_basis: Val::Auto, min_width/min_height: Val::Auto, overflow: Overflow::visible() are CSS's initial
+       values already: nothing to say */
+  }
+  /* a Text node's spans are one paragraph (bevy_text lays them out together), which a block's inline content is */
+  text {
+    display: block;
+  }
+}

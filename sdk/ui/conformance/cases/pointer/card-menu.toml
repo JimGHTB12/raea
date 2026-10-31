@@ -1,0 +1,16 @@
+area = "pointer"
+title = "a press on a card's options opens its menu without opening the card; Escape closes it"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "card-*", visible = true }
+[[steps]]
+input = { type = "move", at = "card-*" }
+[[steps]]
+input = { type = "click", at = "menu-*" }
+[[steps]]
+expect = { all = [{ id = "hide-item", visible = true }, { id = "detail-*", visible = true, count = 0 }] }
+[[steps]]
+input = { type = "press", key = "Escape" }
+[[steps]]
+expect = { all = [{ id = "hide-item", exists = false }, { id = "card-*", visible = true, quant = "any" }] }

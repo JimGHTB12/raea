@@ -1,0 +1,7 @@
+[package]
+name = "raea-core-alloc"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A counting allocator: each thread's allocations counted while RAEA_ZEROHEAP=1"

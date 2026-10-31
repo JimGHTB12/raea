@@ -1,13 +1,13 @@
 #!/bin/zsh
 # just-bash's own test suite on raea's V8: the upstream source at the pinned tag (cloned outside the repo), its vitest
 # files bundled the way upstream bundles the browser build (__BROWSER__, node:async_hooks/dns/module to its own
-# browser-unsupported shim) by raea-motion test, one run per folder, each folder's summary line and failures kept.
+# browser-unsupported shim) by raea test, one run per folder, each folder's summary line and failures kept.
 #   sdk/shell/tools/upstream.sh SRC_DIR [OUT_DIR]     SRC_DIR = .../just-bash/packages/just-bash (with `bun install --ignore-scripts`)
 # The parts that need Node by design (python3 and sqlite3 workers, js-exec's QuickJS, the real-disk filesystems, the
 # CLI) are listed, not run: in raea those commands are native (shell.feature).
 set -u
 src=${1:?SRC_DIR}; out=${2:-$PWD/upstream-out}
-M=${MOTION:-${0:A:h}/../../react/target/release/raea-motion}
+M=${MOTION:-${0:A:h}/../../react/target/release/raea}
 mkdir -p $out; : > $out/summary.txt
 cd $src
 U=src/shims/browser-unsupported.js

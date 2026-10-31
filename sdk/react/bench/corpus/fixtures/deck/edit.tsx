@@ -1,7 +1,7 @@
 // DECK: a synthetic three-slide 16:9 deck for the corpus harness (sdk/react/bench/corpus/run.sh), written the way void's
 // deck scenarios ask for one: a title slide, a three-column slide whose items stagger in, and a closing slide, each
 // held in a Series with a cross-fade, plus a page number and a progress rule. No footage.
-import { AbsoluteFill, Composition, Easing, Sequence, Series, interpolate, registerRoot, spring, useCurrentFrame, useVideoConfig } from "@raea/motion";
+import { AbsoluteFill, Composition, Easing, Sequence, Series, interpolate, registerRoot, spring, useCurrentFrame, useVideoConfig } from "raea";
 
 const W = 1920;
 const H = 1080;

@@ -1,0 +1,80 @@
+[package]
+name = "raea-render"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's render engine: an edit's rows drawn by Bevy (3D) or the direct GPU path, its sound mixed, its video encoded"
+
+[dependencies]
+# a frame's rows as the passes read them (FrameRows, the edit, the clock, row helpers, bevy_api)
+raea-sys-frame = { path = "../../systems/frame" }
+# the passes, each a crate of its own (systems/)
+raea-sys-splat = { path = "../../systems/splat" }
+raea-sys-sprite = { path = "../../systems/sprite" }
+raea-sys-rt = { path = "../../systems/rt" }
+# experimental_pbr_pcss: soft shadows (a light's softShadow in raea/3d; raea-runtime-scene3d's light)
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "experimental_pbr_pcss", "area_light_luts", "bevy_gilrs"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "hdr"] }
+# an edit as rows keyed per frame, and 3D shapes as values (docs/media.feature M2)
+raea-core-program = { path = "../../core/program" }
+# worn surfaces on a mesh row (`wear`)
+raea-sys-wear = { path = "../../systems/wear" }
+raea-core-shape = { path = "../../core/shape" }
+# text in the 3D world (<RichText>): each glyph a lit, shaded entity
+raea-sys-text3d = { path = "../../systems/text3d" }
+raea-runtime-gpuframe = { path = "../../runtime/gpuframe", optional = true }
+raea-runtime-scene3d = { path = "../../runtime/scene3d" }
+raea-runtime-plugins = { path = "../../runtime/plugins" }
+raea-sys-screen = { path = "../../systems/screen" }
+raea-sys-matchmove = { path = "../../systems/matchmove" }
+raea-sys-grid = { path = "../../systems/grid" }
+raea-sys-meshseq = { path = "../../systems/meshseq" }
+raea-sys-environment = { path = "../../systems/environment" }
+raea-sys-look = { path = "../../systems/look" }
+raea-sys-compose = { path = "../../systems/compose" }
+raea-sys-material = { path = "../../systems/material" }
+raea-sys-framepass = { path = "../../systems/framepass" }
+raea-sys-compute = { path = "../../systems/compute" }
+raea-sys-sampler = { path = "../../systems/sampler" }
+raea-sys-shader = { path = "../../systems/shader" }
+raea-sys-post = { path = "../../systems/post" }
+raea-sys-fog = { path = "../../systems/fog" }
+raea-sys-fog-half = { path = "../../systems/fog-half" }
+raea-sys-volume = { path = "../../systems/volume" }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+# the direct render's views, the 2D rows, clips' masks and the paint device (runtime/view)
+raea-runtime-view = { path = "../../runtime/view", optional = true }
+raea-sys-page = { path = "../../systems/page" }
+# the shared device; its passes' errors, stalls and latency in the run's trace, as raea-render's
+raea-gpu-device = { path = "../../gpu/device", optional = true }
+raea-io-trace = { path = "../../io/trace", optional = true }
+# the same wgpu Bevy uses (the NV12 pass records on its device)
+wgpu = "=30.0.1"
+bytemuck = "1"
+# the media plane: clips decode through a MediaBackend (soft everywhere, apple on Apple)
+raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio", "apple"], optional = true }
+
+[features]
+# native: everything that only exists to render on the machine itself (clips' decoders, the GPU frame path and its
+# traces, the direct views); without it raea-render is the program format and the 3D engine, which is what a browser build needs (docs/web-export.md, milestone 1)
+native = ["dep:raea-runtime-gpuframe", "dep:raea-runtime-view", "raea-sys-matchmove/native", "raea-sys-frame/native", "raea-sys-splat/native", "raea-sys-material/native", "raea-sys-text3d/native", "dep:raea-io-media", "dep:raea-gpu-device", "dep:raea-io-trace"]
+# web: the 3D engine on WebGPU in a browser (wasm32-unknown-unknown, without native)
+web = ["bevy/webgpu"]
+# AV1 (dav1d decode, rav1e encode) as a media backend: on by default; an exported game's player goes without it
+# (lightspeed R7: about 1 MB of code no game uses)
+default = ["native", "h264", "av1", "scripts", "network"]
+# the soft backend's H.264 (openh264): mezzanines, raea-render export's GOPs, portable video decode; an exported game's
+# player goes without it and decodes video on the platform (lightspeed R7)
+h264 = ["native", "raea-io-media/h264"]
+av1 = ["native", "raea-io-media/av1"]
+# an HTML composition's <script>s and its http(s) assets (Google Fonts, CDN images): the native build always has both, so
+# these name what a build wants and add nothing to native
+scripts = ["native"]
+network = ["native"]
+# every Bevy feature a game developer or animator might use: the plugin catalog's "bevy" declaration
+# (sdk/raea/bench/bevy-plugins/package.json, 0.20). Measured beside the default build before it joins `default`
+# (the adopt-0.20 pass, docs/bevy-upgrade.md); native only, so the web build goes without
+bevy-all = ["bevy/bevy_gilrs", "bevy/gamepad", "bevy/area_light_luts", "bevy/experimental_pbr_pcss", "bevy/dfg_lut", "bevy/smaa_luts", "bevy/tonemapping_luts", "bevy/bluenoise_texture", "bevy/bevy_gizmos", "bevy/bevy_gizmos_render", "bevy/bevy_dev_tools", "bevy/debug", "bevy/bevy_ui_debug", "bevy/file_watcher", "bevy/embedded_watcher", "bevy/asset_processor", "bevy/png", "bevy/jpeg", "bevy/ktx2", "bevy/zstd_rust", "bevy/basis-universal", "bevy/exr", "bevy/hdr", "bevy/webp", "bevy/dds", "bevy/tga", "bevy/bmp", "bevy/gif", "bevy/ico", "bevy/qoi", "bevy/pnm", "bevy/tiff", "bevy/compressed_image_saver", "bevy/picking", "bevy/bevy_picking", "bevy/mesh_picking", "bevy/sprite_picking", "bevy/ui_picking", "bevy/meshlet", "bevy/meshlet_processor", "bevy/bevy_solari", "bevy/bevy_animation", "bevy/gltf_animation", "bevy/morph", "bevy/morph_animation", "bevy/bevy_gltf", "bevy/bevy_sprite", "bevy/bevy_sprite_render", "bevy/2d_bevy_render", "bevy/3d_bevy_render", "bevy/ui_bevy_render", "bevy/bevy_ui_widgets", "bevy/bevy_feathers", "bevy/custom_cursor", "bevy/bevy_input_focus", "bevy/bevy_camera_controller", "bevy/free_camera", "bevy/pan_camera", "bevy/bevy_text", "bevy/system_font_discovery", "bevy/scene", "bevy/bevy_state", "bevy/serialize", "bevy/reflect_functions", "bevy/reflect_documentation", "bevy/sysinfo_plugin", "bevy/bevy_clipboard", "bevy/system_clipboard", "bevy/clipboard_image", "bevy/ghost_nodes", "bevy/bevy_settings", "bevy/shader_format_spirv", "bevy/bevy_debug_stepping", "bevy/bevy_world_serialization", "bevy/bevy_audio", "bevy/mp3", "bevy/flac", "bevy/vorbis", "bevy/wav", "bevy/aac", "bevy/mp4", "bevy/http", "bevy/https", "bevy/web_asset_cache", "bevy/bevy_curve", "bevy/complex_script_segmentation", "bevy/compressed_image_saver_universal", "bevy/pan_orbit_camera", "bevy/pan_orbit_gizmo", "bevy/render_dev_tools"]
+# per-system spans as a chrome trace (RUST_LOG=info, trace-*.json in the working directory)
+trace = ["bevy/trace", "bevy/trace_chrome"]

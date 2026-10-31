@@ -1,15 +1,15 @@
 // @raea/shell: the agent's shell. just-bash (Apache-2.0, used unmodified as a dependency) runs the bash: parsing, pipes,
 // redirections, functions and its text tools, in TypeScript on raea's V8. Under it, the filesystem is the project
 // folder through raea-native (RaeaFs: nothing outside the folder, every command an action row, any command undone or
-// redone), and raea's own tools (rdb, raea-motion, solid, ecs, media) are commands that call the engine natively.
+// redone), and raea's own tools (raea, solid, ecs, media) are commands that call the engine natively.
 import { Bash, defineCommand, getCommandNames, getNetworkCommandNames, type CustomCommand } from "just-bash/browser";
-import { raeaHandler, type Host } from "../../../apps/cli/src/index";
-import { nativeFetch, raeaCommands, wasiCommands } from "./commands";
-import { native } from "@raea/motion/native";
+import { raeaHandler, type Host } from "../../../engine/cli/src/index";
+import { engine, nativeFetch, raeaCommands, wasiCommands } from "./commands";
+import { native } from "raea/native";
 import { RaeaFs } from "./fs";
 
 export { RaeaFs } from "./fs";
-export { nativeFetch, raeaCommands, vpath, wasiCommands } from "./commands";
+export { engine, nativeFetch, raeaCommands, vpath, wasiCommands } from "./commands";
 
 export interface ShellOptions {
   /** the project folder: the shell's "/" */
@@ -19,7 +19,7 @@ export interface ShellOptions {
   env?: Record<string, string>;
   /** more commands, beside raea's */
   commands?: CustomCommand[];
-  /** the host's ops for `raea` (@raea/cli): perception, renders, checks; void answers them over shell-serve */
+  /** the host's ops for `raea` (@raea/cli): perception, renders, checks */
   host?: Host;
   /** the network curl may reach (none when absent): URL prefixes and methods, and headers injected at the boundary;
    * a secret is named by the host's environment variable (secretHeaders), so its value never enters JavaScript */
@@ -40,7 +40,7 @@ export class Shell {
   readonly bash: Bash;
   constructor(opts: ShellOptions) {
     this.fs = new RaeaFs({ root: opts.root });
-    const own = [...raeaCommands(this.fs), defineCommand("raea", raeaHandler(opts.host) as never), ...(opts.commands ?? [])];
+    const own = [...raeaCommands(this.fs), defineCommand("raea", raeaHandler(opts.host, engine(this.fs)) as never), ...(opts.commands ?? [])];
     // just-bash's own command names, so a WASI tool never shadows one
     const builtin = new Set<string>([...getCommandNames(), ...getNetworkCommandNames()]);
     const taken = new Set<string>([...builtin, ...own.map((c) => c.name)]);

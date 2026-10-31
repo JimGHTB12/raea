@@ -1,0 +1,13 @@
+[package]
+name = "raea-bench-swatch"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A Blitz custom widget with no Bevy in it, as a Blitz crate ships one (docs/sdk.feature S8b's bench): the plugin catalog declares it in raea.plugins, and an <x-swatch> in TSX draws it"
+
+[dependencies]
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false, features = ["custom-widget"] }
+anyrender = "=0.14.0"
+kurbo = "0.13.1"
+peniko = "0.6"

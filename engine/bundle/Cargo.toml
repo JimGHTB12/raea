@@ -6,14 +6,15 @@ license = "FSL-1.1-ALv2"
 publish = false
 description = "A work folder's TypeScript, TSX and their imports bundled in process by Rolldown (Vite's bundler, MIT): no bun process (docs/vite-in-raea.md, A1)"
 
-# raea links none of this: raea-motion loads the cdylib at run time (sdk/react/src/motion.rs, ffi below), so Rolldown's
+# raea links none of this: raea loads the cdylib at run time (runtime/react/src/scene.rs, ffi below), so Rolldown's
 # dependencies never share a feature graph with raea's (their serde_json preserve_order and arbitrary_precision once
-# reached every JSON map and number in raea-motion: f60e0b7). The rlib is for the tests and the raea-bundle binary.
+# reached every JSON map and number in raea: f60e0b7). The rlib is for the tests.
 [lib]
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 serde_json = "1"
+raea-io-home = { path = "../../io/home" }
 rolldown = "=1.2.12"
 # CSS imports and CSS modules (A2): @imports inlined, nesting and newer syntax lowered for Stylo
 lightningcss = { version = "=1.0.0-alpha.72", features = ["bundler"] }
@@ -46,3 +47,7 @@ rolldown_sourcemap = "=1.2.12"
 rolldown_std_utils = "=1.2.12"
 rolldown_tracing = "=1.2.12"
 rolldown_utils = "=1.2.12"
+
+# the rolldown_* lines above are version holds, not uses (see their comment): cargo-shear leaves them be
+[package.metadata.cargo-shear]
+ignored = ["rolldown_dev_common", "rolldown_devtools", "rolldown_devtools_action", "rolldown_ecmascript", "rolldown_ecmascript_utils", "rolldown_error", "rolldown_fs", "rolldown_plugin_asset_module", "rolldown_plugin_chunk_import_map", "rolldown_plugin_copy_module", "rolldown_plugin_data_url", "rolldown_plugin_hmr", "rolldown_plugin_lazy_compilation", "rolldown_plugin_oxc_runtime", "rolldown_plugin_utils", "rolldown_resolver", "rolldown_sourcemap", "rolldown_std_utils", "rolldown_tracing", "rolldown_utils"]

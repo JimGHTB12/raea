@@ -1,0 +1,11 @@
+[package]
+name = "raea-core-fonts"
+version = "0.1.0"
+edition = "2024"
+license = "OFL-1.1 AND FSL-1.1-ALv2"
+description = "raea's bundled faces, picked by family name the same on every machine"
+publish = false
+
+[dependencies]
+# WOFF2 to TrueType for code that reads outlines itself (raea-render's text3d)
+wuff = "0.2"

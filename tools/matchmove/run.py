@@ -1,5 +1,5 @@
 # Matchmove: the camera of a stretch of footage, solved into a world an agent can place things in (raea's asset store
-# runs this; rdb::assets::Store::matchmove). Writes OUT/solve.json and, with a subject, OUT/cut/NNNN.png (the subject cut
+# runs this; raea_render::assets::Store::matchmove). Writes OUT/solve.json and, with a subject, OUT/cut/NNNN.png (the subject cut
 # out of each frame at full size: the footage's pixels where the matte is, transparent elsewhere).
 #
 #   python run.py --video CLIP --from S --seconds N --out DIR [--subject X,Y,W,H --perceive BIN] [--height M]

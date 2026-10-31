@@ -9,7 +9,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { loadGame, loadModule } from "./load";
 import { ask as askClef } from "./judge";
-import type { PlaytestSpec } from "../../../motion/src/playtest";
+import type { PlaytestSpec } from "raea/playtest";
 
 const [edit, out] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const arg = (k: string, d: number) => { const i = process.argv.indexOf(k); return i > 0 ? Number(process.argv[i + 1]) : d; };
@@ -33,7 +33,7 @@ for (let d = 0; d < DECISIONS && p.outcome?.(s, f) !== "won"; d++) {
     const logFile = path.join(out, "drive.input.json"), png = path.join(out, "now.png");
     fs.writeFileSync(logFile, JSON.stringify(log));
     // at utility QoS (background QoS starves the GPU: no frame commits); a render that fails under load is tried again
-    const render = () => spawnSync("taskpolicy", ["-c", "utility", path.join(REACT, "target/release/raea-motion"), "render", path.resolve(edit), "--input", logFile, "--frame", String(f), "-o", png],
+    const render = () => spawnSync("taskpolicy", ["-c", "utility", path.join(REACT, "target/release/raea"), "render", path.resolve(edit), "--input", logFile, "--frame", String(f), "-o", png],
       { cwd: REACT, env: { ...process.env, RAEA_READBACK: "rgba", RAEA_AUDIO_MUTE: "1" }, encoding: "utf8" });
     let r = render();
     if (r.status !== 0) r = render();

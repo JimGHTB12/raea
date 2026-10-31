@@ -1,8 +1,8 @@
-// Compiles an EDIT.playtest.ts (sdk/motion/src/playtest.ts DSL) into the check-pack JSON void's checks.rs reads.
+// Compiles an EDIT.playtest.ts (sdk/raea/src/playtest.ts DSL) into the check-pack JSON void's checks.rs reads.
 //   bun sdk/react/bench/playtest/compile.ts EDIT.playtest.ts [-o PACK.json]
 import fs from "node:fs";
 import { loadModule } from "./load";
-import { compile, type PlaytestSpec } from "../../../motion/src/playtest";
+import { compile, type PlaytestSpec } from "raea/playtest";
 
 const file = process.argv[2];
 const o = process.argv.indexOf("-o");

@@ -1,12 +1,12 @@
 # Exporting a game
 
-Any game written on `@raea/motion` can be exported as a program that plays on its own. It runs outside void and
+Any game written on `raea` can be exported as a program that plays on its own. It runs outside the feed and
 outside the dev tree, with no bun, node or V8 and no repo. The export happens on the Mac with the dev tree; what it
 makes needs only macOS.
 
 ## The command
 
-    raea-motion export-game EDIT.tsx -o OUT [--target mac-app|mac-cli] [--name NAME] [--icon PNG] [--keys SETS]
+    raea export-game EDIT.tsx -o OUT [--target mac-app|mac-cli] [--name NAME] [--icon PNG] [--keys SETS]
                                          [--player BIN] [--no-strip]
 
 - `--target mac-app` (the default when OUT ends in `.app`) makes `NAME.app`. `mac-cli` makes a folder holding the
@@ -16,20 +16,20 @@ makes needs only macOS.
 - `--icon PNG` is turned into `AppIcon.icns` with `sips` and `iconutil`.
 - `--keys` sets the key sets the self-test cycles through (see below). They are stored in the package.
 - `--player` names the player binary to package. The default is the newest `raea-game` among the release build and the
-  `game` profile build, found beside raea-motion.
+  `game` profile build, found beside raea.
 
-Build the player once. It is a separate binary target behind the `game` feature, so the default raea-motion build
+Build the player once. It is a separate binary target behind the `game` feature, so the default raea build
 doesn't build or link it:
 
-    cd react
-    cargo build --profile game --bin raea-game --no-default-features --features game    # fat LTO, no symbols: target/game (73.9 MB)
-    cargo build --release      --bin raea-game --no-default-features --features game    # quicker to build: target/release (127.7 MB once stripped)
+    cd sdk/react
+    cargo build --profile game -p raea-app-game --bin raea-game --features player    # fat LTO, no symbols: target/game (73.9 MB)
+    cargo build --release -p raea-app-game --bin raea-game --features player    # quicker to build: target/release (127.7 MB once stripped)
 
 An export takes 1 to 15 seconds. Most of that is working out the game's sound master (below).
 
 ## What an export does
 
-1. **Bundles the game ahead of time** for live play's runtime (`--lite`, the same bundle `raea-motion play` makes at
+1. **Bundles the game ahead of time** for live play's runtime (`--lite`, the same bundle `raea play` makes at
    open), with the project's `words.json` and `perception.json` baked in. Imported media (`import x from
    "./assets/x.wav"`) is copied into the package's `media/` and named relatively (`bundle_composition`'s portable mode).
    bun runs here only.
@@ -49,8 +49,8 @@ An export takes 1 to 15 seconds. Most of that is working out the game's sound ma
    - whether it has 3D;
    - whether it has sound;
    - the game's master (the gain and ceiling its render masters its sound with). Play normally works this out in a
-     child `raea-motion master-gain` process by stepping the scripted run through every frame. The exported player
-     has no raea-motion beside it, so the master is computed once here and stored in `game.json`.
+     child `raea master-gain` process by stepping the scripted run through every frame. The exported player
+     has no raea beside it, so the master is computed once here and stored in `game.json`.
 4. **Packages the player.** It copies `raea-game`, runs `strip -x` on it (a no-op for the stripped `game` profile),
    and for an app writes `Info.plist` and `PkgInfo`.
 5. **Signs ad hoc** with `codesign --force --sign - --timestamp=none` (the whole app, or the executable for
@@ -79,14 +79,14 @@ The player finds its game in `../Resources/game`, or in `game/` beside the execu
 
 ## The player (`raea-game`)
 
-`src/bin/raea-game.rs` calls `raea_react::game::player_main`. It links only what play needs, built with
+`src/bin/raea-game.rs` calls `raea_runtime_react::game::player_main`. It links only what play needs, built with
 `--no-default-features` so the agent sandbox (wsx) and the in-process browser are left out. It runs the same `Live` as
-`raea-motion play` and void's stage, opened from the prebuilt bundle (`Live::open_bundle`; no bun):
+`raea play` and the legacy app's stage, opened from the prebuilt bundle (`Live::open_bundle`; no bun):
 
 - JavaScriptCore runs the game.
 - Blitz lays out the page and the GPU compositor presents it.
 - Sound goes through the one mixer core (Firewheel), with the stored master applied before the clock starts.
-- 3D goes through rdb's live engine on Bevy, drawn from each frame's own state.
+- 3D goes through raea-render's live engine on Bevy, drawn from each frame's own state.
 
 It opens a window shaped like the composition, as large as fits in 85% of the screen. It plays at the composition's
 rate, presented every display refresh with vsync. Keys and the pointer are the game's input, and the pointer is mapped
@@ -114,19 +114,19 @@ through the letterbox. Window controls:
   - every snapshot is taken;
   - nothing panics.
 
-`--input-log` writes each frame's input in the shape `raea-motion render --input` takes, so the dev tree can render
+`--input-log` writes each frame's input in the shape `raea render --input` takes, so the dev tree can render
 the same frames.
 
 ## Checks (sdk/react/bench/games/export.sh)
 
-The harness takes a list of games, defaulting to pong, the platformer, arena3d, `engine/media/golden/50-game` and a void
+The harness takes a list of games, defaulting to pong, the platformer, arena3d, `engine/media/golden/50-game` and a legacy-app
 agent's pong from `sdk/react/bench/corpus/list.txt`. For each game it:
 
 1. exports the game as an app;
 2. copies the app to a temp folder outside the repo;
 3. runs the self-test there for 5 s with `env -i HOME=<empty dir> PATH=/usr/bin:/bin TMPDIR=<dir>`, under the shared
    measure lock;
-4. renders the self-test's snapshot frames (at 1, 2.5 and 4 s) in the dev tree with `raea-motion render --frame N
+4. renders the self-test's snapshot frames (at 1, 2.5 and 4 s) in the dev tree with `raea render --frame N
    --input <the self-test's log>` and compares them with the snapshots by SSIM. A frame passes at >= 0.999.
 
 Results on 2026-10-18, with the `game` profile's player. The load column is the 5-minute load average during the
@@ -138,14 +138,14 @@ self-test; other agents were building and rendering at the same time.
 | platformer (120 fps, responsive, silent) | 0.3 | 73.6 | 0.09 | 600/600 | 3 | 32 | none | 84.9 | 120: 1.000000, 300: 1.000000, 480: 1.000000 | PASS |
 | arena3d (live 3D, 120 fps) | 0.9 | 74.0 | 0.47 | 598/600 | 23 | 30 | -6.0 dBFS | 10.8 | 120: 1.000000, 300: 1.000000, 480: 1.000000 | PASS |
 | engine/media/golden/50-game (Breakout, 30 fps, imported media) | 10.7 | 74.5 | 1.01 | 150/150 | 0 | 32 | -2.5 dBFS | 6.0 | 30: 1.000000, 75: 1.000000, 120: 1.000000 | PASS |
-| a void agent's pong (corpus list) | 0.5 | 73.9 | 0.38 | 300/300 | 11 | 32 | -6.8 dBFS | 5.6 | 60: 1.000000, 150: 1.000000, 240: 1.000000 | PASS |
+| a legacy-app agent's pong (corpus list) | 0.5 | 73.9 | 0.38 | 300/300 | 11 | 32 | -6.8 dBFS | 5.6 | 60: 1.000000, 150: 1.000000, 240: 1.000000 | PASS |
 
 Two more checks:
 
-- **A glTF model.** sdk/motion/bench/bevy/character (RobotExpressive.glb through `staticFile`) was exported as `mac-cli`,
+- **A glTF model.** sdk/raea/bench/bevy/character (RobotExpressive.glb through `staticFile`) was exported as `mac-cli`,
   self-tested in the scrubbed environment (PASS), and its frame 30 matched the dev render at SSIM 1.000000.
 - **Missed frames.** arena3d's 23 missed frames were the machine's load. Run again at load 22, the same package missed
-  0 of 600, and the dev tree's `raea-motion play --offscreen --input` of the same game also missed 0.
+  0 of 600, and the dev tree's `raea play --offscreen --input` of the same game also missed 0.
 
 ## Sizes
 
@@ -157,7 +157,7 @@ The player is the same for every game; a game adds only its bundle (about 90 KB)
 | `--release` + `strip -x` (what an export does to it) | 127.7 MB |
 | `--profile game` with thin LTO | 130.4 MB (3m39s) |
 | `--profile game`: fat LTO, `codegen-units = 1`, `panic = "abort"`, symbols stripped (the profile as committed) | **73.9 MB** (8m38s from scratch under load) |
-| raea-motion for comparison (`--release`, default features) | 203.7 MB |
+| raea for comparison (`--release`, default features) | 203.7 MB |
 
 An exported app is 73.6-76.5 MB, and Pong.app zips to 34.0 MB. The player links only system frameworks
 (JavaScriptCore, Metal, QuartzCore, AppKit, AVFoundation, VideoToolbox, CoreAudio, AudioToolbox, CoreText and the
@@ -166,13 +166,13 @@ like); `otool -L` shows nothing else.
 With `panic = "abort"`, a panic on any thread ends the game at once instead of unwinding. This drops the unwind tables
 (about 17 MB of `__eh_frame` and `__gcc_except_tab`) along with the landing pads in the code. The self-test still
 counts panics through its hook before the abort. The `game` profile builds into target/game and touches nothing in
-target/release, so raea-motion's build is unchanged.
+target/release, so raea's build is unchanged.
 
 What's still in the player and could go:
 
 - swc, through raea-modules (`js-exec`, and bake.rs's spans);
 - the encoders raea-media brings (rav1e, openh264's encoder);
-- sqlparser, through rdb;
+- sqlparser, through raea-render;
 - rusqlite, through raea-native.
 
 Each of these is a feature split across crates other agents own.
@@ -206,4 +206,4 @@ Each of these is a feature split across crates other agents own.
   None of this is done yet.
 - **Saving.** A game's state lives in its fold and nothing is saved between runs.
 - **Windowed play wasn't tested on screen.** No window was shown while testing, by request. The windowed loop is
-  `raea-motion play`'s loop around the same `Live`, and the self-test covers everything below the window.
+  `raea play`'s loop around the same `Live`, and the self-test covers everything below the window.

@@ -1,0 +1,17 @@
+[package]
+name = "raea-sys-frame"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A frame's rows as raea's passes read them: FrameRows, the loaded edit, the clock, a row's values, colours and sources, and the passes' share of Bevy's render API"
+
+[features]
+# the clips' decoders (Media)
+native = ["dep:raea-io-media"]
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render", "bevy_ui"] }
+raea-core-program = { path = "../../core/program" }
+serde_json = "1"
+raea-io-media = { path = "../../io/media", default-features = false, optional = true }

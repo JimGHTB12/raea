@@ -2,16 +2,16 @@ Feature: Scenes that know where things meet
   Shane, 2026-10-21, after the kitchen film's reel: clipping in layouts, things floating or sunk, light breaking between
   shots. "if we put a mesh in, we have to understand ... where it meets a surface. Does it sit? Does it float? Does it
   hang?" He wants a relational, procedural engine underneath, so scene code says what a thing is on and stays clean.
-  Today @raea/motion/3d takes positions only: the kitchen's bowl, crumbs and counter things all have hand-typed heights,
+  Today raea/3d takes positions only: the kitchen's bowl, crumbs and counter things all have hand-typed heights,
   and nothing says when one is wrong.
 
-  raea/scene is that layer, on top of @raea/motion/3d: a lint that measures what every part rests on, a contact model
+  raea/scene is that layer, on top of raea/3d: a lint that measures what every part rests on, a contact model
   per asset, placement by relation (on, hang, in), and room rules a layout solver satisfies. Lightspeed orchestrates;
   the scene SDK session builds it; lighting consistency across a cut comes later, with lightspeed's single kitchen rig.
 
   Rule: Measured: the kitchen as the island shots see it (wreck.tsx, composition b, frame 0; 2026-10-21, M5 Pro)
     Scenario: Linting the kitchen
-      When `raea-motion scene explain kitchen/wreck.tsx --composition b --frame 0` runs
+      When `raea scene explain kitchen/wreck.tsx --composition b --frame 0` runs
       Then 149 parts are measured in 4-7 s on the CPU, with no engine and no GPU
       And it finds faults a viewer would see:
         | part                                     | finding                                   | why                                     |
@@ -50,8 +50,8 @@ Feature: Scenes that know where things meet
     Scenario: Still open
       Then crumbs hovering on each other read as mounted on each other
 
-  Rule: The lint (built: sdk/react/src/motion/scene_lint.rs)
-    `raea-motion scene lint|explain EDIT.tsx [--composition ID] [--frame N] [--json]` steps the composition's React to
+  Rule: The lint (built: systems/contact/src/lint.rs)
+    `raea scene lint|explain EDIT.tsx [--composition ID] [--frame N] [--json]` steps the composition's React to
     the frame without the engine (scene_frames_to, as the clipping check does) and measures every mesh and glTF model
     from its real triangles in the world. See-through, unlit, allowOverlap and animating parts aren't faulted but are
     still surfaces others rest on.
@@ -73,7 +73,7 @@ Feature: Scenes that know where things meet
       And the big part with nothing under it is the ground
     Scenario: Clipping anywhere
       Then two parts passing deep into each other are an error wherever they are, by the clipping check's own test
-        (clip3d.rs: deep for the smaller part's size, a real share of it, not resting contact, not a foot seated in what's
+        (systems/contact: deep for the smaller part's size, a real share of it, not resting contact, not a foot seated in what's
         below); the render's check still says only those the camera sees
     Scenario: Tilted
       Then a part resting on a surface whose up leans more than 2° off the world's is a warning, unless it's `posed`
@@ -83,7 +83,7 @@ Feature: Scenes that know where things meet
         part with no parent group moving it), so an agent applies the fixes mechanically
       And lint exits 1 on any error, for CI and agents to gate on
     Scenario: Tested
-      Then `cargo test --lib clip3d` checks a mug on the floor, 3.5 mm over it, 6 mm into it; the floor as the ground; a
+      Then `cargo test -p raea-sys-contact` checks a mug on the floor, 3.5 mm over it, 6 mm into it; the floor as the ground; a
         shelf on its wall mounted and 2 cm off it in the air; a mug on its side resting on its lowest edge; a sill set
         into its wall mounted over a cupboard 4 cm below; a wall's strip over a window not sunk into it; a door 2 cm in
         front of its carcass hung on it; a magnet on its paper on a door mounted, not sunk
@@ -94,7 +94,7 @@ Feature: Scenes that know where things meet
         up-facing faces things can stand on (a table's top, a shelf), the faces it hangs or mounts by (a back, a top),
         and a convex hull per node (for clipping and for physics boxes)
 
-  Rule: Placement by relation (built: sdk/motion/src/scene.tsx, @raea/motion/scene)
+  Rule: Placement by relation (built: sdk/raea/src/scene.tsx, raea/scene)
     Scenario: Standing on a surface, measured
       Given scene.bounds, a native call: a glTF model's box turned (Euler XYZ, as Model takes it) and scaled about its
         origin, from every node's triangles with their transforms (Manifold's import drops node transforms, read the
@@ -104,7 +104,7 @@ Feature: Scenes that know where things meet
       And the island's upturned bowl, placed by <Place on={Y}>, and its crumbs by boxReach measure 0.0 mm on their
         surfaces; the mug's tip, its height from standOn at every frame's angle, measures 0.0 mm at shot b's frames 3,
         7, 9, 11, 12, 13 and 20 (it lifted to 5.9 mm), and the coffee is baked on that pose
-      And a script (raea-motion run) imports @raea/motion/scene too, so the coffee's bake spec takes the same pose
+      And a script (raea run) imports raea/scene too, so the coffee's bake spec takes the same pose
     Scenario: Surfaces by name (next)
       Given `<Surface name="island.top">` declared once, or found from a model's up-facing faces
       Then `<Place on="island.top" at={[u, v]} yaw>` sets a part level on it, its y from the surface's top and its own
@@ -134,7 +134,7 @@ Feature: Scenes that know where things meet
 
     Scenario: Exposure from a meter, not typed
       Given a shot's key subject (a named part, or by default what the camera's centre looks at)
-      When `raea-motion scene light EDIT.tsx --composition ID [--frame N] [--part NAME] [--json]` runs (CPU, no
+      When `raea scene light EDIT.tsx --composition ID [--frame N] [--part NAME] [--json]` runs (CPU, no
         engine, as the lint does)
       Then it gives the incident light on the subject in lux, split light by light, each light's share seen or in
         shadow (rays against the scene's triangles), the light's colour (its mix of colour temperatures), the key to
@@ -143,8 +143,8 @@ Feature: Scenes that know where things meet
       And a shot's exposure becomes the metered one plus a planned offset (a darker beat, a bright one), so a cut
         between two shots of one subject under one rig is the same brightness by construction
 
-    Scenario: Built: the meter (sdk/react/src/motion/scene_light.rs), on the island shots (wreck.tsx a-h, 2026-10-21)
-      When `raea-motion scene light kitchen/wreck.tsx --composition a,b,d,e,f,g,h` runs (62 s, CPU)
+    Scenario: Built: the meter (systems/light-meter), on the island shots (wreck.tsx a-h, 2026-10-21)
+      When `raea scene light kitchen/wreck.tsx --composition a,b,d,e,f,g,h` runs (62 s, CPU)
       Then each shot is metered at its first and last frames, on its subject and on the whole picture (a matrix meter:
         7 by 5 rays across the frame, the light where each lands averaged in stops), and each cut on the picture
       And it finds: the bounce light over the island (bounce-top, a point light 25 cm above the stone, no shadows) is

@@ -1,0 +1,3 @@
+symphonia-format-caf 0.5.5 ships no licence file of its own. Its Cargo.toml declares MPL-2.0, by Ian Hobson <ian.r.hobson@gmail.com>, Philip Deljanov <philip.deljanov@gmail.com>.
+
+---- MPL-2.0: the text is LICENSES/texts/MPL-2.0.txt ----

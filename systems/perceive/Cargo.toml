@@ -1,0 +1,25 @@
+[package]
+name = "raea-sys-perceive"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The Vision trait on open models (YuNet faces, ocrs text, flow): perception off Apple, one feature at a time"
+
+[features]
+# portable OCR: ocrs on RTen, MIT/Apache, models fetched on first use; `read-text --backend ocrs`. Off by default until
+# it matches Vision on our renders
+ocr-portable = ["dep:ocrs", "dep:rten"]
+# portable faces: YuNet (OpenCV Zoo, MIT) on RTen, its ONNX model fetched on first use; `faces --backend yunet`.
+# Matches Vision on eval renders (2026-10-17: face present 98.9%, speaker-out-of-frame 99.2%): the Linux runner's faces
+face-portable = ["dep:rten", "dep:rten-tensor"]
+# the Vision trait on open models (src/portable.rs): faces, person mask, saliency, room, text lines
+vision-portable = ["face-portable", "ocr-portable"]
+
+[dependencies]
+raea-sys-layout = { path = "../layout" }
+raea-sys-vision = { path = "../vision" }
+ocrs = { version = "0.13.1", optional = true }
+rten = { version = "0.26", optional = true }   # the version ocrs 0.13 builds on
+rten-tensor = { version = "0.26", optional = true }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }

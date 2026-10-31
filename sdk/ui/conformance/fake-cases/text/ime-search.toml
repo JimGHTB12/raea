@@ -1,0 +1,18 @@
+area = "text"
+title = "IME marked text shows in feed.search while composing and commits once"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "feed.search", visible = true }
+[[steps]]
+input = { type = "click", at = "feed.search" }
+[[steps]]
+input = { type = "ime", marked = "にほん" }
+[[steps]]
+expect = { id = "feed.search", value_contains = "にほん" }
+[[steps]]
+input = { type = "ime", commit = "日本" }
+[[steps]]
+expect = { id = "feed.search", value = "日本" }
+hold = 10

@@ -12,8 +12,8 @@
 //   loops     in the run: one edge firing over and over while progress stays flat (an agent's "looping without
 //             progress"; a game's death loop)
 // plus the static analysis (unreachable states, dead ends). Every transition of the run is also a row
-// (TransitionRow), the shape rdb loads.
-import { transitionOf, type Analysis, type AnyMachine, type Snapshot, type TransitionRecord, type Watched } from "../../../motion/src/machine";
+// (TransitionRow), the shape raea-render loads.
+import { transitionOf, type Analysis, type AnyMachine, type Snapshot, type TransitionRecord, type Watched } from "raea/machine";
 
 /** One transition of a run, as a row: the frame, the entity, and the machine's own record. */
 export type TransitionRow = { frame: number; entity: string } & TransitionRecord;

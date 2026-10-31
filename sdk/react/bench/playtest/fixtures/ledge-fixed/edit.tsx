@@ -4,9 +4,9 @@
 // run (a simple autopilot) when nobody does. The level is drawn in its own units and scaled to the stage.
 import {
   Composition, Overlay, registerRoot, useCurrentFrame, useGameEvents, useGameState, useInput, useVideoConfig,
-} from "@raea/motion";
-import { AbsoluteFill } from "@raea/motion";
-import type { Playtest } from "@raea/motion";
+} from "raea";
+import { AbsoluteFill } from "raea";
+import type { Playtest } from "raea";
 
 // ---- the level ------------------------------------------------------------------------------------------
 export const VW = 1920;

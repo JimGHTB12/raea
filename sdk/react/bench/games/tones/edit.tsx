@@ -1,7 +1,7 @@
 // TONES: pure sines started, cut mid-wave, overlapped, ramped and stopped by the timeline, for the click check
 // (sdk/react/bench/games/audio.sh): a sine is smooth, so any step the detector finds is one the mixer made. The tones are
 // made by the harness (tone-440.wav, tone-660.wav: 4 s each, generated, not committed).
-import { AbsoluteFill, Audio, Composition, Sequence, registerRoot } from "@raea/motion";
+import { AbsoluteFill, Audio, Composition, Sequence, registerRoot } from "raea";
 
 function Tones() {
   return (

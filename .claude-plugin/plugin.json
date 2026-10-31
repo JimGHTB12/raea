@@ -1,7 +1,7 @@
 {
   "name": "raea",
   "version": "0.1.0",
-  "description": "Make video, motion graphics, games and 3D with raea, the Render Anything Engine: write @raea/motion compositions, render them on the GPU, check the frames.",
+  "description": "Make video, motion graphics, games and 3D with raea, the Render Anything Engine: write raea compositions, render them on the GPU, check the frames.",
   "author": { "name": "Shane Murphy", "url": "https://raea.io" },
   "homepage": "https://raea.io",
   "repository": "https://github.com/shinyobjectz/raea",

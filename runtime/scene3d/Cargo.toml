@@ -1,0 +1,24 @@
+[package]
+name = "raea-runtime-scene3d"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The 3D kinds raea's 3D SDK writes, drawn with Bevy: meshes, lights, the camera and its post-processing, fog volumes and glTF models, moved frame by frame from the rows"
+
+[dependencies]
+raea-sys-frame = { path = "../../systems/frame" }
+raea-sys-material = { path = "../../systems/material" }
+raea-sys-framepass = { path = "../../systems/framepass" }
+raea-sys-compute = { path = "../../systems/compute" }
+raea-sys-sampler = { path = "../../systems/sampler" }
+raea-sys-shader = { path = "../../systems/shader" }
+raea-sys-fog = { path = "../../systems/fog" }
+raea-sys-fog-half = { path = "../../systems/fog-half" }
+raea-sys-post = { path = "../../systems/post" }
+raea-sys-compose = { path = "../../systems/compose" }
+raea-sys-look = { path = "../../systems/look" }
+raea-runtime-plugins = { path = "../plugins" }
+raea-core-program = { path = "../../core/program" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "experimental_pbr_pcss", "area_light_luts", "bevy_gilrs"] }
+serde_json = "1"

@@ -1,0 +1,10 @@
+area = "layout"
+title = "the feed as it opens: no two visible interactive nodes intersect, no text cut to zero width, every interactive node at least 24 pt and on screen"
+space = "feed"
+windows = [[1440, 900], [1180, 820], [900, 700], [700, 600]]
+
+[[steps]]
+wait = { id = "feed.card.0", visible = true }
+[[steps]]
+expect = { all = [{ check = "no_overlap" }, { check = "min_size", min = 24 }, { check = "on_screen" }, { check = "text_width" }] }
+hold = 10

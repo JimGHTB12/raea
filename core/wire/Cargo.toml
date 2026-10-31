@@ -1,0 +1,12 @@
+[package]
+name = "raea-core-wire"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The op wire between a page's script and the engine"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+# raw: a batch's updates read where they lie in its JSON
+serde_json = { version = "1", features = ["raw_value"] }

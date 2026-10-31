@@ -1,4 +1,4 @@
-//! A work folder bundled as raea-motion's bundle_fresh lays it out: tsconfig `paths`, the automatic JSX runtime from
+//! A work folder bundled as raea's bundle_fresh lays it out: tsconfig `paths`, the automatic JSX runtime from
 //! node_modules, process.env.NODE_ENV defined, and the same bytes from any folder (lightspeed T3: a bundle that names
 //! its work folder changes every function the incremental bake compares).
 use std::path::{Path, PathBuf};
@@ -106,31 +106,33 @@ fn bundles_a_script_with_the_engines_resolution() {
     w("js/node_modules/react/index.js", "export const version = 'ENGINE_REACT';\n");
     w("motion/index.tsx", "export const motion = 'MOTION_INDEX';\n");
     w("motion/ecs.ts", "export const ecs = 'MOTION_ECS';\n");
+    w("motion/prelude.ts", "export const prelude = 'MOTION_PRELUDE';\n");
     w("lib/aliased.ts", "export const aliased = 'ALIASED';\n");
     // the script's own folder carries another react: the engine's must win
     w("work/node_modules/react/package.json", r#"{ "name": "react", "main": "index.js" }"#);
     w("work/node_modules/react/index.js", "export const version = 'OTHER_REACT';\n");
     w("work/entry.ts", r#"
-import { motion } from "@raea/motion";
-import { ecs } from "@raea/motion/ecs";
+import { motion } from "raea";
+import { ecs } from "raea/ecs";
+import { prelude } from "raea";
+import { ecs as ecs2 } from "raea/ecs";
 import { test } from "bun:test";
 import { gzip } from "zlib";
 import fs from "node:fs";
 import { aliased } from "~lib";
 import { version } from "react";
-(globalThis as any).out = [motion, ecs, test("x"), gzip(), aliased, version, typeof fs, FLAG];
+(globalThis as any).out = [motion, ecs, prelude, ecs2 === ecs, test("x"), gzip(), aliased, version, typeof fs, FLAG];
 "#);
     let script = raea_bundle::script::Script {
         js: d.join("js"),
         motion: d.join("motion"),
-        browser: d.join("nope.ts"),
         shell: d.join("nope.ts"),
         aliases: [("~lib".to_string(), d.join("lib/aliased.ts"))].into_iter().collect(),
         stubs: vec!["fs".into()],
     };
     let o = raea_bundle::Options { z3: false, script: Some(script.clone()), defines: vec![("FLAG".into(), "\"ON\"".into())], edit: None };
     let b = raea_bundle::bundle_with(&d.join("work/entry.ts"), o).expect("bundles");
-    for want in ["MOTION_INDEX", "MOTION_ECS", "TEST_SHIM:", "ZLIB_SHIM", "ALIASED", "ENGINE_REACT", "isn't available in raea's V8", "\"ON\""] {
+    for want in ["MOTION_INDEX", "MOTION_ECS", "MOTION_PRELUDE", "TEST_SHIM:", "ZLIB_SHIM", "ALIASED", "ENGINE_REACT", "isn't available in raea's V8", "\"ON\""] {
         assert!(b.js.contains(want), "{want} in the bundle: {}", b.js);
     }
     assert!(!b.js.contains("OTHER_REACT"), "one React: the engine's");
@@ -160,7 +162,7 @@ fn bundles_a_composition_with_the_edits_packages() {
     w("edit/node_modules/react/index.js", "export const version = 'EDIT_REACT';\n");
     w("edit/node_modules/anim/package.json", r#"{ "name": "anim", "exports": { "./react": "./react.js" } }"#);
     w("edit/node_modules/anim/react.js", "import { version } from 'react';\nexport const anim = 'EDIT_ANIM with ' + version;\n");
-    // the work folder raea-motion makes: the edit's source copied, node_modules the engine's
+    // the work folder raea makes: the edit's source copied, node_modules the engine's
     w("work/src/edit.tsx", "import { anim } from 'anim/react';\nimport { version } from 'react';\n(globalThis as any).out = [anim, version];\n");
     w("work/entry.ts", "import './src/edit.tsx';\n");
     #[cfg(unix)]

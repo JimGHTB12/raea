@@ -1,0 +1,23 @@
+[package]
+name = "raea-runtime-sound"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A composition's sound, live and rendered: each frame's <Audio> and <Video> sounds, Tone, speech and <Seedling> samples for the one mixer core (raea-sys-mix)"
+
+[features]
+# bevy_seedling on the one mixer core (raea-seedling): a game's <Seedling> samples (raea/seedling); the game
+# player goes without
+seedling = ["dep:raea-seedling"]
+# the lines said on a frame (raea/speech), from raea-runtime-calls' speech worker
+ml = ["dep:raea-runtime-calls", "raea-runtime-calls/ml"]
+
+[dependencies]
+raea-io-assets = { path = "../../io/assets" }
+raea-runtime-react = { path = "../../runtime/react", default-features = false }
+raea-sys-mix = { path = "../../systems/mix" }
+raea-seedling = { path = "../../engine/seedling", optional = true }
+raea-runtime-calls = { path = "../calls", optional = true }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app"] }
+serde_json = "1"

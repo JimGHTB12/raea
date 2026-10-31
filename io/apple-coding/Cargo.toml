@@ -1,0 +1,21 @@
+[package]
+name = "raea-io-apple-coding"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Coding on Apple below a whole file: VideoToolbox packets, AAC through AudioToolbox, and the intra-only mezzanine copy"
+
+[dependencies]
+raea-io-codec = { path = "../codec" }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-av-foundation = { version = "0.3", features = ["objc2-core-media", "objc2-core-video", "objc2-core-graphics", "block2"] }
+objc2-core-media = "0.3"
+objc2-core-video = "0.3"
+objc2-core-foundation = "0.3"
+objc2-avf-audio = "0.3"
+objc2-video-toolbox = "0.3"
+block2 = "0.6"

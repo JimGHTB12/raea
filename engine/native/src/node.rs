@@ -1,17 +1,14 @@
-//! Node's core for raea's own TypeScript tools on JavaScriptCore (js::run_node): what bun gave @raea/data's scripts and
-//! void's parts, with no bun process and no second engine. Imports resolve as Node does (builtins, relative files,
+//! Node's core for raea's own TypeScript tools on raea's JS engine (js::run_node): what bun gave @raea/data's scripts and
+//! the legacy app's parts, with no bun process and no second engine. Imports resolve as Node does (builtins, relative files,
 //! packages from node_modules through package.json's exports, module and main), CommonJS files load through a
 //! synchronous require, and fs, path, os, crypto, child_process, process and Buffer are node.js over one native
 //! (`__raea_node`, here). Trusted code only: the files and processes it reaches are the machine's, unlike js-exec's
 //! sandbox for the agent's scripts.
-use std::collections::HashMap;
-use std::ffi::c_void;
 use std::path::{Path, PathBuf};
 
 use base64::Engine as _;
 use serde_json::{json, Value};
 
-use crate::jsc;
 
 /// The builtins node.js defines, by the names an import or require gives them (with or without `node:`)
 pub const BUILTINS: &[&str] = &[
@@ -442,11 +439,10 @@ fn signal_name(n: i32) -> String {
 }
 
 /// `__raea_node(op, argsJson)`: node.js's one native
-pub(crate) unsafe extern "C" fn native(ctx: *const c_void, _f: *mut c_void, _this: *mut c_void, argc: usize, argv: *const *const c_void, _exc: *mut *const c_void) -> *const c_void {
-    let op = unsafe { jsc::arg(ctx, argc, argv, 0) };
-    let args: Vec<Value> = serde_json::from_str(&unsafe { jsc::arg(ctx, argc, argv, 1) }).unwrap_or_default();
-    let out = call(&op, &args);
-    jsc::string(ctx, &out.to_string())
+pub(crate) fn native(a: &[String]) -> Result<raea_runtime_jsengine::Ret, String> {
+    let op = raea_runtime_jsengine::arg(a, 0);
+    let args: Vec<Value> = a.get(1).and_then(|j| serde_json::from_str(j).ok()).unwrap_or_default();
+    Ok(raea_runtime_jsengine::Ret::Str(call(op, &args).to_string()))
 }
 
 /// node.js: the builtins, installed before the entry runs
@@ -481,6 +477,3 @@ pub fn builtin_module(name: &str) -> String {
 pub fn builtin_url(name: &str) -> String {
     format!("raea:node/{name}")
 }
-
-/// the module loaded for each URL so far (sources by URL), kept by js.rs
-pub type Sources = HashMap<String, String>;

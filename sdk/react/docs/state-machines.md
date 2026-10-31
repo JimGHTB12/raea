@@ -1,11 +1,11 @@
 # State machines
 
-Game logic in @raea/motion is a pure fold, `step(state, input, frame) -> state` (sdk/motion/src/games.ts). State machines
+Game logic in raea is a pure fold, `step(state, input, frame) -> state` (sdk/raea/src/games.ts). State machines
 give that fold structure: what an entity is doing (idle, running, jumping, hurt; patrolling, waiting; playing, won, game
 over) is a machine whose snapshot is plain data in the game state, stepped once a frame inside the fold. The core is
-sdk/motion/src/machine.ts, exported from `@raea/motion`, `@raea/motion/games` and `@raea/motion/machine`, with no
-dependencies. The spec is sdk/motion/spec/motion.feature ("State machines, step by step"); the agent-facing guide is the
-"State machines" section of `bevy/games` (apps/void/prompts/craft/bevy/games.md).
+sdk/raea/src/machine.ts, exported from `raea`, `raea/games` and `raea/machine`, with no
+dependencies. The spec is sdk/raea/spec/motion.feature ("State machines, step by step"); the agent-facing guide is the
+"State machines" section of `bevy/games` (sdk/guides/craft/bevy/games.md).
 
 ## The design
 
@@ -14,7 +14,7 @@ a transition is a trigger, a pure predicate over the game's state checked every 
 The definition is in XState's config shape, so what an agent knows of XState carries over:
 
 ```ts
-import { machine, stepAll, type Snapshot } from "@raea/motion";
+import { machine, stepAll, type Snapshot } from "raea";
 
 interface Player { x: number; y: number; vy: number; ground: boolean; hit: boolean; lives: number; sm: Snapshot }
 interface Env { left: boolean; right: boolean; jump: boolean }
@@ -72,7 +72,7 @@ The semantics, all deterministic:
   checkpoints and renders stay pure and resumable; a playtest reads every machine's state from the game state.
 - **Typed.** `machine<Ctx, Env>()({...})` is curried so state names are inferred while the context and env are given. A
   transition, an initial or a query naming a missing state, or a guard reading a missing field, doesn't compile
-  (sdk/motion/conformance/machine.typetest.ts holds 12 such machines, each refused). What types can't hold throws when the
+  (sdk/raea/conformance/machine.typetest.ts holds 12 such machines, each refused). What types can't hold throws when the
   machine is built: an initial that isn't a substate, duplicate names, a final state with transitions, and, unless
   `strict: false`, unreachable states and non-final dead ends.
 - **Input edges** are optional events: `keyEdges(prevKeys, keys)` gives `"keydown:ArrowUp"`, and `on: { "keydown:ArrowUp":
@@ -97,7 +97,7 @@ Every transition is one row: `{ step, machine, from, to, edge, kind, by, evidenc
 `"guard"` or the decider's name. A step given `trace` reports rows as it takes them, with the decider's evidence. A
 playtest over a game's pure fold, which sees only states, recovers the same rows from consecutive snapshots
 (`transitionOf`). sdk/react/bench/playtest/run.ts writes the run's rows to `transitions.jsonl`, one JSON object per line
-with flat columns, so they load into rdb beside the run's frames (`playtest_transition`, next to the `playtest_frame`
+with flat columns, so they load into raea-render beside the run's frames (`playtest_transition`, next to the `playtest_frame`
 table sdk/react/docs/playtest.md describes). trace.jsonl gains each frame's machine states and transitions, and
 moments.json gains each transition as a moment named `"<entity>.<state>"`, so a view can be timed on one
 (`when: (m) => m.name === "player.hurt"`).
@@ -107,7 +107,7 @@ moments.json gains each transition as a moment named `"<entity>.<state>"`, so a 
 The rules read report.json's `machines`, which sdk/react/bench/playtest/machines.ts counts over all the bots' play. They
 know machines, states, edges, inputs and a progress number, never what a machine is for:
 
-| DSL (sdk/motion/src/playtest.ts) | Rule | Faults when |
+| DSL (sdk/raea/src/playtest.ts) | Rule | Faults when |
 |---|---|---|
 | `coversStates(id, m, { min })` | `state_coverage` | fewer than `min` of the machine's states were entered |
 | `coversTransitions(id, m, { min })` | `transition_coverage` | fewer than `min` of its transitions fired |
@@ -139,7 +139,7 @@ the snapshot as plain JSON (a workflow resumes from any step, as a game resumes 
 rules, which already take "progress" as a number the host supplies (the platformer's x; a workflow's passed checks).
 What a workflow would add is outside the step: an async loop that asks clef or a person at a choice point, appends the
 answer to the decision log, and steps the machine with `replayDecider`. That keeps the machine pure and the run
-replayable from its log. void's agent loop belongs to raea-01, and nothing here touches it.
+replayable from its log. The legacy app's agent loop belongs to raea-01, and nothing here touches it.
 
 ## Is XState needed? (assessment, 2026-10-18)
 
@@ -170,7 +170,7 @@ express cleanly. The answer, part by part:
   their own scheduler and mailboxes beside the trace, a second record of what happened.
 - **The visual editor and inspector** (Stately Studio, @statelyai/inspect). These are the strongest reason to want
   XState, and they are optional. The trace rows and the static analysis already give what the inspector shows
-  (states, transitions, coverage), as data that rules and rdb can query. A view of a machine's graph is cheap without
+  (states, transitions, coverage), as data that rules and raea-render can query. A view of a machine's graph is cheap without
   the library: the config is already XState-shaped, so writing an XState-JSON or Mermaid export of `analyze()` (states,
   edges, guards named by their descriptions) is about 50 lines, if someone wants to look at a machine in Stately's
   visualiser.

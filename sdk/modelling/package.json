@@ -1,0 +1,14 @@
+{
+  "name": "@raea/modelling",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's modelling shown as it happens: Manifold and rig steps played back in a faux 3D-modelling viewport. Authors import it through \"raea\" as raea/modelling (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./modelling": "./src/modelling.tsx"
+  },
+  "peerDependencies": { "react": "19.2.0" }
+}

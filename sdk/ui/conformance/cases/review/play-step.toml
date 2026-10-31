@@ -1,0 +1,38 @@
+area = "review"
+title = "a live game paused holds its frame, and a step moves it on by exactly one frame of its own clock"
+route = "/feed/f-pong-all/i-build"
+window = [1440, 900]
+
+[[steps]]
+wait = { all = [{ id = "game", visible = true }, { id = "stage-pause", name = "Pause" }] }
+[[steps]]
+snap = "a"
+[[steps]]
+wait = { id = "game-clock", field = "value", changed = true, since = "a" }
+[[steps]]
+input = { type = "click", at = "stage-pause" }
+[[steps]]
+wait = { id = "stage-pause", name = "Play" }
+# paused: the frame stays where it stopped (the page reads the engine's status each 100 ms, 6 frames: the budget)
+[[steps]]
+snap = "paused"
+[[steps]]
+expect = { id = "game-clock", field = "value", unchanged = true, since = "paused" }
+hold = 30
+budget = 8
+# each step is one frame on
+[[steps]]
+input = { type = "click", at = "stage-step" }
+[[steps]]
+wait = { id = "game-clock", field = "value", increased_by = 1, since = "paused" }
+[[steps]]
+snap = "one"
+[[steps]]
+input = { type = "click", at = "stage-step" }
+[[steps]]
+wait = { id = "game-clock", field = "value", increased_by = 1, since = "one" }
+# and it plays on again
+[[steps]]
+input = { type = "click", at = "stage-pause" }
+[[steps]]
+wait = { id = "game-clock", field = "value", changed = true, since = "one" }

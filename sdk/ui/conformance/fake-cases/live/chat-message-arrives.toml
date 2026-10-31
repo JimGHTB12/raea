@@ -1,0 +1,25 @@
+area = "live"
+title = "a message arriving in the chat transcript shows the frame it arrives (the stub agent's echo included)"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+input = { type = "click", at = "chat.composer" }
+[[steps]]
+input = { type = "keys", text = "echo this back" }
+[[steps]]
+wait = { id = "chat.composer", value = "echo this back" }
+[[steps]]
+input = { type = "press", key = "Enter" }
+[[steps]]
+expect = { id = "chat.message.*", text_contains = "echo this back", quant = "any" }
+budget = 1
+[[steps]]
+expect = { id = "chat.message.*", text_contains = "echo this back", count = 2 }
+# the echo's arrival isn't visible from outside: it's timed from the Enter, with room for the stub's turn
+budget = 6

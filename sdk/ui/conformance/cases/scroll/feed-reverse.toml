@@ -1,0 +1,14 @@
+area = "scroll"
+title = "a wheel the other way scrolls the feed back up by at least as far"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "feed", field = "scroll.max", gt = 400 }
+[[steps]]
+input = { type = "wheel", at = "feed", dy = -400, unit = "pixel", natural = true }
+[[steps]]
+wait = { id = "feed", field = "scroll.top", ge = 200 }
+[[steps]]
+input = { type = "wheel", at = "feed", dy = 160, unit = "pixel", natural = true }
+[[steps]]
+expect = { id = "feed", field = "scroll.top", decreased_by = 160 }

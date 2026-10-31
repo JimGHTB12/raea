@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import {
   AbsoluteFill, Animate, Composition, Sequence, Stagger, curve, fade, fill, parallel, pop, registerRoot, rise, sequence,
   slide, tick, timeline, track, wipe,
-} from "@raea/motion";
+} from "raea";
 
 const FPS = 30;
 const INK = "#14121f";

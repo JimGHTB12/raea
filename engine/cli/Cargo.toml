@@ -1,0 +1,62 @@
+[package]
+name = "raea-cli"
+version = "0.1.0"
+edition = "2024"
+description = "raea, the engine's command line: render, play, guide, song, add ... (src/lib.rs), and raea-bevy-sdk, the plugin build. The agent shell's half of the same command is this folder's @raea/cli (src/index.ts)"
+license = "FSL-1.1-ALv2"
+
+# one `raea` (docs/sdk.feature S1e): this binary, and @raea/cli in the agent's shell. raea-runtime-react's features are its own;
+# a build with Bevy plugins names them through this crate's bevy-plugins feature (tools/bevy-plugins.sh)
+[[bin]]
+name = "raea"
+path = "src/main.rs"
+
+# the plugin build (tools/bevy-plugins.sh build DIR, which names every declared plugin's feature): a build without them
+# (a plain or --workspace `cargo build --release`) leaves it out rather than writing a plugin-free raea-bevy-sdk over
+# the plugin build in target/release, which the bench harnesses run (bench/bevy-ts live-plugin lost avian so, 10-22)
+[[bin]]
+name = "raea-bevy-sdk"
+path = "src/bin/raea-bevy-sdk.rs"
+required-features = ["bevy-plugins"]
+
+[dependencies]
+raea-runtime-plugins = { path = "../../runtime/plugins" }
+raea-io-home = { path = "../../io/home" }
+raea-runtime-react = { path = "../../runtime/react", default-features = false, features = ["h264", "av1", "scripts", "modules", "network", "ml"] }
+# the sound of its renders and plays: <Seedling> samples and speech (raea-runtime-sound's features)
+raea-runtime-sound = { path = "../../runtime/sound", features = ["seedling", "ml"] }
+raea-runtime-export = { path = "../../runtime/export" }
+# a bake finds the bundle's functions (raea-modules), so an edit re-bakes only the frames it changed
+raea-runtime-bake = { path = "../../runtime/bake", features = ["modules"] }
+raea-runtime-live = { path = "../../runtime/live" }
+raea-core-alloc = { path = "../../core/alloc" }
+raea-render = { path = "../../engine/render", default-features = false }
+raea-native = { path = "../../engine/native", default-features = false, features = ["modules"] }
+raea-io-trace = { path = "../../io/trace" }
+raea-io-media = { path = "../../io/media", default-features = false, features = ["apple"] }
+# npm packages for a project (`raea add|remove|install`): raea's own package manager
+raea-io-npm = { path = "../../io/npm" }
+# the agent's sandbox (WASI tools on Wasmtime/Pulley) as wsx.* native calls
+wsx = { path = "../../engine/sandbox/wsx" }
+serde_json = "1"
+regex = "1"
+# the app crates' verbs: `raea check`, `raea ci`, and the local tools' (sao, tokensynth, setup-audio, sounds, splat)
+raea-app-check = { path = "../../apps/check" }
+raea-app-ci = { path = "../../apps/ci" }
+raea-app-tools = { path = "../../apps/tools" }
+raea-app-media = { path = "../../apps/media" }
+raea-app-game = { path = "../../apps/game" }
+raea-app-play = { path = "../../apps/play", features = ["ml"] }
+raea-bevy-plugins = { path = "../../engine/bevy-plugins", optional = true }
+# raea-bevy-sdk's reflection of the plugin build's App: the type registry, a one-camera program, the animation type
+bevy = { version = "=0.20.0", default-features = false }
+raea-core-program = { path = "../../core/program" }
+raea-core-animate = { path = "../../core/animate" }
+
+[features]
+# Bevy plugins compiled in (raea-bevy-plugins), as tools/bevy-plugins.sh names them: bevy-plugins,raea-bevy-plugins/avian,...
+bevy-plugins = ["dep:raea-bevy-plugins", "raea-runtime-react/bevy-plugins"]
+
+[package.metadata.cargo-shear]
+# depended on only to turn their features on (raea-runtime-bake's modules, raea-runtime-sound's seedling and ml)
+ignored = ["raea-runtime-bake", "raea-runtime-sound"]

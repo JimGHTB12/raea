@@ -1,9 +1,9 @@
 //! raea-modules: the agent's TypeScript and TSX loaded in process, for the engine's V8 module API.
 //!
-//! The engine (raea-react, rusty_v8 152) runs a composition and the agent's components without bun: its V8 resolve
+//! The engine (raea-runtime-react, rusty_v8 152) runs a composition and the agent's components without bun: its V8 resolve
 //! callback asks this crate to `resolve` an import and `load` the module, then instantiates what comes back. Nothing
 //! here touches V8. TypeScript, TSX and JSX are transpiled by deno_ast (swc), with React's automatic JSX runtime (as
-//! bun's). The shared libraries (React, @raea/motion) stay one prebuilt bundle: the engine runs it first and fills
+//! bun's). The shared libraries (React, raea) stay one prebuilt bundle: the engine runs it first and fills
 //! `globalThis.__raea_modules[name]` with each library's exports; an import of that name loads a small module this crate
 //! writes, which re-exports them. This is what authoring on the iPhone needs, where there is no bun.
 //!
@@ -223,7 +223,8 @@ pub fn transpile(path: &Path, text: String) -> Result<Module, Refusal> {
 
 /// A module (JavaScript or TypeScript, by `url`'s extension) as CommonJS: its imports become `require(...)`, its exports
 /// properties of `exports`, `import()` a promise of `require`. What JavaScriptCore runs, as its C API loads no ES modules
-/// (blitz-v8-script's runtime wraps it as `function (require, module, exports) { ... }`). Top-level await doesn't fit.
+/// (node.js's require wraps it in a function of exports, require and module). Top-level await
+/// doesn't fit.
 pub fn to_commonjs(url: &str, text: String) -> Result<String, Refusal> {
     let spec = ModuleSpecifier::parse(url).map_err(|e| Refusal::new(RefusalKind::Unsupported, format!("{url}: {e}"), None, None))?;
     let media = match MediaType::from_specifier(&spec) {
@@ -308,7 +309,7 @@ pub fn rewrite_specifiers(url: &str, text: &str, mut map: impl FnMut(&str) -> Op
 
 /// Every function in a script (declarations, expressions, arrows; methods left out), as byte ranges of `text` with the
 /// index of the function enclosing it: what each one's `Function.prototype.toString()` gives back, for telling which
-/// functions an edit changed (sdk/react/src/bake.rs: a timeline re-stepped only where a changed component renders).
+/// functions an edit changed (runtime/bake/src/lib.rs: a timeline re-stepped only where a changed component renders).
 pub fn function_spans(text: &str) -> Result<Vec<(usize, usize, Option<usize>)>, Refusal> {
     use deno_ast::swc::ast::{ArrowExpr, FnDecl, FnExpr};
     use deno_ast::swc::ecma_visit::{Visit, VisitWith};

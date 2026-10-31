@@ -1,0 +1,24 @@
+{
+  "name": "@raea/app",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's app layer, as bevy_app, bevy_ecs and bevy_time are Bevy's: the frame clock, state machines and games, the ECS world, BevyApp and plugins, native calls and playtests. Authors import it through \"raea\" (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./clock": "./src/clock.tsx",
+    "./machine": "./src/machine.ts",
+    "./games": "./src/games.ts",
+    "./native": "./src/native.ts",
+    "./ecs": "./src/ecs.ts",
+    "./world": "./src/world.ts",
+    "./bevy": "./src/bevy.ts",
+    "./playtest": "./src/playtest.ts",
+    "./window": "./src/window.ts"
+  },
+  "peerDependencies": {
+    "react": "19.2.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@raea/room",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's rooms (walls, openings and the units laid along them, by relation), raea's own subject. Authors import it through \"raea\" as raea/room (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./room": "./src/room.tsx"
+  }
+}

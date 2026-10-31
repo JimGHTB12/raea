@@ -5,10 +5,15 @@
 // from), a cabinet re-covered by <Refinish> (its wood painted), a sticker (<Decal>) on the floor fading as the player
 // nears it, a radio (<Sound3D>) heard from the chase camera (panning as it turns about the room), and a garden outside
 // (plant(), <Outside>) swaying with the game's clock.
-import { AbsoluteFill, Composition, registerRoot, staticFile, useGameState, type FrameInput, type Playtest } from "@raea/motion";
-import { AmbientLight, Box, Canvas3D, Decal, DirectionalLight, Mesh, MeshStandardMaterial, Model, PerspectiveCamera, Refinish } from "@raea/motion/3d";
-import { defineRoom, Hang, hang, onWall, Outside, plant, Room } from "@raea/motion/room";
-import { Sound3D } from "@raea/motion/seedling";
+import { AbsoluteFill, Composition, registerRoot, staticFile, useGameState, type FrameInput, type Playtest } from "raea";
+import { Decal, Model, Refinish } from "raea/3d";
+import { defineRoom, Hang, hang, onWall, Outside, plant, Room } from "raea/room";
+import { Sound3D } from "raea/seedling";
+import { StandardMaterial } from "raea/pbr";
+import { Cuboid, Mesh3d } from "raea/mesh";
+import { AmbientLight, DirectionalLight } from "raea/light";
+import { Quat, Transform } from "raea/transform";
+import { Camera3d } from "raea/camera";
 
 export const CW = 1280;
 export const CH = 720;
@@ -39,7 +44,7 @@ function scripted(g: Game): string[] {
 }
 
 function step(g: Game, input: FrameInput): Game {
-  const keys = input.keys.length || (input as { live?: boolean }).live ? input.keys : scripted(g);
+  const keys = input.keys.length ? input.keys : scripted(g);
   if (keys.includes("next")) return { ...g, lap: g.lap + 1 };
   const dx = (keys.includes("ArrowRight") ? 1 : 0) - (keys.includes("ArrowLeft") ? 1 : 0);
   const dz = (keys.includes("ArrowDown") ? 1 : 0) - (keys.includes("ArrowUp") ? 1 : 0);
@@ -63,10 +68,10 @@ function Walk() {
   const cam: [number, number, number] = [1.0 + g.x * 0.6, 1.8, ROOM.depth - 0.25];
   return (
     <AbsoluteFill style={{ background: "#cfe3f0" }}>
-      <Canvas3D>
-        <PerspectiveCamera position={cam} lookAt={[g.x, 0.8, g.z - 1.2]} fov={70} />
-        <AmbientLight intensity={0.5} />
-        <DirectionalLight position={[3, 6, 5]} intensity={1.2} />
+      <>
+        <Camera3d transform={Transform.fromTranslation(cam).lookingAt([g.x, 0.8, g.z - 1.2])} projection={{ Perspective: { fov: 1.22173047639603 } }} />
+        <AmbientLight brightness={200} />
+        <DirectionalLight transform={Transform.fromXyz(3, 6, 5).lookingAt([0, 0, 0])} illuminance={9600} shadow_maps_enabled />
         <Room room={ROOM} openings={[{ wall: "right", at: 2, width: 1.4, bottom: 0.9, top: 2.1, kind: "window" }]} ceiling={false} />
         <Outside plants={GARDEN} centre={[ROOM.width / 2, ROOM.depth / 2]} size={30} />
         <Refinish materials={[{ material: "Wood", color: "#7f9479", roughness: 0.55 }]}>
@@ -74,11 +79,11 @@ function Walk() {
         </Refinish>
         <Hang room={ROOM} hung={HUNG} />
         <Model name="radio-stand" src={CABINET} position={onWall(ROOM.walls.back, 4.3)} scale={[0.5, 1, 1]} />
-        <Mesh name="radio-box" position={RADIO}><Box args={[0.22, 0.13, 0.1]} /><MeshStandardMaterial color="#b43c2c" roughness={0.4} /></Mesh>
+        <Mesh3d transform={Transform.fromTranslation(RADIO)} name="radio-box"><Cuboid half_size={[0.11, 0.065, 0.05]} /><StandardMaterial base_color="#b43c2c" perceptual_roughness={0.4} /></Mesh3d>
         <Sound3D src={M("radio.wav")} at={RADIO} loop volume={0.4} />
         <Decal name="sticker" src={M("ring.png")} position={STICKER} size={0.5} spin={0.4} opacity={Math.min(1, near / 1.5)} />
-        <Mesh name="player" position={[g.x, 0.35, g.z]} rotation={[0, g.heading, 0]}><Box args={[0.4, 0.7, 0.4]} /><MeshStandardMaterial color="#f0ebd8" roughness={0.4} /></Mesh>
-      </Canvas3D>
+        <Mesh3d transform={Transform.fromXyz(g.x, 0.35, g.z).withRotation(Quat.fromEuler("XYZ", 0, g.heading, 0))} name="player"><Cuboid half_size={[0.2, 0.35, 0.2]} /><StandardMaterial base_color="#f0ebd8" perceptual_roughness={0.4} /></Mesh3d>
+      </>
     </AbsoluteFill>
   );
 }

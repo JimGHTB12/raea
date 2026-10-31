@@ -1,0 +1,20 @@
+area = "text"
+title = "Enter in chat.composer sends: the message is in the transcript and the composer is empty"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+input = { type = "click", at = "chat.composer" }
+[[steps]]
+input = { type = "keys", text = "conformance ping" }
+[[steps]]
+wait = { id = "chat.composer", value = "conformance ping" }
+[[steps]]
+input = { type = "press", key = "Enter" }
+[[steps]]
+expect = { all = [{ id = "chat.composer", value = "" }, { id = "chat.message.*", text_contains = "conformance ping", quant = "any" }] }

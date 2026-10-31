@@ -1,0 +1,20 @@
+area = "review"
+title = "a press on a card opens it, and Esc goes back to the feed (the detail then leaves as it animates out)"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "card-i-steps", visible = true }
+[[steps]]
+input = { type = "click", at = "card-i-steps" }
+[[steps]]
+wait = { id = "detail-i-steps", visible = true }
+# the pointer leaves, so no card is under it when the feed comes back: a card left hovered then is a stuck hover,
+# not the pointer's (with the pointer still on the card, whether it reads hovered before the next move was a race)
+[[steps]]
+input = { type = "leave" }
+[[steps]]
+input = { type = "press", key = "Escape" }
+[[steps]]
+expect = { all = [{ id = "card-i-steps", visible = true }, { id = "card-*", hovered = true, count = 0 }] }
+[[steps]]
+wait = { id = "detail-*", visible = true, count = 0 }

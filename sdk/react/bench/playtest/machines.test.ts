@@ -2,8 +2,8 @@
 // never left while the input changes, an unreachable state, a loop without progress, a state the bots never reach.
 // Machine-generic: the toy is a corridor, not a platformer. Run: bun test sdk/react/bench/playtest/machines.test.ts
 import { describe, expect, test } from "bun:test";
-import { machine, type Snapshot } from "../../../motion/src/machine";
-import type { Playtest } from "../../../motion/src/games";
+import { machine, type Snapshot } from "raea/machine";
+import type { Playtest } from "raea/games";
 import { MachineTrace, type TransitionRow } from "./machines";
 import { Game, novelty, random } from "./search";
 import { machineRule } from "./judge";

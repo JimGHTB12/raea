@@ -1,0 +1,23 @@
+[package]
+name = "raea-sys-bake"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Rigid bodies, glTF parts and goo baked once per request into a composition's asset store"
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10"
+image = { version = "0.25", default-features = false, features = ["png"] }
+# rigid bodies baked in process, the same bits every run (Apache-2.0). Without rapier's `enhanced-determinism` since
+# Bevy 0.20: it turns on glam's scalar-math and libm through parry3d and glamx, and since 0.20 Bevy shares that glam
+# (0.33), so Bevy's GPU structs lost their 16-byte alignment (MeshUniform came out 168 bytes against the shader's 176,
+# and meshes drew wrong or not at all). Rapier is deterministic run to run on one machine without it; the feature is
+# for the same bits across platforms. simba's libm_force, its other half, is kept (only to turn it on: cargo-shear
+# leaves it).
+rapier3d = "0.36"
+simba = { version = "0.10", features = ["libm_force"] }
+
+[package.metadata.cargo-shear]
+ignored = ["simba"]

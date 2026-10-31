@@ -209,21 +209,21 @@ pub unsafe extern "C" fn wsx_free(p: *mut c_char) {
     }
 }
 
-/// The sandbox's commands in raea-native's registry, so TypeScript on raea's V8 (just-bash's commands, the agent's
+/// The sandbox's commands in raea's native-call registry (raea-core-calls), so TypeScript on raea's JavaScriptCore (just-bash's commands, the agent's
 /// tools) runs them through the same `__raea_call` as everything else: `wsx.run` runs one tool in `project` (only that
 /// folder visible) under fuel and memory limits and answers its action row's facts; `wsx.tools` lists the tools.
 pub fn register(sandbox: Sandbox, project: std::path::PathBuf) {
     let sb = std::sync::Arc::new(sandbox);
     let names: Vec<String> = { let mut n: Vec<String> = sb.modules.keys().cloned().collect(); n.sort(); n };
-    raea_native::register("wsx.tools", "{}", "string[]", "the sandbox's WASI tools", move |_| Ok(json!(names)));
+    raea_core_calls::register("wsx.tools", "{}", "string[]", "the sandbox's WASI tools", move |_| Ok(json!(names)));
     let run_sb = sb.clone();
-    raea_native::register(
+    raea_core_calls::register(
         "wsx.run",
         "{ tool: string; args: string[]; project?: string; fuel?: number; memMb?: number }",
         "{ exit: number; stdout: string; stderr: string; fuel: number; ms: number; stopped: string | null }",
         "one WASI tool run in the project folder under fuel and memory limits",
         move |v| {
-            let tool = raea_native::s(v, "tool")?;
+            let tool = raea_core_calls::s(v, "tool")?;
             let args: Vec<String> = v.get("args").and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default();
             let argv: Vec<&str> = args.iter().map(String::as_str).collect();
             let fuel = v.get("fuel").and_then(Value::as_u64).unwrap_or(2_000_000_000);

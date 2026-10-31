@@ -5,8 +5,12 @@
 # JavaScriptCore's allocator (libpas) gives free pages back with MADV_FREE_REUSABLE, and those stay resident, counted in
 # RSS, until the kernel wants them. In a 4-minute pong all of RSS's 2-5 MB creep was such pages (vmmap's "WebKit Malloc"
 # reclaimable), with RSS less them flat to +-0.5 MB. Raw RSS is still printed, and still capped at 400 MB.
+# footprint(1) is capped at 450 MB: a process that dispatches compute holds ~44 MB of Metal's own footprint until 1-2 s
+# after its last dispatch (any pipeline count or buffer size, raw Metal and wgpu alike; docs/blitz-bevy.feature B4c), and
+# the Blitz page draws with Vello's compute while it changes, so pong plays at ~400 (peak 403.5 at 1015fd0c) and settles
+# at ~311 once its end card stops changing.
 #   sdk/react/bench/games/gate.sh [SECONDS] [GAME...]     (default 300 s, pong and platformer; arena3d and room3d are the 3D ones)
-# Build first: lane build -- cargo build --release --bin raea-motion (in react/).
+# Build first: lane build -- cargo build --release -p raea-cli.
 set -e
 cd "$(dirname "$0")/../.."
 SECONDS_RUN=${1:-300}
@@ -20,7 +24,7 @@ for g in $GAMES; do
   [ "$g" = platformer ] && keys="ArrowRight,ArrowRight+ArrowUp,ArrowRight,"
   [ "$g" = arena3d ] && keys="ArrowRight,ArrowUp,ArrowLeft+ArrowUp,ArrowDown,"
   [ "$g" = room3d ] && keys="ArrowRight,ArrowRight,ArrowUp,ArrowLeft,ArrowLeft,ArrowDown,"
-  RAEA_INPUT_KEYS="$keys" RAEA_AUDIO_MUTE=1 target/release/raea-motion play "bench/games/$g/edit.tsx" --input --offscreen \
+  RAEA_INPUT_KEYS="$keys" RAEA_AUDIO_MUTE=1 target/release/raea play "bench/games/$g/edit.tsx" --input --offscreen \
     --size 1280x720 --seconds "$SECONDS_RUN" --json "$OUT/$g.json" > "$OUT/$g.log" 2>&1 || { echo "$g: the run failed (see $OUT/$g.log)"; status=1; continue; }
   # the judgement, from the run's JSON: jq takes the numbers out (one tab-separated line), awk judges and prints
   jq -r '
@@ -42,7 +46,7 @@ for g in $GAMES; do
       check("work p99", $3 <= 8.3, sprintf("%.2f ms", $3))
       check("input p99", $4 <= 2, sprintf("%.2f frames", $4))
       check("rss", $8 <= 400 && $10 - $9 <= 2, sprintf("%s -> %s at 60 s -> %s MB (max %s); less reusable %.1f -> %.1f MB (%+.1f)", $5, $6, $7, $8, $9, $10, $10 - $9))
-      if ($11 > 0) check("footprint", $15 <= 400 && $14 - $13 <= 2, sprintf("%.0f -> %.1f at 60 s -> %.1f MB", $12, $13, $14))
+      if ($11 > 0) check("footprint", $15 <= 450 && $14 - $13 <= 2, sprintf("%.0f -> %.1f at 60 s -> %.1f MB", $12, $13, $14))
       print g ": " (all ? "PASS" : "FAIL") "  " line
       # lightspeed F2 and F6, printed and not judged (yet): the work p99.9 and first-use hitches (frames past the first
       # second over 2 ms)

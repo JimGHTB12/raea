@@ -1,0 +1,16 @@
+area = "responsive"
+title = "a resize reflows: the feed and its cards follow the new size, and come back to where they were"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "card-i-steps", visible = true }
+[[steps]]
+input = { type = "resize", w = 900, h = 700 }
+[[steps]]
+expect = { all = [{ check = "window", w = 900, h = 700 }, { check = "inside", id = "card-*", within = "feed", axis = "x" }, { check = "on_screen" }] }
+hold = 10
+[[steps]]
+input = { type = "resize", w = 1440, h = 900 }
+[[steps]]
+expect = { all = [{ check = "window", w = 1440, h = 900 }, { id = "card-i-steps", field = "rect", eq_snap = { snap = "start", id = "card-i-steps", field = "rect" } }] }
+hold = 10

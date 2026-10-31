@@ -1,0 +1,30 @@
+[package]
+name = "raea-runtime-page"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A composition's page in Bevy: React's elements laid out and painted on Blitz (BevyPage, WorldPagePlugin), its app screens and a take's face track, and RaeaPlugin, raea in any Bevy App"
+
+[dependencies]
+raea-runtime-view = { path = "../view" }
+raea-sys-frame = { path = "../../systems/frame" }
+raea-io-assets = { path = "../../io/assets" }
+raea-io-home = { path = "../../io/home" }
+raea-runtime-react = { path = "../../runtime/react", default-features = false }
+raea-render = { path = "../../engine/render", default-features = false, features = ["native"] }
+# a <Screen> panel in Bevy's picking (world_input.rs)
+raea-sys-screen = { path = "../../systems/screen" }
+raea-page = { path = "../../engine/page" }
+raea-sys-page = { path = "../../systems/page" }
+raea-sys-fonts = { path = "../../systems/fonts" }
+raea-sys-image = { path = "../../systems/image" }
+raea-runtime-twins = { path = "../twins" }
+raea-runtime-input = { path = "../input" }
+raea-core-wire = { path = "../../core/wire" }
+raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio", "apple"] }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app"] }
+image = { version = "0.25", default-features = false, features = ["png", "hdr"] }
+serde_json = "1"
+base64 = "0.22"
+wgpu = "=30.0.1"

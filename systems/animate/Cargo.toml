@@ -1,0 +1,11 @@
+[package]
+name = "raea-sys-animate"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "Declared animations sampled into Bevy from raea's frame clock"
+
+[dependencies]
+raea-core-animate = { path = "../../core/animate", features = ["bevy"] }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app"] }

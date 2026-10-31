@@ -1,10 +1,9 @@
 // The sandbox probe's command set (engine/sandbox/wsx's suite: ls, wc, sort, head, grep, jq, a write and read back, the two
 // escapes, find, sed) and the rest of the shell's tools, run through @raea/shell on a fixed project; every command's
-// stdout and exit must equal probe-golden.json, recorded on the Mac. The same file runs on the iPhone
-// (sdk/react/ios/test.sh), so the two machines give identical outputs.
-//   record: RAEA_PROBE_RECORD=1 raea-motion test sdk/shell/conformance/probe.test.ts
+// stdout and exit must equal probe-golden.json, recorded on the Mac.
+//   record: RAEA_PROBE_RECORD=1 raea test sdk/shell/conformance/probe.test.ts
 import { describe, expect, test } from "bun:test";
-import { hasNative, native } from "@raea/motion/native";
+import { hasNative, native } from "raea/native";
 import { Shell } from "../src";
 import golden from "./probe-golden.json";
 

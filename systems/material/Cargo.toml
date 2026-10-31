@@ -1,0 +1,26 @@
+[package]
+name = "raea-sys-material"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Meshes and materials: a row's primitive or buffer mesh, a row's standard material and its maps, models' materials re-covered, toon (cel) with ink outlines, shadow-only meshes and materials written in TypeScript"
+
+[features]
+# SVG pictures drawn on the CPU (resvg)
+native = ["dep:resvg"]
+
+[dependencies]
+raea-sys-frame = { path = "../frame" }
+raea-sys-sampler = { path = "../sampler" }
+raea-core-program = { path = "../../core/program" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+serde_json = "1"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "hdr"] }
+raea-io-net = { path = "../../io/net" }
+raea-core-shape = { path = "../../core/shape" }
+# a texture given as a data:image/svg+xml URL, drawn on the CPU (the resvg raea-runtime-js draws SVG with)
+resvg = { version = "=0.48.1", default-features = false, features = ["text"], optional = true }
+
+[dev-dependencies]
+base64 = "0.22"

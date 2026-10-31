@@ -1,0 +1,13 @@
+[package]
+name = "ui-parity-compare"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "ui-parity's oracle side and comparison: headless Chrome over the DevTools protocol, both sides' trees and frames compared on layout, pixels (SSIM) and accessibility"
+
+[dependencies]
+serde_json = "1"
+image = { version = "0.25", default-features = false, features = ["png"] }
+base64 = "0.22"
+tungstenite = { version = "0.28", default-features = false, features = ["handshake"] }

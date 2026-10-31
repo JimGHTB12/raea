@@ -1,0 +1,16 @@
+[package]
+name = "raea-runtime-scene"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A composition's 3D as raea-render rows: the camera, lights, meshes, models and pictures, keyed per frame, and live play's row changes"
+
+[dependencies]
+raea-core-scene = { path = "../../core/scene" }
+raea-core-program = { path = "../../core/program" }
+raea-runtime-look = { path = "../look" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
+serde_json = "1"
+# a material's `wear` prop as its row's columns
+raea-sys-wear = { path = "../../systems/wear" }

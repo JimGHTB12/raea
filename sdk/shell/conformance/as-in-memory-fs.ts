@@ -1,6 +1,6 @@
 // RaeaFs standing in for just-bash's InMemoryFs, so upstream tests written against it (the IFileSystem contract) run
 // on the project-folder filesystem: each instance is a fresh folder under TMPDIR, filled from the same initial files.
-import { native } from "@raea/motion/native";
+import { native } from "raea/native";
 import { RaeaFs } from "../src/fs";
 
 let n = 0;

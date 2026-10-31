@@ -1,0 +1,12 @@
+[package]
+name = "raea-sys-tweak"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A picked element's prop written into a composition's source as its next version: the literal or the constant it names, found with oxc"
+
+[dependencies]
+# the workspace's oxc (engine/bundle's)
+oxc = { version = "=0.152.0", features = ["ast_visit"] }
+serde_json = "1"

@@ -1,0 +1,30 @@
+{
+  "name": "@raea/audio",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's sound, as bevy_audio is Bevy's: Tone.js instruments, music, the mix, seedling's mixer, song maps and speech. Authors import it through \"raea\" (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tone": "./src/tone.tsx",
+    "./music": "./src/music.tsx",
+    "./mix": "./src/mix.tsx",
+    "./seedling": "./src/seedling.tsx",
+    "./song": "./src/song.tsx",
+    "./speech": "./src/speech.tsx",
+    "./plugin": "./src/plugin.ts"
+  },
+  "peerDependencies": {
+    "react": "19.2.0"
+  },
+  "raea": {
+    "plugins": {
+      "audio": {
+        "raea": true,
+        "note": "raea's mixer: tone, music, seedling and speech (a game declaring it exports with sound)"
+      }
+    }
+  }
+}

@@ -1,21 +1,20 @@
-//! The shell's `js-exec` on JavaScriptCore, the system's engine (in place of just-bash's QuickJS): a script, or code
-//! given inline, run as an ES module in a fresh context on its own thread. TypeScript and TSX are transpiled in process
-//! by raea-modules (deno_ast: no bun, so the same on the iPhone); imports resolve only to files inside the project;
-//! console goes to the command's stdout and stderr; native calls are limited to an allow-list (no filesystem outside the
-//! shell's own project, no network); a run past its time is terminated.
+//! The shell's `js-exec` on raea's JS engine (raea-runtime-jsengine: JavaScriptCore on Apple, QuickJS elsewhere): a
+//! script, or code given inline, run as an ES module in a fresh engine on its own thread. TypeScript and TSX are
+//! transpiled in process by raea-modules (deno_ast: no bun, so the same on the iPhone); imports resolve only to files
+//! inside the project; console goes to the command's stdout and stderr; native calls are limited to an allow-list (no
+//! filesystem outside the shell's own project, no network); a run past its time is terminated.
 //!
 //! This is also the engine's module seam: `Loader` (raea-modules) resolves every import, rewritten into each module's
-//! text as the URL JavaScriptCore's module loader then fetches, so the agent's modules load live, file by file.
+//! text as the URL the engine's module loader then fetches, so the agent's modules load live, file by file.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ffi::c_void;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
-use crate::jsc::{self, Arg, Context};
+use raea_runtime_jsengine::{Arg, Engine, Fetch, Ret, clock, now_ms};
 use crate::{R, s};
 
 /// What a run printed and how it ended.
@@ -36,7 +35,6 @@ thread_local! {
     /// each module's source by URL, loaded as an import naming it was resolved
     static SOURCES: RefCell<HashMap<String, String>> = RefCell::new(HashMap::new());
     static OUT: RefCell<(String, String)> = const { RefCell::new((String::new(), String::new())) };
-    static T0: Instant = Instant::now();
     /// js::run_node: imports resolve as Node does (node.rs), not inside a sandboxed project
     static NODE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
@@ -65,18 +63,14 @@ const PRELUDE: &str = r#"(function (g) {
 })(globalThis);
 "#;
 
-unsafe extern "C" fn out_fn(ctx: *const c_void, _f: *mut c_void, _this: *mut c_void, argc: usize, argv: *const *const c_void, _exc: *mut *const c_void) -> *const c_void {
-    let fd = unsafe { jsc::arg(ctx, argc, argv, 0) };
-    let text = unsafe { jsc::arg(ctx, argc, argv, 1) };
+/// `__raea_out(fd, text)`: console and process.stdout/stderr, to the run's output
+fn out(a: &[String]) -> Result<Ret, String> {
+    let text = raea_runtime_jsengine::arg(a, 1);
     OUT.with(|o| {
         let mut o = o.borrow_mut();
-        if fd == "2" { o.1.push_str(&text) } else { o.0.push_str(&text) }
+        if raea_runtime_jsengine::arg(a, 0) == "2" { o.1.push_str(text) } else { o.0.push_str(text) }
     });
-    jsc::undefined(ctx)
-}
-
-unsafe extern "C" fn now_fn(ctx: *const c_void, _f: *mut c_void, _this: *mut c_void, _argc: usize, _argv: *const *const c_void, _exc: *mut *const c_void) -> *const c_void {
-    jsc::number(ctx, T0.with(|t| t.elapsed().as_secs_f64() * 1e3))
+    Ok(Ret::Undefined)
 }
 
 /// A module's text with each import rewritten to the URL raea-modules resolves it to (the module it names loaded and
@@ -176,11 +170,19 @@ fn run_here(root: &Path, cwd: &Path, entry: Entry, argv: Vec<String>, env: serde
     };
     LOADER.with(|l| *l.borrow_mut() = Some(loader));
     let t0 = Instant::now();
-    let c = Context::new();
-    // a script running past the time is terminated by JavaScriptCore's watchdog; the loop below checks the rest
+    let mut c = match Engine::default().start() {
+        Ok(c) => c,
+        Err(e) => return Js { exit: 1, stdout: String::new(), stderr: format!("js-exec: {e}\n") },
+    };
+    // a script running past the time is stopped by the engine (JavaScriptCore's watchdog, QuickJS's interrupt); the
+    // loop below checks the rest
     c.time_limit(timeout);
-    c.set_fn("__raea_out", out_fn);
-    c.set_fn("__raea_now", now_fn);
+    let natives: [(&str, raea_runtime_jsengine::Native); 2] = [("__raea_out", Box::new(out)), ("__raea_now", clock())];
+    for (name, f) in natives {
+        if let Err(e) = c.native(name, f) {
+            return Js { exit: 1, stdout: String::new(), stderr: format!("js-exec: {e}\n") };
+        }
+    }
     let globals = [
         ("__raea_argv", json!(argv)),
         ("__raea_env", Value::Object(env)),
@@ -195,12 +197,11 @@ fn run_here(root: &Path, cwd: &Path, entry: Entry, argv: Vec<String>, env: serde
         return Js { exit: 1, stdout: String::new(), stderr: format!("js-exec: prelude: {e}\n") };
     }
     let node = NODE.with(|n| n.get());
-    if let Err(e) = jsc::install(&c) {
+    if let Err(e) = crate::host::install(&mut *c) {
         return Js { exit: 1, stdout: String::new(), stderr: format!("js-exec: {e}\n") };
     }
     if node {
-        c.set_fn("__raea_node", crate::node::native);
-        if let Err(e) = c.eval(crate::node::NODE_JS, "node") {
+        if let Err(e) = c.native("__raea_node", Box::new(crate::node::native)).and_then(|_| c.eval(crate::node::NODE_JS, "node")) {
             return Js { exit: 1, stdout: String::new(), stderr: format!("node: {e}\n") };
         }
     }
@@ -214,7 +215,8 @@ fn run_here(root: &Path, cwd: &Path, entry: Entry, argv: Vec<String>, env: serde
             l.resolve(&p.display().to_string(), &format!("file://{}/", cwd.display())).and_then(|id| l.load(&id)).map(|m| (m.url, m.source)).map_err(|r| r.to_string())
         }),
         Entry::Code { text, ts, dir } => {
-            let p = dir.join(if *ts { "[eval].ts" } else { "[eval].mjs" });
+            // without `.` or `..` parts: JavaScriptCore names the entry by its normalized URL
+            let p = crate::node::lexical(&dir.join(if *ts { "[eval].ts" } else { "[eval].mjs" }));
             if *ts {
                 raea_modules::transpile(&p, text.clone()).map(|m| (format!("file://{}", p.display()), m.source)).map_err(|r| r.to_string())
             } else {
@@ -225,25 +227,24 @@ fn run_here(root: &Path, cwd: &Path, entry: Entry, argv: Vec<String>, env: serde
     .unwrap_or_else(|e| ("file:///[js-exec].mjs".to_string(), format!("throw new Error({:?});", e)));
     // the URL as JavaScriptCore takes it ([eval].ts has brackets)
     let url = url.replace('[', "%5B").replace(']', "%5D");
-    let modules = jsc::modules::Modules::new(c.raw(), Box::new(|url| {
+    let fetch: Fetch = Box::new(|url| {
         if let Some(why) = url.strip_prefix("raea:refused/") {
             return Err(url::form_urlencoded::parse(format!("x={why}").as_bytes()).next().map(|(_, v)| v.into_owned()).unwrap_or_default());
         }
         let url = url.replace("%5B", "[").replace("%5D", "]");
         let js = SOURCES.with(|s| s.borrow().get(&url).cloned()).ok_or_else(|| format!("{url}: not loaded"))?;
         Ok(rewrite(&url, &js))
-    }));
+    });
     let js = rewrite(&url.replace("%5B", "[").replace("%5D", "]"), &js);
     let result: Result<(), String> = (|| {
-        let p = modules.eval(&url, &js)?;
-        c.watch("__raea_entry", p);
+        c.module(&url, &js, fetch, "__raea_entry")?;
+        let entry = raea_runtime_jsengine::watch(&mut *c, "__raea_entry")?;
         // the loop: due timers (microtasks drain after each call), until the module has settled and nothing is pending
         loop {
             if t0.elapsed() > timeout {
                 return Err("__raea_timeout".into());
             }
-            let now = T0.with(|t| t.elapsed().as_secs_f64() * 1e3);
-            let next = match c.call_num("__raea_timers", &[Arg::Num(now)]) {
+            let next = match c.call("__raea_timers", &[Arg::Num(now_ms())]) {
                 Some(Ok(n)) if n.is_finite() => n,
                 Some(Err(e)) => return Err(e),
                 _ => -1.0,
@@ -252,7 +253,7 @@ fn run_here(root: &Path, cwd: &Path, entry: Entry, argv: Vec<String>, env: serde
                 // done, or nothing scheduled can settle it: a few more turns for the module loader's own jobs (an
                 // import fetched and failed settles over several)
                 for _ in 0..8 {
-                    if c.settled("__raea_entry").is_some() {
+                    if entry.borrow().is_some() {
                         break;
                     }
                     let _ = c.eval("0", "turn");
@@ -261,14 +262,15 @@ fn run_here(root: &Path, cwd: &Path, entry: Entry, argv: Vec<String>, env: serde
             }
             std::thread::sleep(Duration::from_millis(next.clamp(0.0, 50.0) as u64));
         }
-        match c.settled("__raea_entry") {
+        let settled = entry.borrow().clone();
+        match settled {
             Some(Err(reason)) => Err(reason),
             _ => Ok(()),
         }
     })();
     let mut exit = 0;
     if let Err(e) = result {
-        if e == "__raea_timeout" || e.contains("JavaScript execution terminated") {
+        if e == "__raea_timeout" || raea_runtime_jsengine::stopped(&e) {
             exit = 124;
             OUT.with(|o| o.borrow_mut().1.push_str(&format!("js-exec: stopped after {} ms\n", timeout.as_millis())));
         } else if let Some(code) = e.split("__raea_exit:").nth(1).and_then(|c| c.split(|ch: char| !ch.is_ascii_digit() && ch != '-').next()).and_then(|c| c.parse::<i32>().ok()) {
@@ -278,7 +280,7 @@ fn run_here(root: &Path, cwd: &Path, entry: Entry, argv: Vec<String>, env: serde
             OUT.with(|o| o.borrow_mut().1.push_str(&format!("{e}\n")));
         }
     }
-    drop(modules);
+    drop(c);
     SOURCES.with(|s| s.borrow_mut().clear());
     let (stdout, stderr) = OUT.with(|o| std::mem::take(&mut *o.borrow_mut()));
     Js { exit, stdout, stderr }

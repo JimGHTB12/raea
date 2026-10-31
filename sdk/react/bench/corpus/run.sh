@@ -2,10 +2,10 @@
 # The corpus harness: real agent-written compositions (and a few synthetic ones) run through the no-V8 engine's main
 # paths, one PASS/FAIL line per edit with the reason. findings.md says what broke and why.
 #   sdk/react/bench/corpus/run.sh [LIST] [FILTER]
-# LIST (default sdk/react/bench/corpus/list.txt) holds one edit per line: a path relative to the repo, or ~/... for void's
+# LIST (default sdk/react/bench/corpus/list.txt) holds one edit per line: a path relative to the repo, or ~/... for the legacy app's
 # eval spaces; '#' starts a comment. Edits that aren't on this Mac print SKIP. FILTER keeps only paths containing it.
 # For each edit:
-#   1. render:  raea-motion render EDIT -o OUT.mp4 (the GPU page path; the 3D path for 3D), its frames counted against
+#   1. render:  raea render EDIT -o OUT.mp4 (the GPU page path; the 3D path for 3D), its frames counted against
 #      the edit's own length when it states one (score's `export const config`)
 #   2. a timeline or a 3D scene: a baked play (--baked --offscreen, and --3d for 3D) snapshotted at four frames across it, the same
 #      frames rendered with RAEA_READBACK=rgba, each pair compared by SSIM (>= 0.999 passes)
@@ -17,13 +17,15 @@
 # for 60 s so timing runs get theirs; CORPUS_TIMED=1 holds it for the whole run.
 # Generation is off: paid models refused (RAEA_GEN_PAID=0) and no local SAO, so only sounds already made play.
 # Outputs go to /tmp/raea-corpus (work/ is emptied after each edit; logs/ keeps each edit's logs for diagnosis).
-# Build first: lane build -- cargo build --release --bin raea-motion (in react/).
+# Build first: lane build -- cargo build --release -p raea-cli.
 cd "$(dirname "$0")/../.." || exit 2
+# pixel checks: no Content Credentials or TrustMark id in the frames (a still's mark moves its pixels: 0.997 for 1.0)
+export RAEA_SIGN=0 RAEA_MARK=0
 REPO=$(cd .. && pwd)
 LIST=${1:-bench/corpus/list.txt}
 FILTER=${2:-}
-BIN=$PWD/target/release/raea-motion
-LOGS=$HOME/Library/Logs/raea/raea-motion
+BIN=$PWD/target/release/raea
+LOGS=$HOME/Library/Logs/raea/raea
 mkdir -p /tmp/raea-corpus/work /tmp/raea-corpus/logs
 W=/tmp/raea-corpus/work
 export RAEA_AUDIO_MUTE=1 RAEA_GEN_PAID=0 RAEA_SAO=/nonexistent/raea-sao
@@ -91,7 +93,7 @@ while IFS= read -r line || [ -n "$line" ]; do
   [ -n "$p" ] || continue
   [ -z "$FILTER" ] || [[ "$p" == *"$FILTER"* ]] || continue
   case "$p" in "~/"*) edit="$HOME/${p#\~/}" ;; /*) edit=$p ;; *) edit="$REPO/$p" ;; esac
-  # a short name: the last two folders, or for a void space its run and scenario (and the space when not eval)
+  # a short name: the last two folders, or for an eval space its run and scenario (and the space when not eval)
   name=$(echo "$p" | awk -F/ '{n=NF; s=$(n-1); if (n>2) s=$(n-2)"/"s; for (i=1;i<=n;i++) if ($i=="spaces") { s=$(i-2)"/"$(i-1); if ($(i+1)!="eval") s=s"/"$(i+1) } print s}' | sed 's|/project--|/|; s|/ugc--|/|; s|/app--|/|')
   if [ ! -f "$edit" ]; then echo "SKIP  $name: not on this Mac ($p)"; skip=$((skip + 1)); continue; fi
   KIND=timeline

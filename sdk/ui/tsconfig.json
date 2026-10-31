@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "paths": {
+      "react": [
+        "../react/js/node_modules/react"
+      ],
+      "react/*": [
+        "../react/js/node_modules/react/*"
+      ],
+      "react-reconciler": [
+        "../react/js/node_modules/react-reconciler"
+      ],
+      "react-reconciler/*": [
+        "../react/js/node_modules/react-reconciler/*"
+      ],
+      "scheduler": [
+        "../react/js/node_modules/scheduler"
+      ],
+      "@raea/ui/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "test"
+  ]
+}

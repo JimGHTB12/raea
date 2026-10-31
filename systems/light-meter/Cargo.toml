@@ -1,0 +1,13 @@
+[package]
+name = "raea-sys-light-meter"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The light on a 3D shot's subject in lux, metered from the scene's own lights and geometry, and its cuts checked"
+
+[dependencies]
+raea-core-scene = { path = "../../core/scene" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
+serde_json = "1"
+image = { version = "0.25", default-features = false, features = ["png", "hdr"] }

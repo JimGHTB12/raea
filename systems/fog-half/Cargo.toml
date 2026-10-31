@@ -1,0 +1,12 @@
+[package]
+name = "raea-sys-fog-half"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Volumetric fog marched at a fraction of the frame's resolution and upsampled by depth, a function of the frame"
+
+[dependencies]
+raea-sys-frame = { path = "../frame" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+wgpu = "=30.0.1"

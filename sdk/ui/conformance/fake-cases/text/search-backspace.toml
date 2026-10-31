@@ -1,0 +1,18 @@
+area = "text"
+title = "Backspace in feed.search deletes one character a press"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "feed.search", visible = true }
+[[steps]]
+input = { type = "click", at = "feed.search" }
+[[steps]]
+input = { type = "keys", text = "abcd" }
+[[steps]]
+wait = { id = "feed.search", value = "abcd" }
+[[steps]]
+input = { type = "keys", keys = ["Backspace", "Backspace"] }
+[[steps]]
+expect = { id = "feed.search", value = "ab" }
+hold = 5

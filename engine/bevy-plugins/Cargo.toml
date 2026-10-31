@@ -4,20 +4,132 @@ version = "0.1.0"
 edition = "2024"
 license = "FSL-1.1-ALv2"
 publish = false
-description = "Bevy plugins compiled into raea's engine, each behind a feature (sdk/motion/docs/bevy-plugins.md): registered with rdb's plugin hooks, driven from TSX by generic reflect rows, stepped by the frame index"
+description = "Bevy plugins compiled into raea's engine, each behind a feature (sdk/raea/docs/bevy-plugins.md): declared in a project's package.json, resolved here by tools/bevy-plugins.sh, registered with raea-render's plugin hooks, driven from TSX by generic reflect rows and from TypeScript by bevy_remote's method table, stepped by the frame index"
 
 [dependencies]
-bevy = { version = "=0.19.1", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
-rdb = { path = "../rdb", default-features = false }
-# physics: deterministic, stepped in FixedPostUpdate (MIT OR Apache-2.0); no debug gizmos, scenes or picking
-avian3d = { version = "=0.7.0", optional = true, default-features = false, features = ["3d", "f32", "parry-f32", "xpbd_joints", "collider-from-mesh"] }
-# GPU particles (MIT OR Apache-2.0); asks bevy for `x11`, which brings bevy_winit (WinitPlugin is turned off here)
-bevy_hanabi = { version = "=0.19.0", optional = true, default-features = false, features = ["3d"] }
-rand_pcg = { version = "0.10", optional = true }
-# tweens (MIT OR Apache-2.0); no sprite, UI or text lenses
-bevy_tweening = { version = "=0.16.0", optional = true, default-features = false }
+raea-runtime-plugins = { path = "../../runtime/plugins" }
+# a declaration's Blitz widgets, registered for every page App (declared.rs)
+raea-sys-page = { path = "../../systems/page" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
+raea-core-calls = { path = "../../core/calls" }
+raea-bevy-world = { path = "../bevy-world" }
+raea-bevy-calls = { path = "../bevy-calls" }
+raea-bevy-adapters = { path = "../bevy-adapters" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# >>> declared dependencies: written by tools/bevy-plugins.sh sync from the projects' package.json; don't edit
+bevy_aseprite_ultra = { version = "=0.10.0", optional = true, default-features = false, features = ["3d"] }
+bevy_asset_loader = { version = "=0.28.1", optional = true, default-features = false, features = [] }
+avian3d = { version = "=0.8.0", optional = true, default-features = false, features = ["3d", "parry-f32", "xpbd_joints", "collider-from-mesh"] }
+avian2d = { version = "=0.8.0", optional = true, default-features = false, features = ["2d", "parry-f32", "default-collider", "xpbd_joints"] }
+symphonia = { version = "0.5", optional = true, default-features = false, features = ["vorbis", "ogg", "pcm", "adpcm", "alac", "aiff", "caf"] }
+big_space = { version = "=0.14.0-rc.0", optional = true, default-features = false, features = ["std", "camera"] }
+bevy_common_assets = { version = "=0.18.0", optional = true, default-features = false, features = ["json", "ron", "toml", "yaml", "csv", "msgpack", "xml", "postcard", "cbor"] }
+bevy_console = { version = "=0.19.0", optional = true, default-features = false, features = ["default-commands"] }
+bevy_egui = { version = "=0.43.1", optional = true, default-features = false, features = ["render", "default_fonts", "bevy_ui", "picking"] }
+bevy_enhanced_input = { version = "=0.27.0", optional = true, default-features = false, features = ["reflect", "state", "serialize"] }
+bevy_flair = { version = "=0.9.0", optional = true, default-features = false, features = ["ghost_nodes"] }
+bevy_hanabi = { git = "https://github.com/djeedai/bevy_hanabi", rev = "77630ff1eed8b104f34e91d23e9440428dc5ab01", optional = true, default-features = false, features = ["3d"] }
+rand_pcg = { version = "0.10", optional = true, default-features = false, features = [] }
+bevy_http_client = { version = "=0.12.0", optional = true, default-features = false, features = [] }
+bevy_hui = { version = "=0.8.0", optional = true, default-features = false, features = ["picking"] }
+bevy-inspector-egui = { version = "=0.38.0", optional = true, default-features = false, features = ["bevy_render", "bevy_pbr", "3d", "2d", "highlight_changes"] }
+bevy_kira_audio = { version = "=0.27.1", optional = true, default-features = false, features = ["ogg", "mp3", "flac", "wav"] }
+leafwing-input-manager = { version = "=0.22.0", optional = true, default-features = false, features = ["asset", "mouse", "keyboard", "gamepad", "picking"] }
+lightyear = { version = "=0.31.0", optional = true, default-features = false, features = ["std", "client", "server", "replication", "prediction", "crossbeam", "input_native", "raw_connection"] }
+lightyear_core = { version = "=0.31.0", optional = true, default-features = false, features = ["test_utils"] }
+mock_instant = { version = "0.6", optional = true, default-features = false, features = [] }
+bevy_lookup_curve = { version = "=0.13.0", optional = true, default-features = false, features = ["bevy_app", "bevy_asset", "bevy_reflect", "ron", "serialize"] }
+vleue_navigator = { version = "=0.17.0", optional = true, default-features = false, features = ["debug-with-gizmos"] }
+noisy_bevy = { version = "=0.15.0", optional = true, default-features = false, features = ["cpu", "gpu"] }
+bevy_northstar = { version = "=0.8.0", optional = true, default-features = false, features = ["parallel"] }
+bevy_obj = { version = "=0.20.0", optional = true, default-features = false, features = ["mesh", "scene"] }
+bevy_pancam = { version = "=0.22.0", optional = true, default-features = false, features = [] }
+bevy_panorbit_camera = { version = "=0.36.0", optional = true, default-features = false, features = [] }
+bevy_ghx_proc_gen = { version = "=0.10.0", optional = true, default-features = false, features = ["reflect", "default-bundle-inserters"] }
+iyes_progress = { version = "=0.18.0", optional = true, default-features = false, features = [] }
+bevy_quinnet = { version = "=0.22.0", optional = true, default-features = false, features = ["client", "server", "shared-client-id", "recv_channels"] }
+bevy_rand = { version = "=0.16.0", optional = true, default-features = false, features = ["std", "wyrand", "bevy_reflect", "thread_local_entropy"] }
+bevy_remote = { version = "=0.20.0", default-features = false }
+moonshine-save = { version = "=0.8.0", optional = true, default-features = false, features = [] }
+bevy_simple_tilemap = { version = "=0.21.0", optional = true, default-features = false, features = [] }
+bevy_skein = { version = "=0.7.0-rc.1", optional = true, default-features = false, features = [] }
+bevy_smud = { version = "=0.15.0", optional = true, default-features = false, features = [] }
+bevy_sprite3d = { version = "=10.1.0", optional = true, default-features = false, features = [] }
+raea-bench-swatch = { path = "../../bench/bridge/swatch", optional = true, default-features = false, features = [] }
+bevy_ecs_tiled = { version = "=0.14.0", optional = true, default-features = false, features = ["render", "png", "user_properties"] }
+bevy-tnua = { version = "=0.33.0", optional = true, default-features = false, features = [] }
+bevy-tnua-avian3d = { version = "=0.13.0", optional = true, default-features = false, features = [] }
+bevy_trauma_shake = { version = "=0.9.0", optional = true, default-features = false, features = ["events", "commands", "system_param"] }
+bevy_trenchbroom = { version = "=0.15.0", optional = true, default-features = false, features = ["client"] }
+bevy_tweening = { git = "https://github.com/djeedai/bevy_tweening", rev = "2341b0c3e4d18cc11825ba2d7cd6c5f6f41f4152", optional = true, default-features = false, features = ["bevy_sprite", "bevy_ui", "bevy_text"] }
+bevy_vector_shapes = { version = "=0.14.0", optional = true, default-features = false, features = [] }
+bevy_vox_scene = { version = "=0.23.0", optional = true, default-features = false, features = ["modify_voxels", "generate_voxels"] }
+bevy-yoleck = { version = "=0.34.0", optional = true, default-features = false, features = ["vpeol_3d", "bevy_reflect"] }
+# <<< declared dependencies
 
 [features]
+# >>> declared features: written by tools/bevy-plugins.sh sync; don't edit
+aseprite = ["dep:bevy_aseprite_ultra"]
+asset_loader = ["dep:bevy_asset_loader"]
 avian = ["dep:avian3d"]
+avian2d = ["dep:avian2d"]
+bevy = ["bevy/bevy_gilrs", "bevy/gamepad", "bevy/area_light_luts", "bevy/experimental_pbr_pcss", "bevy/dfg_lut", "bevy/smaa_luts", "bevy/tonemapping_luts", "bevy/bluenoise_texture", "bevy/bevy_gizmos", "bevy/bevy_gizmos_render", "bevy/bevy_dev_tools", "bevy/debug", "bevy/bevy_ui_debug", "bevy/file_watcher", "bevy/embedded_watcher", "bevy/asset_processor", "bevy/png", "bevy/jpeg", "bevy/ktx2", "bevy/zstd_rust", "bevy/basis-universal", "bevy/exr", "bevy/hdr", "bevy/webp", "bevy/dds", "bevy/tga", "bevy/bmp", "bevy/gif", "bevy/ico", "bevy/qoi", "bevy/pnm", "bevy/tiff", "bevy/compressed_image_saver", "bevy/picking", "bevy/bevy_picking", "bevy/mesh_picking", "bevy/sprite_picking", "bevy/ui_picking", "bevy/meshlet", "bevy/meshlet_processor", "bevy/bevy_solari", "bevy/bevy_animation", "bevy/gltf_animation", "bevy/morph", "bevy/morph_animation", "bevy/bevy_gltf", "bevy/bevy_sprite", "bevy/bevy_sprite_render", "bevy/2d_bevy_render", "bevy/3d_bevy_render", "bevy/ui_bevy_render", "bevy/bevy_ui_widgets", "bevy/bevy_feathers", "bevy/custom_cursor", "bevy/bevy_input_focus", "bevy/bevy_camera_controller", "bevy/free_camera", "bevy/pan_camera", "bevy/bevy_text", "bevy/system_font_discovery", "bevy/scene", "bevy/bevy_state", "bevy/serialize", "bevy/reflect_functions", "bevy/reflect_documentation", "bevy/sysinfo_plugin", "bevy/bevy_clipboard", "bevy/system_clipboard", "bevy/clipboard_image", "bevy/ghost_nodes", "bevy/bevy_settings", "bevy/shader_format_spirv", "bevy/bevy_debug_stepping", "bevy/bevy_world_serialization", "bevy/bevy_audio", "bevy/mp3", "bevy/flac", "bevy/vorbis", "bevy/wav", "bevy/aac", "bevy/mp4", "bevy/http", "bevy/https", "bevy/web_asset_cache", "bevy/bevy_curve", "bevy/complex_script_segmentation", "bevy/compressed_image_saver_universal", "bevy/pan_orbit_camera", "bevy/pan_orbit_gizmo", "bevy/render_dev_tools", "dep:symphonia"]
+big_space = ["dep:big_space"]
+common_assets = ["dep:bevy_common_assets"]
+console = ["dep:bevy_console", "raea-bevy-calls/console", "egui"]
+debugdump = ["raea-bevy-calls/debugdump"]
+easings = ["raea-bevy-adapters/easings"]
+egui = ["dep:bevy_egui", "raea-bevy-calls/egui"]
+enhanced_input = ["dep:bevy_enhanced_input"]
+enoki = ["raea-bevy-adapters/enoki"]
+flair = ["dep:bevy_flair"]
 hanabi = ["dep:bevy_hanabi", "dep:rand_pcg"]
-tweening = ["dep:bevy_tweening"]
+http = ["dep:bevy_http_client", "raea-bevy-calls/http"]
+hui = ["dep:bevy_hui"]
+inspector = ["dep:bevy-inspector-egui", "egui"]
+kira = ["dep:bevy_kira_audio", "raea-bevy-calls/kira"]
+ldtk = ["raea-bevy-adapters/ldtk", "tilemap"]
+leafwing = ["dep:leafwing-input-manager"]
+light_2d = ["raea-bevy-adapters/light_2d"]
+lightyear = ["dep:lightyear", "dep:lightyear_core", "dep:mock_instant"]
+lookup_curve = ["dep:bevy_lookup_curve", "raea-bevy-calls/lookup_curve"]
+navigator = ["dep:vleue_navigator", "raea-bevy-calls/navigator"]
+noise = ["raea-bevy-calls/noise"]
+noisy = ["dep:noisy_bevy", "raea-bevy-calls/noisy"]
+northstar = ["dep:bevy_northstar", "raea-bevy-calls/northstar"]
+obj = ["dep:bevy_obj"]
+pancam = ["dep:bevy_pancam"]
+panorbit = ["dep:bevy_panorbit_camera"]
+proc_gen = ["dep:bevy_ghx_proc_gen"]
+progress = ["dep:iyes_progress"]
+quinnet = ["dep:bevy_quinnet", "raea-bevy-calls/quinnet"]
+rand = ["dep:bevy_rand"]
+rapier2d = ["raea-bevy-adapters/rapier2d"]
+rapier3d = ["raea-bevy-adapters/rapier3d"]
+remote = ["bevy_remote/http"]
+save = ["dep:moonshine-save"]
+simple_tilemap = ["dep:bevy_simple_tilemap", "raea-bevy-calls/simple_tilemap"]
+skein = ["dep:bevy_skein"]
+smud = ["dep:bevy_smud"]
+sprite3d = ["dep:bevy_sprite3d", "raea-bevy-calls/sprite3d"]
+spritesheet = ["raea-bevy-adapters/spritesheet"]
+swatch = ["dep:raea-bench-swatch"]
+text3d = ["raea-bevy-adapters/text3d"]
+tiled = ["dep:bevy_ecs_tiled", "tilemap"]
+tilemap = ["raea-bevy-adapters/tilemap"]
+tnua = ["dep:bevy-tnua", "dep:bevy-tnua-avian3d", "avian"]
+trauma_shake = ["dep:bevy_trauma_shake", "raea-bevy-calls/trauma_shake"]
+trenchbroom = ["dep:bevy_trenchbroom"]
+tween = ["raea-bevy-adapters/tween"]
+tweening = ["dep:bevy_tweening", "raea-bevy-calls/tweening"]
+vector_shapes = ["dep:bevy_vector_shapes"]
+vox = ["dep:bevy_vox_scene"]
+yoleck = ["dep:bevy-yoleck", "egui"]
+# <<< declared features
+
+# Optional dependencies a feature turns on for what they change elsewhere, not for code here: lightyear_core's
+# test_utils makes lightyear read mock_instant's clock, which src/lightyear.rs steps by the frame (so render equals
+# play); symphonia's vorbis, ogg, alac, aiff and caf join raea-io-media's decoders through feature unification.
+[package.metadata.cargo-shear]
+ignored = ["lightyear_core", "symphonia"]

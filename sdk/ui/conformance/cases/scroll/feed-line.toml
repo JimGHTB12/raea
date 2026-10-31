@@ -1,0 +1,12 @@
+area = "scroll"
+title = "a line wheel scrolls the feed at least 32 pt a line"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "feed", field = "scroll.max", gt = 96 }
+[[steps]]
+input = { type = "move", at = "card-*" }
+[[steps]]
+input = { type = "wheel", at = "feed", dy = -3, unit = "line", natural = false }
+[[steps]]
+expect = { id = "feed", field = "scroll.top", increased_by = 96 }

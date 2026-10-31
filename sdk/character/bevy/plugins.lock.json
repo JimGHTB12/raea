@@ -1,0 +1,10 @@
+{
+  "bevy": "0.20",
+  "plugins": {
+    "character": {
+      "crate": "raea-runtime-plugins",
+      "raea": true,
+      "schema": "993e6e28df7aea76"
+    }
+  }
+}

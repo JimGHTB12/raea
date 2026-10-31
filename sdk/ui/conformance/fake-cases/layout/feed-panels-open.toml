@@ -1,0 +1,19 @@
+area = "layout"
+title = "the feed with the chat and the left panel open: nothing overlaps, nothing cut, every control at least 24 pt and on screen"
+space = "feed"
+# both sides fit only from 900 wide; at 700 the contract has them give way (responsive/middle-min covers that)
+windows = [[1440, 900], [1180, 820], [900, 700]]
+
+[[steps]]
+wait = { id = "header.toggle.chat", visible = true }
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+if = { id = "left", visible = false }
+input = { type = "click", at = "header.toggle.files" }
+[[steps]]
+wait = { all = [{ id = "chat.composer", visible = true }, { id = "feed.card.0", visible = true }] }
+[[steps]]
+expect = { all = [{ check = "no_overlap" }, { check = "min_size", min = 24 }, { check = "on_screen" }, { check = "text_width" }] }
+hold = 10

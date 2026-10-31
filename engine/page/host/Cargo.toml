@@ -1,0 +1,59 @@
+[package]
+name = "raea-page-host"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A headless host for one raea page: a bundle mounted on a Blitz page at a window's size, driven and read over the Bevy Remote Protocol and MCP (page.input, page.ui, page.frame_png, page.state, page.a11y), for the benches"
+
+[lib]
+name = "raea_page_host"
+path = "src/lib.rs"
+
+[[bin]]
+name = "raea-page-host"
+path = "src/main.rs"
+
+[features]
+# the page on QuickJS (raea-runtime-js's portable engine) in place of JavaScriptCore
+portable = ["raea-runtime-js/portable"]
+
+[dependencies]
+# the window as an image the UI camera draws, picking's pointer input, the remote protocol, and every image format the
+# page decodes (raea-page's IMAGE_DECODER decodes through bevy_image): the legacy app's list, which the benches ran on
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust", "bevy_picking", "ui_picking", "bevy_ui_widgets", "bevy_input_focus", "jpeg", "bevy_remote", "tga", "qoi", "tiff", "pnm", "ff", "dds", "exr", "hdr", "webp", "gif", "bmp", "ico"] }
+raea-runtime-js = { path = "../../../runtime/js" }
+# the page's accessibility records
+raea-sys-a11y = { path = "../../../systems/a11y" }
+raea-page = { path = ".." }
+raea-sys-page = { path = "../../../systems/page" }
+raea-sys-fonts = { path = "../../../systems/fonts" }
+raea-runtime-dom = { path = "../../../runtime/dom" }
+raea-runtime-input = { path = "../../../runtime/input" }
+# the page's video and audio decoded by the platform (VideoToolbox, AudioToolbox through AVFoundation), as the legacy app
+# had them: raea-page and raea-runtime-js take raea-io-media without a backend, and only this feature gives them one
+raea-io-media = { path = "../../../io/media", default-features = false, features = ["apple"] }
+blitz-traits = "=0.3.0-beta.4"
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false }
+stylo = "=0.22.0"
+image = { version = "0.25", default-features = false, features = ["png"] }
+serde_json = "1"
+# the live stage (src/stage.rs): raea-runtime-live, with raea-runtime-react's features turned on here (the legacy app's), on
+# the shared device Bevy renders on here (raea-runtime-view's render_creation)
+raea-runtime-react = { path = "../../../runtime/react", default-features = false, features = ["h264", "av1", "scripts", "modules", "network"] }
+# and its sound's <Seedling> samples
+raea-runtime-sound = { path = "../../../runtime/sound", features = ["seedling"] }
+raea-runtime-live = { path = "../../../runtime/live" }
+# its stage's bakes find the bundle's functions (raea-runtime-bake's modules, as raea-runtime-react's were)
+raea-runtime-bake = { path = "../../../runtime/bake", features = ["modules"] }
+raea-gpu-device = { path = "../../../gpu/device" }
+raea-runtime-view = { path = "../../../runtime/view" }
+wgpu = "=30.0.1"
+# a picked element's prop written into the game's next version
+raea-sys-tweak = { path = "../../../systems/tweak" }
+tiny_http = "0.12"
+base64 = "0.22"
+
+# raea-io-media is here for its feature (the platform decoders raea-page and raea-runtime-js use), not called directly
+[package.metadata.cargo-shear]
+ignored = ["raea-io-media", "raea-runtime-react", "raea-runtime-bake", "raea-runtime-sound"]

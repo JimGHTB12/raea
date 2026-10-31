@@ -1,0 +1,11 @@
+area = "focus"
+title = "a press in feed.search focuses it, and only it"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { id = "feed.search", visible = true }
+[[steps]]
+input = { type = "click", at = "feed.search" }
+[[steps]]
+expect = { all = [{ id = "feed.search", focused = true }, { id = "*", focused = true, count = 1 }] }

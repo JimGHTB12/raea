@@ -1,0 +1,23 @@
+[package]
+name = "raea-sys-footage"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's perception of footage (perception.feature): a clip read once, by content hash, the way an editor reads it"
+
+[features]
+denoise = ["raea-sys-song/denoise"]
+
+[dependencies]
+# frames come from the media plane (VideoToolbox on Apple, ffmpeg or the software decoders elsewhere)
+raea-io-media = { path = "../../io/media", default-features = false, features = ["apple"] }
+raea-sys-layout = { path = "../layout" }
+raea-sys-vision = { path = "../vision" }
+raea-sys-song = { path = "../song" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }

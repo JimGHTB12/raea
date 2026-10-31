@@ -1,0 +1,23 @@
+area = "text"
+title = "IME marked text shows in chat.composer while composing and commits once"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+wait = { id = "chat.composer", visible = true }
+[[steps]]
+input = { type = "click", at = "chat.composer" }
+[[steps]]
+input = { type = "keys", text = "ok " }
+[[steps]]
+input = { type = "ime", marked = "かんじ" }
+[[steps]]
+expect = { id = "chat.composer", value_contains = "かんじ" }
+[[steps]]
+input = { type = "ime", commit = "漢字" }
+[[steps]]
+expect = { id = "chat.composer", value = "ok 漢字" }
+hold = 10

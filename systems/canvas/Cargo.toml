@@ -1,0 +1,21 @@
+[package]
+name = "raea-sys-canvas"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Canvas 2D: a canvas element's display list replayed with tiny-skia, its text in usvg, its images and videos decoded on the CPU, and svg documents drawn as pictures"
+
+[dependencies]
+# data: URL images decoded, and an svg drawn as an Image
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_render", "bevy_image"] }
+raea-io-net = { path = "../../io/net" }
+# a video's frame at a time, on the CPU
+raea-io-media = { path = "../../io/media", default-features = false }
+serde_json = "1"
+# usvg parses svg and shapes text, resvg draws over tiny-skia
+usvg = { version = "=0.48.1", default-features = false, features = ["text"] }
+resvg = { version = "=0.48.1", default-features = false, features = ["text"] }
+tiny-skia = { version = "=0.12.0", default-features = false, features = ["std", "simd"] }
+# read's pixels across the wire
+base64 = "0.22"

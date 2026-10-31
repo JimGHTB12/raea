@@ -1,0 +1,24 @@
+[package]
+name = "raea-sys-mix"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "FSL-1.1-ALv2"
+description = "raea's one mixer core: the same Firewheel graph plays live in the device callback and renders offline as the bounce, so a render and a play sound the same, sample for sample (sdk/react/docs/audio-stack.md)"
+
+[dependencies]
+# the audio graph: sample-accurate scheduled events, custom nodes, a CPAL stream live and a processor pulled by hand
+# offline. 0.12 because bevy_seedling 0.8 pins it: one Firewheel for raea and Bevy. On Bevy 0.20 both are vendored and
+# ported (vendor/firewheel*, vendor/bevy_seedling) until their releases catch up.
+firewheel = { version = "=0.12.1", default-features = false, features = ["std", "scheduled_events"] }
+# the device: the cpal react and the legacy app use (0.15), driving Firewheel's processor from its callback (live.rs). Firewheel's
+# own CPAL backend needs cpal 0.18, which can't link beside 0.15 (both link alsa-sys)
+cpal = "0.15"
+# the processor's buffers, pulled into a Vec for the bounce
+audioadapter-buffers = { version = "4.0.0", default-features = false, features = ["std"] }
+# sources decoded in 4 s windows (Symphonia)
+raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio"] }
+# the Tone graph and events (JSON from raea/tone)
+serde_json = "1"
+# its instruments and effects
+raea-sys-tone = { path = "../tone" }

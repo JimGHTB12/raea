@@ -1,0 +1,51 @@
+[package]
+name = "raea-bevy-calls"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The methods TypeScript calls on a declared Bevy plugin that has no reflected API of its own (sdk/raea/docs/bevy-plugins.md, docs/plugins.feature PL0b): one module per plugin, each behind the plugin's feature, added to bevy_remote's method table by raea-bevy-plugins' registration"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
+bevy_remote = { version = "=0.20.0", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# >>> declared dependencies: written by tools/bevy-plugins.sh sync from the projects' package.json; don't edit
+bevy_console = { version = "=0.19.0", optional = true, default-features = false, features = ["default-commands"] }
+shlex = { version = "1", optional = true, default-features = false, features = [] }
+bevy_mod_debugdump = { version = "=0.17.0", optional = true, default-features = false, features = [] }
+bevy_egui = { version = "=0.43.1", optional = true, default-features = false, features = ["render", "default_fonts", "bevy_ui", "picking"] }
+bevy_http_client = { version = "=0.12.0", optional = true, default-features = false, features = [] }
+bevy_kira_audio = { version = "=0.27.1", optional = true, default-features = false, features = ["ogg", "mp3", "flac", "wav"] }
+bevy_lookup_curve = { version = "=0.13.0", optional = true, default-features = false, features = ["bevy_app", "bevy_asset", "bevy_reflect", "ron", "serialize"] }
+vleue_navigator = { version = "=0.17.0", optional = true, default-features = false, features = ["debug-with-gizmos"] }
+noise = { version = "=0.9.0", optional = true, default-features = false, features = ["std"] }
+fastnoise-lite = { version = "=1.1.1", optional = true, default-features = false, features = ["std"] }
+noisy_bevy = { version = "=0.15.0", optional = true, default-features = false, features = ["cpu", "gpu"] }
+bevy_northstar = { version = "=0.8.0", optional = true, default-features = false, features = ["parallel"] }
+bevy_quinnet = { version = "=0.22.0", optional = true, default-features = false, features = ["client", "server", "shared-client-id", "recv_channels"] }
+bevy_simple_tilemap = { version = "=0.21.0", optional = true, default-features = false, features = [] }
+bevy_sprite3d = { version = "=10.1.0", optional = true, default-features = false, features = [] }
+bevy_trauma_shake = { version = "=0.9.0", optional = true, default-features = false, features = ["events", "commands", "system_param"] }
+bevy_tweening = { git = "https://github.com/djeedai/bevy_tweening", rev = "2341b0c3e4d18cc11825ba2d7cd6c5f6f41f4152", optional = true, default-features = false, features = ["bevy_sprite", "bevy_ui", "bevy_text"] }
+# <<< declared dependencies
+
+[features]
+# >>> declared features: written by tools/bevy-plugins.sh sync; don't edit
+console = ["dep:bevy_console", "dep:shlex"]
+debugdump = ["dep:bevy_mod_debugdump"]
+egui = ["dep:bevy_egui"]
+http = ["dep:bevy_http_client"]
+kira = ["dep:bevy_kira_audio"]
+lookup_curve = ["dep:bevy_lookup_curve"]
+navigator = ["dep:vleue_navigator"]
+noise = ["dep:noise", "dep:fastnoise-lite"]
+noisy = ["dep:noisy_bevy"]
+northstar = ["dep:bevy_northstar"]
+quinnet = ["dep:bevy_quinnet"]
+simple_tilemap = ["dep:bevy_simple_tilemap"]
+sprite3d = ["dep:bevy_sprite3d"]
+trauma_shake = ["dep:bevy_trauma_shake"]
+tweening = ["dep:bevy_tweening"]
+# <<< declared features

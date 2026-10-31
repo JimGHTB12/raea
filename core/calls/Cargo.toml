@@ -1,0 +1,11 @@
+[package]
+name = "raea-core-calls"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's native-call registry: the names TypeScript reaches Rust by, their TypeScript types, and the types file made from them"
+
+[dependencies]
+serde_json = "1"
+base64 = "0.22"

@@ -1,0 +1,270 @@
+//! raea's native calls (`__raea_call(name, json) -> json`), on the JS thread: Manifold solids held as handles
+//! (`/3d`'s `manifold`), and ECS worlds on Bevy's own ECS (`/ecs`, ecs.rs). TypeScript gets typed objects; the geometry,
+//! the storage and the filtering are Rust.
+//!
+//!   solid.make    {fn, args}            -> {id, expr}        box, rounded_box, sphere, cylinder, cone, torus, text3d
+//!   solid.combine {fn, ids}             -> {id, expr}        union, minus, intersect, hull
+//!   solid.move    {id, fn, args}        -> {id, expr}        move, rotate, scale
+//!   solid.query   {id, what, z?}        -> ...               volume, bounds, triangles, slice (area, contours, polygons)
+//!   solid.op      {id, fn, args, other?} -> {id, expr}        mirror, transform, trim, refine(_length/_tolerance), smooth, simplify, minkowski(_diff)
+//!   solid.section {id, z?}             -> section             a slice at z, or the silhouette (project)
+//!   solid.decompose / solid.compose / solid.hull_points; solid.extrude, revolve, level_set, from_mesh, import, export
+//!   section.op    {fn, polygons, others?, args} -> section    2D cross-sections by value: booleans, offset, hull, moves
+//!   solid.free    {id}
+//!   ecs.new {} -> {world}; ecs.spawn {world, kind, cols} -> {id}; ecs.set {world, id, cols}; ecs.get {world, id};
+//!   ecs.despawn {world, id}; ecs.query {world, kind, where: [[col, op, value]]} -> {ids}; ecs.column {world, kind, col};
+//!   ecs.rows {world}; ecs.count {world, kind}; ecs.clone {world} -> {world}; ecs.free {world}
+//!   print {text}                                              (a headless run's output, to stdout)
+
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::io::Write;
+
+use serde_json::{Value, json};
+
+type R<T> = Result<T, String>;
+
+/// ml.* and speech.* (raea-sys-ml, raea-sys-speech), registered with the rest
+#[cfg(feature = "ml")]
+pub mod ml;
+// ECS worlds on Bevy's own ECS (/ecs)
+pub mod ecs;
+mod media;
+mod solid;
+
+/// The `raea` command line, for the `cli.raea` native call: the binary sets it (raea-runtime-react can't depend on the layer
+/// above it).
+pub static CLI: std::sync::OnceLock<fn(&[String]) -> i32> = std::sync::OnceLock::new();
+
+/// The edit's folder for asset.load (useAsset), set as a render or a play opens it.
+pub static ASSET_DIR: std::sync::Mutex<Option<std::path::PathBuf>> = std::sync::Mutex::new(None);
+
+/// A composition opened live from `dir` (its bundle `js`): its assets (useAsset) found from its folder, as a render
+/// finds them; and a game that says lines has Pocket TTS loaded on its worker now, before the
+/// clock starts.
+pub fn open_in(dir: &std::path::Path, js: &std::path::Path) {
+    *ASSET_DIR.lock().unwrap() = Some(dir.to_path_buf());
+    #[cfg(feature = "ml")]
+    {
+        ml::set_dir(dir);
+        if ml::bundle_speaks(js) {
+            ml::warm();
+        }
+    }
+    #[cfg(not(feature = "ml"))]
+    let _ = js;
+}
+
+/// A render's composition folder, where its models' calls read from (ml::set_dir; nothing without the ml feature).
+pub fn rendering_in(dir: &std::path::Path) {
+    #[cfg(feature = "ml")]
+    ml::set_dir(dir);
+    #[cfg(not(feature = "ml"))]
+    let _ = dir;
+}
+
+/// A composition's lines (speech) made in the background, as a render's are when no live play waits for its own
+/// (nothing without the ml feature).
+pub fn speech_in_background() {
+    #[cfg(feature = "ml")]
+    raea_sys_speech::speech::set_background(true);
+}
+
+/// The open composition's folder (where "/media/..." resolves), set with ml::set_dir.
+pub fn composition_dir() -> Option<std::path::PathBuf> {
+    #[cfg(feature = "ml")]
+    return ml::dir();
+    #[cfg(not(feature = "ml"))]
+    None
+}
+
+/// A decoded picture held natively: NV12 at its size (what mediabunny's samples point to by handle).
+struct Picture {
+    width: u32,
+    height: u32,
+    nv12: Vec<u8>,
+}
+
+#[derive(Default)]
+struct State {
+    solids: HashMap<u64, solid::Solid>,
+    pictures: HashMap<u64, Picture>,
+    #[cfg(target_vendor = "apple")]
+    vdecs: HashMap<u64, raea_io_media::apple::packets::PacketDecoder>,
+    #[cfg(target_vendor = "apple")]
+    vencs: HashMap<u64, raea_io_media::apple::packets::PacketEncoder>,
+    adecs: HashMap<u64, raea_io_media::soft::packets::AudioPacketDecoder>,
+    #[cfg(target_vendor = "apple")]
+    aencs: HashMap<u64, raea_io_media::apple::aenc::AacEncoder>,
+    next: u64,
+}
+
+
+/// A headless run's end (`done {code}`): -1 while it runs.
+pub static DONE: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(-1);
+
+/// Whether print also writes to stdout (the CLI; not an app).
+pub static ECHO: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
+/// What a headless run printed (an app shows it; the CLI also writes it to stdout as it comes).
+pub static PRINTED: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+
+fn f(v: &Value, k: &str) -> R<f64> {
+    v.get(k).and_then(Value::as_f64).ok_or_else(|| format!("{k}: a number"))
+}
+
+fn u(v: &Value, k: &str) -> R<u64> {
+    v.get(k).and_then(Value::as_u64).ok_or_else(|| format!("{k}: an id"))
+}
+
+fn s<'a>(v: &'a Value, k: &str) -> R<&'a str> {
+    v.get(k).and_then(Value::as_str).ok_or_else(|| format!("{k}: a string"))
+}
+
+fn args(v: &Value) -> Vec<Value> {
+    v.get("args").and_then(Value::as_array).cloned().unwrap_or_default()
+}
+
+
+
+
+thread_local! {
+    static STATE: RefCell<State> = RefCell::new(State::default());
+}
+
+pub fn call(name: &str, v: &Value) -> R<Value> {
+    STATE.with(|st| {
+        let mut st = st.borrow_mut();
+        match name {
+            "done" => {
+                DONE.store(v.get("code").and_then(Value::as_i64).unwrap_or(0) as i32, std::sync::atomic::Ordering::SeqCst);
+                Ok(Value::Null)
+            }
+            "print" => {
+                let text = s(v, "text")?;
+                if let Ok(mut p) = PRINTED.lock() {
+                    p.push_str(text);
+                    p.push('\n');
+                }
+                if ECHO.load(std::sync::atomic::Ordering::Relaxed) {
+                    let mut o = std::io::stdout().lock();
+                    let _ = writeln!(o, "{text}");
+                    let _ = o.flush();
+                }
+                Ok(Value::Null)
+            }
+            n if n.starts_with("ecs.") => ecs::call(n, v),
+            n if n.starts_with("solid.") || n.starts_with("section.") => solid::call(&mut st, n, v),
+            n => media::call(&mut st, n, v),
+        }
+    })
+}
+
+/// The calls above in raea-native's registry, with their TypeScript types (what `raea types` writes into
+/// sdk/raea/src/native-calls.ts). Idempotent; every host running raea calls it before its first bundle.
+pub fn register() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        const BOUNDS: &str = "{ min: [number, number, number]; max: [number, number, number] }";
+        const SOLID: &str = "{ id: number; expr: string }";
+        const SECTION: &str = "{ polygons: [number, number][][]; area: number; contours: number; bounds: { min: [number, number]; max: [number, number] } }";
+        let calls: &[(&str, &str, &str, &str)] = &[
+            ("done", "{ code: number }", "null", "a headless run ends with this exit code"),
+            ("print", "{ text: string }", "null", "one line of a headless run's output"),
+            ("solid.make", "{ fn: \"box\" | \"rounded_box\" | \"sphere\" | \"cylinder\" | \"cone\" | \"torus\" | \"text3d\"; args: (number | string)[] }", SOLID, "a Manifold solid from a primitive"),
+            ("solid.expr", "{ expr: string }", SOLID, "a Manifold solid from an expression (raea-render's mesh shape language)"),
+            ("solid.combine", "{ fn: \"union\" | \"minus\" | \"intersect\" | \"hull\"; ids: number[] }", SOLID, "a boolean or hull of solids"),
+            ("solid.move", "{ id: number; fn: \"move\" | \"rotate\" | \"scale\"; args: number[] }", SOLID, "a solid translated, turned (degrees) or scaled"),
+            ("solid.query", "{ id: number; what: \"volume\" | \"bounds\" | \"triangles\" | \"empty\" | \"slice\" | \"area\" | \"genus\" | \"min_gap\" | \"ray\"; z?: number; other?: number; args?: number[] }", &format!("number | boolean | {BOUNDS} | {{ area: number; contours: number; polygons: [number, number][][] }} | {{ distance: number; position: [number, number, number]; normal: [number, number, number] }}[]"), "a solid's volume, bounds, triangle count, emptiness, cross-section at z, area, genus, gap to another (searching z far) or ray hits (args from, to)"),
+            ("solid.op", "{ id: number; fn: \"mirror\" | \"transform\" | \"trim\" | \"refine\" | \"refine_length\" | \"refine_tolerance\" | \"smooth\" | \"simplify\" | \"minkowski\" | \"minkowski_diff\"; args?: number[]; other?: number }", SOLID, "a solid mirrored, transformed (3x4, by columns), trimmed by a plane, refined (by count, edge length or tolerance), smoothed, simplified, or Minkowski-summed/differenced with another"),
+            ("solid.extrude", "{ polygons: [number, number][][]; args: number[] }", SOLID, "a cross-section extruded: args height, divisions, twist degrees, top scale x, y"),
+            ("solid.revolve", "{ polygons: [number, number][][]; args?: number[] }", SOLID, "a cross-section revolved about y: args degrees, segments"),
+            ("solid.mesh", "{ id: number }", "{ verts: number[]; tris: number[] }", "a solid's triangles (positions x y z, indices by threes)"),
+            ("solid.from_mesh", "{ verts: number[]; tris: number[] }", SOLID, "a solid from closed triangles"),
+            ("solid.level_set", "{ grid: number[]; dims: [number, number, number]; min: [number, number, number]; max: [number, number, number]; level?: number; edge?: number }", SOLID, "the surface of an SDF sampled on a grid (negative inside)"),
+            ("solid.export", "{ id: number; path: string; format?: \"obj\" | \"glb\" }", "{ bytes: number }", "a solid written as OBJ or glTF binary"),
+            ("solid.import", "{ path: string }", SOLID, "a solid read from OBJ or glTF binary"),
+            ("solid.section", "{ id: number; z?: number }", SECTION, "a solid's cross-section at z, or with no z its silhouette on the x-y plane (project)"),
+            ("solid.decompose", "{ id: number }", &format!("{SOLID}[]"), "a solid's disconnected pieces"),
+            ("solid.compose", "{ ids: number[] }", SOLID, "solids that don't overlap held as one"),
+            ("solid.hull_points", "{ points: [number, number, number][] }", SOLID, "the convex hull of points"),
+            ("section.op", "{ fn: \"make\" | \"circle\" | \"square\" | \"hull_points\" | \"union\" | \"minus\" | \"intersect\" | \"hull\" | \"minkowski\" | \"offset\" | \"simplify\" | \"translate\" | \"rotate\" | \"scale\" | \"mirror\" | \"decompose\"; polygons?: [number, number][][]; others?: [number, number][][][]; args?: number[] }", &format!("{SECTION} | {SECTION}[]"), "a 2D cross-section made, combined, offset or moved (Manifold's CrossSection), held by value"),
+            ("solid.free", "{ id: number }", "null", "drop a solid"),
+            ("media.live", "{}", "{ vdecs: number; vencs: number; adecs: number; frames: number; solids: number; worlds: number }", "how many native coders, frames, solids and worlds are alive (for leak checks)"),
+            ("media.size", "{ path: string }", "number", "a file's size in bytes"),
+            ("media.read", "{ path: string; start: number; end: number }", "string", "bytes start..end of a file, base64"),
+            ("media.write", "{ path: string; data: string; truncate?: boolean; at?: number }", "null", "base64 bytes written to a file"),
+            ("media.transcode", "{ path: string; out: string; from?: number; to?: number; height?: number; kbps?: number }", "{ frames: number; width: number; height: number; fps: number; kbps: number; bytes: number }", "trim, scale and encode with sound to MP4, natively end to end"),
+            ("vdec.new", "{ codec: string; description: string }", "{ id: number }", "a VideoToolbox decoder for avc or hevc"),
+            ("vdec.decode", "{ id: number; data: string; pts: number; dur: number }", "{ frame: number; pts: number; dur: number; width: number; height: number }[]", "a packet decoded; the frames it completes"),
+            ("vdec.flush", "{ id: number }", "{ frame: number; pts: number; dur: number; width: number; height: number }[]", "the frames still held"),
+            ("vdec.free", "{ id: number }", "null", "drop a decoder"),
+            ("venc.new", "{ width: number; height: number; fps: number; kbps: number }", "{ id: number }", "a VideoToolbox H.264 encoder"),
+            ("venc.encode", "{ id: number; frame: number; pts: number; dur: number }", "{ packets: { data: string; key: boolean; pts: number; dur: number }[]; description: string | null }", "an engine frame encoded"),
+            ("venc.finish", "{ id: number }", "{ packets: { data: string; key: boolean; pts: number; dur: number }[]; description: string | null }", "the encoder flushed"),
+            ("frame.info", "{ frame: number }", "{ width: number; height: number }", "an engine frame's size"),
+            ("frame.png", "{ frame: number; path: string }", "null", "an engine frame written as PNG"),
+            ("frame.scale", "{ frame: number; width: number; height: number }", "{ frame: number; width: number; height: number }", "an engine frame scaled (a new frame)"),
+            ("frame.transform", "{ frame: number; rotation?: number; flip?: boolean; crop?: { left: number; top: number; width: number; height: number }; width: number; height: number; fit?: \"fill\" | \"contain\" | \"cover\" }", "{ frame: number; width: number; height: number }", "an engine frame rotated, flipped, cropped and resized (a new frame): mediabunny's transformations, natively"),
+            ("frame.free", "{ frame: number }", "null", "drop an engine frame"),
+            ("adec.new", "{ codec: string; description: string; rate: number; channels: number }", "{ id: number }", "a Symphonia decoder for aac, mp3 or flac"),
+            ("adec.decode", "{ id: number; data: string }", "{ rate: number; channels: number; frames: number; data: string }", "a packet decoded to planar f32, base64"),
+            ("venc.codecs", "{}", "{ hardware: string[]; avc: boolean; hevc: boolean; av1: boolean; vp9: boolean }", "the video codecs this machine encodes in hardware (VideoToolbox's list)"),
+            ("aenc.new", "{ rate: number; channels: number; kbps?: number }", "{ id: number; description: string; priming: number }", "an AAC-LC encoder (AudioToolbox): its AudioSpecificConfig (base64) and its priming in frames"),
+            ("aenc.encode", "{ id: number; data: string; channels: number }", "{ packets: { data: string; pts: number; dur: number }[] }", "planar f32 samples (base64, channel after channel) encoded; the packets they complete"),
+            ("aenc.finish", "{ id: number }", "{ packets: { data: string; pts: number; dur: number }[] }", "the encoder flushed"),
+            ("aenc.free", "{ id: number }", "null", "drop an encoder"),
+            ("adec.free", "{ id: number }", "null", "drop a decoder"),
+        ];
+        // raea's command line, in this process (the engine's half of the shell's `raea`): run in `cwd` (a real folder)
+        // with its output captured
+        for (tool, doc) in [("raea", "raea's command line (render, play, guide, bundle, types; the media verbs: raea media, raea ffmpeg)")] {
+            raea_native::register(
+                &format!("cli.{tool}"),
+                "{ args: string[]; cwd: string }",
+                "{ exit: number; stdout: string; stderr: string }",
+                &format!("{doc}, run in process in cwd"),
+                move |v| {
+                    let args: Vec<String> = v.get("args").and_then(Value::as_array).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default();
+                    let cwd = std::path::PathBuf::from(s(v, "cwd")?);
+                    let cli = *CLI.get().ok_or("raea's command line isn't in this process")?;
+                    #[cfg(unix)]
+                    {
+                        let (exit, stdout, stderr) = raea_native::capture(&cwd, move || cli(&args))?;
+                        Ok(json!({"exit": exit, "stdout": stdout, "stderr": stderr}))
+                    }
+                    #[cfg(not(unix))]
+                    {
+                        let _ = cwd;
+                        Ok(json!({"exit": cli(&args), "stdout": "", "stderr": ""}))
+                    }
+                },
+            );
+        }
+        // an asset loaded now, before the frame that names it uses it, as the Engine loads a handle's (S2b useAsset)
+        raea_native::register("asset.load", "{ path: string }", "{ path: string; bytes: number; width?: number; height?: number }", "an asset by its path (absolute, or from the edit's folder), loaded now: the file found and read, a picture's size; an error when it isn't there (S2b useAsset)", |v| {
+            let p = s(v, "path")?;
+            let rel = p.trim_start_matches('/');
+            let dir = ASSET_DIR.lock().unwrap().clone();
+            let path = match dir {
+                Some(d) if !std::path::Path::new(&p).exists() => d.join(rel),
+                _ => std::path::PathBuf::from(p),
+            };
+            let bytes = std::fs::metadata(&path).map_err(|e| format!("asset {p}: {e}"))?.len();
+            let mut out = json!({"path": path.to_string_lossy(), "bytes": bytes});
+            if let Ok((w, h)) = image::image_dimensions(&path) {
+                out["width"] = json!(w);
+                out["height"] = json!(h);
+            }
+            Ok(out)
+        });
+        for (name, args, answer, doc) in calls.iter().copied().chain(ecs::CALLS.iter().copied()) {
+            let n = name.to_string();
+            raea_native::register(name, args, answer, doc, move |v| call(&n, v));
+        }
+        #[cfg(feature = "ml")]
+        ml::register();
+        // bevy.world.send, bevy.world.answer: a live game's queued world calls (engine/bevy-world, drained by raea-render)
+        raea_runtime_plugins::register_world_natives();
+    });
+}

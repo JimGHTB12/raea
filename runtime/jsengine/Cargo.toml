@@ -1,0 +1,24 @@
+[package]
+name = "raea-runtime-jsengine"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's one JS engine seam (docs/ports.feature PT0b): JavaScriptCore on Apple, QuickJS elsewhere, behind one trait every host uses"
+
+[lib]
+name = "raea_runtime_jsengine"
+
+[features]
+# QuickJS on Apple too, beside JavaScriptCore: how the portable path is tested on a Mac
+portable = ["dep:rquickjs"]
+
+[dependencies]
+rquickjs = { version = "0.14", optional = true, features = ["loader"] }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+# JavaScriptCore's Objective-C module loader (JSScript, JSModuleLoaderDelegate): ES modules on the system engine
+objc2 = "0.6"
+
+[target.'cfg(not(target_vendor = "apple"))'.dependencies]
+rquickjs = { version = "0.14", features = ["loader"] }

@@ -1,0 +1,34 @@
+[package]
+name = "raea-app-game"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "An exported game: `raea export-game` packages it, and `raea-game` (its player) plays it"
+
+# the exported game's player (sdk/react/docs/game-export.md): built only when asked for, with raea-runtime-react's defaults off
+#   cargo build --profile game -p raea-app-game --bin raea-game --features player
+[[bin]]
+name = "raea-game"
+path = "src/bin/raea-game.rs"
+required-features = ["player"]
+
+[features]
+player = []
+# app screens (`<Screen app>`) in the player too (export-game checks the player it ships has them)
+surfaces = ["raea-runtime-react/surfaces"]
+
+[dependencies]
+raea-runtime-react = { path = "../../runtime/react", default-features = false }
+raea-runtime-page = { path = "../../runtime/page" }
+raea-runtime-export = { path = "../../runtime/export" }
+raea-runtime-live = { path = "../../runtime/live" }
+serde_json = "1"
+winit = "=0.30.13"
+raea-gpu-device = { path = "../../gpu/device" }
+raea-io-media = { path = "../../io/media", default-features = false }
+raea-io-net = { path = "../../io/net" }
+regex = "1"
+base64 = "0.22"
+# a packaged file's name from its source path (xxHash3)
+twox-hash = { version = "2", default-features = false, features = ["xxhash3_64"] }

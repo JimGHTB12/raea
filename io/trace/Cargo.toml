@@ -1,0 +1,13 @@
+[package]
+name = "raea-io-trace"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's flight recorder: a session folder per run that outlives a crash"
+
+[dependencies]
+raea-io-home = { path = "../../io/home" }
+serde_json = "1"
+log = "0.4"
+libc = "0.2"

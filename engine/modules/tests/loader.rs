@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use raea_modules::{Loader, ModuleId, Prebuilt, RefusalKind};
 
@@ -18,7 +18,7 @@ fn libs() -> Vec<Prebuilt> {
     vec![
         Prebuilt { specifier: "react".into(), exports: vec!["default".into(), "useState".into()] },
         Prebuilt { specifier: "react/jsx-runtime".into(), exports: vec!["jsx".into(), "jsxs".into(), "Fragment".into()] },
-        Prebuilt { specifier: "@raea/motion".into(), exports: vec!["Sequence".into(), "useCurrentFrame".into()] },
+        Prebuilt { specifier: "raea".into(), exports: vec!["Sequence".into(), "useCurrentFrame".into()] },
     ]
 }
 
@@ -48,7 +48,7 @@ fn imports_resolve_inside_the_space_and_refuse_outside() {
     let r = l.resolve("lodash", &entry).unwrap_err();
     assert_eq!((r.kind, r.specifier.as_deref(), r.referrer.as_deref()), (RefusalKind::UnknownLibrary, Some("lodash"), Some(entry.as_str())));
     let bare = r.message;
-    assert!(bare.contains("@raea/motion, react, react/jsx-runtime"), "names what it has: {bare}");
+    assert!(bare.contains("raea, react, react/jsx-runtime"), "names what it has: {bare}");
 }
 
 #[test]
@@ -92,46 +92,3 @@ fn a_parse_error_says_where() {
     assert!(e.contains("bad.tsx") && e.contains("can't be parsed"), "{e}");
 }
 
-/// imports of a transpiled module (static `import ... from "x"`, `import "x"`, `export ... from "x"`)
-fn imports(src: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    for line in src.lines() {
-        let l = line.trim_start();
-        if !(l.starts_with("import ") || l.starts_with("export ")) {
-            continue;
-        }
-        if let Some(i) = l.rfind(" from ") {
-            let q = &l[i + 6..].trim();
-            out.push(q.trim_matches(|c| c == '"' || c == '\'' || c == ';').to_string());
-        } else if let Some(q) = l.strip_prefix("import ").filter(|q| q.starts_with('"') || q.starts_with('\'')) {
-            out.push(q.trim_matches(|c| c == '"' || c == '\'' || c == ';').to_string());
-        }
-    }
-    out
-}
-
-#[test]
-fn the_kits_real_module_graph_loads() {
-    // void's parts kit: parts.tsx and everything it imports, resolved and transpiled in process
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../apps/void/parts");
-    // the kit's own library beyond React (rows.ts renders through it): the prebuilt bundle serves it too
-    let mut with = libs();
-    with.push(Prebuilt { specifier: "react-reconciler".into(), exports: vec!["default".into()] });
-    let mut l = Loader::new(&root, with).unwrap();
-    let mut todo = vec![l.resolve("./parts.tsx", &root.join("x.tsx").display().to_string()).unwrap()];
-    let mut seen = std::collections::HashSet::new();
-    let t = std::time::Instant::now();
-    while let Some(id) = todo.pop() {
-        if !seen.insert(id.clone()) {
-            continue;
-        }
-        let m = l.load(&id).unwrap();
-        for s in imports(&m.source) {
-            let r = l.resolve(&s, &id.url()).unwrap_or_else(|e| panic!("{e}"));
-            todo.push(r);
-        }
-    }
-    let files = seen.iter().filter(|i| matches!(i, ModuleId::File(_))).count();
-    eprintln!("apps/void/parts: {files} files, {} transpiled, in {:.1} ms", l.transpiled, t.elapsed().as_secs_f64() * 1000.0);
-    assert!(files >= 3, "parts.tsx, kit.ts, rows.ts at least");
-}

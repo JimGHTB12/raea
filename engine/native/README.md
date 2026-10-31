@@ -1,17 +1,12 @@
 # native
 
-`raea-native`: raea's one native-call layer. TypeScript running on JavaScriptCore reaches Rust through one function,
-`__raea_call(name, json)`. Every name it can call is registered here once, with the TypeScript types of its arguments
-and answer, by whichever crate implements it. A host links the crates it wants and calls their `register()`;
-`raea-motion types` writes the types `@raea/motion` imports, so a call that doesn't exist or takes the wrong arguments
-fails to type-check.
+`raea-native`: raea's native calls on JavaScriptCore. TypeScript reaches Rust through one function,
+`__raea_call(name, json)`; the names it can call live in the registry ([`core/calls/`](../../core/calls)), each with the
+TypeScript types of its arguments and answer, registered by whichever crate implements it. `raea types` writes the
+types `raea` imports, so a call that doesn't exist or takes the wrong arguments fails to type-check.
 
-It also holds:
+It holds the JavaScriptCore binding (`src/jsc.rs`), the web shims bundles expect (`src/web/`: TextEncoder, URL,
+AbortController, crypto, Blob, ...), and seeds the registry with the shell's native tools
+([`io/shell/`](../../io/shell): the filesystem, HTTP under a policy, SQLite, tar, HTML to Markdown).
 
-- the JavaScriptCore binding (`src/jsc.rs`) and the web shims bundles expect (`src/web.js`: TextEncoder, URL,
-  AbortController, crypto, Blob, ...);
-- the shell's native tools: the filesystem, HTTP under a policy, SQLite, tar, HTML to Markdown;
-- the flight recorder (`src/trace.rs`): each run's events, memory, stderr, panics and crashes in a session folder.
-
-Nearly every crate depends on it: [`engine/html/`](../html), [`sdk/react/`](../../sdk/react), [`engine/media/`](../media),
-[`engine/browser/`](../browser), [`apps/void/`](../../apps/void).
+[`runtime/js/`](../raea-runtime-js) and [`sdk/react/`](../../sdk/react) depend on it.

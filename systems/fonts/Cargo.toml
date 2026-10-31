@@ -1,0 +1,29 @@
+[package]
+name = "raea-sys-fonts"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The faces pages are set in: one parley font context with the bundled faces, CoreText's fallback and metrics on macOS as Chrome takes them, and Google Fonts families fetched once into raea's cache"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_asset", "bevy_image", "bevy_log", "bevy_window", "ui_bevy_render", "bevy_picking", "ui_picking", "bevy_input_focus", "3d_bevy_render", "bevy_text"] }
+# the document: stylo's styles, Taffy's and Blitz's layout (floats on, as Chrome lays them out)
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false, features = ["svg", "woff", "system-fonts", "floats", "text-transform-icu", "complex-scripts"] }
+blitz-traits = "=0.3.0-beta.4"
+raea-io-net = { path = "../../io/net" }
+serde_json = "1"
+# the bundled faces (fonts.rs): one parley font context, Blitz's parley (B0d)
+parley = { version = "=0.12.0", default-features = false, features = ["std"] }
+wuff = "0.2"
+
+[dev-dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_core_pipeline", "bevy_log", "png", "bevy_window"] }
+
+# CoreText's fallback pick for a character no family in the list has (fonts.rs `coretext_fallback`), as Chrome takes
+# it on macOS; the versions fontique already uses
+[target.'cfg(target_vendor = "apple")'.dependencies]
+objc2-core-text = { version = "0.3.2", default-features = false, features = ["std", "CTFont", "CTFontDescriptor", "CTFontManager", "CTFontTraits", "objc2-core-graphics"] }
+# fonts.rs `coregraphics_tops`: where CoreGraphics draws a face's o and H at small sizes
+objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "CGBitmapContext", "CGColorSpace", "CGContext", "CGImage", "CGPath"] }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFData", "CFNumber", "CFString", "CFCGTypes"] }

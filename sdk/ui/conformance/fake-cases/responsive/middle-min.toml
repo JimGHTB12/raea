@@ -1,0 +1,18 @@
+area = "responsive"
+title = "below a breakpoint the side panels give way (collapse or overlay) rather than squeezing the middle under 360 pt"
+space = "feed"
+windows = [[1440, 900], [1180, 820], [900, 700], [700, 600]]
+
+[[steps]]
+wait = { id = "header.toggle.chat", visible = true }
+[[steps]]
+if = { id = "chat", visible = false }
+input = { type = "click", at = "header.toggle.chat" }
+[[steps]]
+if = { id = "left", visible = false }
+input = { type = "click", at = "header.toggle.files" }
+[[steps]]
+wait = { id = "middle", visible = true }
+[[steps]]
+expect = { all = [{ id = "middle", field = "rect.w", ge = 360 }, { check = "inside", id = "feed.card.*", within = "middle", axis = "x" }, { check = "window", unchanged_since = "start" }] }
+hold = 10

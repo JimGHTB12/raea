@@ -1,8 +1,8 @@
-// MUSIC: a short loop on @raea/motion/music (drums, bass and chords at 120 bpm in 4/4, two bars looped over four),
+// MUSIC: a short loop on raea/music (drums, bass and chords at 120 bpm in 4/4, two bars looped over four),
 // played by the one mixer core's instruments. The bounce of a render and the tap of a
-// play must be the same samples (raea-motion ci bounce-vs-live, sdk/react/src/ci.rs).
-import { AbsoluteFill, Composition, registerRoot } from "@raea/motion";
-import { Music, Part, Sequence, Transport } from "@raea/motion/music";
+// play must be the same samples (raea ci bounce-vs-live, runtime/react/src/ci.rs).
+import { AbsoluteFill, Composition, registerRoot } from "raea";
+import { Music, Part, Sequence, Transport } from "raea/music";
 
 const transport = new Transport({ bpm: 120, timeSignature: [4, 4] });
 

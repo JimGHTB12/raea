@@ -11,7 +11,7 @@
 //! seedling samples.
 //!
 //! What a game asks seedling for this frame is a list of `Play`s (keyed: a key not seen before starts its player, one
-//! no longer asked for stops it). TSX games ask with `<Seedling>` (@raea/motion/seedling); Rust can drive `Host::app`.
+//! no longer asked for stops it). TSX games ask with `<Seedling>` (raea/seedling); Rust can drive `Host::app`.
 
 use std::collections::HashMap;
 use std::num::{NonZeroU32, NonZero};
@@ -25,6 +25,8 @@ use bevy::time::TimeUpdateStrategy;
 use bevy_seedling::context::{AudioContext, SampleRate};
 use bevy_seedling::node::DiffRate;
 use bevy_seedling::prelude::*;
+// bevy_audio (on in a plugin build) has its own in bevy::prelude
+use bevy_seedling::prelude::PlaybackSettings;
 use firewheel::backend::BackendProcessInfo;
 use firewheel::channel_config::{ChannelConfig, ChannelCount};
 use firewheel::node::{AudioNode, AudioNodeInfo, AudioNodeProcessor, ConstructProcessorContext, NodeError, StreamStatus};
@@ -36,7 +38,7 @@ use serde_json::Value;
 pub const RATE: u32 = 48_000;
 const BLOCK: u32 = 1024;
 
-/// One of raea's Tone effects (engine/mixer/src/fx.rs: Filter, Reverb, Freeverb, FeedbackDelay, Compressor, EQ3, Convolver,
+/// One of raea's Tone effects (systems/tone/src/fx/: Filter, Reverb, Freeverb, FeedbackDelay, Compressor, EQ3, Convolver,
 /// PitchShift, ...) as a seedling node: `kind` is Tone's class name, `options` its options (Tone's names and defaults).
 /// Its LFOs and ramps run on seedling's clock, which here is the timeline's.
 #[derive(Component, Clone, Debug, PartialEq)]
@@ -64,13 +66,13 @@ impl AudioNode for ToneFx {
     }
 
     fn construct_processor(&self, _: &NoConfig, cx: ConstructProcessorContext) -> Result<impl AudioNodeProcessor, NodeError> {
-        let ir = (self.kind == "Convolver").then(|| self.options.get("url").and_then(|u| u.as_str()).and_then(|f| raea_media::decode_audio_window(Path::new(f), 0.0, 30.0).ok()).map(Arc::new)).flatten();
-        let node = raea_mixer::fx::FxNode { kind: self.kind.clone(), params: self.options.clone(), origin: 0, muted: false, ir };
+        let ir = (self.kind == "Convolver").then(|| self.options.get("url").and_then(|u| u.as_str()).and_then(|f| raea_io_media::decode_audio_window(Path::new(f), 0.0, 30.0).ok()).map(Arc::new)).flatten();
+        let node = raea_sys_tone::fx::FxNode { kind: self.kind.clone(), params: self.options.clone(), origin: 0, muted: false, ir };
         Ok(node.processor(cx.stream_info.sample_rate.get() as f64))
     }
 }
 
-/// The core's limiter (engine/mixer/src/nodes.rs MasterNode: a 48-tap true-peak look-ahead limiter at -1 dBFS) as a seedling
+/// The core's limiter (systems/mix/src/nodes/mod.rs MasterNode: a 48-tap true-peak look-ahead limiter at -1 dBFS) as a seedling
 /// node, for a bus that must be held under the ceiling before the core's master.
 #[derive(Component, Clone, Debug, Default)]
 pub struct CoreLimiter;
@@ -79,11 +81,11 @@ impl AudioNode for CoreLimiter {
     type Configuration = NoConfig;
 
     fn info(&self, _: &NoConfig) -> Result<AudioNodeInfo, NodeError> {
-        raea_mixer::nodes::MasterNode { tap: None, mute: false }.info(&())
+        raea_sys_mix::nodes::MasterNode { tap: None, mute: false }.info(&())
     }
 
     fn construct_processor(&self, _: &NoConfig, cx: ConstructProcessorContext) -> Result<impl AudioNodeProcessor, NodeError> {
-        Ok(raea_mixer::nodes::MasterNode { tap: None, mute: false }.processor(cx.stream_info.sample_rate.get() as f64))
+        Ok(raea_sys_mix::nodes::MasterNode { tap: None, mute: false }.processor(cx.stream_info.sample_rate.get() as f64))
     }
 }
 
@@ -163,14 +165,14 @@ pub fn chunk(world: &mut World, frames: usize) -> Vec<f32> {
 
 /// Sources decoded whole at the core's rate, shared by every host (`prefetch` fills it ahead on a thread; a source not in
 /// yet is decoded where it's wanted: the same samples either way).
-static DECODED: std::sync::LazyLock<Mutex<HashMap<PathBuf, Option<Arc<raea_media::Audio>>>>> = std::sync::LazyLock::new(Default::default);
+static DECODED: std::sync::LazyLock<Mutex<HashMap<PathBuf, Option<Arc<raea_io_media::Audio>>>>> = std::sync::LazyLock::new(Default::default);
 
-fn decode(file: &Path) -> Option<Arc<raea_media::Audio>> {
-    let secs = raea_media::probe_seconds(file).unwrap_or(600.0).min(600.0);
-    raea_media::decode_audio_window(file, 0.0, secs + 0.1).ok().filter(|a| a.len() > 0).map(|a| Arc::new(if a.rate != RATE { raea_media::soft_resample(&a, RATE) } else { a }))
+fn decode(file: &Path) -> Option<Arc<raea_io_media::Audio>> {
+    let secs = raea_io_media::probe_seconds(file).unwrap_or(600.0).min(600.0);
+    raea_io_media::decode_audio_window(file, 0.0, secs + 0.1).ok().filter(|a| a.len() > 0).map(|a| Arc::new(if a.rate != RATE { raea_io_media::soft_resample(&a, RATE) } else { a }))
 }
 
-fn decoded(file: &Path) -> Option<Arc<raea_media::Audio>> {
+fn decoded(file: &Path) -> Option<Arc<raea_io_media::Audio>> {
     if let Some(a) = DECODED.lock().unwrap().get(file) {
         return a.clone();
     }
@@ -292,7 +294,7 @@ impl Host {
     /// Frame `f`: the players `plays` asks for started, the ones it no longer asks for stopped, volumes and speeds set,
     /// seedling updated, and the frame's samples made. A frame that isn't the next starts seedling again from silence
     /// (a seek); the chunk is the frame's samples on the timeline.
-    pub fn frame(&mut self, f: i64, plays: &[Play]) -> raea_media::Audio {
+    pub fn frame(&mut self, f: i64, plays: &[Play]) -> raea_io_media::Audio {
         if std::env::var_os("RAEA_SEEDLING_TRACE").is_some() && f != self.next {
             eprintln!("raea seedling: frame {f}, expected {}", self.next);
         }
@@ -373,7 +375,7 @@ impl Host {
         self.next = f + 1;
         let l: Vec<f32> = pcm.iter().step_by(2).copied().collect();
         let r: Vec<f32> = pcm.iter().skip(1).step_by(2).copied().collect();
-        raea_media::Audio { rate: RATE, channels: vec![l, r] }
+        raea_io_media::Audio { rate: RATE, channels: vec![l, r] }
     }
 }
 
@@ -385,7 +387,7 @@ mod tests {
         let p = dir.join("blip.wav");
         let n = RATE as usize / 4;
         let l: Vec<f32> = (0..n).map(|i| (i as f32 * 440.0 * std::f32::consts::TAU / RATE as f32).sin() * 0.5 * (1.0 - i as f32 / n as f32)).collect();
-        raea_mixer::write_wav(&raea_media::Audio { rate: RATE, channels: vec![l.clone(), l] }, &p).unwrap();
+        raea_sys_mix::write_wav(&raea_io_media::Audio { rate: RATE, channels: vec![l.clone(), l] }, &p).unwrap();
         p
     }
 

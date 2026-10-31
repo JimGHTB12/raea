@@ -1,0 +1,26 @@
+[package]
+name = "raea-io-npm"
+version = "0.1.0"
+edition = "2024"
+description = "A project's npm dependencies installed without Node: resolved by Deno's resolver, fetched into one verified store"
+license = "FSL-1.1-ALv2"
+
+[dependencies]
+# Deno's npm resolver and semver, on their own: no deno_core, no V8 (raea's V8 runs what's installed)
+deno_npm = "0.72"
+deno_semver = "0.10"
+deno_error = "0.7"
+async-trait = "0.1"
+futures = "0.3"
+tokio = { version = "1.40", features = ["rt", "macros"] }
+reqwest = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value"] }
+indexmap = { version = "2", features = ["serde"] }
+sha2 = "0.10"
+sha1 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+flate2 = "1"
+tar = "0.4"
+libc = "0.2"

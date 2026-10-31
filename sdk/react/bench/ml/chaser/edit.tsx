@@ -1,5 +1,5 @@
 // The chaser (game.tsx): a game ("chaser") and a video ("orbit") of a small policy net steering a dot.
-import { Composition, registerRoot } from "@raea/motion";
+import { Composition, registerRoot } from "raea";
 import { Chaser, FPS, H, Orbit, W } from "./game.tsx";
 
 registerRoot(() => (

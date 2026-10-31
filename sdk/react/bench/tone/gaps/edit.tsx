@@ -2,8 +2,8 @@
 // Transport looping a bar while its tempo ramps from 90 to 140 bpm, a Convolver on a generated impulse response
 // (media/ir.wav, check.sh writes it), a PitchShift a fifth up, and Tone's three-band EQ3. The render's bounce and a
 // play's tap must be the same samples (sdk/react/bench/tone/check.sh).
-import { AbsoluteFill, Composition, Mix, registerRoot, staticFile, useCurrentFrame } from "@raea/motion";
-import * as Tone from "@raea/motion/tone";
+import { AbsoluteFill, Composition, Mix, registerRoot, staticFile, useCurrentFrame } from "raea";
+import * as Tone from "raea/tone";
 
 const FPS = 30;
 const SECONDS = 8;

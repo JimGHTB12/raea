@@ -1,0 +1,30 @@
+[package]
+name = "raea-runtime-calls"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A composition's native calls answered in Rust: Manifold solids, ECS worlds on Bevy's ECS, media, assets, models and speech"
+
+[features]
+# ONNX models and Pocket TTS speech for compositions (raea-sys-ml and raea-sys-speech: raea/ml and /speech)
+ml = ["dep:raea-sys-ml", "dep:raea-sys-speech"]
+
+[dependencies]
+raea-runtime-plugins = { path = "../plugins" }
+raea-native = { path = "../../engine/native", default-features = false }
+raea-core-shape = { path = "../../core/shape" }
+raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio", "apple"] }
+raea-io-net = { path = "../../io/net" }
+raea-sys-mix = { path = "../../systems/mix" }
+raea-sys-ml = { path = "../../systems/ml", optional = true }
+raea-sys-speech = { path = "../../systems/speech", optional = true }
+bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
+manifold-rust = "0.16.0"
+base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["png", "hdr"] }
+serde_json = "1"
+
+# Core ML on Apple only: ort has no prebuilt runtime with it elsewhere (the link fails)
+[target.'cfg(target_vendor = "apple")'.dependencies]
+raea-sys-ml = { path = "../../systems/ml", optional = true, features = ["coreml"] }

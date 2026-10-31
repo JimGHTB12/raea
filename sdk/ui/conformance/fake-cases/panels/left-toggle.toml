@@ -1,0 +1,17 @@
+area = "panels"
+title = "toggling the left panel reflows the middle within the budget: its rect and its cards' rects follow, no stale frame past it"
+space = "feed"
+window = [1440, 900]
+
+[[steps]]
+wait = { all = [{ id = "header.toggle.files", visible = true }, { id = "feed.card.0", visible = true }] }
+[[steps]]
+input = { type = "click", at = "header.toggle.files" }
+[[steps]]
+expect = { all = [{ id = "left", field = "visible", changed = true }, { id = "middle", field = "rect", changed = true }, { check = "inside", id = "feed.card.*", within = "middle", axis = "x" }, { check = "window", unchanged_since = "start" }] }
+hold = 10
+[[steps]]
+input = { type = "click", at = "header.toggle.files" }
+[[steps]]
+expect = { all = [{ id = "middle", field = "rect", eq_snap = { snap = "start", id = "middle", field = "rect" } }, { id = "feed.card.0", field = "rect", eq_snap = { snap = "start", id = "feed.card.0", field = "rect" } }] }
+hold = 10

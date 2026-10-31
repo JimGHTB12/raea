@@ -1,17 +1,17 @@
 // A playtest's checks on a run (tier iii, sdk/react/docs/playtest.md): the rules from the run's report and trace (no model),
 // then clef-omni once per view instance for the checks that name that view, each sent as the native clef question the
-// DSL built (sdk/motion/src/playtest.ts) and read with its read(). Synthetic or committed fixtures only: creators' footage
+// DSL built (sdk/raea/src/playtest.ts) and read with its read(). Synthetic or committed fixtures only: creators' footage
 // never goes to a cloud model. Writes OUT/judge.json; prints each finding and the calls and cost.
 //   bun sdk/react/bench/playtest/judge.ts OUT [--playtest EDIT.playtest.ts] [--dry]
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { loadModule } from "./load";
-import { read, type Check, type ClefQuestion, type PlaytestSpec } from "../../../motion/src/playtest";
+import { read, type Check, type ClefQuestion, type PlaytestSpec } from "raea/playtest";
 
 
 // ---- rules: what the trace answers -----------------------------------------------------------------------------
-/** The machine rules (sdk/motion/src/playtest.ts coversStates ... reaches): report.json's `machines`, for one machine or all. */
+/** The machine rules (sdk/raea/src/playtest.ts coversStates ... reaches): report.json's `machines`, for one machine or all. */
 export function machineRule(report: any, name: string, args: any): { faults: number; says: string } | null {
   const all: Record<string, any> = report.machines ?? {};
   const ids = args?.machine ? [args.machine] : Object.keys(all);

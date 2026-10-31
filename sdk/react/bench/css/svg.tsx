@@ -1,7 +1,7 @@
 // React's camelCase SVG props reach the page as SVG's attributes (sdk/react/bench/css/check.sh; lib.rs attr_name):
 // strokeWidth is stroke-width, fillOpacity fill-opacity, strokeDasharray stroke-dasharray. Read under their React
 // names, the line was 1 px wide, the square opaque and the dashes solid.
-import { AbsoluteFill, Composition, registerRoot } from "@raea/motion";
+import { AbsoluteFill, Composition, registerRoot } from "raea";
 function C() {
   return (
     <AbsoluteFill style={{ background: "#fff" }}>

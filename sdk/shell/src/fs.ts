@@ -2,7 +2,7 @@
 // shell inside the folder, records each command as one action row (files read and written, before and after, by
 // content hash) and can undo and redo any command. Paths are the shell's ("/" is the project's root).
 import type { BufferEncoding, CpOptions, DirentEntry, FileContent, FsStat, IFileSystem, MkdirOptions, ReadFileOptions, RmOptions, WriteFileOptions } from "just-bash/browser";
-import { native as rawNative } from "@raea/motion/native";
+import { native as rawNative } from "raea/native";
 
 /** A native fs call whose failure is a Node-style error ("ENOENT: no such file or directory, open '/x'", with .code),
  * as just-bash expects of a filesystem: then a refused write fails only its own command, as in bash. */

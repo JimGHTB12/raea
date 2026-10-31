@@ -1,0 +1,14 @@
+{
+  "name": "@raea/dev_tools",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea's dev tools (bevy_dev_tools): views, type-free pictures of footage being worked on (a timeline, an embedding graph, perception overlays). Authors import it through \"raea\" as raea/views (docs/sdk.feature S1d).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./views": "./src/views.tsx"
+  },
+  "peerDependencies": { "react": "19.2.0" }
+}
