@@ -32,4 +32,8 @@ raea-runtime-jsengine = { path = "../jsengine" }
 raea-io-media = { path = "../../io/media", default-features = false, optional = true }
 # webaudio's samples across the wire
 base64 = "0.22"
+# the HTML runtime bundled in process (html_page.rs): raea's files where an install or this checkout has them, and
+# raea-bundle's library loaded beside the binary
+raea-io-home = { path = "../../io/home" }
+raea-runtime-bundle = { path = "../bundle" }
 

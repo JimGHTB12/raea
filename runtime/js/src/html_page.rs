@@ -50,12 +50,19 @@ pub fn read_answer(dir: &Path, args: &Value) -> R<Value> {
     Ok(out)
 }
 
-/// The runtime's bundle (sdk/ui/src/html.ts), bundled once a process.
+/// The runtime's bundle (sdk/ui/src/html.ts), bundled once a process by raea's own bundler (Rolldown, in process),
+/// from raea's files where `raea_io_home` finds them: an install's share/raea, else this checkout. `BEVY_TSX_UI` names
+/// another sdk/ui/src. (It was bun and this crate's js/build.ts, beside the tree it was built from: a release has
+/// neither, so `raea render PAGE.html` failed installed.)
 pub fn bundle() -> R<String> {
     static CODE: OnceLock<R<String>> = OnceLock::new();
     CODE.get_or_init(|| {
-        let entry = std::env::var("BEVY_TSX_UI").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../sdk/ui/src")).join("html.ts");
-        crate::bundle::build(&entry)
+        let ui = std::env::var_os("BEVY_TSX_UI").map(PathBuf::from).unwrap_or_else(|| raea_io_home::home().join("sdk/ui/src"));
+        let entry = ui.join("html.ts");
+        if !entry.is_file() {
+            return Err(format!("{}: the HTML runtime isn't there (BEVY_TSX_UI names another sdk/ui/src)", entry.display()));
+        }
+        raea_runtime_bundle::inproc::bundle(&entry, json!({})).map(|(js, _css)| js).map_err(|e| format!("the HTML runtime ({}): {e}", entry.display()))
     })
     .clone()
 }
