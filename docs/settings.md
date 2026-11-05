@@ -8,30 +8,6 @@ which setting is missing.
 mkdir -p ~/.raea && touch ~/.raea/env && chmod 600 ~/.raea/env
 ```
 
-## The agent's model
-
-The raea app's agent streams the Anthropic Messages API, so any provider that serves it works. Pick one with
-`RAEA_LLM_PROVIDER`:
-
-| `RAEA_LLM_PROVIDER` | Endpoint | Key variable | Model |
-|---|---|---|---|
-| `openrouter` (default) | `https://openrouter.ai/api` | `OPENROUTER_API_KEY` | `RAEA_LLM_MODEL`, default `z-ai/glm-5.3-flash` |
-| `anthropic` | `https://api.anthropic.com` | `ANTHROPIC_API_KEY` | `RAEA_LLM_MODEL` (required) |
-| `zai` | `https://api.z.ai/api/anthropic` | `ZAI_API_KEY` | `RAEA_LLM_MODEL` (required) |
-| `deepseek` | `https://api.deepseek.com/anthropic` | `DEEPSEEK_API_KEY` | `RAEA_LLM_MODEL` (required) |
-| `moonshot` | `https://api.moonshot.ai/anthropic` | `MOONSHOT_API_KEY` | `RAEA_LLM_MODEL` (required) |
-| `custom` | `RAEA_LLM_BASE_URL` | `RAEA_LLM_API_KEY` | `RAEA_LLM_MODEL` (required) |
-
-`RAEA_LLM_API_KEY` overrides the provider's own key variable. For a `custom` endpoint that wants
-`Authorization: Bearer` instead of `x-api-key`, set `RAEA_LLM_AUTH=bearer`.
-
-```sh
-# ~/.raea/env
-RAEA_LLM_PROVIDER=anthropic
-RAEA_LLM_MODEL=claude-sonnet-5-5
-ANTHROPIC_API_KEY=...
-```
-
 ## Local audio models
 
 Two models make sound on your Mac, free, with no account. Each installs itself the first time a composition or a
