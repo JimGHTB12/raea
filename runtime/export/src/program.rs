@@ -13,7 +13,8 @@ pub(crate) fn program(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64) -> raea
         r.insert("id".into(), V::S(id.into()));
         r
     };
-    let clear = frames.first().and_then(|(_, f)| f.clear.clone()).and_then(|c| hex_of(&c)).unwrap_or("#000000".into());
+    // --alpha: nothing under the pages, so what the composition leaves empty stays transparent
+    let clear = if ALPHA.load(std::sync::atomic::Ordering::Relaxed) { "#00000000".into() } else { frames.first().and_then(|(_, f)| f.clear.clone()).and_then(|c| hex_of(&c)).unwrap_or("#000000".into()) };
     let has3d = frames.iter().any(|(_, f)| !f.scene.is_empty());
     let mut cam = row("cam", vec![("bg", V::S(clear))]);
     if has3d {

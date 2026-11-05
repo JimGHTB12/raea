@@ -337,7 +337,23 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
     } else {
         std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
         let nv12 = e.nv12;
-        let rgba_of = |px: Vec<u8>| if nv12 { raea_io_media::yuv::nv12_to_rgba(&px, w as usize, h as usize) } else { px };
+        // the composite is premultiplied; a PNG holds straight colour. Only a transparent clear (render --alpha) leaves
+        // alpha under 255, so an opaque frame is written as it comes
+        let rgba_of = |px: Vec<u8>| {
+            if nv12 {
+                return raea_io_media::yuv::nv12_to_rgba(&px, w as usize, h as usize);
+            }
+            let mut px = px;
+            for p in px.chunks_exact_mut(4) {
+                let a = p[3] as u32;
+                if a > 0 && a < 255 {
+                    for c in &mut p[..3] {
+                        *c = ((*c as u32 * 255 + a / 2) / a).min(255) as u8;
+                    }
+                }
+            }
+            px
+        };
         e.frames(&list, |f, px| save_png(&out.join(format!("frame-{f:05}.png")), &rgba_of(px), w, h))?;
     }
     eprintln!("{} ({} frames) in {:.2}s", out.display(), list.len(), t0.elapsed().as_secs_f64());

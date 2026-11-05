@@ -49,6 +49,11 @@ pub fn render(args: &[String]) -> R<String> {
     };
     *MANIFEST.lock().unwrap() = flag(args, "--manifest").map(PathBuf::from);
     TEN_BIT.store(args.iter().any(|a| a == "--10bit"), std::sync::atomic::Ordering::Relaxed);
+    let alpha = args.iter().any(|a| a == "--alpha");
+    if alpha && !matches!(out_ext(&out).as_str(), "png" | "") {
+        return Err("--alpha writes PNGs (OUT.png or a folder): video here is H.264 or HEVC, which hold no alpha. Encode the folder with alpha after (ffmpeg -i DIR/frame-%05d.png -c:v prores_ks -profile:v 4444 -pix_fmt yuva444p10le overlay.mov)".into());
+    }
+    ALPHA.store(alpha, std::sync::atomic::Ordering::Relaxed);
     let kbps = flag(args, "--kbps").map(|k| k.parse::<u32>().ok().filter(|k| *k > 0).ok_or("--kbps takes a bitrate in kbit/s")).transpose()?;
     KBPS.store(kbps.unwrap_or(0), std::sync::atomic::Ordering::Relaxed);
     let quality = flag(args, "--quality").map(|q| raea_io_media::parse_quality(&q)).transpose()?;

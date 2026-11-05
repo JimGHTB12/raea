@@ -152,6 +152,7 @@ raea render piece.tsx -o piece.mp4                 # the whole composition
 raea render piece.tsx --frame 60 -o frame60.png    # one frame, to look at
 raea render piece.tsx --at 0,45,89 -o frames/      # a few frames
 raea render piece.tsx --quality master -o piece.mp4  # a final export: constant quality
+raea render piece.tsx --alpha -o frames/            # transparent PNGs, for an overlay in another editor
 raea play game.tsx --input                          # play a game live
 ```
 

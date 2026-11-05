@@ -9,6 +9,7 @@ bg:tex[T;x;y]
 r:and[bg;255]
 g:and[shr[bg;8];255]
 b:and[shr[bg;16];255]
+a:and[shr[bg;24];255]
 / clip slot 0
 on0:word[C;0]
 bx0:word[C;1]
@@ -62,6 +63,7 @@ bb0:clamp[shr[k0+(541*cu0)+128;8];0;255]
 r:shr[(am0*rr0)+((256-am0)*r);8]
 g:shr[(am0*gg0)+((256-am0)*g);8]
 b:shr[(am0*bb0)+((256-am0)*b);8]
+a:shr[(am0*255)+((256-am0)*a);8]
 end
 / clip slot 1
 on1:word[C;12]
@@ -116,6 +118,7 @@ bb1:clamp[shr[k1+(541*cu1)+128;8];0;255]
 r:shr[(am1*rr1)+((256-am1)*r);8]
 g:shr[(am1*gg1)+((256-am1)*g);8]
 b:shr[(am1*bb1)+((256-am1)*b);8]
+a:shr[(am1*255)+((256-am1)*a);8]
 end
 / clip slot 2
 on2:word[C;24]
@@ -170,6 +173,7 @@ bb2:clamp[shr[k2+(541*cu2)+128;8];0;255]
 r:shr[(am2*rr2)+((256-am2)*r);8]
 g:shr[(am2*gg2)+((256-am2)*g);8]
 b:shr[(am2*bb2)+((256-am2)*b);8]
+a:shr[(am2*255)+((256-am2)*a);8]
 end
 / clip slot 3
 on3:word[C;36]
@@ -224,6 +228,7 @@ bb3:clamp[shr[k3+(541*cu3)+128;8];0;255]
 r:shr[(am3*rr3)+((256-am3)*r);8]
 g:shr[(am3*gg3)+((256-am3)*g);8]
 b:shr[(am3*bb3)+((256-am3)*b);8]
+a:shr[(am3*255)+((256-am3)*a);8]
 end
 / the overlay, premultiplied: o + below * (255 - a) / 255
 o:word[O;i]
@@ -231,4 +236,5 @@ oa:and[shr[o;24];255]
 r:and[o;255]+((r*(255-oa))+127)%255
 g:and[shr[o;8];255]+((g*(255-oa))+127)%255
 b:and[shr[o;16];255]+((b*(255-oa))+127)%255
-px:pack[r;g;b;255]
+a:oa+((a*(255-oa))+127)%255
+px:pack[r;g;b;a]
