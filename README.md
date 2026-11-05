@@ -46,10 +46,14 @@ The installer puts the `raea` command under `~/.raea`, links it into `~/.local/b
 work. Run it again to update. The engine is free and needs no account. Tarballs and checksums are on the
 [releases page](https://github.com/shinyobjectz/raea/releases).
 
-On Windows 10 or 11, download the zip from the
-[latest release](https://github.com/shinyobjectz/raea/releases/tag/v0.1.0-canary.2); its notes give the PowerShell
-steps that check, unpack and add it to your PATH. It needs the Microsoft Visual C++ Redistributable (x64), which most
-machines already have, and a DirectX 12 or Vulkan GPU driver.
+On Windows 10 or 11, in PowerShell:
+
+```powershell
+irm https://raea.io/install.ps1 | iex
+```
+
+It does the same under `~\.raea` and adds raea to your PATH. raea needs the Microsoft Visual C++ Redistributable
+(x64), which most machines already have, and a DirectX 12 or Vulkan GPU driver.
 
 ## Hello
 
