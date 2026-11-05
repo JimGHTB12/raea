@@ -54,8 +54,31 @@ fn user_dir(apple: &str, xdg: &str, xdg_default: &str, windows: &str) -> Option<
     Some(base.join("raea"))
 }
 
+/// A local file as a page's `src` (an <img>, a page's snapshot): its path on Unix; on Windows a file URL, since the
+/// page reads `C:\...` as a URL whose scheme is `c` and loads nothing (PT20). A verbatim `\\?\C:\` path loses its
+/// prefix first.
+pub fn src(p: &std::path::Path) -> String {
+    src_on(&p.display().to_string(), cfg!(windows))
+}
+
+fn src_on(s: &str, windows: bool) -> String {
+    if !windows {
+        return s.to_string();
+    }
+    let s = s.strip_prefix(r"\\?\").filter(|r| r.as_bytes().get(1) == Some(&b':')).unwrap_or(s);
+    if s.as_bytes().get(1) == Some(&b':') { format!("file:///{}", s.replace('\\', "/")) } else { s.to_string() }
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_src_is_a_file_url_on_windows() {
+        assert_eq!(super::src_on("/Users/a/assets/m.png", false), "/Users/a/assets/m.png");
+        assert_eq!(super::src_on(r"C:\Users\a\assets/m.png", true), "file:///C:/Users/a/assets/m.png");
+        assert_eq!(super::src_on(r"\\?\C:\a\m.png", true), "file:///C:/a/m.png");
+        assert_eq!(super::src_on("assets/m.png", true), "assets/m.png");
+    }
+
     #[test]
     fn caches_and_logs_follow_the_platform() {
         // one test, so nothing else reads these variables while it sets them

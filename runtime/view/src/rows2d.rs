@@ -90,7 +90,7 @@ impl Rows {
             let mut p = Map::new();
             p.insert("style".into(), Value::Object(style_for(props)));
             if let Some(src) = &self.rows[*i].src {
-                p.insert("src".into(), Value::String(src.display().to_string()));
+                p.insert("src".into(), Value::String(raea_io_home::src(src)));
             }
             want.push(Want { id, parent: ROOT, kind: "img".into(), props: p, text: None, path: format!("r{i}") });
             order.entry(ROOT).or_default().push(id);

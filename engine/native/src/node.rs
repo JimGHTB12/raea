@@ -9,6 +9,9 @@ use std::path::{Path, PathBuf};
 use base64::Engine as _;
 use serde_json::{json, Value};
 
+mod os;
+use os::{mode_ctime, signal};
+
 
 /// The builtins node.js defines, by the names an import or require gives them (with or without `node:`)
 pub const BUILTINS: &[&str] = &[
@@ -301,9 +304,9 @@ pub fn call(op: &str, a: &[Value]) -> Value {
             let m = if b(1) { std::fs::symlink_metadata(&p) } else { std::fs::metadata(&p) };
             match m {
                 Ok(m) => {
-                    use std::os::unix::fs::MetadataExt;
-                    json!({"dir": m.is_dir(), "file": m.is_file(), "link": m.file_type().is_symlink(), "size": m.len(), "mode": m.mode(),
-                        "mtimeMs": millis(m.modified()), "atimeMs": millis(m.accessed()), "birthtimeMs": millis(m.created()), "ctimeMs": m.ctime() as f64 * 1e3 + m.ctime_nsec() as f64 / 1e6})
+                    let (mode, ctime) = mode_ctime(&m);
+                    json!({"dir": m.is_dir(), "file": m.is_file(), "link": m.file_type().is_symlink(), "size": m.len(), "mode": mode,
+                        "mtimeMs": millis(m.modified()), "atimeMs": millis(m.accessed()), "birthtimeMs": millis(m.created()), "ctimeMs": ctime})
                 }
                 Err(e) => io_err(e, if b(1) { "lstat" } else { "stat" }, &p),
             }
@@ -419,22 +422,8 @@ fn spawn(cmd: &str, args: Option<&Value>, o: &Value) -> Value {
         }
     }
     match child.wait_with_output() {
-        Ok(out) => {
-            use std::os::unix::process::ExitStatusExt;
-            json!({"status": out.status.code(), "signal": out.status.signal().map(signal_name), "stdout": b64(&out.stdout), "stderr": b64(&out.stderr)})
-        }
+        Ok(out) => json!({"status": out.status.code(), "signal": signal(&out.status), "stdout": b64(&out.stdout), "stderr": b64(&out.stderr)}),
         Err(e) => json!({"error": {"code": "EIO", "message": e.to_string()}, "status": Value::Null}),
-    }
-}
-
-fn signal_name(n: i32) -> String {
-    match n {
-        libc::SIGTERM => "SIGTERM".into(),
-        libc::SIGKILL => "SIGKILL".into(),
-        libc::SIGINT => "SIGINT".into(),
-        libc::SIGSEGV => "SIGSEGV".into(),
-        libc::SIGABRT => "SIGABRT".into(),
-        n => format!("SIG{n}"),
     }
 }
 

@@ -19,7 +19,12 @@ pub(crate) fn time(args: &[String]) -> Result<i32, String> {
     let t0 = Instant::now();
     let st = Command::new(&cmd[0]).args(&cmd[1..]).status().map_err(|e| format!("{}: {e}", cmd[0]))?;
     let wall = t0.elapsed().as_secs_f64();
-    let code = st.code().unwrap_or(128 + std::os::unix::process::ExitStatusExt::signal(&st).unwrap_or(0));
+    // a signal ends a process as a shell's 128+N counts it; Windows has no signals, so every exit there has a code
+    #[cfg(unix)]
+    let signal = std::os::unix::process::ExitStatusExt::signal(&st).unwrap_or(0);
+    #[cfg(not(unix))]
+    let signal = 0;
+    let code = st.code().unwrap_or(128 + signal);
     std::fs::write(to, json!({"start_unix_ms": start, "wall_s": wall, "code": code}).to_string()).map_err(|e| format!("{to}: {e}"))?;
     Ok(code)
 }

@@ -78,7 +78,7 @@ pub(crate) fn lay_out(root: &Path, s: &SerializedNpmResolutionSnapshot, top: &[(
     for p in entries {
         let into_raea = std::fs::read_link(&p).map(|t| t.components().any(|c| c.as_os_str() == ".raea")).unwrap_or(false);
         if into_raea && !tops.contains(&p) {
-            let _ = std::fs::remove_file(&p);
+            let _ = unlink(&p);
             // a scope (@assistant-ui) whose last package went: gone too (remove_dir fails while it holds anything)
             if let Some(scope) = p.parent().filter(|s| *s != nm && s.file_name().is_some_and(|n| n.to_string_lossy().starts_with('@'))) {
                 let _ = std::fs::remove_dir(scope);
@@ -88,20 +88,37 @@ pub(crate) fn lay_out(root: &Path, s: &SerializedNpmResolutionSnapshot, top: &[(
     Ok(())
 }
 
-/// A symlink at `at` to `to`, relative (the project can move), replacing what was there.
+/// A symlink at `at` to `to`, relative (the project can move), replacing what was there. On Windows it's a junction to
+/// the absolute folder, as pnpm makes there: a symlink needs Developer Mode or an administrator, a junction neither.
 pub(crate) fn link(at: &Path, to: &Path) -> std::io::Result<()> {
     let parent = at.parent().unwrap();
     std::fs::create_dir_all(parent)?;
     let rel = relative(parent, to);
-    if std::fs::read_link(at).ok().as_deref() == Some(rel.as_path()) {
+    let want = if cfg!(windows) { to.to_path_buf() } else { rel.clone() };
+    if std::fs::read_link(at).ok().as_deref() == Some(want.as_path()) {
         return Ok(());
     }
-    if at.is_symlink() || at.is_file() {
+    if at.is_symlink() {
+        unlink(at)?;
+    } else if at.is_file() {
         std::fs::remove_file(at)?;
     } else if at.is_dir() {
         std::fs::remove_dir_all(at)?;
     }
-    std::os::unix::fs::symlink(rel, at)
+    #[cfg(unix)]
+    return std::os::unix::fs::symlink(rel, at);
+    #[cfg(windows)]
+    return junction::create(to, at);
+}
+
+/// A link made by `link` removed, never what it points at: a junction is a folder to Windows, so it goes by remove_dir
+/// (which leaves the target alone).
+fn unlink(at: &Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    if std::fs::remove_dir(at).is_ok() {
+        return Ok(());
+    }
+    std::fs::remove_file(at)
 }
 
 /// `to` as a path from the folder `from` (both absolute).

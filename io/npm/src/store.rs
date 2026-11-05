@@ -125,10 +125,13 @@ pub(crate) fn unpack(bytes: &[u8], dir: &Path) -> std::io::Result<()> {
                 }
                 let mut f = std::fs::File::create(&to)?;
                 std::io::copy(&mut entry, &mut f)?;
-                // executable stays executable; npm's tarballs carry odd modes, so only that bit is kept
-                let exec = entry.header().mode().map(|m| m & 0o111 != 0).unwrap_or(false);
-                use std::os::unix::fs::PermissionsExt;
-                f.set_permissions(std::fs::Permissions::from_mode(if exec { 0o755 } else { 0o644 }))?;
+                // executable stays executable; npm's tarballs carry odd modes, so only that bit is kept (Windows has none)
+                #[cfg(unix)]
+                {
+                    let exec = entry.header().mode().map(|m| m & 0o111 != 0).unwrap_or(false);
+                    use std::os::unix::fs::PermissionsExt;
+                    f.set_permissions(std::fs::Permissions::from_mode(if exec { 0o755 } else { 0o644 }))?;
+                }
             }
             _ => {}
         }

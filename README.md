@@ -27,12 +27,13 @@
   <img alt="status canary" src="https://img.shields.io/badge/status-canary-black">
   <img alt="macOS, Apple Silicon" src="https://img.shields.io/badge/macOS-Apple%20Silicon-black">
   <img alt="Linux x86_64" src="https://img.shields.io/badge/Linux-x86__64-black">
+  <img alt="Windows x86_64" src="https://img.shields.io/badge/Windows-x86__64-black">
 </p>
 
 ---
 
-> **Canary.** raea changes daily. Releases run on macOS (Apple Silicon) and Linux (x86_64). Expect breaking changes,
-> rough edges and gaps in the docs.
+> **Canary.** raea changes daily. Releases run on macOS (Apple Silicon), Linux (x86_64) and, new and least tested,
+> Windows (x86_64). Expect breaking changes, rough edges and gaps in the docs.
 
 ## Install
 
@@ -44,6 +45,11 @@ The installer puts the `raea` command under `~/.raea`, links it into `~/.local/b
 `~/.claude/skills`, so Claude Code (or any agent that reads that folder) knows how to write, render and check raea
 work. Run it again to update. The engine is free and needs no account. Tarballs and checksums are on the
 [releases page](https://github.com/shinyobjectz/raea/releases).
+
+On Windows 10 or 11, download the zip from the
+[latest release](https://github.com/shinyobjectz/raea/releases/tag/v0.1.0-canary.2); its notes give the PowerShell
+steps that check, unpack and add it to your PATH. It needs the Microsoft Visual C++ Redistributable (x64), which most
+machines already have, and a DirectX 12 or Vulkan GPU driver.
 
 ## Hello
 

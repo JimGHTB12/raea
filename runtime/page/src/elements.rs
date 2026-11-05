@@ -235,7 +235,7 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
                     if !p.exists() {
                         REFUSED.with(|c| c.borrow_mut().push(format!("missing image: {}", p.display())));
                     }
-                    p.display().to_string()
+                    raea_io_home::src(&p)
                 };
                 out.insert(k.clone(), Value::String(path));
                 continue;

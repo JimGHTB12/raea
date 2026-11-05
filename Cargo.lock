@@ -8612,6 +8612,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "junction"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cfc352a66ba903c23239ef51e809508b6fc2b0f90e3476ac7a9ff47e863ae95"
+dependencies = [
+ "scopeguard",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "jzon"
 version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13792,6 +13802,7 @@ dependencies = [
  "futures",
  "hex",
  "indexmap",
+ "junction",
  "libc",
  "reqwest",
  "serde",
@@ -13837,6 +13848,7 @@ dependencies = [
  "log",
  "raea-io-home",
  "serde_json",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -13992,6 +14004,7 @@ dependencies = [
 name = "raea-runtime-bundle"
 version = "0.1.0"
 dependencies = [
+ "dunce",
  "libloading",
  "raea-core-scene",
  "raea-io-home",
@@ -14336,6 +14349,7 @@ dependencies = [
  "raea-core-shape",
  "raea-core-wire",
  "raea-gpu-device",
+ "raea-io-home",
  "raea-io-media",
  "raea-page",
  "raea-sys-frame",

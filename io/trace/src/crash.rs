@@ -6,6 +6,8 @@ use super::*;
 // ---- stderr, teed
 
 pub(crate) fn tee_stderr(dir: &Path) {
+    #[cfg(not(unix))]
+    let _ = dir;
     #[cfg(unix)]
     unsafe {
         let mut fds = [0i32; 2];
@@ -38,6 +40,7 @@ pub(crate) fn tee_stderr(dir: &Path) {
 // ---- the image, for symbolicating a stripped build's backtraces
 
 /// The crash file's image line, made at start (the signal handler only reads it).
+#[cfg(unix)]
 pub(crate) static CRASH_IMAGE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
 
 /// The main executable's Mach-O UUID, load address and ASLR slide: what atos needs to turn a stripped build's backtrace
@@ -168,7 +171,7 @@ pub(crate) fn adopt_crash_reports(base: &Path) {
             continue;
         }
         let Some(pid) = d.file_name().and_then(|n| n.to_str()).and_then(|n| n.rsplit('-').next()).and_then(|p| p.parse::<i32>().ok()) else { continue };
-        if unsafe { libc::kill(pid, 0) } == 0 {
+        if alive(pid) {
             continue; // still running (another instance)
         }
         let mut found = None;
@@ -206,6 +209,27 @@ pub(crate) fn adopt_crash_reports(base: &Path) {
                 let _ = std::fs::write(d.join("unclean.json"), json!({"note": "ended without end.json and no macOS crash report names its pid: killed (SIGKILL, memguard, a force quit) or the report wasn't written yet"}).to_string());
             }
         }
+    }
+}
+
+#[cfg(unix)]
+fn alive(pid: i32) -> bool {
+    unsafe { libc::kill(pid, 0) == 0 }
+}
+
+#[cfg(windows)]
+fn alive(pid: i32) -> bool {
+    use windows_sys::Win32::Foundation::{CloseHandle, STILL_ACTIVE};
+    use windows_sys::Win32::System::Threading::{GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
+    unsafe {
+        let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid as u32);
+        if h.is_null() {
+            return false;
+        }
+        let mut code = 0u32;
+        let ok = GetExitCodeProcess(h, &mut code) != 0;
+        CloseHandle(h);
+        ok && code == STILL_ACTIVE as u32
     }
 }
 

@@ -27,9 +27,15 @@ fn main() {
     // its own target folder inside the same target folder, so its build is kept between raea's
     let target = bins.parent().expect("target").join("raea-bundle");
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-    let status = Command::new(cargo)
-        .args(["build", "--release", "--lib", "--manifest-path"])
-        .arg(manifest.join("../../engine/bundle/Cargo.toml"))
+    // a cross build (Windows from Linux) builds the library for the same target, under target/raea-bundle/<triple>
+    let (triple, host) = (std::env::var("TARGET").unwrap(), std::env::var("HOST").unwrap());
+    let cross = (triple != host).then_some(triple);
+    let mut cmd = Command::new(cargo);
+    cmd.args(["build", "--release", "--lib", "--manifest-path"]).arg(manifest.join("../../engine/bundle/Cargo.toml"));
+    if let Some(t) = &cross {
+        cmd.args(["--target", t]);
+    }
+    let status = cmd
         .arg("--target-dir")
         .arg(&target)
         // the outer build's target folder and profile settings aren't the library's
@@ -38,7 +44,7 @@ fn main() {
         .status()
         .expect("cargo, to build raea-bundle's library");
     assert!(status.success(), "raea-bundle's library didn't build (bundle/); RAEA_BUNDLE_SKIP=1 builds raea without it");
-    let lib = target.join("release").join(name);
+    let lib = cross.map_or(target.clone(), |t| target.join(t)).join("release").join(name);
     // copied beside and renamed into place: a copy over the old file keeps its inode, whose code signature macOS has
     // cached, so the next process to load it was killed (SIGKILL, Code Signature Invalid; the legacy app's panel thread, 10-21)
     let tmp = bins.join(format!("{name}.new"));

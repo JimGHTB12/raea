@@ -24,3 +24,7 @@ base64 = "0.22"
 flate2 = "1"
 tar = "0.4"
 libc = "0.2"
+
+# node_modules' links on Windows (layout.rs)
+[target.'cfg(windows)'.dependencies]
+junction = "1"

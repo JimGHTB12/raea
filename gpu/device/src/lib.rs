@@ -36,7 +36,10 @@ fn make() -> Result<Handles, String> {
     // back): it checks each indirect draw's arguments in compute passes before drawing, and the indirect draws are
     // Bevy's own, written by its mesh preprocessing on this device. On arena3d it was ~7 extra passes and their blits a
     // frame, ~0.07 ms of GPU (lightspeed F2); pixels are the same.
-    let mut desc = wgpu::InstanceDescriptor::new_without_display_handle();
+    // wgpu's own variables are read (WGPU_BACKEND, WGPU_DX12_COMPILER, WGPU_VALIDATION, ...; nothing changes when unset):
+    // Windows' check renders on Mesa's lavapipe with WGPU_BACKEND=vulkan, because WARP crashes compiling one of Bevy's
+    // compute shaders on GitHub's GPU-less runner (d3d10warp ComputeShaderTransformer, PT20)
+    let mut desc = wgpu::InstanceDescriptor::new_without_display_handle_from_env();
     if !cfg!(debug_assertions) && std::env::var("RAEA_WGPU_INDIRECT_VALIDATION").as_deref() != Ok("1") {
         desc.flags.remove(wgpu::InstanceFlags::VALIDATION_INDIRECT_CALL);
     }

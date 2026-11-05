@@ -6,9 +6,16 @@ use super::*;
 pub fn bundle_script(ts: &Path, out: &Path) -> R<()> {
     let entry = format!(
         "import * as M from {:?};\nconst call = (globalThis as any).__raea_call;\nPromise.resolve().then(() => (typeof (M as any).default === \"function\" ? (M as any).default() : undefined)).then(() => call(\"done\", JSON.stringify({{ code: 0 }})), (e: any) => {{ call(\"print\", JSON.stringify({{ text: \"error: \" + (e && e.stack ? e.stack : String(e)) }})); call(\"done\", JSON.stringify({{ code: 1 }})); }});\n",
-        ts.display().to_string()
+        spec(ts)
     );
     bundle_entry(&entry, out, &[])
+}
+
+/// A path as an entry's import specifier. On Windows a canonical path is a verbatim one (\\?\C:\...), which Rolldown
+/// can't resolve as an import (`raea run` on windows-latest, PT20); dunce drops the prefix where the plain path means the
+/// same file, and changes nothing elsewhere.
+fn spec(p: &Path) -> String {
+    dunce::simplified(p).display().to_string()
 }
 
 /// A react-dom page's bundle (a surface): the module at `src` (its default
@@ -27,7 +34,7 @@ const draw = () => root.render(createElement(Page as any, {{ width: innerWidth, 
 addEventListener("resize", draw);
 draw();
 "#,
-        src = src.display().to_string()
+        src = spec(src)
     );
     bundle_entry(&entry, out, &[])?;
     std::fs::read_to_string(out).map_err(|e| format!("{}: {e}", out.display()))
@@ -82,7 +89,7 @@ pub fn bundle_entry(entry: &str, out: &Path, extra: &[&str]) -> R<()> {
 pub fn bundle_tests(files: &[PathBuf], out: &Path, filter: Option<&str>, extra: &[&str]) -> R<()> {
     let mut entry = String::new();
     for f in files {
-        entry += &format!("import {:?};\n", f.display().to_string());
+        entry += &format!("import {:?};\n", spec(f));
     }
     entry += &format!(
         "import {{ run }} from \"bun:test\";\nconst call = (globalThis as any).__raea_call;\nconst print = (text: string) => call(\"print\", JSON.stringify({{ text }}));\nrun(print, {}).then((r) => call(\"done\", JSON.stringify({{ code: r.fail ? 1 : 0 }})), (e: any) => {{ print(\"error: \" + (e && e.stack ? e.stack : String(e))); call(\"done\", JSON.stringify({{ code: 1 }})); }});\n",

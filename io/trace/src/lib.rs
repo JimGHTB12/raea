@@ -52,6 +52,7 @@ struct Session {
 
 static SESSION: Mutex<Option<Session>> = Mutex::new(None);
 /// the crash file's descriptor, opened at start, for the signal handler (which may only write)
+#[cfg(unix)]
 static mut CRASH_FD: i32 = -1;
 const RING: usize = 400;
 const KEEP: usize = 60;
@@ -133,6 +134,8 @@ pub fn start(app: &str) -> Option<PathBuf> {
     let _ = std::fs::write(dir.join("session.json"), serde_json::to_string_pretty(&session).unwrap_or_default());
     let open = |name: &str| OpenOptions::new().create(true).append(true).open(dir.join(name)).ok();
     let (events, perf) = (open("events.jsonl")?, open("perf.jsonl")?);
+    // for the fatal-signal handler, which Windows doesn't have
+    #[cfg(unix)]
     if let Some(f) = open("crash.txt") {
         use std::os::fd::IntoRawFd;
         unsafe { CRASH_FD = f.into_raw_fd() };
