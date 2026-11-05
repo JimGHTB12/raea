@@ -103,6 +103,45 @@ fn a_steady_sound_that_stops_dead_is_found_and_a_faded_one_isnt() {
     let faded: Vec<f32> = tone(4.0, &[(0.0, 3.0, -20.0)]).into_iter().enumerate().map(|(i, v)| v * (1.0 - ((i as f32 / SR as f32) - 2.0).clamp(0.0, 1.0))).collect();
     let (rms, bands) = levels(&faded);
     assert!(dead_stops(&rms, &bands).is_empty());
+    // a source cut partway through a 10 ms step is as dead
+    let cut: Vec<f32> = tone(4.0, &[(0.0, 2.0 + 117.0 / SR as f64, -20.0)]);
+    let (rms, bands) = levels(&cut);
+    assert_eq!(dead_stops(&rms, &bands).len(), 1);
+    // a 100 ms fadeOut is a fade, though its last step falls into silence
+    let short: Vec<f32> = tone(4.0, &[(0.0, 2.0, -20.0)]).into_iter().enumerate().map(|(i, v)| v * ((2.0 - i as f32 / SR as f32) / 0.1).clamp(0.0, 1.0)).collect();
+    let (rms, bands) = levels(&short);
+    assert!(dead_stops(&rms, &bands).is_empty(), "{:?}", dead_stops(&rms, &bands));
+}
+
+#[test]
+fn bands_read_in_dbfs() {
+    // a tone in the middle of its band reads there what it reads in the mix: -20 dBFS peak is -23 dBFS RMS
+    let sine = |hz: f64| (0..SR).map(|i| (0.1 * (2.0 * std::f64::consts::PI * hz * i as f64 / SR as f64).sin()) as f32).collect::<Vec<_>>();
+    for (hz, band) in [(200.0, 0), (2000.0, 1), (8000.0, 2)] {
+        let (rms, bands) = levels(&sine(hz));
+        assert!((rms[50] + 23.0).abs() < 0.1, "{}", rms[50]);
+        assert!((bands[band][50] - rms[50]).abs() < 0.2, "{hz} Hz: band {} vs the mix {}", bands[band][50], rms[50]);
+    }
+}
+
+#[test]
+fn a_voice_that_ends_a_sentence_isnt_a_dead_stop() {
+    // its-a-race at 12-14 s: "AI became a thing." ends at 13.36 s and the speaker pauses. Its lows held within 2.6 dB over
+    // the second before and fell 12 dB in one step, so they read as a bed cut dead ("a steady sound at -0 dB", before the
+    // bands read in dBFS), but the mix follows the source there and the word's tail comes back up after the first drop
+    let tracks: Vec<Vec<f64>> = include_str!("testdata/its-a-race-12s.levels")
+        .lines()
+        .filter(|l| !l.starts_with('#'))
+        .map(|l| l.split_whitespace().map(|v| v.parse().unwrap()).collect())
+        .collect();
+    let bands = [tracks[1].clone(), tracks[2].clone(), tracks[3].clone()];
+    let stops = dead_stops(&tracks[0], &bands);
+    assert!(stops.is_empty(), "{stops:?}");
+    // the same voice with a bed under it that's cut at 13.6 s: that one is still found
+    let bed = 10f64.powf(-30.0 / 10.0);
+    let highs: Vec<f64> = tracks[3].iter().enumerate().map(|(i, v)| 10.0 * (10f64.powf(v / 10.0) + if i < 160 { bed } else { 0.0 }).log10()).collect();
+    let found = dead_stops(&tracks[0], &[tracks[1].clone(), tracks[2].clone(), highs]);
+    assert!(found.iter().any(|(at, says)| (at - 1.6).abs() < 0.02 && says.starts_with("the highs")), "{found:?}");
 }
 
 #[test]

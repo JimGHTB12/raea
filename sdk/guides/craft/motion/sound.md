@@ -68,7 +68,8 @@ everyone else. Two checks, both cheap:
   loops only between `startFrom` and `endAt`, and that loop is a hard jump. Tile it instead: copies of the take end to
   end, each in its own Sequence, crossfading over 1.5 s (`fadeIn`/`fadeOut`), or make the take as long as the span.
 - **Check the finished file.** `raea check FILM.mp4 --words words.json` (the voice's words on the film's clock)
-  reports, by timecode, dead stops (a steady sound that ends in one 10 ms step), stretches with no voice louder than
+  reports, by timecode, dead stops (a steady sound that ends in one 10 ms step: fade a bed out over 100 ms or more;
+  a voice ending its word isn't one), stretches with no voice louder than
   the voice, a bed closer than 12 dB to the voice over it, and a true peak over -1 dBTP. Fix every line it prints, or
   say why it stands.
 
