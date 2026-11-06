@@ -115,6 +115,15 @@ impl<'a> Run<'a> {
                 let c = crate::fish::quote(s.inputs.get("text").and_then(|t| t.as_str()).unwrap_or(""));
                 total += c;
                 row["cents"] = json!(c);
+            } else if let Backend::Tripo(m) = &b {
+                // a plan uploads nothing: each picture input counts as one view
+                let views = ["image", "refs"].iter().map(|k| match s.inputs.get(*k) { Some(J::Array(a)) => a.len(), Some(_) => 1, None => 0 }).sum::<usize>();
+                let media: Vec<String> = (0..views).map(|k| format!("https://example.invalid/view{k}.png")).collect();
+                match crate::tripo::quote(m, &s.inputs, &media) {
+                    Ok(Some(c)) => { let cents = (c as f64 * crate::tripo::cents_per_credit()).ceil() as u64; total += cents; row["cents"] = json!(cents); row["credits"] = json!(c); }
+                    Ok(None) => row["quote"] = json!("Tripo publishes no estimate for this model (never zero)"),
+                    Err(e) => row["quote"] = json!(e),
+                }
             } else if let Backend::Fal(e) = &b {
                 if let Ok((c, unit)) = Fal::from_settings().and_then(|f| f.price(e)) {
                     row["cents_per"] = json!(format!("{c:.1} per {unit}"));
@@ -170,6 +179,30 @@ impl<'a> Run<'a> {
                     self.made(made.as_ref().unwrap(), m, s, key, &done, &mut spent)?
                 }
                 Backend::Fal(e) => (self.fal(e, &s, key, &done)?, 0),
+                Backend::Tripo(m) => {
+                    // the credits are known before sending (tripo make --dry-run): held to the run's cap like a made step
+                    let media = self.tripo_media(s, &done)?;
+                    if let Some(c) = crate::tripo::quote(m, &s.inputs, &media).ok().flatten() {
+                        let charge = (c as f64 * crate::tripo::cents_per_credit()).ceil() as u64;
+                        if spent + charge > self.max_cents {
+                            return Err(format!("{b} would cost {charge}¢ ({c} credits), past this run's cap of {}¢ ({spent}¢ spent): raise --max-cents or RAEA_GEN_MAX_CENTS", self.max_cents));
+                        }
+                    }
+                    match self.tripo(m, s, key, &done) {
+                        Ok((m1, c)) => { spent += c; (m1, c) }
+                        // no credits or no key: nothing was submitted, so the same model on fal (FAL_KEY) runs instead,
+                        // unless RAEA_TRIPO_FALLBACK=0
+                        Err(crate::tripo::Fail::Credits(e) | crate::tripo::Fail::Auth(e)) if crate::setting("FAL_KEY").is_some() && crate::setting("RAEA_TRIPO_FALLBACK").as_deref() != Some("0") => {
+                            let views = media.len();
+                            let twin = crate::tripo::fal_twin(m, views);
+                            eprintln!("raea gen: {id}: {e}\nraea gen: {id} runs on fal:{twin} instead (RAEA_TRIPO_FALLBACK=0 stops this)");
+                            let mut m1 = self.fal(&twin, s, key, &done)?;
+                            m1.job = Some(format!("fal:{twin}"));
+                            (m1, 0)
+                        }
+                        Err(e) => return Err(e.to_string()),
+                    }
+                }
                 Backend::Replicate(m) => (self.replicate(m, &s, key, &done)?, 0),
                 Backend::OpenRouter(m) => self.openrouter(m, &s, key, &done)?,
                 Backend::Modal(m) => self.modal(m, &s, key, &done)?,
@@ -356,8 +389,25 @@ fn inline_text(s: &Step, done: &BTreeMap<String, Made1>) -> Step {
 
 /// An output's files under the output's name: one file as `<name>.<ext>`, several (a mesh and its textures) as
 /// `<name>/` holding them, and a GLB among them also as `<name>.glb`. Replaced on every run, so the name always holds the latest result.
+#[cfg(test)]
+pub(crate) fn name_output_for_test(dir: &Path, name: &str, files: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
+    name_output(dir, name, files)
+}
+
 fn name_output(dir: &Path, name: &str, files: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
-    let copy = |from: &Path, to: &Path| std::fs::copy(from, to).map(|_| to.to_path_buf()).map_err(|e| format!("{}: {e}", to.display()));
+    let copy = |from: &Path, to: &Path| {
+        // a name that already is the file (a link to it, or the file itself) is left alone: copying a file onto itself
+        // truncates it to nothing (11-05: four Tripo models lost their step files so). A link elsewhere is replaced.
+        if let (Ok(a), Ok(b)) = (std::fs::canonicalize(from), std::fs::canonicalize(to)) {
+            if a == b {
+                return Ok(to.to_path_buf());
+            }
+        }
+        if to.is_symlink() {
+            let _ = std::fs::remove_file(to);
+        }
+        std::fs::copy(from, to).map(|_| to.to_path_buf()).map_err(|e| format!("{}: {e}", to.display()))
+    };
     match files {
         [] => Ok(vec![]),
         [one] if one.parent() == Some(dir) => {

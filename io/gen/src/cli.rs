@@ -10,8 +10,8 @@ use crate::made::Made;
 use crate::run::{Local, Run};
 
 pub const USAGE: &str = "raea gen models [--kind image|video|audio] [--query WORDS] | balance | types [-o FILE] | flow FLOW.ts [-o FLOW.json]
-       raea gen image|video|music|sfx|speech|mesh|text \"PROMPT\" [--model M] [--image FILE]... [--seconds S] [--aspect W:H] [-o DIR] [--max-cents N] [--plan]
-       raea gen plan FLOW.json|FLOW.ts [--exact] | raea gen run FLOW.json|FLOW.ts [-o DIR] [--max-cents N] [--exact] [--comfy-on-replicate] [--no-local]
+       raea gen image|video|music|sfx|speech|mesh|text \"PROMPT\" [--model M] [--image FILE]... [--seconds S] [--aspect W:H] [-o DIR] [--max-cents N] [--plan]   (mesh: --model tripo:H3.1|tripo:P2|fal:<endpoint>)
+       raea gen plan FLOW.json|FLOW.ts [--exact] | raea gen run FLOW.json|FLOW.ts [-o DIR] [--max-cents N] [--exact] [--comfy-on-replicate] [--no-local] [--no-tripo]
        raea gen comfy import WORKFLOW.json [-o FLOW.json] | comfy export FLOW.json|FLOW.ts [-o WORKFLOW.json] | comfy needs WORKFLOW.json [-o NEEDS.json]
        raea gen comfy run WORKFLOW.json [-o DIR]   (any workflow as it is, on the ComfyUI server: its input files uploaded, every output fetched)
        raea gen comfy view WORKFLOW.json [-o FILE] | comfy set WORKFLOW.json CHANGES.json   (nodes, settings by name, links, groups; edits written back)
@@ -72,6 +72,7 @@ fn runner<'a>(args: &[String], base: &Path, local: Option<&'a dyn Local>) -> Run
     }
     r.policy.exact = args.iter().any(|a| a == "--exact");
     r.policy.comfy_on_replicate = args.iter().any(|a| a == "--comfy-on-replicate") || crate::setting("RAEA_COMFY_ON") .as_deref() == Some("replicate");
+    r.policy.tripo = !args.iter().any(|a| a == "--no-tripo") && crate::tripo::available();
     if let Some(l) = local.filter(|_| !args.iter().any(|a| a == "--no-local")) {
         r.policy.local = l.names();
         r.local = Some(l);
@@ -94,7 +95,12 @@ pub fn command(args: &[String], local: Option<&dyn Local>) -> Result<String, Str
             }
             Ok(out.trim_end().to_string())
         }
-        "balance" => Ok(format!("{:.1} credits (${:.2}) on made.app", Made::from_settings()?.balance_cents()? as f64 / 10.0, Made::from_settings()?.balance_cents()? as f64 / 100.0)),
+        "balance" => {
+            let made = Made::from_settings().and_then(|m| m.balance_cents()).map(|c| format!("{:.1} credits (${:.2}) on made.app", c as f64 / 10.0, c as f64 / 100.0)).unwrap_or_else(|e| format!("made.app: {e}"));
+            // a Tripo key's credits are its API wallet (developers.tripo3d.ai/en/billing), not the tripo3d.ai dashboard's
+            let tripo = crate::tripo::balance().map(|(b, f)| format!("{b} credits ({f} frozen) on Tripo's API wallet, {}", crate::tripo::BILLING)).unwrap_or_else(|e| format!("tripo: {e}"));
+            Ok(format!("{made}\n{tripo}"))
+        }
         "plan" | "run" => {
             let path = args.get(1).ok_or(USAGE)?;
             let flow = read_flow(path)?;

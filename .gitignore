@@ -98,3 +98,6 @@ docs/craft/phase9/
 !.env.example
 # a session's throwaway scripts beside the SDK (sdk/raea/.scratch-N/), never committed
 sdk/raea/.scratch-*/
+
+# the Tripo CLI writes its last task id into the directory it runs in
+.tripo/

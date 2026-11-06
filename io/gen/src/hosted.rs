@@ -137,3 +137,35 @@ impl Run<'_> {
         Ok((Made1 { files: vec![file], ..Default::default() }, cents))
     }
 }
+
+impl Run<'_> {
+    /// A mesh step through the tripo CLI: a prompt, or its pictures as local files (the CLI uploads them; a step that
+    /// made only a URL hands the URL on). Returns the model file and its preview, and the cost in cents.
+    pub(crate) fn tripo(&self, model: &str, s: &Step, key: &str, done: &BTreeMap<String, Made1>) -> Result<(Made1, u64), crate::tripo::Fail> {
+        let media = self.tripo_media(s, done).map_err(crate::tripo::Fail::Other)?;
+        let lit: Map<String, J> = s.inputs.iter().filter(|(_, v)| reference(v).is_none() && !matches!(v, J::Array(a) if a.iter().any(|x| reference(x).is_some()))).map(|(k, v)| (k.clone(), v.clone())).collect();
+        let m = crate::tripo::run(model, &lit, &media, &stems(self, key, 0))?;
+        let cents = (m.credits as f64 * crate::tripo::cents_per_credit()).ceil() as u64;
+        Ok((Made1 { files: m.files, job: m.task.map(|t| format!("tripo:{t}")), url: None }, cents))
+    }
+
+    /// The step's pictures for Tripo, `image` first then `refs` (2-4 views make a multiview model).
+    pub(crate) fn tripo_media(&self, s: &Step, done: &BTreeMap<String, Made1>) -> Result<Vec<String>, String> {
+        let mut out = Vec::new();
+        for k in ["image", "refs"] {
+            let vals: Vec<&J> = match s.inputs.get(k) { Some(J::Array(a)) => a.iter().collect(), Some(v) => vec![v], None => vec![] };
+            for v in vals {
+                let Some(r) = reference(v) else { continue };
+                let up = done.get(r).ok_or(format!("@{r} isn't made yet"))?;
+                let file = if crate::flow::index(v).is_some() { crate::run::file_of(done, v).cloned() } else { up.files.first().cloned() };
+                match (file, &up.url) {
+                    // absolute: the CLI runs in the step's own folder, so a path relative to the run's -o would miss
+                    (Some(f), _) => out.push(std::path::absolute(&f).unwrap_or(f).display().to_string()),
+                    (None, Some(u)) => out.push(u.clone()),
+                    _ => return Err(format!("@{r} made nothing")),
+                }
+            }
+        }
+        Ok(out)
+    }
+}

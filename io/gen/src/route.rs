@@ -1,5 +1,6 @@
 //! Where each step runs. A step that names its model goes there (`made:<id>`, `fal:<endpoint>`,
-//! `replicate:<owner/name>`, `openrouter:<model>`, `modal:<endpoint>`, `fish:<model>`, `comfy`, `local:<name>`). text.generate goes to
+//! `replicate:<owner/name>`, `openrouter:<model>`, `modal:<endpoint>`, `fish:<model>`, `tripo:<model>`, `comfy`, `local:<name>`). mesh.generate goes to
+//! Tripo 3D: through the tripo CLI on the founder's own key when this host has both (tripo.rs), else the same Tripo model on fal. text.generate goes to
 //! OpenRouter (RAEA_GEN_TEXT_MODEL, else Kimi). Otherwise: a `comfy` step on the ComfyUI server; a step with ComfyUI weights on the server too when
 //! the flow asks for the exact weights (`--exact`), else made's model for that op, which is noted as standing in for
 //! them; a local model when the host has one for the op (sao for effects); made for the rest.
@@ -17,6 +18,8 @@ pub enum Backend {
     Modal(String),
     /// Fish Audio's text-to-speech, with the founder's FISH_API_KEY (raea-io-gen-core's fish.rs)
     Fish(String),
+    /// Tripo 3D through its own CLI and the founder's key (raea-io-gen-core's tripo.rs); the name is Tripo's model id or alias
+    Tripo(String),
     Comfy,
     Local(String),
     Load,
@@ -33,6 +36,7 @@ impl std::fmt::Display for Backend {
             Backend::OpenRouter(m) => write!(f, "openrouter:{m}"),
             Backend::Modal(m) => write!(f, "modal:{m}"),
             Backend::Fish(m) => write!(f, "fish:{}", if m.is_empty() { crate::fish::DEFAULT_MODEL } else { m }),
+            Backend::Tripo(m) => write!(f, "tripo:{m}"),
             Backend::Comfy => write!(f, "comfy"),
             Backend::Local(m) => write!(f, "local:{m}"),
             Backend::Load => write!(f, "load"),
@@ -80,6 +84,8 @@ pub struct Policy {
     pub local: Vec<String>,
     /// comfy steps go to Replicate's any-comfyui-workflow rather than a ComfyUI server (RAEA_COMFY_URL)
     pub comfy_on_replicate: bool,
+    /// the tripo CLI and a key are on this host (tripo::available), so mesh steps run on Tripo itself
+    pub tripo: bool,
 }
 
 /// Where a step runs, and a note when it stands in for something it was asked for.
@@ -93,9 +99,10 @@ pub fn route(s: &Step, p: &Policy) -> Result<(Backend, Option<String>), String> 
             "openrouter" => Backend::OpenRouter(name.into()),
             "modal" => Backend::Modal(name.into()),
             "fish" => Backend::Fish(name.into()),
+            "tripo" => Backend::Tripo(name.into()),
             "comfy" => Backend::Comfy,
             "local" => Backend::Local(name.into()),
-            _ => return Err(format!("model `{m}`: say made:<id>, fal:<endpoint>, replicate:<owner/name>, openrouter:<model>, modal:<endpoint>, fish:<model>, comfy or local:<name>")),
+            _ => return Err(format!("model `{m}`: say made:<id>, fal:<endpoint>, replicate:<owner/name>, openrouter:<model>, modal:<endpoint>, fish:<model>, tripo:<model>, comfy or local:<name>")),
         }, None));
     }
     match s.op.as_str() {
@@ -105,8 +112,13 @@ pub fn route(s: &Step, p: &Policy) -> Result<(Backend, Option<String>), String> 
         "comfy" => return Ok((Backend::Comfy, None)),
         "text.generate" => return Ok((Backend::OpenRouter(crate::setting("RAEA_GEN_TEXT_MODEL").unwrap_or_else(|| "moonshotai/kimi-k3.1-pro".into())), None)),
         "mesh.generate" => {
-            let e = if s.inputs.contains_key("image") { "fal-ai/hunyuan-3d/v3.1/rapid/image-to-3d" } else { "fal-ai/hunyuan-3d/v3.1/rapid/text-to-3d" };
-            return Ok((Backend::Fal(e.into()), None));
+            // Tripo by default (hunyuan-3d rapid on fal errored three times running, 10-29): its CLI on the founder's key when
+            // the host has both, else fal's resale of the same model
+            if p.tripo {
+                return Ok((Backend::Tripo(String::new()), None));
+            }
+            let views = usize::from(s.inputs.contains_key("image")) + s.inputs.get("refs").and_then(|r| r.as_array()).map_or(0, Vec::len);
+            return Ok((Backend::Fal(crate::tripo::fal_twin("", views)), Some("no tripo CLI with a key here (npm install -g tripo-cli; TRIPO_API_KEY): the same Tripo model on fal".into())));
         }
         _ => {}
     }

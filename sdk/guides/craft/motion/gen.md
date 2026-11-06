@@ -38,10 +38,20 @@
   `gen.jsonl` index. A step that is already there isn't run again, and a changed prompt reruns only what comes after
   it, so edit and rerun freely.
 - Pick a model only when the piece needs one. Without one, each op goes to its default: made.app for pictures, video
-  and audio, OpenRouter (Kimi) for words, fal for meshes, this Mac's sao for effects, and made.app for speech. To name a
+  and audio, OpenRouter (Kimi) for words, Tripo for meshes (its own `tripo` CLI on your key when this Mac has both, else the same Tripo model on fal), this Mac's sao for effects, and made.app for speech. To name a
   model, use `{ model: "made:kling_3_pro" }`, `"fal:<endpoint>"`, `"replicate:owner/name"`, `"openrouter:<model>"`,
-  `"modal:<name>"`, `"fish:<model>"` (Fish Audio, with your FISH_API_KEY), `"comfy"` or `"local:sao"`. `raea gen models` lists made's ids. A made model's own setting goes in
+  `"modal:<name>"`, `"fish:<model>"` (Fish Audio, with your FISH_API_KEY), `"tripo:H3.1"` or `"tripo:P2"` (Tripo 3D through its CLI), `"comfy"` or `"local:sao"`. `raea gen models` lists made's ids. A made model's own setting goes in
   as `x_<name>`.
+- Meshes on Tripo (`npm install -g tripo-cli`, then `TRIPO_API_KEY=tsk_…` in ~/.raea/env or `tripo login`; every user
+  brings their own key). Feed it a picture rather than words: an image step making a clean product shot (one object,
+  plain light background, three-quarter view) gives far better geometry than a prompt. Tripo's own settings go in as
+  x_<name>: `x_face_limit: 15000` (a raw H3.1 model can be 1.5 million triangles and 40 MB, too heavy for a live
+  scene), `x_texture_quality: "detailed"`, `x_pbr: true`, `x_auto_size: true` (real metres). `tripo:H3.1` costs
+  20-50 credits a model, `tripo:P2` (Tripo's default, clean low topology) 100-130; a credit is 1¢, and `raea gen plan`
+  quotes it with `tripo make --dry-run`. **Credits are the API wallet's:** buy them at
+  https://developers.tripo3d.ai/en/billing, not on the tripo3d.ai dashboard, whose credits the key never sees (it
+  answers "insufficient credits", exit 4). With no credits or no key, the step goes to fal's Tripo instead
+  (RAEA_TRIPO_FALLBACK=0 stops that); `raea gen balance` shows both wallets.
 - Crops, resizes and side-by-sides between steps are free and run here: `image.crop`, `image.scale` (width, height,
   factor or megapixels; fit stretch, cover or contain) and `image.stitch` (a list of images, right or down).
 - ComfyUI: `raea gen comfy import workflow.json -o flow.json` turns a workflow into a flow. Sampler chains and
