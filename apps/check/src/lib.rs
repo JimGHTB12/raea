@@ -176,22 +176,39 @@ struct Probe {
     w: f64,
     h: f64,
     duration: f64,
+    /// the picture's own length: sound can run on past it, and the container's duration counts that
+    picture: f64,
     audio: bool,
+}
+
+/// Where the picture's last packet ends, for a container that doesn't state the video stream's own length (Matroska)
+fn last_packet_end(video: &str) -> Option<f64> {
+    let out = Command::new("ffprobe").args(["-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time,duration_time", "-of", "csv=p=0", video]).output().ok()?;
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter_map(|l| {
+            let mut parts = l.split(',');
+            let t: f64 = parts.next()?.trim().parse().ok()?;
+            Some(t + parts.next().and_then(|d| d.trim().parse::<f64>().ok()).unwrap_or(0.0))
+        })
+        .max_by(f64::total_cmp)
 }
 
 impl Probe {
     fn of(video: &str) -> R<Probe> {
         let out = Command::new("ffprobe")
-            .args(["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate:format=duration", "-of", "json", video])
+            .args(["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate,duration:format=duration", "-of", "json", video])
             .output()
             .map_err(|e| format!("ffprobe: {e}"))?;
         let v: Value = serde_json::from_slice(&out.stdout).map_err(|e| format!("ffprobe: {e}"))?;
         let streams = v["streams"].as_array().cloned().unwrap_or_default();
         let vid = streams.iter().find(|s| s["codec_type"] == "video").ok_or("no video stream")?;
+        let duration = v["format"]["duration"].as_str().and_then(|d| d.parse().ok()).unwrap_or(0.0);
         Ok(Probe {
             w: vid["width"].as_f64().unwrap_or(1920.0),
             h: vid["height"].as_f64().unwrap_or(1080.0),
-            duration: v["format"]["duration"].as_str().and_then(|d| d.parse().ok()).unwrap_or(0.0),
+            duration,
+            picture: vid["duration"].as_str().and_then(|d| d.parse().ok()).or_else(|| last_packet_end(video)).unwrap_or(duration),
             audio: streams.iter().any(|s| s["codec_type"] == "audio"),
         })
     }

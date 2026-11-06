@@ -148,6 +148,23 @@ fn a_voice_that_ends_a_sentence_isnt_a_dead_stop() {
 }
 
 #[test]
+fn a_freeze_still_running_when_the_file_ends_is_found() {
+    // what FFmpeg 9.0.2's freezedetect logged on a film held from 3.4 s to its end, after a hold that ended at 3 s: the
+    // last freeze has a start and nothing after it, since it logs the duration when the picture moves again
+    let log = "[Parsed_freezedetect_0 @ 0000] lavfi.freezedetect.freeze_start: 0
+               [Parsed_freezedetect_0 @ 0000] lavfi.freezedetect.freeze_duration: 3
+               [Parsed_freezedetect_0 @ 0000] lavfi.freezedetect.freeze_end: 3
+               [Parsed_freezedetect_0 @ 0000] lavfi.freezedetect.freeze_start: 3.4
+";
+    assert_eq!(frozen_stretches(log, 10.0), vec![(0.0, 3.0), (3.4, 6.6)]);
+    // the whole file frozen: one start, at zero
+    assert_eq!(frozen_stretches("lavfi.freezedetect.freeze_start: 0
+", 8.0), vec![(0.0, 8.0)]);
+    assert!(frozen_stretches("frame=  300 fps=0.0
+", 10.0).is_empty());
+}
+
+#[test]
 fn a_bed_close_under_the_voice_and_a_loud_stretch_without_it_are_found() {
     // 8 s of voice (-20 dBFS) in phrases with gaps, over a bed at -26 (6 dB under) and then at -40 (20 dB under)
     let words: Vec<Word> = (0..16).map(|k| Word { text: "w".into(), start: k as f64 * 0.5, end: k as f64 * 0.5 + 0.3 }).collect();
