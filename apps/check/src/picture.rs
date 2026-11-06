@@ -165,6 +165,14 @@ const FLASH_W: usize = 192;
 const FLASH_MOST: usize = 6;
 const FLASH_PAIR_S: f64 = 1.0 + 1e-9;
 
+/// A pixel in one measure: its value, and whether it can count. Red's value runs on through the saturation line, and a change
+/// counts when either end of it is saturated; a one-level step across the line isn't a jump from zero.
+#[derive(Clone, Copy)]
+struct Px {
+    value: f32,
+    counts: bool,
+}
+
 struct Swing {
     at: f64,
     direction: f32,
@@ -179,8 +187,8 @@ struct Swings {
     by: f32,
     under: f32,
     mixed_counts: bool,
-    pivot: Vec<f32>,
-    extreme: Vec<f32>,
+    pivot: Vec<Px>,
+    extreme: Vec<Px>,
     at: f64,
     direction: f32,
     recent: std::collections::VecDeque<Swing>,
@@ -192,15 +200,15 @@ impl Swings {
         Swings { by, under, mixed_counts, pivot: Vec::new(), extreme: Vec::new(), at: 0.0, direction: 0.0, recent: Default::default(), ends: Vec::new() }
     }
 
-    fn moves(&self, a: f32, b: f32, direction: f32) -> bool {
-        (b - a) * direction >= self.by && a.min(b) < self.under
+    fn moves(&self, a: Px, b: Px, direction: f32) -> bool {
+        (b.value - a.value) * direction >= self.by && a.value.min(b.value) < self.under && (a.counts || b.counts)
     }
 
-    fn changed(&self, earlier: &[f32], later: &[f32], direction: f32) -> bool {
+    fn changed(&self, earlier: &[Px], later: &[Px], direction: f32) -> bool {
         earlier.iter().zip(later).filter(|(a, b)| self.moves(**a, **b, direction)).count() * 4 >= earlier.len()
     }
 
-    fn push(&mut self, t: f64, px: &[f32]) {
+    fn push(&mut self, t: f64, px: &[Px]) {
         if self.pivot.is_empty() {
             self.pivot = px.to_vec();
             self.extreme = px.to_vec();
@@ -218,15 +226,21 @@ impl Swings {
             }
             return;
         }
-        let mean = |v: &[f32]| v.iter().sum::<f32>() / v.len() as f32;
         if self.changed(&self.extreme, px, -self.direction) {
             self.record();
             self.pivot = std::mem::replace(&mut self.extreme, px.to_vec());
             self.at = t;
             self.direction = -self.direction;
-        } else if (mean(px) - mean(&self.extreme)) * self.direction > 0.0 && self.changed(&self.pivot, px, self.direction) {
+        } else if self.changed(&self.pivot, px, self.direction) && self.went_further(px) {
             self.extreme = px.to_vec();
         }
+    }
+
+    /// Whether the pixels swinging from the pivot went further than the saved extreme, judged on those pixels alone: the
+    /// rest of the window can dim by less than counts and still outweigh a patch that's flashing.
+    fn went_further(&self, px: &[Px]) -> bool {
+        let further: f32 = self.pivot.iter().zip(px).zip(&self.extreme).filter(|((p, n), _)| self.moves(**p, **n, self.direction)).map(|((_, n), e)| (n.value - e.value) * self.direction).sum();
+        further > 0.0
     }
 
     fn record(&mut self) {
@@ -292,9 +306,9 @@ pub(crate) struct FlashScreen {
     h: usize,
     last: Vec<u8>,
     linear: Vec<f32>,
-    luma: Vec<f32>,
-    red: Vec<f32>,
-    cut: Vec<f32>,
+    luma: Vec<Px>,
+    red: Vec<Px>,
+    cut: Vec<Px>,
     windows: Vec<(usize, usize, Swings, Swings)>,
 }
 
@@ -332,9 +346,9 @@ impl FlashScreen {
         self.red.clear();
         for px in rgb.chunks_exact(3) {
             let (r, g, b) = (self.linear[px[0] as usize], self.linear[px[1] as usize], self.linear[px[2] as usize]);
-            self.luma.push(0.2126 * r + 0.7152 * g + 0.0722 * b);
+            self.luma.push(Px { value: 0.2126 * r + 0.7152 * g + 0.0722 * b, counts: true });
             let sum = r + g + b + 1e-9;
-            self.red.push(if r / sum >= 0.8 { ((r - g - b) * 320.0).max(0.0) } else { 0.0 });
+            self.red.push(Px { value: ((r - g - b) * 320.0).max(0.0), counts: r / sum >= 0.8 });
         }
         let (stride, ww, wh) = (self.w * 2, self.w / 3, self.h / 3);
         for (x, y, general, saturated) in &mut self.windows {

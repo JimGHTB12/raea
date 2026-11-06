@@ -371,3 +371,28 @@ fn a_shape_sliding_past_and_ordinary_cuts_are_not_flashing() {
     assert_eq!(flash_of(3, move |f, x, _| if x < f { white } else { black }), None, "one wipe across the frame");
     assert_eq!(flash_of(4, move |f, _, _| if (f / 30) % 2 == 0 { white } else { black }), None, "a cut every half second");
 }
+
+#[test]
+fn a_patch_strobing_while_its_background_dims_is_still_found() {
+    // a third of a window: 0 then 124 on a 148 background, then the background settles at 124 and the patch cycles 124 and 160.
+    // The background's drop is under the 0.10 that counts, but it outweighs the patch in the window's mean.
+    let found = flash_samples(180, 60.0, |f, _, x, y| {
+        let patch = x < 16 && y < 12;
+        let level = match (patch, f) {
+            (true, 0) => 0,
+            (true, 1) => 124,
+            (true, _) => if (f - 2) * 5 * 2 / 60 % 2 == 0 { 160 } else { 124 },
+            (false, 0 | 1) => 148,
+            (false, _) => 124,
+        };
+        [level, level, level]
+    });
+    assert!(found.is_some(), "the patch flashes five times a second");
+}
+
+#[test]
+fn a_colour_crossing_the_saturation_line_is_not_a_red_flash() {
+    // one level of green moves the pixel across R/(R+G+B) = 0.8 and hardly changes its red at all
+    let found = flash_samples(180, 60.0, |f, _, _, _| if f * 5 * 2 / 60 % 2 == 0 { [100, 49, 0] } else { [100, 50, 0] });
+    assert_eq!(found, None);
+}
