@@ -6,7 +6,7 @@
   `raea render edit.tsx -o final.mp4 --manifest render.json` and
   `raea check final.mp4 --manifest render.json --words words.json --perception perception.json [--platform tiktok]`.
   It measures clipped text, text under a platform's buttons, text over the face, captions on too briefly to read,
-  caption contrast against the pixels behind them, frozen stretches, cues that miss their word, loudness, a sound that
+  caption contrast against the pixels behind them, frozen stretches, flashing past the limit, cues that miss their word, loudness, a sound that
   stops dead or (with `--words`) fights the voice, and encoder blotching in the darks. Each finding is ranked P0 to P3
   with its fix; it exits 1 while a P0 or P1 stands, and `-o check.json` writes them for the critique. An
   exception in the composition (an unclamped value going NaN, keyframes out of order, a phrase `word()` can't find, a

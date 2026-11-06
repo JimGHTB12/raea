@@ -53,7 +53,7 @@ fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
     args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).map(String::as_str)
 }
 
-pub const USAGE: &str = "raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, cues, loudness, blotching, a placeholder brand kit; P0-P3)";
+pub const USAGE: &str = "raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, flashing, cues, loudness, blotching, a placeholder brand kit; P0-P3)";
 
 /// A rule from the person's taste: a form raea can measure, its value, and the taste line it stands for.
 #[derive(Clone, Debug, PartialEq)]
@@ -124,6 +124,7 @@ fn run(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String, bool)
         sound(&video, words.as_deref(), &mut issues, &mut passed)?;
     }
     freezes(&video, &probe, taste_of(&taste, "still-max"), &mut issues, &mut passed)?;
+    flashing(&video, &probe, &mut issues, &mut passed)?;
     blotching(&video, &probe, &mut issues, &mut passed)?;
     brand_kit(&[flag(args, "--manifest").unwrap_or(""), video.as_str()], &mut issues, &mut passed);
     if let Some(manifest) = &manifest {
