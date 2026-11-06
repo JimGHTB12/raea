@@ -13,7 +13,8 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let code = match args.first().map(String::as_str) {
         // `check VIDEO.mp4 …`: the floor's measurable lines on an export, ranked P0-P3
-        Some("check") => raea_app_check::cli(&args[1..]),
+        // (with --taste or --quick, through the engine, which evaluates the taste.ts files or renders stills: raea_cli's `check`)
+        Some("check") if !args.iter().any(|a| a == "--taste" || a == "--quick") => raea_app_check::cli_with(&args[1..], Vec::new()),
         // `ci …`: the gates' sound measurements and lightspeed's process measurements
         Some("ci") => raea_app_ci::cli(&args[1..]),
         _ => {

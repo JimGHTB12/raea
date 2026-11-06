@@ -1166,6 +1166,7 @@ pub(crate) fn build_inline_layout_into(
         builder.push_text(close);
     }
     text_layout.text = builder.build_into(&mut text_layout.layout);
+    text_layout.text_nodes = std::mem::take(&mut text_transformer.texts);
     return;
 
     fn build_inline_layout_recursive(
@@ -1394,7 +1395,9 @@ pub(crate) fn build_inline_layout_into(
                 let bidi = if keeps_newlines { std::mem::take(&mut text_transformer.bidi) } else { Vec::new() };
                 let text =
                     text_transformer.transform(&data.content, parent_text_transform, builder);
+                let start = builder.text().len();
                 builder.push_text(&bidi_newlines(text, &bidi));
+                text_transformer.texts.push((node_id, start, builder.text().len()));
                 if keeps_newlines {
                     text_transformer.bidi = bidi;
                 }

@@ -13,8 +13,12 @@ pub(crate) fn program(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64) -> raea
         r.insert("id".into(), V::S(id.into()));
         r
     };
-    let clear = frames.first().and_then(|(_, f)| f.clear.clone()).and_then(|c| hex_of(&c)).unwrap_or("#000000".into());
+    // --alpha: nothing under the pages, so what the composition leaves empty stays transparent
+    let clear = if ALPHA.load(std::sync::atomic::Ordering::Relaxed) { "#00000000".into() } else { frames.first().and_then(|(_, f)| f.clear.clone()).and_then(|c| hex_of(&c)).unwrap_or("#000000".into()) };
     let has3d = frames.iter().any(|(_, f)| !f.scene.is_empty());
+    if has3d && ALPHA.load(std::sync::atomic::Ordering::Relaxed) {
+        eprintln!("raea: --alpha keeps 2D pages and <Video> clips transparent; the frames with 3D are drawn over the 3D and come out opaque");
+    }
     let mut cam = row("cam", vec![("bg", V::S(clear))]);
     if has3d {
         // where it is and looks, frame by frame; its lens, ambient light and post-processing (scene3d)

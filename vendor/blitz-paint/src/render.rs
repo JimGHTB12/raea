@@ -20,7 +20,7 @@ use crate::text::DrawTextContext;
 use crate::{CustomWidgetSceneMap, SELECTION_COLOR};
 use anyrender::{PaintScene, Scene};
 use blitz_dom::node::{
-    ListItemLayout, ListItemLayoutPosition, Marker, NodeData, RasterImageData, TextInputData,
+    ListItemLayout, ListItemLayoutPosition, NodeData, RasterImageData, TextInputData,
     TextNodeData,
 };
 use blitz_dom::{BaseDocument, ElementData, Node, NodeId, local_name};
@@ -1641,15 +1641,12 @@ impl ElementCx<'_, '_> {
             );
 
             // Render text selection highlight (if any) using cached selection ranges
-            if let Some(&(sel_start, sel_end)) = self.context.selection_ranges.get(&self.node.id) {
-                crate::text::draw_text_selection(
-                    scene,
-                    &text_layout.layout,
-                    transform,
-                    sel_start,
-                    sel_end,
-                );
-            }
+            // raea: in the inline root's ::selection background, and its glyphs in the ::selection colour when that
+            // isn't the text's own (as Chrome keeps the text's colours under its default highlight)
+            let (sel_fill, sel_ink) = self.selection_colors();
+            let selected = self.context.selection_ranges.get(&self.node.id).map(|&(sel_start, sel_end)| {
+                crate::text::draw_text_selection(scene, &text_layout.layout, transform, sel_start, sel_end, sel_fill)
+            });
 
             // Render text
             let mut draw_text_context = self.context.draw_text_context.borrow_mut();
@@ -1672,9 +1669,47 @@ impl ElementCx<'_, '_> {
                 self.node.id,
                 &mut draw_text_context,
             );
+            if let (Some(path), Some(ink)) = (selected.filter(|p| !p.elements().is_empty()), sel_ink) {
+                scene.push_clip_layer(Fill::NonZero, transform, &path);
+                draw_text_context.color = Some(ink);
+                let lines = text_layout.layout.lines().take(keep.unwrap_or(usize::MAX));
+                crate::text::stroke_text(scene, lines, self.context.dom, transform, self.scale, self.node.id, &mut draw_text_context);
+                draw_text_context.color = None;
+                scene.pop_layer();
+            }
             draw_text_context.ellipsis = None;
             draw_text_context.clamp = None;
+            drop(draw_text_context);
+
+            // raea: a contenteditable's caret (BaseDocument::caret), 1px wide in the caret colour, as a text input's
+            if let Some((root, byte)) = self.context.dom.caret
+                && root == self.node.id
+            {
+                let layout = &text_layout.layout;
+                let cursor = parley::Cursor::from_byte_index(layout, byte.min(text_layout.text.len()), parley::Affinity::Downstream);
+                let rect = cursor.geometry(layout, self.scale as f32);
+                let color = self.style.get_inherited_text().color;
+                let caret_color = match &self.style.get_inherited_ui().caret_color.0 {
+                    ColorOrAuto::Auto => color,
+                    ColorOrAuto::Color(c) => c.resolve_to_absolute(&color),
+                };
+                scene.fill(Fill::NonZero, transform, caret_color.as_srgb_color(), None, &convert_rect(&rect));
+            }
         }
+    }
+
+    /// raea: the element's ::selection background (Blitz's default highlight while it's transparent) and its colour,
+    /// None when that's the element's own colour (its text keeps its colours then, as under Chrome's default)
+    fn selection_colors(&self) -> (Color, Option<Color>) {
+        let data = self.node.try_stylo_element_data().and_then(|d| d.get());
+        let Some(sel) = data.as_ref().and_then(|d| d.styles.pseudos.get(&style::selector_parser::PseudoElement::Selection)) else {
+            return (SELECTION_COLOR, None);
+        };
+        let own = self.style.get_inherited_text().color;
+        let ink = sel.get_inherited_text().color;
+        let fill = sel.get_background().background_color.resolve_to_absolute(&ink);
+        let fill = if fill.alpha == 0.0 { SELECTION_COLOR } else { fill.as_srgb_color() };
+        (fill, (ink != own).then(|| ink.as_srgb_color()))
     }
 
     fn draw_text_input_text(&self, scene: &mut impl PaintScene, pos: Point) {
@@ -1801,20 +1836,16 @@ impl ElementCx<'_, '_> {
 
     fn draw_marker(&self, scene: &mut impl PaintScene, pos: Point) {
         if let Some(ListItemLayout {
-            marker,
             position: ListItemLayoutPosition::Outside(layout),
+            ..
         }) = self.list_item
         {
-            // Right align and pad the bullet when rendering outside
-            let x_padding = match marker {
-                Marker::Char(_) => 8.0,
-                Marker::String(_) => 0.0,
-            };
+            // Right align the bullet when rendering outside (raea: with no pad: a char marker carries its space, as a
+            // string marker does, blitz-dom layout/list.rs)
             // Outside markers are placed outside the list item's border box
             // (`pos` is the origin of its content box)
             let item_layout = self.node.final_layout();
             let x_offset = -(layout.full_width() / layout.scale()
-                + x_padding
                 + item_layout.padding.left
                 + item_layout.border.left);
 
@@ -1842,6 +1873,8 @@ impl ElementCx<'_, '_> {
                 self.transform * Affine::translate((pos.x * self.scale, pos.y * self.scale));
 
             let mut draw_text_context = self.context.draw_text_context.borrow_mut();
+            // raea: in the ::marker colour (the item's text colour when no rule sets one)
+            draw_text_context.color = self.context.dom.marker_style(self.node.id).map(|m| m.get_inherited_text().color.as_srgb_color());
             crate::text::stroke_text(
                 scene,
                 layout.lines(),
@@ -1851,6 +1884,7 @@ impl ElementCx<'_, '_> {
                 self.node.id,
                 &mut draw_text_context,
             );
+            draw_text_context.color = None;
         }
     }
 
@@ -1913,12 +1947,14 @@ impl ElementCx<'_, '_> {
                     x: position.x as f64 * self.scale,
                     y: position.y as f64 * self.scale,
                 };
+                let clips = self.hoisted_clips(scene, hoisted_child.node_id, parent_style_transform);
                 self.render_node(
                     scene,
                     hoisted_child.node_id,
                     parent_style_transform.pre_translate(pos),
                     clip_rect,
                 );
+                (0..clips).for_each(|_| scene.pop_layer());
             }
         }
 
@@ -1942,14 +1978,58 @@ impl ElementCx<'_, '_> {
                     x: position.x as f64 * self.scale,
                     y: position.y as f64 * self.scale,
                 };
+                let clips = self.hoisted_clips(scene, hoisted_child.node_id, parent_style_transform);
                 self.render_node(
                     scene,
                     hoisted_child.node_id,
                     parent_style_transform.pre_translate(pos),
                     clip_rect,
                 );
+                (0..clips).for_each(|_| scene.pop_layer());
             }
         }
+    }
+
+    /// raea: a hoisted child (a z-index's, painted from its stacking-context root) under the overflow clips of the
+    /// boxes between it and that root along its containing blocks, as Chrome clips it: each one's padding box, from
+    /// the root, pushed as a clip layer. Returns how many were pushed. Drawn from the root alone it painted past them
+    /// (Excalidraw's frame names, `z-index: 2` in its `overflow: hidden` editor, over the page around it).
+    fn hoisted_clips(&self, scene: &mut impl PaintScene, child: NodeId, transform: Affine) -> usize {
+        let tree = self.node.tree();
+        let root = self.node.id;
+        let mut pushed = 0;
+        let mut current = tree[child].containing_block();
+        while let Some(id) = current.filter(|id| *id != root) {
+            let Some(node) = tree.get(id) else { break };
+            current = node.containing_block();
+            let Some(styles) = node.primary_styles() else { continue };
+            let (x, y) = (styles.get_box().overflow_x, styles.get_box().overflow_y);
+            let (cx, cy) = (!matches!(x, Overflow::Visible), !matches!(y, Overflow::Visible));
+            if !cx && !cy {
+                continue;
+            }
+            // its border box from the root: its place and those of the boxes it's in, less what they're scrolled by
+            let layout = node.final_layout();
+            let mut at = Vec2::new(layout.location.x as f64, layout.location.y as f64);
+            let mut up = node.containing_block();
+            while let Some(a) = up.filter(|a| *a != root) {
+                let Some(an) = tree.get(a) else { break };
+                let (l, sc) = (an.final_layout().location, *an.scroll_offset());
+                at += Vec2::new(l.x as f64 - sc.x, l.y as f64 - sc.y);
+                up = an.containing_block();
+            }
+            let b = layout.border;
+            let far = 1e7;
+            let pad = Rect::new(
+                if cx { at.x + b.left as f64 } else { -far },
+                if cy { at.y + b.top as f64 } else { -far },
+                if cx { at.x + (layout.size.width - b.right) as f64 } else { far },
+                if cy { at.y + (layout.size.height - b.bottom) as f64 } else { far },
+            );
+            scene.push_clip_layer(Fill::NonZero, transform, &pad.scale_from_origin(self.scale));
+            pushed += 1;
+        }
+        pushed
     }
 
     #[cfg(feature = "svg")]

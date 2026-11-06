@@ -5,7 +5,7 @@
 // probe: 32 32 g>100 r<40 b<40
 // probe: 4 4 g<20
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { ToneMapping, Canvas3D, Model } from "raea/3d";
+import { ToneMapping, Model } from "raea/3d";
 import { AmbientLight, DirectionalLight } from "raea/light";
 import { Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
@@ -19,7 +19,7 @@ fn lit(in: VertexOutput, pbr: PbrInput, color: vec4<f32>) -> vec4<f32> {
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 4).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.698131700797732 } }} />
         <ToneMapping mode="none" />
         <AmbientLight brightness={120} />
@@ -27,7 +27,7 @@ function Shot() {
         <Model src="lit-card.gltf">
           <ExtendedMaterial base={<StandardMaterial material="card" />} extension={<ShaderExtension {...({ wesl })} />} />
         </Model>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

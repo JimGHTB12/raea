@@ -188,7 +188,10 @@ impl Resolver {
         let resources = &encoding.resources;
         if resources.patches.is_empty() {
             let layout = resolve_solid_paths_only(encoding, packed);
-            return (layout, Ramps::default(), Images::default());
+            // raea: the atlas as it is, nothing to upload. Images::default() said 0x0, and the renderer swapped its
+            // persistent atlas for a 1x1 one, so the next scene with images found them "clean" in a new, empty atlas
+            // and drew them blank (a page with an SVG mask: the mask's filtered layer is a solid-only scene)
+            return (layout, Ramps::default(), self.image_cache.unchanged());
         }
         let patch_sizes = self.resolve_patches(encoding);
         self.resolve_pending_images();

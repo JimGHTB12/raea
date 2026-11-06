@@ -43,7 +43,7 @@ pub fn guide(name: Option<&str>) -> R<String> {
     Ok(if shell { format!("{GUIDE_NOTE}{text}") } else { text })
 }
 
-/// The taste files a mode reads beside taste.brief, which is always read
+/// The taste files a mode reads beside taste.ts, which is always read
 pub fn taste_kinds(mode: &str) -> &'static [&'static str] {
     match mode {
         "pitch" | "explain" | "story" => &["motion", "sound"],
@@ -53,86 +53,65 @@ pub fn taste_kinds(mode: &str) -> &'static [&'static str] {
     }
 }
 
-/// A brief's head facts (the `key: value` lines before its first `## `), "(assumed)" dropped
-pub fn brief_fact(text: &str, key: &str) -> Option<String> {
-    text.lines()
-        .take_while(|l| !l.starts_with("## "))
-        .find_map(|l| {
-            let (k, v) = l.split_once(':')?;
-            (k.trim().eq_ignore_ascii_case(key)).then(|| v.trim().trim_end_matches("(assumed)").trim().to_string())
-        })
-        .filter(|v| !v.is_empty())
-}
-
-/// One `## Heading` section's text, without its heading
-pub fn brief_section(text: &str, heading: &str) -> Option<String> {
-    let mut out = String::new();
-    let mut inside = false;
-    for l in text.lines() {
-        if let Some(h) = l.strip_prefix("## ") {
-            if inside {
-                break;
-            }
-            inside = h.trim().eq_ignore_ascii_case(heading);
-            continue;
-        }
-        if inside {
-            out.push_str(l);
-            out.push('\n');
-        }
-    }
-    let out = out.trim().to_string();
-    (!out.is_empty()).then_some(out)
-}
-
 /// `raea context PROJECT`: everything an agent reads before working on a project, in the order it should be read. That
-/// is the person's taste (~/.raea/taste/taste.brief, then the files its modes need; RAEA_TASTE moves the folder), the
-/// project's brief and any deliverable briefs it links, its look (the brief's ## Look and brand/brand.css), and the
-/// craft floor and each mode's guide. PROJECT is a folder holding brief.brief, or a .brief file.
+/// is the person's taste (~/.raea/taste/taste.ts, then the files its modes need; RAEA_TASTE moves the folder), the
+/// project's brief and the briefs and script it names, its look (the brief's look and brand/brand.css), and the craft
+/// floor and each mode's guide. PROJECT is a folder holding brief.ts, or the file.
 pub fn context(project: Option<&str>) -> R<String> {
-    let project = project.ok_or("usage: raea context PROJECT (a folder with brief.brief, or a .brief file)")?;
-    let path = Path::new(project);
-    let brief_path = if path.is_dir() { path.join("brief.brief") } else { path.to_path_buf() };
-    let brief = std::fs::read_to_string(&brief_path).map_err(|e| format!("no brief at {} ({e}): a project starts as brief.brief", brief_path.display()))?;
+    let project = project.ok_or("usage: raea context PROJECT (a folder with brief.ts, or a brief.ts file)")?;
+    let brief_path = brief_at(project)?;
+    let spec::Loaded { path: brief_path, text: brief, title, modes, more: subs, look, .. } = spec::load_brief_ts(&brief_path)?;
     let dir = brief_path.parent().unwrap_or(Path::new(".")).to_path_buf();
-    let title = brief.lines().find_map(|l| l.strip_prefix("# ")).unwrap_or("Untitled").trim().to_string();
-    let modes_of = |text: &str| -> Vec<String> {
-        brief_fact(text, "mode").map(|m| m.split([',', '+', '&']).map(|s| s.trim().to_ascii_lowercase()).filter(|s| !s.is_empty()).collect()).unwrap_or_default()
-    };
-    // deliverable briefs: a Deliver line naming a .brief beside the project's
-    let mut subs: Vec<(PathBuf, String)> = Vec::new();
-    if let Some(deliver) = brief_section(&brief, "deliver") {
-        for tok in deliver.split(['·', '\n']).map(str::trim) {
-            let tok = tok.split(['→', ' ']).next().unwrap_or("").trim();
-            if tok.ends_with(".brief") {
-                let p = dir.join(tok);
-                match std::fs::read_to_string(&p) {
-                    Ok(t) => subs.push((p, t)),
-                    Err(e) => subs.push((p, format!("(missing: {e})"))),
-                }
-            }
-        }
-    }
-    let mut modes = modes_of(&brief);
-    for (_, t) in &subs {
-        for m in modes_of(t) {
-            if !modes.contains(&m) {
-                modes.push(m);
-            }
-        }
-    }
     let taste_dir = std::env::var_os("RAEA_TASTE").map(PathBuf::from).or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".raea/taste")));
+    // a cheap doctor (file reads and git config): CONTEXT_STALE when this project or the agent's skill is from another raea
+    let stale = raea_app_workspace::doctor::findings(&dir, &skill::agents(), &skill::version());
+    let stale = match stale.first() {
+        Some(f) => format!("CONTEXT_STALE  raea doctor finds {} thing(s), first: {} (raea doctor --fix)\n\n", stale.len(), f.says),
+        None => String::new(),
+    };
     let mut out = format!(
-        "# raea context: {title}\n\nRead all of this before any work on the project, in this order. The person's taste beats every guide's default; the brief\nbeats your own taste. Modes: {}.\n",
+        "{stale}# raea context: {title}\n\nRead all of this before any work on the project, in this order. The person's taste beats every guide's default; the brief\nbeats your own taste. Modes: {}.\n",
         if modes.is_empty() { "none yet (shape the brief first: who it's for, what they should believe, what kind of piece)".to_string() } else { modes.join(", ") }
     );
+    context_body(&mut out, &dir, taste_dir, &modes, &brief_path, brief, subs, look);
+    Ok(out)
+}
+
+/// `raea next [DIR]`: the two or three useful next steps for the project (apps/workspace next.rs).
+pub fn next(args: &[String]) -> R<String> {
+    let brief_path = brief_at(args.first().map(String::as_str).unwrap_or("."))?;
+    let l = spec::load_brief_ts(&brief_path)?;
+    let dir = brief_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+    let stale = raea_app_workspace::doctor::findings(&dir, &skill::agents(), &skill::version()).len();
+    Ok(raea_app_workspace::next::text(&dir, &raea_app_workspace::next::Brief { needs: l.missing, modes: l.modes }, stale))
+}
+
+/// The brief.ts for a folder anywhere inside a project, or the file named.
+fn brief_at(project: &str) -> R<PathBuf> {
+    let path = Path::new(project);
+    let brief_path = if path.is_dir() {
+        // from anywhere inside a project: the nearest folder up with a brief.ts or a .raea/project
+        let dir = path.canonicalize().ok().and_then(|d| d.ancestors().find(|a| a.join("brief.ts").is_file() || a.join(".raea/project").is_file()).map(Path::to_path_buf));
+        dir.unwrap_or_else(|| path.to_path_buf()).join("brief.ts")
+    } else {
+        path.to_path_buf()
+    };
+    if !brief_path.is_file() {
+        return Err(format!("no brief at {}: a project starts as brief.ts (`export default brief({{ title: ... }})` from \"raea/brief\")", brief_path.display()));
+    }
+    Ok(brief_path)
+}
+
+/// The sections of `raea context` after its head, in reading order.
+#[allow(clippy::too_many_arguments)]
+fn context_body(out: &mut String, dir: &Path, taste_dir: Option<PathBuf>, modes: &[String], brief_path: &Path, brief: String, subs: Vec<(PathBuf, String)>, look: Option<String>) {
     let mut section = |name: String, body: String| out.push_str(&format!("\n\n===== {name} =====\n\n{}\n", body.trim_end()));
-    // the person's taste: always taste.brief, then each kind its modes need, once
-    match &taste_dir {
-        Some(t) if t.join("taste.brief").is_file() => {
-            section(format!("TASTE {}", t.join("taste.brief").display()), std::fs::read_to_string(t.join("taste.brief")).unwrap_or_default());
+    // the person's taste: always taste.ts, then each kind its modes need, once
+    match taste_dir.as_deref().and_then(|t| spec::taste_file(t, "taste").map(|f| (t, f))) {
+        Some((t, (p, text))) => {
+            section(format!("TASTE {}", p.display()), text);
             let mut kinds: Vec<&str> = Vec::new();
-            for m in &modes {
+            for m in modes {
                 for k in taste_kinds(m) {
                     if !kinds.contains(k) {
                         kinds.push(k);
@@ -140,20 +119,27 @@ pub fn context(project: Option<&str>) -> R<String> {
                 }
             }
             for k in kinds {
-                let p = t.join(format!("{k}.brief"));
-                if let Ok(text) = std::fs::read_to_string(&p) {
+                if let Some((p, text)) = spec::taste_file(t, k) {
                     section(format!("TASTE {}", p.display()), text);
                 }
             }
         }
-        _ => section("TASTE".into(), "(no taste yet: ~/.raea/taste/taste.brief holds the person's standing corrections)".into()),
+        None => section("TASTE".into(), "(no taste yet: ~/.raea/taste/taste.ts holds the person's standing corrections)".into()),
+    }
+    // the workspace's house rules, which every project in it follows (docs/projects.feature)
+    if let Some((p, text)) = raea_app_workspace::up(&dir, ".raea/workspace").and_then(|ws| spec::taste_file(&ws, "taste")) {
+        section(format!("WORKSPACE TASTE {}", p.display()), text);
+    }
+    // the workspace's controllers, with this project's overrides: its settings and workflows, which the work follows
+    if let Some(text) = raea_app_workspace::summary(&dir, spec::spec_json) {
+        section("CONTROLLERS (raea controller ls; a project's own values marked)".into(), text);
     }
     section(format!("BRIEF {}", brief_path.display()), brief.clone());
     for (p, t) in &subs {
-        section(format!("BRIEF {}", p.display()), t.clone());
+        section(format!("{} {}", if p.to_string_lossy().contains("script") { "SCRIPT" } else { "BRIEF" }, p.display()), t.clone());
     }
     // the look: the brief's own section, and the brand's tokens when the project has them
-    let mut look = brief_section(&brief, "look").unwrap_or_else(|| "(the brief has no ## Look yet)".into());
+    let mut look = look.unwrap_or_else(|| "(the brief has no look yet)".into());
     if let Ok(css) = std::fs::read_to_string(dir.join("brand/brand.css")) {
         look.push_str(&format!("\n\nbrand/brand.css:\n{css}"));
     }
@@ -163,12 +149,11 @@ pub fn context(project: Option<&str>) -> R<String> {
     if let Ok(t) = std::fs::read_to_string(craft.join("floor.md")) {
         section(format!("GUIDE craft floor ({})", craft.join("floor.md").display()), t);
     }
-    for m in &modes {
+    for m in modes {
         let p = craft.join("modes").join(format!("{m}.md"));
         match std::fs::read_to_string(&p) {
             Ok(t) => section(format!("GUIDE mode {m} ({})", p.display()), t),
             Err(_) => section(format!("GUIDE mode {m}"), format!("(raea has no guide for the mode {m:?} yet)")),
         }
     }
-    Ok(out)
 }

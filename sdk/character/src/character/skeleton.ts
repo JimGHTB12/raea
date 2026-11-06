@@ -1,6 +1,6 @@
 // The skeleton: joints, rest, posing.
 import { type Vec3 } from "@raea/render/3d";
-import { I, Pose, Posed, Quat, Skeleton, add, qfromTo, qinv, qmul, qnorm, qrot, sub } from "./all";
+import { B, I, Pose, Posed, Quat, Skeleton, add, isFinger, qfromTo, qinv, qmul, qnorm, qrot, sub } from "./all";
 
 // ---------------------------------------------------------------- the skeleton
 
@@ -21,17 +21,17 @@ export function joint(skel: Skeleton, name: string): number {
  * faster. */
 export function bodyScale(skel: Skeleton): number {
   const J = (n: string) => skel.joints[joint(skel, n)].head, d = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-  return (d(J("LeftUpLeg"), J("LeftLeg")) + d(J("LeftLeg"), J("LeftFoot"))) / 0.5944;
+  return (d(J(B.thigh("L")), J(B.calf("L"))) + d(J(B.calf("L")), J(B.foot("L")))) / 0.5944;
 }
 
-/** How many of the skeleton's joints a capture turns (CMU's 31): the fingers' own joints come after them, and a clip's
- * frames have a turn for each of these only. */
+/** How many of the skeleton's joints a capture turns: the body's (bones.ts BODY_JOINTS), the fingers' coming after
+ * them, and a clip's frames have a turn for each of these only. */
 const capturedOf = new WeakMap<Skeleton, number>();
 
 export function captured(skel: Skeleton): number {
   let k = capturedOf.get(skel);
   if (k === undefined) {
-    k = skel.joints.findIndex((j) => j.follow !== undefined);
+    k = skel.joints.findIndex((j) => isFinger(j.name));
     capturedOf.set(skel, (k = k < 0 ? skel.joints.length : k));
   }
   return k;
@@ -43,12 +43,9 @@ export function rest(skel: Skeleton): Pose {
   return { root: [...skel.joints[0].head] as Vec3, turns: skel.joints.slice(0, captured(skel)).map(() => I) };
 }
 
-/** Each joint's place and turn (forward kinematics). Parents come before their children in the skeleton. A finger's
- * own joint (`follow`) turns on top of the chain its skin rode before: unturned (every clip), it is carried exactly
- * as the joint it follows carries it, so a finger rides the capture's finger base and finger as it always did; turned,
- * it bends from there down its own chain. A pose that turns none of them (a clip's: as many turns as the capture's
- * joints) is drawn without them, the capture's joints placing them (`withFingers`; the skin, fingerSegments and
- * surface add them): they cost three times a joint, and the solvers pose a body thousands of times a run. */
+/** Each joint's place and turn (forward kinematics). Parents come before their children in the skeleton. A pose that
+ * turns only the body's joints (a clip's) is drawn without the fingers (`withFingers` adds them, unturned): they cost
+ * more than the body, and the solvers pose a body thousands of times a run. */
 export function pose(skel: Skeleton, p: Pose): Posed {
   const nc = captured(skel), n = p.turns.length > nc ? skel.joints.length : nc;
   return place(skel, p.turns, { pos: new Array(n), rot: new Array(n) }, 0, n, p.root);
@@ -62,22 +59,14 @@ export function withFingers(skel: Skeleton, w: Posed): Posed {
 
 export function place(skel: Skeleton, turns: Quat[], w: Posed, from: number, to: number, root: Vec3): Posed {
   const J = skel.joints, { pos, rot } = w;
-  // where the old chain puts a finger's joint: rigid on the joint it follows
-  const rig = (i: number) => { const f = J[i].follow; return f === undefined ? pos[i] : add(pos[f], qrot(rot[f], sub(J[i].head, J[f].head))); };
   for (let i = from; i < to; i++) {
-    const t = turns[i] ?? I, par = J[i].parent, f = J[i].follow;
+    const t = turns[i] ?? I, par = J[i].parent;
     if (par < 0) {
       rot[i] = t;
       pos[i] = root;
-    } else if (f === undefined) {
+    } else {
       rot[i] = qmul(rot[par], t);
       pos[i] = add(pos[par], qrot(rot[par], sub(J[i].head, J[par].head)));
-    } else {
-      // its turn and step from the parent's place on the old chain, both carried by the parent as it is: unturned,
-      // parents and all, that is the old chain exactly
-      const pf = J[par].follow ?? par, back = qinv(rot[pf]);
-      rot[i] = qmul(qmul(rot[par], qmul(back, rot[f])), t);
-      pos[i] = add(pos[par], qrot(rot[par], qrot(back, sub(rig(i), rig(par)))));
     }
   }
   return w;
@@ -85,12 +74,10 @@ export function place(skel: Skeleton, turns: Quat[], w: Posed, from: number, to:
 
 /** A copy of a pose with joint i's turn in the body's frame made `world` (its children ride with it). */
 export function setWorld(skel: Skeleton, p: Pose, w: Posed, i: number, world: Quat): Pose {
-  const J = skel.joints, par = J[i].parent, f = J[i].follow;
-  if (f !== undefined) w = withFingers(skel, w);
+  const par = skel.joints[i].parent;
+  if (par >= w.rot.length || i >= w.rot.length) w = withFingers(skel, w);
   const turns = p.turns.slice();
-  // (a finger's joint turns on top of the old chain's turn: see `pose`)
-  const from = par < 0 ? I : f === undefined ? w.rot[par] : qmul(w.rot[par], qmul(qinv(w.rot[J[par].follow ?? par]), w.rot[f]));
-  turns[i] = qnorm(qmul(qinv(from), world));
+  turns[i] = qnorm(qmul(qinv(par < 0 ? I : w.rot[par]), world));
   return { ...p, turns };
 }
 

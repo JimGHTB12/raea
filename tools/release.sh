@@ -39,6 +39,27 @@ esac
 name=raea-$version-$platform
 stage=$(mktemp -d)/raea
 mkdir -p "$stage/bin" "$stage/share/raea" "$out"
+# the skills gate (docs/skills.feature SK9): the committed tree at REF against this release's raea, so a stale reference,
+# a retired word, a flag no verb takes or a dead link refuses the release
+gate=$(mktemp -d)
+git archive "$ref" | tar -x -C "$gate"
+git -C "$gate" init -q && git -C "$gate" add -A && git -C "$gate" -c user.name=release -c user.email=release@raea.io commit -qm "$ref" --no-verify
+raea_bin=$bin/raea; [ -f "$raea_bin.exe" ] && raea_bin=$raea_bin.exe
+if ! (cd "$gate" && SKILLS_STRICT=1 SKILLS_CHANGED= RAEA_BIN="$raea_bin" RAEA_APP="$root/apps/app" RAEA_APP_REV="$(git -C "$root" rev-parse "$ref:apps/app")" bash tools/skills.sh check); then
+  echo "release.sh: tools/skills.sh check failed on $ref with $raea_bin; fix the skills (tools/skills.sh gen) before releasing" >&2
+  rm -rf "$gate"
+  exit 1
+fi
+rm -rf "$gate"
+# the skills' changes since the last release, for its notes (SK9): RAEA_SINCE names where that was (a ref, or a date
+# like 2026-10-31), else the last v* tag; written beside the archive as raea-VERSION-skills.md
+since=${RAEA_SINCE:-$(git describe --tags --abbrev=0 --match 'v*' "$ref" 2>/dev/null || true)}
+{
+  echo "## The agent skills and guides, since ${since:-the start}"
+  echo
+  if [ -z "$since" ]; then range=("$ref"); elif git rev-parse -q --verify "$since^{commit}" >/dev/null; then range=("$since..$ref"); else range=(--since="$since" "$ref"); fi
+  git log --no-merges --format='- %s' "${range[@]}" -- sdk/skills sdk/guides ':!sdk/skills/raea-work' | cut -c1-200
+} > "$out/raea-$version-skills.md"
 case $platform in
   linux-x86_64)
     cp "$bin/raea" "$bin/libraea_bundle.so" "$stage/bin/"
@@ -69,7 +90,7 @@ done
 # (@raea/ui, the page's DOM every render goes through, isn't an @raea/<name> path, so it's named here)
 git archive "$ref" sdk/tsconfig.base.json sdk/ui/src sdk/ui/package.json sdk/ui/bevy sdk/raea/src sdk/raea/library sdk/raea/package.json sdk/react/js/src sdk/react/js/lite sdk/react/js/shims sdk/react/js/package.json sdk/react/js/tsconfig.json sdk/shell/src \
   "${pkgs[@]}" \
-  tools/tokensynth tools/sao tools/goo tools/splat tools/matchmove sdk/guides/craft docs/sdk-coverage.md engine/cli/template/theme.css ':(glob)engine/cli/src/*.ts' \
+  tools/tokensynth tools/sao tools/goo tools/splat tools/matchmove tools/ensure.sh sdk/guides/craft docs/sdk-coverage.md engine/cli/template/theme.css ':(glob)engine/cli/src/*.ts' \
   | tar -x -C "$stage/share/raea"
 # a folder copied as it is here (links kept, as rsync -a; tar, since Git's bash on Windows has no rsync)
 copy() { mkdir -p "$2" && tar -C "$(dirname "$1")" --exclude .cache -cf - "$(basename "$1")" | tar -C "$2" -xf -; }
@@ -91,6 +112,11 @@ cp -RL "$skills/sdk/skills" "$stage/share/raea/skills"
 copy sdk/react/js/node_modules "$stage/share/raea/sdk/react/js"
 rm -rf "$stage/share/raea/tools/tokensynth/__pycache__" "$skills"
 printf '%s\n' "$version" > "$stage/share/raea/VERSION"
+# each skill's front matter names the raea it shipped with, so an agent holding an older or newer copy than its raea
+# can tell, and reads `raea skill` instead (docs/skills.feature SK6; `raea skills install` stamps the same way)
+for md in "$stage"/share/raea/skills/*/SKILL.md; do
+  perl -0pi -e 's/\A---\n(.*?)\n---\n/"---\n" . join("\n", grep { !\/^version:\/ } split(\/\n\/, $1)) . "\nversion: '"$version"'\n---\n"/se' "$md"
+done
 if [ $platform = windows-x86_64 ]; then
   archive=$name.zip
   rm -f "$out/$archive"

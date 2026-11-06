@@ -4,9 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "FSL-1.1-ALv2"
 publish = false
-description = "Made assets: a composition's make(model, prompt, seed, params) kept once under its content hash, from the local models (SAO, TokenSynth, splats, matchmove) or raea's API"
-
-[features]
+description = "Made assets: a composition's make(model, prompt, seed, params) kept once under its content hash, from the local models (SAO, TokenSynth, splats, matchmove)"
 
 [dependencies]
 raea-io-home = { path = "../home" }

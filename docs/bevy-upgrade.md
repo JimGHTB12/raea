@@ -15,9 +15,10 @@ pinned in rust-toolchain.toml at the root (1.97.1, what 0.20 was ported and veri
 in every checkout and on the CI runner; Homebrew's rust is uninstalled so nothing on PATH comes ahead of them. A bump
 that needs a newer rustc moves that pin in the same branch.
 
-## The pipeline: three subagents
+## The pipeline: three lanes
 
-When a Bevy release comes out, run these three in order (they live in .claude/agents/, and each reads this file):
+When a Bevy release comes out, run these three in order as lanes, `tools/agents/agent start bevy-scout` and so on (their briefs
+are docs/handoff/bevy-{scout,porter,verifier}.md, and each reads this file):
 
 1. **bevy-scout** (read-only): can raea move yet? It compares crates.io against the pins, names the plugins that
    haven't caught up, picks out the migration-guide items that hit raea's code, and checks whether upstream now covers

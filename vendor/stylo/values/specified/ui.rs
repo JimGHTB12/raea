@@ -274,21 +274,16 @@ pub enum MozTheme {
 pub enum PointerEvents {
     Auto,
     None,
-    #[cfg(feature = "gecko")]
+    // raea: SVG's keywords for Servo too (Gecko-only upstream). Excalidraw's UI sets `pointer-events: all` on its
+    // buttons under a `none` layer; unparsed, they inherited `none` and every click fell through to the canvas.
+    // On HTML elements each acts as `auto`, as in Chrome.
     Visiblepainted,
-    #[cfg(feature = "gecko")]
     Visiblefill,
-    #[cfg(feature = "gecko")]
     Visiblestroke,
-    #[cfg(feature = "gecko")]
     Visible,
-    #[cfg(feature = "gecko")]
     Painted,
-    #[cfg(feature = "gecko")]
     Fill,
-    #[cfg(feature = "gecko")]
     Stroke,
-    #[cfg(feature = "gecko")]
     All,
 }
 

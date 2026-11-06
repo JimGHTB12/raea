@@ -7,7 +7,7 @@
 // probe: 14 32 r>120 g<60 b<60
 // probe: 56 32 r<20 g<20 b<20
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { BevyComponent, Canvas3D, Entity } from "raea/3d";
+import { BevyComponent, Entity } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { Lighting2d, PointLight2d } from "raea/plugins/light_2d";
@@ -15,7 +15,7 @@ import { Lighting2d, PointLight2d } from "raea/plugins/light_2d";
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 5).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }} />
         <Entity position={[32, -32, 0]}>
           <BevyComponent type="raea_sys_sprite::Draws2d" value={{}} />
@@ -27,7 +27,7 @@ function Shot() {
         <Entity>
           <Lighting2d value={{ color: [1, 1, 1], brightness: 0 }} />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

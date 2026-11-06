@@ -1,4 +1,4 @@
-# Sound: Audio, sao and fish, the music bus, gains, fades, Mix
+# Sound: Audio, sao and Speech, the music bus, gains, fades, Mix
 
 ## What to do
 
@@ -20,8 +20,9 @@
   `Tone.buses.music.duck(Tone.buses.voice, { amount: -12 })`, give the voice `<Audio bus="voice">`, and set the bed's
   level on the bus: `Tone.buses.music.volume.value = -21`, then `Tone.buses.music.volume.rampTo(-12, 0.3, t)` to lift
   it at `t` seconds for the end card.
-- Narration over the picture, when the footage has no voice for it, is `fish("the words")` in an `<Audio
-  bus="voice">` (raea's generation API: paid, capped per run).
+- Narration over the picture, when the footage has no voice for it, is
+  `<Speech text="the words" start={frame} />` from `raea/speech` (Pocket TTS, on this computer; `voice` picks a
+  Pocket voice or a WAV of one).
 - Master the sum with one `<Mix lufs={-14} ceiling={-1.5} />` per composition. It brings the whole mix to -14 LUFS
   integrated and limits true peaks under the ceiling, which is what the floor's loudness defect asks for.
 - Put the sounds in the tree in time order. The engine keys a sound's stretch by its place in the tree, so adding a
@@ -43,14 +44,15 @@
 A sound placed without a Sequence starts at frame 0 with everything else. A Sequence with the default layout adds a
 full-frame box that paints over the parts beneath it.
 
-`sao()` and `fish()` return an asset `{kind, prompt, seconds, id, src}` whose id is a stable hash of the kind, the
+`sao()` returns an asset `{kind, prompt, seconds, id, src}` whose id is a stable hash of the kind, the
 prompt and the length. The renderer makes each asset once and caches it in the object's `assets/`. SAO runs on this
 computer (Stable Audio Open, a few seconds a sound; it installs itself the first time). The same call always reuses
 the same sound, and changing one word of the prompt makes a new one. So settle the prompt before you iterate on
 gains.
 
-Policy: music is Tone.js instruments (TokenSynth, the sample libraries, synths), SAO makes foley, and Fish makes
-narration over the picture. No other generation. (`lyria()`, a remote music model, is retired: a
+Policy: music is Tone.js instruments (TokenSynth, the sample libraries, synths), SAO makes foley, and Pocket TTS
+(`<Speech>`) says narration over the picture, all on this computer. Any other generation is a `raea gen` step
+(`motion/gen`). (`lyria()`, a remote music model, is retired: a
 new take is refused, and a bed of instruments can be cut on the bar and edited note by note anyway.)
 
 Sound sells the cut, but one move everywhere is a lint: a whoosh on every entrance flattens all of them. Give
@@ -68,7 +70,8 @@ everyone else. Two checks, both cheap:
   loops only between `startFrom` and `endAt`, and that loop is a hard jump. Tile it instead: copies of the take end to
   end, each in its own Sequence, crossfading over 1.5 s (`fadeIn`/`fadeOut`), or make the take as long as the span.
 - **Check the finished file.** `raea check FILM.mp4 --words words.json` (the voice's words on the film's clock)
-  reports, by timecode, dead stops (a steady sound that ends in one 10 ms step), stretches with no voice louder than
+  reports, by timecode, dead stops (a steady sound that ends in one 10 ms step: fade a bed out over 100 ms or more;
+  a voice ending its word isn't one), stretches with no voice louder than
   the voice, a bed closer than 12 dB to the voice over it, and a true peak over -1 dBTP. Fix every line it prints, or
   say why it stands.
 
@@ -87,7 +90,7 @@ ends up shouting over the narrator while another is inaudible.
   render warns). With `endAt` it repeats with a hard jump at each loop; tile copies with crossfades instead.
 - Two `<Mix>` in one composition: it throws.
 - No `<Mix>`: the sum plays as it is, at whatever loudness it adds up to.
-- Rewording a `sao()` prompt on every pass. Each new prompt makes a new sound (and `fish()` pays again).
+- Rewording a `sao()` prompt on every pass. Each new prompt makes a new sound .
 - `style` on an `<Audio>`: Audio has no picture and takes no style.
 - Hand-placing dozens of game sounds from a log. Cue them from `useGameEvents` (`motion/games`).
 - Writing music note by note in `<Audio>` files, or a game's sounds by hand. Write them in Tone.js (`motion/music`):

@@ -11194,6 +11194,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "objc2-metal-fx"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2db6f3a9d3b07481d9e5884f592aff6fd3f99e155423d1d1af3977e77a90ea0e"
+dependencies = [
+ "objc2 0.6.5",
+ "objc2-foundation 0.3.2",
+ "objc2-metal 0.3.2",
+]
+
+[[package]]
 name = "objc2-quartz-core"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -13295,6 +13306,7 @@ checksum = "019b4b213425016d7d84a153c4c73afb0946fbb4840e4eece7ba8848b9d6da22"
 name = "raea-app-check"
 version = "0.1.0"
 dependencies = [
+ "raea-core-brief",
  "serde_json",
 ]
 
@@ -13360,10 +13372,19 @@ name = "raea-app-tools"
 version = "0.1.0"
 dependencies = [
  "raea-io-assets",
+ "raea-io-gen",
  "raea-io-home",
  "raea-io-media",
  "raea-runtime-bundle",
  "raea-runtime-export",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-app-workspace"
+version = "0.1.0"
+dependencies = [
+ "raea-core-brief",
  "serde_json",
 ]
 
@@ -13415,6 +13436,7 @@ dependencies = [
  "bevy_trauma_shake",
  "bevy_tweening",
  "fastnoise-lite",
+ "moonshine-save",
  "noise",
  "noisy_bevy",
  "serde",
@@ -13470,13 +13492,13 @@ dependencies = [
  "lightyear",
  "lightyear_core",
  "mock_instant",
- "moonshine-save",
  "noisy_bevy",
  "raea-bench-swatch",
  "raea-bevy-adapters",
  "raea-bevy-calls",
  "raea-bevy-world",
  "raea-core-calls",
+ "raea-io-home",
  "raea-runtime-plugins",
  "raea-sys-page",
  "rand_pcg",
@@ -13567,15 +13589,18 @@ dependencies = [
  "raea-app-media",
  "raea-app-play",
  "raea-app-tools",
+ "raea-app-workspace",
  "raea-bevy-plugins",
  "raea-core-alloc",
  "raea-core-animate",
+ "raea-core-brief",
  "raea-core-program",
  "raea-io-home",
  "raea-io-media",
  "raea-io-npm",
  "raea-io-trace",
  "raea-native",
+ "raea-neural",
  "raea-render",
  "raea-runtime-bake",
  "raea-runtime-export",
@@ -13584,6 +13609,7 @@ dependencies = [
  "raea-runtime-react",
  "raea-runtime-sound",
  "regex",
+ "serde",
  "serde_json",
  "wsx",
 ]
@@ -13761,6 +13787,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-io-gen"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "raea-io-gen-comfy",
+ "raea-io-gen-core",
+ "raea-io-home",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-io-gen-comfy"
+version = "0.1.0"
+dependencies = [
+ "raea-io-gen-core",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-io-gen-core"
+version = "0.1.0"
+dependencies = [
+ "raea-io-home",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "raea-io-home"
 version = "0.1.0"
 dependencies = [
@@ -13804,6 +13858,7 @@ dependencies = [
  "indexmap",
  "junction",
  "libc",
+ "raea-io-home",
  "reqwest",
  "serde",
  "serde_json",
@@ -13820,6 +13875,7 @@ dependencies = [
  "flate2",
  "htmd",
  "raea-core-calls",
+ "raea-io-home",
  "raea-io-net",
  "rusqlite",
  "serde_json",
@@ -13877,6 +13933,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-neural"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "raea-runtime-bundle",
+]
+
+[[package]]
 name = "raea-page"
 version = "0.1.0"
 dependencies = [
@@ -13888,6 +13952,7 @@ dependencies = [
  "raea-gpu-device",
  "raea-io-media",
  "raea-runtime-dom",
+ "raea-runtime-edit",
  "raea-runtime-input",
  "raea-runtime-js",
  "raea-runtime-plugins",
@@ -13910,25 +13975,54 @@ dependencies = [
  "blitz-dom",
  "blitz-traits",
  "image",
- "raea-gpu-device",
  "raea-io-media",
  "raea-page",
- "raea-runtime-bake",
+ "raea-page-stage",
+ "raea-page-window",
  "raea-runtime-dom",
  "raea-runtime-input",
  "raea-runtime-js",
- "raea-runtime-live",
- "raea-runtime-react",
- "raea-runtime-sound",
+ "raea-runtime-plugins",
  "raea-runtime-view",
  "raea-sys-a11y",
  "raea-sys-fonts",
  "raea-sys-page",
- "raea-sys-tweak",
  "serde_json",
  "stylo",
  "tiny_http",
+]
+
+[[package]]
+name = "raea-page-stage"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "blitz-dom",
+ "raea-gpu-device",
+ "raea-runtime-bake",
+ "raea-runtime-dom",
+ "raea-runtime-js",
+ "raea-runtime-live",
+ "raea-runtime-react",
+ "raea-runtime-sound",
+ "raea-sys-page",
+ "raea-sys-tweak",
+ "serde_json",
  "wgpu",
+]
+
+[[package]]
+name = "raea-page-window"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "block2 0.6.2",
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "raea-runtime-js",
+ "raw-window-handle",
+ "serde_json",
 ]
 
 [[package]]
@@ -13957,6 +14051,7 @@ dependencies = [
  "raea-gpu-device",
  "raea-io-media",
  "raea-io-trace",
+ "raea-render-raytrace",
  "raea-runtime-gpuframe",
  "raea-runtime-plugins",
  "raea-runtime-scene3d",
@@ -13985,6 +14080,17 @@ dependencies = [
  "raea-sys-volume",
  "raea-sys-wear",
  "serde_json",
+ "wgpu",
+]
+
+[[package]]
+name = "raea-render-raytrace"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "objc2 0.6.5",
+ "objc2-metal 0.3.2",
+ "objc2-metal-fx",
  "wgpu",
 ]
 
@@ -14022,6 +14128,7 @@ dependencies = [
  "bevy",
  "image",
  "manifold-rust",
+ "raea-core-scene",
  "raea-core-shape",
  "raea-io-media",
  "raea-io-net",
@@ -14052,6 +14159,19 @@ dependencies = [
  "stylo",
  "url",
  "vello",
+]
+
+[[package]]
+name = "raea-runtime-edit"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "blitz-dom",
+ "parley",
+ "raea-runtime-dom",
+ "raea-runtime-js",
+ "raea-sys-page",
+ "serde_json",
 ]
 
 [[package]]
@@ -14141,8 +14261,10 @@ dependencies = [
  "bevy",
  "raea-bevy-world",
  "raea-core-wire",
+ "raea-io-home",
  "raea-io-media",
  "raea-io-net",
+ "raea-runtime-bundle",
  "raea-runtime-jsengine",
  "serde",
  "serde_json",
@@ -14415,6 +14537,7 @@ dependencies = [
  "resvg",
  "serde_json",
  "tiny-skia 0.12.0",
+ "ttf-parser",
  "usvg",
 ]
 
@@ -14658,6 +14781,7 @@ dependencies = [
  "anyhow",
  "half",
  "ort",
+ "raea-io-home",
  "ureq 2.12.1",
 ]
 
@@ -14706,6 +14830,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "ocrs",
+ "raea-io-home",
  "raea-sys-layout",
  "raea-sys-vision",
  "rten",

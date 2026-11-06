@@ -26,6 +26,7 @@ pub fn ensure(spec: &Spec, progress: &mut dyn FnMut(&str, u64)) -> anyhow::Resul
             continue;
         }
         let url = format!("https://huggingface.co/{repo}/resolve/main/{path}");
+        raea_io_home::offline(&format!("the {} model's {local} from {url}", spec.name)).map_err(|e| anyhow::anyhow!(e))?;
         fetch(&url, &dest, &mut |n| progress(local, n))?;
     }
     Ok(dir)

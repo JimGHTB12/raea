@@ -10,7 +10,7 @@
 // probe: 16 48 g>200 r<60 b<60
 // probe: 48 48 r>200 g<60 b<60
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { BevyComponent, Canvas3D, Entity } from "raea/3d";
+import { BevyComponent, Entity } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { TiledMap } from "raea/plugins/tiled";
@@ -19,14 +19,14 @@ import { TilemapAnchor } from "raea/plugins/tilemap";
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 5).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }} />
         <Entity position={[0, 0, 0]}>
           <BevyComponent type="raea_sys_sprite::Draws2d" value={{}} />
           <TiledMap value="plugin-tiled.tmx" />
           <TilemapAnchor value="TopLeft" />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

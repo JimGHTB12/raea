@@ -1,11 +1,9 @@
-// perform: the performance simulated once from frame 0.
+// perform: the performance simulated once from frame 0 (how it steers: steer.ts; its passes after play: settle.ts).
 import type { Vec3 } from "raea/3d";
-import { softElbows, qinv, qmul, qnorm, qrot, qyaw, type Pose, type Quat } from "raea/character";
+import { qinv, qmul, qnorm, qrot, qyaw, type Pose, type Quat } from "raea/character";
 import { framePose } from "../clip";
-import { plantFeet, type PlantLog } from "../feet";
-import { lintReport, motionLint } from "../lint";
 import { applyEffect, clipMeans, mirrorEffect, mixEffects, qexp, qlog, type RigEffect } from "../effects";
-import { Act, FUTURE, MotionLibrary, NF, PerformOptions, Performance, PerformanceSpec, PhaseGoal, S, before, between, carrySpeed, clipFloor, guide, handCost, holdActionFeet, idOf, labelOf, leadGaze, libraryPose, lintEnv, mirror, nearest, nearestHands, paceOf, performances, phaseCost, seatYaw, smooth, smoothStill, stages, stateCost, stateMix, stepLookups, strideEffect, tagCost, wrap } from "./all";
+import { Act, FUTURE, MotionLibrary, NF, PerformOptions, Performance, PerformanceSpec, PhaseGoal, between, clipFloor, fadeParts, guide, handCost, idOf, labelOf, libraryPose, lintEnv, mirror, nearest, nearestHands, offAt, paceOf, pacedSpec, performances, phaseCost, pullToGuide, seatYaw, settle, smooth, startFrame, stateCost, stepLookups, strideEffect, tagCost, wrap } from "./all";
 
 /** A performance simulated once for its library and spec: the guide along the steps, each moment's best library frame,
  * blended switches, the body pulled onto the guide, and the feet pinned while they stand. */
@@ -17,19 +15,16 @@ export function perform(lib: MotionLibrary, spec: PerformanceSpec, o: PerformOpt
   if (hit) return hit;
   const skel = lib.skel, fps = lib.fps;
   // a walk in a state goes at the state's pace (an old man's is a third of neutral's) unless the step says its own
-  const paced = effects ? { ...spec, steps: spec.steps.map((st) => {
-    const s = ("state" in st && st.state) || spec.state, mix = s ? stateMix(s) : null;
-    if (!("walk" in st) || st.speed !== undefined || !mix) return st;
-    // the heaviest style the library has frames of sets the pace (its walks' own); the others scale it by their
-    // effects' (a library with none of them: its Neutral's pace, or the default walk's, scaled)
-    const own = Object.entries(mix).filter(([l]) => paceOf(lib, l) > 0).sort((x, y) => y[1] - x[1])[0];
-    let k = own ? paceOf(lib, own[0]) : paceOf(lib, "Neutral") || 1;
-    for (const [l, w] of Object.entries(mix)) if (!own || l !== own[0]) k *= (effects[l]?.speed ?? 1) ** w;
-    return { ...st, speed: Math.max(0.2, k) };
-  }) } : spec;
+  const paced = pacedSpec(lib, spec, effects);
   const G = guide(paced, fps, lib);
   const N = spec.frames ?? G.length;
-  const every = o.every ?? 6, bf = Math.max(1, Math.round((o.blend ?? 0.2) * fps)), bo = Math.max(bf, Math.round((o.blendOut ?? 0.45) * fps)), pull = o.pull ?? 0.12;
+  const every = o.every ?? 6, bf = Math.max(1, Math.round((o.blend ?? 0.2) * fps)), bo = Math.max(bf, Math.round((o.blendOut ?? 0.45) * fps)), pull = o.pull ?? Number(process.env.RAEA_PULL ?? 0.12);
+  // (RAEA_ADJUST=0 for the old flat pull) the guide pulls the body as Holden's controller does (velocity-limited, halflives 0.1 s and 0.2 s,
+  // half the clip's own motion at most, clamped to 15 cm), in place of a flat pull
+  const adjust = o.adjust !== undefined ? o.adjust === true || o.adjust === "1" : process.env.RAEA_ADJUST !== "0";
+  const damp = (hl: number) => 1 - Math.exp((-Math.LN2 / fps) / hl);
+  const aPos = damp(Number(process.env.RAEA_ADJUST_HL ?? 0.1)), aRot = damp(Number(process.env.RAEA_ADJUST_HLR ?? 0.2));
+  const adjRatio = Number(process.env.RAEA_ADJUST_RATIO ?? 0.5), clampDist = Number(process.env.RAEA_ADJUST_CLAMP ?? 0.15);
   // the body's ground frame in the scene, and the library frame it plays
   let x = spec.at[0], z = spec.at[2], yaw = spec.facing;
   const gAt = (k: number) => G[Math.min(G.length - 1, Math.max(0, k))];
@@ -108,48 +103,31 @@ export function perform(lib: MotionLibrary, spec: PerformanceSpec, o: PerformOpt
     return q;
   };
   // where it starts: the frame nearest standing still facing ahead
-  const start = (() => {
-    const s = new Float32Array(NF);
-    for (let d = 0; d < 15; d++) s[d] = lib.mean[d];
-    for (let d = 6; d < 15; d++) s[d] = 0;
-    let c = 15;
-    for (const _ of FUTURE) { s[c++] = 0; s[c++] = 0; }
-    for (const _ of FUTURE) { s[c++] = 0; s[c++] = 1; }
-    const k0 = nearest(lib, s, undefined, wantAt(0), ws, penAt(0), undefined, undefined, condAt(0)).k;
-    // (a walk entered at speed starts mid-stride: the frame whose way on is the guide's, its pose any)
-    const first = spec.steps[0];
-    if (!(first && "walk" in first && (first.enter ?? 0) > 0.5)) return k0;
-    const g = query(k0, 0), F = lib.features;
-    let best = k0, bd = Infinity;
-    for (let k2 = 0; k2 < lib.size; k2++) {
-      if (lib.jump[k2] !== 1) continue;
-      let dd = 0;
-      for (let d = 15; d < NF; d++) dd += (F[k2 * NF + d] - (g[d] - lib.mean[d]) * lib.scale[d]) ** 2;
-      if (dd < bd) { bd = dd; best = k2; }
-    }
-    return best;
-  })();
+  const start = startFrame(lib, spec, (s) => nearest(lib, s, undefined, wantAt(0), ws, penAt(0), undefined, undefined, condAt(0)).k, query);
   let k = start;
   // the blend out of a switch (inertialized): each joint's offset and how fast it was changing, and the hips' height's,
   // fading to nothing over the blend on a Hermite curve, so a switch keeps the body's speed as well as its place
-  let off: { x: Vec3[]; v: Vec3[]; y: number; vy: number } | null = null, since = 0;
+  let off: { x: Vec3[]; v: Vec3[]; y: number; vy: number; n: number[] } | null = null, since = 0;
   // (longer at an action's edges: its run-in and run-out lean into the obstacle, a capture's runs stand up, and the
   // lean taken off in a fifth of a second read as a hitch. The hips' tilt too, the lean is mostly theirs, but the legs
   // turned back by its difference from the short blend: legs blended as long slid the feet and floated the strides)
   let bl = bf;
-  // (the legs: from the hips' children that lead down to a thigh, LHipJoint and on)
-  const legOf = (i: number): boolean => i > 0 && (/UpLeg/.test(skel.joints[i].name) || skel.joints.some((j, c) => j.parent === i && legOf(c)));
-  const thighs = skel.joints.flatMap((j, i) => (j.parent === 0 && legOf(i) ? [i] : []));
-  const upper = skel.joints.map((_, i) => { for (let a = i; a > 0; a = skel.joints[a].parent) if (thighs.includes(a)) return false; return true; });
+  // the most an upper-body joint's fade turns it in a frame (radians), and the longest fade that allows
+  const fadeRate = (Number(process.env.RAEA_FADE_RATE ?? 4) * Math.PI) / 180, maxFade = Math.round(0.6 * fps);
+  const legRate = (Number(process.env.RAEA_LEG_FADE_RATE ?? 12) * Math.PI) / 180, legMax = Math.round(0.4 * fps);
+  // (the legs: the pelvis's children that lead down to a thigh)
+  const { thighs, upper, trunk } = fadeParts(skel);
   const hermite = (s: number, n = bf): [number, number] => { if (s >= n) return [0, 0]; const a = s / n; return [2 * a ** 3 - 3 * a ** 2 + 1, (a ** 3 - 2 * a ** 2 + a) * n]; };
-  const offAt = (O: NonNullable<typeof off>, i: number, [a, b]: [number, number]) => qexp([O.x[i][0] * a + O.v[i][0] * b, O.x[i][1] * a + O.v[i][1] * b, O.x[i][2] * a + O.v[i][2] * b]);
   /** each joint's blend offset `s` frames into it; `fr`, the frame it goes onto (its turns and ground heading), to keep
    * the legs: the thighs turned back by the hips' difference, through their hip joints (which hold still in every
    * capture: turned themselves, they jerked past the library's) */
   const blendAt = (s: number, fr?: { turns: Quat[]; g: number }): Quat[] | null => {
-    if (!off || s >= Math.max(bf, bl)) return null;
-    const lo = hermite(s), hi = hermite(s, bl), O = off;
-    const out = O.x.map((_, i) => offAt(O, i, upper[i] ? hi : lo));
+    if (!off || s >= Math.max(bf, bl, ...off.n)) return null;
+    const lo = hermite(s), O = off;
+    // (an upper joint's offset fades over its own length, its velocity over the short blend: carried over a long fade the
+    // velocity overshot, a hand swinging the old clip's way 26 degrees a frame where both clips turned it 16 to 19)
+    const vb = lo[1];
+    const out = O.x.map((_, i) => offAt(O, i, upper[i] || O.n[i] > bf ? [hermite(s, O.n[i])[0], vb] : lo));
     if (fr && bl > bf) {
       const local = qmul(qyaw(-fr.g), fr.turns[0]), d = qmul(qinv(local), qmul(qmul(qinv(out[0]), offAt(O, 0, lo)), local));
       for (const i of thighs) {
@@ -235,10 +213,23 @@ export function perform(lib: MotionLibrary, spec: PerformanceSpec, o: PerformOpt
     };
     const xA = offOf(fromA, k, nextA, to, since), xB = offOf(fromB, k1, nextB, t1, since + 1);
     const yA = yAt(since) + fromA.root[1] - nextA.root[1], yB = yAt(since + 1) + fromB.root[1] - nextB.root[1];
-    off = { x: xA, v: xA.map((x, i) => [xB[i][0] - x[0], xB[i][1] - x[1], xB[i][2] - x[2]] as Vec3), y: yA, vy: yB - yA };
     // (a switch inside a long blend keeps what is left of it)
     { const t = raw.length, out = [1, 2, 3].some((d) => G[t - d]?.act?.play) && !G[t]?.act;
       bl = Math.max(bf, bl - since, out ? bo : 0); }
+    // each upper-body joint's fade long enough that no frame of it turns the joint more than `rate` (a Hermite fade's
+    // steepest frame turns 1.5 x offset / length): one fade length for all had a big offset, the head's or a hand's
+    // across a turn, cross in 6 frames at 10 to 19 degrees a frame
+    // (the legs' fades rate-limited too, at RAEA_LEG_FADE_RATE degrees (12; 0 for one length), up to 0.4 s: a run turn
+    // handing to a walk turn crossed the calf 14 degrees a frame in a 6-frame fade, where the clips turn it 8)
+    const n = xA.map((x, i) => (upper[i] ? Math.min(maxFade, Math.max(bl, Math.ceil((1.5 * Math.hypot(...x) * 2) / fadeRate))) : legRate > 0 ? Math.min(legMax, Math.max(bf, Math.ceil((1.5 * Math.hypot(...x) * 2) / legRate))) : bf));
+    // (the trunk's joints (RAEA_FADE_SHARED=0 for each its own) all fade over the longest of their lengths: each over its own, a hip
+    // faded in 6 frames under a neck fading over 18 left the head tilted 13 degrees past either clip, run turn 90)
+    if (process.env.RAEA_FADE_SHARED !== "0") { const L = Math.max(...n.filter((_, i) => trunk[i])); n.forEach((_, i) => { if (trunk[i]) n[i] = L; }); }
+    // (and each leg joint no quicker than the joint it hangs from (RAEA_LEG_CHAIN=0 not): a stand-up's thighs, flexed
+    // 31 degrees off the walk's, faded back in a third of the time of its pitched pelvis, and the straightened legs
+    // hung back off the leaning hips, the feet 28 cm behind them and into the chair)
+    if (process.env.RAEA_LEG_CHAIN !== "0" && Math.hypot(...xA[0]) > Number(process.env.RAEA_LEG_CHAIN_MIN ?? 0.4)) skel.joints.forEach((j, i) => { if (!upper[i] && j.parent >= 0) n[i] = Math.max(n[i], n[j.parent]); });
+    off = { x: xA, v: xA.map((x, i) => [xB[i][0] - x[0], xB[i][1] - x[1], xB[i][2] - x[2]] as Vec3), y: yA, vy: yB - yA, n };
     // the way come since frame k carried into the body's place, as the new frame starts from none of it
     const w = onward();
     x += w.dx; z += w.dz; yaw += w.dyaw;
@@ -248,13 +239,21 @@ export function perform(lib: MotionLibrary, spec: PerformanceSpec, o: PerformOpt
   };
   // an action's alignment: the clip's seat onto the scene's, and the error at its start, eased out over sitting down
   let align: { rot: number; e: [number, number]; ey: number } | null = null;
+  let satU = 0;
   const actFrame = (a: Act): number => {
     const S = lib.sit!;
+    satU = 0;
     if (a.j < a.len[0]) return S.down[0] + a.j;
     if (a.j < a.len[0] + a.len[1]) {
-      // the sat stretch to and fro as long as it is sat
-      const m = Math.max(1, S.sat[1] - S.sat[0]), u = (a.j - a.len[0]) % (2 * m);
-      return S.sat[0] + (u < m ? u : 2 * m - u);
+      const m = Math.max(1, S.sat[1] - S.sat[0]), s = a.j - a.len[0];
+      if (process.env.RAEA_SIT_PINGPONG === "1") { const u = s % (2 * m); return S.sat[0] + (u < m ? u : 2 * m - u); }
+      // the sat stretch played forward, slowed to fill the sit (to and fro, RAEA_SIT_PINGPONG=1, played every move
+      // backwards at each turn: 0.29 turns a second of errands' sit); a sit longer than twice the stretch loops it at
+      // half speed, timed from its end so the last pass runs into the stand-up's first frame (the stretch's last)
+      const r = Math.max(0.5, Math.min(1, m / Math.max(1, a.len[1])));
+      const pos = r > 0.5 ? s * r : m - (((a.len[1] - s) * r) % m || m);
+      satU = pos - Math.floor(pos);
+      return S.sat[0] + Math.floor(pos);
     }
     return S.up[0] + (a.j - a.len[0] - a.len[1]);
   };
@@ -263,13 +262,17 @@ export function perform(lib: MotionLibrary, spec: PerformanceSpec, o: PerformOpt
     // the pace asked of the walk against the library's, eased over a third of a second
     // (a library with no walking style's pace: against the playing clip's own, a little either way, so a run matched
     // into a slower capture cycles its legs quicker rather than the hips being pulled on over standing feet)
+    // (Froude: a body of another build than the capture's walks at the same Froude number, v^2/gL, so its cadence goes
+    // as 1/sqrt of its legs' scale and its stride as the scale: the retarget scaled only the stride, which played a
+    // short body's legs at a tall actor's cadence. RAEA_FROUDE=0 for the capture's cadence)
+    const froude = process.env.RAEA_FROUDE === "0" ? 1 : (lib.clips[lib.frameClip[k]].clip.scale ?? 1) ** -0.5;
     const own = libPace > 0 || act ? 0 : ownPace(k);
-    const want = g0.moving && g0.speed && libPace > 0 && !effects ? Math.max(0.5, Math.min(2.5, g0.speed / libPace))
-      : g0.moving && g0.speed && own > 0.2 && !effects ? Math.max(0.7, Math.min(1.6, g0.speed / own)) : 1;
+    const want = g0.moving && g0.speed && libPace > 0 && !effects ? Math.max(0.5, Math.min(2.5, g0.speed / (libPace * froude)))
+      : g0.moving && g0.speed && own > 0.2 && !effects ? Math.max(0.7, Math.min(1.6, g0.speed / (own * froude))) : 1;
     paceK += (want - paceK) * 0.1;
     // (against the clip's own pace, all of it in the cadence: a longer stride than the capture's drags the hips on past
     // the standing foot's reach, the foot pulled up off the floor)
-    rate = effRate * paceK ** (ownPaced ? 1 : 0.6);
+    rate = effRate * froude * paceK ** (ownPaced ? 1 : 0.6);
     stride = effStride * paceK ** (ownPaced ? 0 : 0.4);
     if (act?.play) {
       // an action clip plays straight through; its first frame blends in from what shows
@@ -321,14 +324,15 @@ export function perform(lib: MotionLibrary, spec: PerformanceSpec, o: PerformOpt
           if (a2?.play && a2.j === 0) { phase = { to: a2.play.from, m: Math.round(d * rate), w: 1.5 }; late = d <= 6; break; }
           if (a2) break;
         }
+        const sw = swingAt(t);
         if (valid(k)) {
           const z0 = lib.features.subarray(k * NF, (k + 1) * NF);
           const pen = penAt(t);
           const tc = condAt(t);
-          stay = stateCost(lib, k, want, ws) + (pen ? pen[lib.frameClip[k]] : 0) + (phase ? phaseCost(lib, k, phase) : 0) + (maskAt(t)?.[k] ? Infinity : 0) + (swingAt(t)?.[k] ?? 0) + (tc ? tagCost(lib, k, tc) : 0);
+          stay = stateCost(lib, k, want, ws) + (pen ? pen[lib.frameClip[k]] : 0) + (phase ? phaseCost(lib, k, phase) : 0) + (maskAt(t)?.[k] ? Infinity : 0) + (sw?.[k] ?? 0) + (tc ? tagCost(lib, k, tc) : 0);
           for (let d = 0; d < NF; d++) stay += (z0[d] - (cur[d] - lib.mean[d]) * lib.scale[d]) ** 2;
         }
-        const best = late && valid(k) ? { k: -1, d: Infinity } : nearest(lib, cur, near, want, ws, penAt(t), phase, maskAt(t), condAt(t), swingAt(t));
+        const best = late && valid(k) ? { k: -1, d: Infinity } : nearest(lib, cur, near, want, ws, penAt(t), phase, maskAt(t), condAt(t), sw);
         if (best.k >= 0 && best.d < stay * 0.9) switchTo(best.k);
       }
     }
@@ -364,7 +368,7 @@ export function perform(lib: MotionLibrary, spec: PerformanceSpec, o: PerformOpt
     const onU = !!cu && kU >= 0, leaveU = wasU && !onU;
     // (an action takes the whole body: what the upper body had is let go)
     if (act) { offU = null; kU = -1; }
-    const fr = { clip: lib.frameClip[k], f: lib.frameF[k], ...shownAt(k, act ? 0 : u) };
+    const fr = { clip: lib.frameClip[k], f: lib.frameF[k], ...shownAt(k, act ? (act.play ? 0 : satU) : u) };
     played.push({ clip: lib.clips[fr.clip].name + (lib.clips[fr.clip].mirrored ? "~" : ""), f: fr.f });
     if (o.trace) { clipStage.push({ root: fr.root, turns: fr.turns }); rates.push(rate); }
     const f = blendAt(since, { turns: fr.turns, g: lib.ground[k * 3 + 2] });
@@ -450,6 +454,7 @@ export function perform(lib: MotionLibrary, spec: PerformanceSpec, o: PerformOpt
     }
     // advance: the library's own steps (as many as the effects' rate makes this frame), turned into the body's
     // heading, then pulled toward the guide
+    const px0 = x, pz0 = z, pyaw0 = yaw;
     for (u += rate; u >= 1; u--) {
       const nk = k + 1 < lib.clips[lib.frameClip[k]].end ? k + 1 : k;
       if (nk === k) { u = 0; break; }
@@ -462,34 +467,7 @@ export function perform(lib: MotionLibrary, spec: PerformanceSpec, o: PerformOpt
       k = nk;
     }
     const g = gAt(t + 1);
-    if (!g.act) {
-      // against where the body shows, u of the way on to the next library frame (at a rate other than 1 the ground
-      // frame moves in whole library frames, and pulling that against the guide shakes the body)
-      const w = onward();
-      // (a wait with slack pulled only for how far it is past it: a stop at a thing taken in passing overran its spot
-      // 8 cm, was pulled back over standing feet, and at the start after them the feet were 10 cm from the clip's)
-      let ex = g.x - x - w.dx, ez = g.z - z - w.dz;
-      if (g.slack) { const e = Math.hypot(ex, ez), k2 = e > g.slack ? 1 - g.slack / e : 0; ex *= k2; ez *= k2; }
-      x += ex * pull;
-      z += ez * pull;
-      yaw += wrap(g.yaw - yaw) * pull;
-    }
+    if (!g.act) ({ x, z, yaw } = pullToGuide({ x, z, yaw }, { x: px0, z: pz0, yaw: pyaw0 }, g, onward(), { adjust, aPos, aRot, adjRatio, clampDist, pull }));
   }
-  carrySpeed(raw, switches, fps);
-  smoothStill(raw, G);
-  holdActionFeet(skel, raw, G, contacts);
-  // relaxed elbows: the library's arms can swing locked straight
-  const log: PlantLog | undefined = o.trace ? { state: [[], []], events: [], drop: [], lift: [[], []] } : undefined;
-  const planted = o.pin === false ? raw : plantFeet(skel, raw, contacts, fps, log);
-  const relaxed = planted.map((p) => softElbows(skel, p));
-  const poses = o.gaze === false ? relaxed : leadGaze(skel, relaxed, G);
-  const { phase, step } = stages(G, spec, fps);
-  const perf: Performance = { frames: N, pose: (frame) => poses[Math.min(N - 1, Math.max(0, Math.round(frame)))], guide: G, played, phase, step };
-  if (playedU.some(Boolean)) perf.upper = playedU;
-  if (o.trace) perf.trace = { stages: { clip: clipStage, blend: raw, plant: planted, elbows: relaxed, gaze: poses }, switches, rate: rates, plant: log };
-  // RAEA_LINT=1: every performance lints itself and says what it found (its trace kept for that)
-  if (o.trace && lintEnv() && !o.quiet) console.warn(`[motion lint] ${spec.steps.length} steps, ${N} frames\n` + lintReport(motionLint(lib, perf)));
-  performances.set(key, perf);
-  if (performances.size > 64) performances.delete(performances.keys().next().value!);
-  return perf;
+  return settle(lib, spec, o, G, N, key, { raw, contacts, switches, played, playedU, clipStage, rates });
 }

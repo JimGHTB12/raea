@@ -1,7 +1,7 @@
 // An element on the wire, React's host instances in DOM mode, and which events the host sends each element.
 import * as wire from "../wire";
 import type { Ev } from "../wire";
-import { Control_, Element_, FOCUSABLE_TAGS, HTMLOptionElement_, HTMLSelectElement_, HTML_HIDDEN, Node_, S, SKIP_PROPS, SVG_NS, TEXT_INPUTS, Text_, attrName, attrValue, body, cssText, doc, g, hostEvent, html, htmlDoc, htmlValue, installed, makeElement, mutated, nativelyFocusable, query, rootContainer, scrollable, tellCapture, typesOn, unwire } from "./all";
+import { Control_, Element_, FOCUSABLE_TAGS, HTMLOptionElement_, HTMLSelectElement_, HTML_HIDDEN, Node_, S, SKIP_PROPS, SVG_NS, TEXT_INPUTS, Text_, attrName, attrValue, body, cssText, doc, g, hostEvent, html, htmlDoc, htmlValue, installed, isEditable, makeElement, mutated, nativelyFocusable, query, rootContainer, scrollable, tellCapture, typesOn, unwire } from "./all";
 
 // ---------------------------------------------------------------- what an element is on the wire
 
@@ -64,6 +64,9 @@ export function wireOf(tag: string, props: Record<string, unknown>, el?: Element
   }
   const focusableTag = tag === "button" || tag === "select" || (tag === "a" && props.href !== undefined) || (tag === "input" && type !== "hidden");
   if (out.tabIndex === undefined && focusableTag && !props.disabled) out.tabIndex = 0;
+  // an editing host takes the focus and its keys, as Chrome's (editing.ts)
+  const ce = props.contentEditable;
+  if (out.tabIndex === undefined && (ce === true || ce === "" || ce === "true" || ce === "plaintext-only") && !(el?.parentNode instanceof Element_ && isEditable(el.parentNode))) out.tabIndex = 0;
   if (props.disabled && FOCUSABLE_TAGS.has(tag) && props.tabIndex === undefined) delete out.tabIndex;
   return { kind, props: out };
 }
@@ -153,8 +156,19 @@ function applyProps(el: Element_, old: Record<string, unknown>, next: Record<str
 
 /** React's update of an element's props: the mirror, and the host's props (each changed one whole, the style as
  *  merged). Returns nothing; it emits the wire ops itself. */
+/** React's dangerouslySetInnerHTML: its markup as the element's children when it's new or changed (React DOM sets
+ *  `innerHTML`; with no `__html` the children are left to React). */
+export function innerHtmlProp(el: Element_, old: Record<string, unknown> | undefined, next: Record<string, unknown>) {
+  const html = (p?: Record<string, unknown>) => (p?.dangerouslySetInnerHTML as { __html?: unknown } | undefined)?.__html;
+  const now = html(next);
+  if (now == null) return old && html(old) != null ? void (el.innerHTML = "") : undefined;
+  if (old && html(old) === now) return;
+  el.innerHTML = String(now);
+}
+
 export function hostUpdate(el: Element_, type: string, old: Record<string, unknown>, next: Record<string, unknown>, fiber: unknown) {
   if (fiber) el._fiber = fiber;
+  innerHtmlProp(el, old, next);
   const styleWas = el._style;
   applyProps(el, old, next, false);
   const id = el.__wid!;

@@ -1,6 +1,6 @@
 // The library: its frames' features, mirrored, as a table.
 import type { Vec3 } from "raea/3d";
-import { captured, joint, pose, qrot, qyaw, type Pose, type Quat, type Skeleton } from "raea/character";
+import { B, mirrorName, captured, joint, pose, qrot, qyaw, type Pose, type Quat, type Skeleton } from "raea/character";
 import { framePose, type Clip } from "../clip";
 import { fromBase64, toBase64 } from "@raea/video/codecs";
 import { styleOf, type StyleVector } from "../style";
@@ -14,7 +14,7 @@ function facing(rot: Quat): number {
   return Math.atan2(f[0], f[2]);
 }
 
-const SWAP = (n: string) => n.startsWith("Left") ? "Right" + n.slice(4) : n.startsWith("Right") ? "Left" + n.slice(5) : n[0] === "L" && /^L[A-Z]/.test(n) ? "R" + n.slice(1) : n[0] === "R" && /^R[A-Z]/.test(n) ? "L" + n.slice(1) : n;
+const SWAP = mirrorName;
 
 /** A pose seen in a mirror across the body's x = 0: left and right swapped. */
 export function mirror(skel: Skeleton, p: Pose): Pose {
@@ -77,7 +77,7 @@ function rawRows(skel: Skeleton, list: { name: string; c: Clip; acting: boolean 
   const C = NF + 5 + NS;
   const total = list.reduce((a, x) => a + x.c.frames, 0);
   const rows = new Float32Array(total * C).fill(NaN);
-  const L = ["LeftFoot", "RightFoot", "LeftToeBase", "RightToeBase"].map((x) => joint(skel, x));
+  const L = B.feet().map((x) => joint(skel, x));
   const ankleRest = skel.joints[L[0]].head[1], toeRest = skel.joints[L[2]].head[1];
   let base = 0;
   for (const { c } of list) {

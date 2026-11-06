@@ -1,0 +1,87 @@
+//! `raea check EDIT.tsx --quick` and `raea hook claude` (docs/skills.feature SK10). The quick check renders three stills
+//! of a composition (a quarter in, the middle, the last frame) with their manifest, about a second, and runs the full
+//! check's text rules and the person's text taste on it: clipped and cramped text, safe areas, sizes. The hook is
+//! Claude Code's PostToolUse command (`raea skills install --agent claude` adds it): after a .tsx that registers a root
+//! is written, the quick check's findings go back to the agent; a clean check says nothing.
+use super::*;
+use std::path::Path;
+
+/// The composition's length in frames, read from its source (the first `durationInFrames={N}`), 90 without one.
+fn frames(src: &str) -> u64 {
+    src.split("durationInFrames={").nth(1).and_then(|r| r.split('}').next()).and_then(|n| n.trim().parse().ok()).unwrap_or(90)
+}
+
+/// `raea check EDIT.tsx --quick [--shape S] [--platform P] [-o check.json]`: (report, P0 or P1 found). `tastes` are the
+/// person's, evaluated by the raea CLI when --taste names them.
+pub fn quick(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String, bool)> {
+    let file = args.iter().find(|a| a.ends_with(".tsx")).ok_or("raea check --quick takes a composition: EDIT.tsx")?;
+    let src = std::fs::read_to_string(file).map_err(|e| format!("{file}: {e}"))?;
+    let n = frames(&src).max(1);
+    let at = format!("{},{},{}", n / 4, n / 2, n - 1);
+    let tmp = std::env::temp_dir().join(format!("raea-quick-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).map_err(|e| format!("{}: {e}", tmp.display()))?;
+    let manifest = tmp.join("render.json");
+    let me = std::env::current_exe().map_err(|e| e.to_string())?;
+    let out = std::process::Command::new(me).arg("render").arg(file).args(["--at", &at, "-o"]).arg(format!("{}/", tmp.display())).arg("--manifest").arg(&manifest).output().map_err(|e| e.to_string())?;
+    let result = if out.status.success() {
+        on_manifest(file, &manifest, args, tastes)
+    } else {
+        // a render that fails is the finding: the agent sees why
+        let (err, out) = (String::from_utf8_lossy(&out.stderr), String::from_utf8_lossy(&out.stdout));
+        let mut why = Vec::new();
+        for line in err.lines().chain(out.lines()) {
+            if line.contains("REFUSED") || line.contains("rror") {
+                why.push(line);
+            }
+        }
+        let why = why.join("\n");
+        Ok((format!("raea check {file}: it doesn't render\nP0 render    {why}"), true))
+    };
+    let _ = std::fs::remove_dir_all(&tmp);
+    result
+}
+
+/// `raea hook claude`: Claude Code's PostToolUse input on stdin; for a saved composition, the quick check's findings as
+/// the hook's additionalContext. Anything else, or a clean check, prints nothing.
+pub fn hook(args: &[String]) -> R<String> {
+    if args.first().map(String::as_str) != Some("claude") {
+        return Err("usage: raea hook claude   (Claude Code's PostToolUse hook; raea skills install --agent claude adds it)".into());
+    }
+    let mut input = String::new();
+    std::io::Read::read_to_string(&mut std::io::stdin(), &mut input).map_err(|e| e.to_string())?;
+    let v: serde_json::Value = serde_json::from_str(&input).unwrap_or_default();
+    let path = v["tool_input"]["file_path"].as_str().unwrap_or_default();
+    let composition = path.ends_with(".tsx") && std::fs::read_to_string(path).map(|t| t.contains("registerRoot")).unwrap_or(false);
+    if !composition {
+        return Ok(String::new());
+    }
+    let (report, _) = quick(&[path.to_string()], Vec::new())?;
+    if report.lines().nth(1).is_none_or(|l| l.starts_with("ok ")) {
+        return Ok(String::new());
+    }
+    let found: Vec<&str> = report.lines().filter(|l| !l.starts_with("ok ")).collect();
+    Ok(json!({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": format!("raea check --quick after this save:\n{}", found.join("\n"))}}).to_string())
+}
+
+/// `raea check --quick`'s half (docs/skills.feature SK10): the text rules and the person's text taste on the manifest
+/// of a few stills (`raea render EDIT.tsx --at ... --manifest`), no video. What it can't see (contrast, freezes,
+/// sound, blotching) waits for the full check on the export.
+fn on_manifest(file: &str, manifest: &Path, args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String, bool)> {
+    let at = manifest.display();
+    let m: Value = serde_json::from_str(&std::fs::read_to_string(manifest).map_err(|e| format!("{at}: {e}"))?).map_err(|e| format!("{at}: {e}"))?;
+    let (mut issues, mut passed) = (Vec::new(), Vec::new());
+    let runs = text_runs(&m);
+    let (w, h) = (m["width"].as_f64().unwrap_or(1080.0), m["height"].as_f64().unwrap_or(1920.0));
+    text_rules(&runs, None, w, h, flag(args, "--shape"), flag(args, "--platform"), &mut issues, &mut passed);
+    taste_text(&taste_rules(&tastes), &runs, w, h, &mut issues, &mut passed);
+    report(file, issues, passed, flag(args, "-o"))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn frames_come_from_the_source() {
+        assert_eq!(super::frames("<Composition durationInFrames={240} fps={30} />"), 240);
+        assert_eq!(super::frames("no composition"), 90);
+    }
+}

@@ -50,6 +50,10 @@ export interface Thing {
   /** solid down to the floor (a plinth, a chest, a counter's kickboard flush with its front): no room under its edge,
    * so a body bending its knees to reach onto it stands further back */
   solid?: boolean;
+  /** carried upright (a cup of coffee, a glass of water: open, with something in it): in one hand before the body,
+   * the forearm out, swung little, the wrist keeping it stood up; by default a thing in one hand hangs at the side
+   * and swings with the walk, as the hand has it (a wrapped cup on a hanging arm lies on its side) */
+  upright?: boolean;
   /** handles (by default it is held by its sides, round its middle or from under it) */
   grips?: Grip[];
   /** how hands take it (grasp.ts, docs/grasp-guides.feature): cylinders, pinches, spheres and slabs in its frame,
@@ -241,8 +245,9 @@ export function handling(t: Thing, height: number): Handling {
   const weight = load < 0.03 ? "light" : load < 0.12 ? "medium" : load < 0.35 ? "heavy" : "immovable";
   const s = shapeOf(t), hand = 0.1 * height; // a hand spans about a tenth of the height
   const wide = Math.max(t.size[0], s === "box" ? t.size[2] : 0);
-  // (a pencil, a brush, a spoon: thin, light and no longer than two hands, held as it is written with)
-  if (s === "pole" && weight === "light" && t.size[0] < 0.15 * hand && t.size[2] < 2.5 * hand) return { grip: "tripod", hands: 1, load, weight };
+  // (a pencil, a brush, a spoon: thin, light and no longer than two hands, picked up between the thumb and index;
+  // the tripod is how it is written with, not how it is taken off a table: Shane, 11-01)
+  if (s === "pole" && weight === "light" && t.size[0] < 0.15 * hand && t.size[2] < 2.5 * hand) return { grip: "pinch", hands: 1, load, weight };
   if (s === "pole") return { grip: "pole", hands: weight === "light" && t.size[2] < 0.5 * height ? 1 : 2, load, weight };
   if (t.grips?.length && weight !== "heavy") return { grip: t.grips[0].kind === "stem" ? "stem" : "handle", hands: 1, load, weight };
   // (a ball too big or heavy for a palm is held from under, whatever it weighs: hugged, its curve rolls off the arms)

@@ -1,9 +1,10 @@
-// interact: the hands, the lean, the squat, the trunk, the gaze and the grip laid over a performance.
+// interact: the hands, the lean, the squat, the trunk, the gaze and the grip laid over a performance (the things then
+// fitted to the hands that have them: hold.ts).
 import type { Vec3 } from "raea/3d";
-import { add, ballInHand, cross, dot, flatHand, handAlong, qbasis, blend as blendPose, qinv, handPose, handSurface, joint, len, norm, palmAt, palmFacing, pose, qaxis, qmul, qnorm, qrot, qyaw, reach, scale3, setWorld, slerp, solve, sub, type HandGoal, type HandShape, type Pose, type Quat, type Side, type Skeleton } from "raea/character";
+import { B, add, ballInHand, flatHand, blend as blendPose, joint, norm, palmAt, pose, qaxis, qmul, qrot, qyaw, scale3, setWorld, slerp, solve, sub, type Pose, type Quat, type Side, type Skeleton } from "raea/character";
 import { type Performance } from "../matching";
-import { handling, shapeOf, toLocal, type Handling, type Thing } from "../things";
-import { type Attach, type Goals, type Grasp, HAND, halfOf, Beat, D, E, Flight, G, GRASP, Interaction, ItemPlan, P, QUICK_TWIST, S, T, THROW_HAND, THROW_LEN, Track, W, beatGeometry, clearWay, crouchDrop, crouched, easeDodges, eased, fieldNormal, fingers, flightTime, graspThing, launch, leanFor, mix, outOfBody, outOfHands, smooth, smoothCarries, span, stoop, thingSdf, throwAt, throwKeys, trunkTurn, uprightNear } from "./all";
+import { shapeOf } from "../things";
+import { type Attach, type Goals, HAND, halfOf, Beat, D, E, Flight, Interaction, ItemPlan, P, QUICK_TWIST, S, T, THROW_HAND, THROW_LEN, Track, W, beatGeometry, clearWay, crouchDrop, crouched, eased, fingers, flightTime, fly, holdThings, launch, leanFor, smooth, smoothCarries, span, throwAt, throwKeys, trunkTurn, type Work } from "./all";
 
 export function interact(skel: Skeleton, perf: Performance, plan: ItemPlan): Interaction {
   const { beatAt, chestY, dt, freeOf, grip, ground, guided, h, halves, handsOn, hipsY, holdOf, holdW, landing, lookPast, shoulderY, staticsOf, supportAt, toScene } = beatGeometry(skel, perf, plan);
@@ -17,7 +18,7 @@ export function interact(skel: Skeleton, perf: Performance, plan: ItemPlan): Int
   const startPalm = new Map<number, Record<Side, Vec3>>();
   // the frame each thing looked past was first carried from
   const heldFrom = new Map<Beat, number>();
-  const work: { p: Pose; goals: Goals; drop: number; stoop: number; attach: Attach[]; beat: boolean; palmed?: { id: string; hand: Side; w: number } }[] = [];
+  const work: Work[] = [];
 
   for (let f = 0; f < perf.frames; f++) {
     const p = perf.pose(f), st = perf.step(f), b = st ? beatAt.get(st.index) : undefined, g = ground(f);
@@ -69,7 +70,7 @@ export function interact(skel: Skeleton, perf: Performance, plan: ItemPlan): Int
       // a thing carried keeps the trunk upright: the walk's own stoop (a turn's, a stop's) stood back up, or the head
       // goes into a big thing and a wine glass is tipped at the face (a ball swung in one hand goes as the walk has it)
       if (hb.how.grip === "hug" || hb.how.grip === "cradle" || hb.how.grip === "edges" || hb.how.grip === "stem") {
-        const up = qrot(pose(skel, p).rot[joint(skel, "Spine1")], [0, 1, 0]), fw = qrot(qyaw(g.yaw), [0, 0, 1]);
+        const up = qrot(pose(skel, p).rot[joint(skel, B.chest)], [0, 1, 0]), fw = qrot(qyaw(g.yaw), [0, 0, 1]);
         const stoop = Math.atan2(up[0] * fw[0] + up[2] * fw[2], up[1]);
         goals.pitch = Math.min(goals.pitch, (st.pitch - Math.max(0, stoop - 0.05)) * u);
       }
@@ -156,7 +157,9 @@ export function interact(skel: Skeleton, perf: Performance, plan: ItemPlan): Int
           goals.twist = toward * smooth(s / 0.4);
           // reaching: each hand from where it is to its place on the thing, round the furniture (over the edge of
           // a shelf, not through it), taken up at once (its goal starts where the hand is)
-          handsTo(b, mid0, rot0, smooth(s / 0.2), smooth((s - T.grip + 0.2) / 0.2));
+          // (the goal's weight over the reach's own span (RAEA_REACH_FAST=1 for the old fifth of a second): taken up at
+          // once, the hand's turn onto the thing went whole in 0.2 s, the wrist turning 20 degrees a frame on the cup)
+          handsTo(b, mid0, rot0, process.env.RAEA_REACH_FAST === "1" ? smooth(s / 0.2) : span(s, [0, T.reach[1]]), smooth((s - T.grip + 0.2) / 0.2));
           for (const hs of b.hands) { const gh = goals.hands[hs]!; gh.at = clearWay(startPalm.get(b.step)![hs], gh.at, plan.things, HAND)(span(s, T.reach)); }
           track(b, mid0, rot0, false);
         } else {
@@ -198,7 +201,10 @@ export function interact(skel: Skeleton, perf: Performance, plan: ItemPlan): Int
           // let go: the hands open, come up off it and back out over the edge to where the walk has them, and only
           // then are let go of (a hand let go of straight away swings down through the furniture)
           placed.set(b.item, { at: to.at, rot: qyaw(to.yaw) });
-          handsTo(b, mid1, rot1, 1 - span(s, [P.back[0] + 0.7 * (P.back[1] - P.back[0]), P.back[1]]), 1 - smooth((s - P.release) / 0.15));
+          // (let go over the whole way back (RAEA_RELEASE_LATE=1 for over its last 30%): the hand's turn on the thing,
+          // held to the end and dropped in a fifth of a second, swung the wrist 24 degrees a frame back to the walk's)
+          const back0 = process.env.RAEA_RELEASE_LATE === "1" ? P.back[0] + 0.7 * (P.back[1] - P.back[0]) : P.back[0];
+          handsTo(b, mid1, rot1, 1 - span(s, [back0, P.back[1]]), 1 - smooth((s - P.release) / 0.15));
           const home = natural();
           for (const hs of b.hands) { const gh = goals.hands[hs]!; gh.at = clearWay(add(gh.at, [0, 0.01, 0]), home[hs], plan.things, HAND)(span(s, P.back)); }
           now.set(b.item, { at: to.at, rot: qyaw(to.yaw), held: false });
@@ -290,50 +296,7 @@ export function interact(skel: Skeleton, perf: Performance, plan: ItemPlan): Int
         }
       }
     }
-    // the things let go: falling and flying until they land, then a light ball bounces and rolls to a stop
-    for (const [id, fl] of flying) {
-      if (holding.has(id) || now.get(id)?.held) { flying.delete(id); continue; }
-      const it = plan.items[id], ball = shapeOf(it) === "ball", r = it.size[0] / 2;
-      if (!fl.landed) {
-        const next: Vec3 = [fl.at[0] + fl.vel[0] * dt, fl.at[1] + fl.vel[1] * dt - 0.5 * G * dt * dt, fl.at[2] + fl.vel[2] * dt];
-        const { y: floor, inside } = landing(next, fl.at[1]);
-        fl.vel = [fl.vel[0], fl.vel[1] - G * dt, fl.vel[2]];
-        const w = Math.hypot(...fl.spin);
-        if (w > 0) fl.rot = qmul(qaxis(scale3(fl.spin, 1 / w), w * dt), fl.rot);
-        if (next[1] <= floor) {
-          next[1] = floor;
-          const light = handling(it, h).weight === "light";
-          if (ball && light && !inside && fl.vel[1] < -1.2 && fl.bounces < 4) {
-            fl.vel = [fl.vel[0] * 0.7, -fl.vel[1] * 0.45, fl.vel[2] * 0.7];
-            fl.bounces++;
-          } else {
-            fl.landed = true;
-            fl.vel = ball && !inside ? [fl.vel[0] * 0.7, 0, fl.vel[2] * 0.7] : [0, 0, 0];
-          }
-        }
-        fl.at = next;
-      } else {
-        // a ball rolls (slowing), turning by the way it goes; anything else settles flat over a few frames
-        const sp = Math.hypot(fl.vel[0], fl.vel[2]);
-        if (ball && sp > 0.02) {
-          const k = Math.max(0, sp - 1.5 * dt) / sp;
-          fl.vel = [fl.vel[0] * k, 0, fl.vel[2] * k];
-          const next: Vec3 = [fl.at[0] + fl.vel[0] * dt, fl.at[1], fl.at[2] + fl.vel[2] * dt];
-          // it stops against anything standing in its way
-          if (plan.things.some((t) => t.at[1] < 0.02 && toLocal(t, next)[1] < t.size[1] && Math.abs(toLocal(t, next)[0]) < t.size[0] / 2 + r && Math.abs(toLocal(t, next)[2]) < t.size[2] / 2 + r)) fl.vel = [0, 0, 0];
-          else {
-            const axis: Vec3 = [fl.vel[2] / sp, 0, -fl.vel[0] / sp];
-            fl.rot = qmul(qaxis(axis, (sp * k * dt) / Math.max(0.01, r)), fl.rot);
-            fl.at = [next[0], supportAt(next, fl.at[1] + 0.01), next[2]];
-          }
-        } else if (!ball && fl.settle < 1) {
-          fl.settle = Math.min(1, fl.settle + 0.2);
-          fl.rot = slerp(fl.rot, uprightNear(fl.rot), fl.settle);
-        }
-      }
-      now.set(id, { at: fl.at, rot: fl.rot, held: false });
-      placed.set(id, { at: fl.at, rot: fl.rot });
-    }
+    fly(flying, holding, now, placed, plan, h, dt, landing, supportAt);
     const hasHands = Object.keys(goals.hands).length > 0;
     // (a throw's knees are its style's: it doesn't squat to reach its wind-up)
     const need = hasHands && goals.weight > 0 && goals.squat ? crouchDrop(skel, p, goals.hands, goals.lean, goals.bend) : { drop: 0, stoop: 0 };
@@ -343,7 +306,7 @@ export function interact(skel: Skeleton, perf: Performance, plan: ItemPlan): Int
   // the hips' drop and the stoop over the frames, eased (eased, below)
   // the stoop too, the same way (its least is as jumpy as the drop's, and tips the pelvis the legs hang from)
   const drops = eased(work.map((x) => x.drop)), stoops = eased(work.map((x) => x.stoop));
-  const poses: Pose[] = [], misses: number[] = [];
+  const poses: Pose[] = [];
   for (let f = 0; f < work.length; f++) {
     let { p } = work[f];
     const { goals } = work[f];
@@ -364,7 +327,7 @@ export function interact(skel: Skeleton, perf: Performance, plan: ItemPlan): Int
       // the free arm lifted out from the side, away from a load in the other hand
       for (const [s, a] of Object.entries(goals.abduct) as [Side, number][]) {
         if (!a || goals.hands[s]) continue;
-        const i = joint(skel, s === "L" ? "LeftArm" : "RightArm"), w = pose(skel, p);
+        const i = joint(skel, B.upperarm(s)), w = pose(skel, p);
         p = setWorld(skel, p, w, i, qmul(qaxis(qrot(qyaw(g.yaw), [0, 0, 1]), s === "L" ? a : -a), w.rot[i]));
       }
       if (goals.look && goals.lookWeight > 0) p = solve(skel, p, { look: goals.look, lookWeight: goals.lookWeight });
@@ -373,117 +336,7 @@ export function interact(skel: Skeleton, perf: Performance, plan: ItemPlan): Int
     poses.push(p);
   }
   smoothCarries(skel, poses, work);
-  // how far each hand not on a thing moves out of one in hand, frame by frame (dodged after, smoothed)
-  const dodge: Record<Side, (Vec3 | undefined)[]> = { L: [], R: [] };
-  // (and the thing a dodging hand carries, which goes with it)
-  const carried: (string | undefined)[] = [];
-  // (each frame's grasps of a thing in hand, to close again on it where the dodge moves the hand)
-  const grasped: { id: string; hands: Side[]; grip: Handling["grip"]; close: number }[][] = [];
-  // (and each hand's fingers' shape on it, frame by frame: a hand's fingers move on from the last frame's)
-  const shapes: Record<Side, (HandShape | undefined)[]> = { L: [], R: [] };
-  // (whether a thing's grip at a frame is one a guide placed the hand for)
-  const guidedGrip = (id: string, f: number) => work[f].goals.grasps.some((g) => g.id === id && g.guide);
-  for (let f = 0; f < work.length; f++) {
-    const p = poses[f], { goals } = work[f];
-    let miss = 0;
-    if (goals.weight >= 1) {
-      const w = pose(skel, p);
-      for (const [s, g] of Object.entries(goals.hands) as [Side, HandGoal][]) {
-        const at = g.point ? sub(g.at, scale3(norm(g.facing ?? [0, -1, 0]), 0.009 * h)) : g.at;
-        miss = Math.max(miss, len(sub(palmAt(skel, w, s), at)));
-      }
-    }
-    misses.push(miss);
-    if (work[f].attach.length) {
-      const w = pose(skel, p);
-      for (const a of work[f].attach) {
-        // (a flat hand's palm rests half its thickness off the goal, as reach puts it)
-        const goalOf = (g: HandGoal) => (g.point ? sub(g.at, scale3(norm(g.facing ?? [0, -1, 0]), 0.009 * h)) : g.at);
-        const tr = tracks.get(a.id)!, g1 = goals.hands[a.hands[0]]!;
-        if (a.hands.length === 1 && g1.point && guidedGrip(a.id, f)) {
-          // a thing on a guide in one hand rides it rigidly, turned with the hand as well as moved with it: the hand's
-          // frame where it is against where it was sent (a can carried by a hand swinging with the walk tips with it,
-          // and stays on the palm, not just as far from it)
-          const s = a.hands[0], n = norm(g1.facing ?? [0, -1, 0]), fp = norm(sub(g1.point, scale3(n, dot(g1.point, n))));
-          const na = palmFacing(skel, w, s), al = handAlong(skel, w, s), fa = norm(sub(al, scale3(na, dot(al, na))));
-          const turn = slerp([0, 0, 0, 1], qmul(qbasis(fa, na, cross(fa, na)), qinv(qbasis(fp, n, cross(fp, n)))), a.w);
-          const from = goalOf(g1), to = add(from, scale3(sub(palmAt(skel, w, s), from), a.w));
-          tr[f] = { ...tr[f], at: add(to, qrot(turn, sub(tr[f].at, from))), rot: qnorm(qmul(turn, tr[f].rot)) };
-        } else {
-          const off = a.hands.reduce<Vec3>((acc, s) => add(acc, scale3(sub(palmAt(skel, w, s), goalOf(goals.hands[s]!)), 1 / a.hands.length)), [0, 0, 0]);
-          tr[f] = { ...tr[f], at: add(tr[f].at, scale3(off, a.w)) };
-        }
-      }
-    }
-    // (a ball sat in the palm as it swings; anything else stays in its grip, a cup wrapped)
-    const pm = work[f].palmed && shapeOf(plan.items[work[f].palmed!.id]) === "ball" ? work[f].palmed : undefined;
-    if (pm) {
-      const it = plan.items[pm.id], tr = tracks.get(pm.id)!, r = Math.max(...it.size) / 2;
-      // (sat in the palm as far as it is in it: graspThing closes the fingers on it)
-      const w = pose(skel, poses[f]), mid = ballInHand(skel, w, pm.hand, r);
-      tr[f] = { ...tr[f], at: mix(tr[f].at, sub(mid, qrot(tr[f].rot, [0, it.size[1] / 2, 0])), pm.w) };
-    }
-    // each hand on a thing: the thing out of the hand's skin (a thing in hand moves; one still where it lies is
-    // reached to its surface), then each finger closed until it touches it, as far as the grip closes them
-    const grasps = goals.grasps.length ? goals.grasps : pm ? [{ id: pm.id, hands: [pm.hand], grip: "palm" as const, w: pm.w, close: 1 }] : [];
-    for (const gr of grasps) {
-      const tr = tracks.get(gr.id)!, held = tr[f].held || work[f].attach.some((a) => a.id === gr.id) || pm?.id === gr.id;
-      const sdf = thingSdf(plan.items[gr.id]);
-      const field = (q: Vec3) => sdf(qrot(qinv(tr[f].rot), sub(q, tr[f].at)));
-      if (held) {
-        // (a thing against the body out of its trunk, head and thighs, the hands brought with it; a small thing in one
-        // hand swings past the thigh as the arm does)
-        const off = gr.hands.length === 2 ? outOfBody(skel, poses[f], field) : [0, 0, 0] as Vec3;
-        // (one in one hand swung into the thigh or the waist: the hand and it dodged out, smoothed after)
-        // (a ball swung with the stride isn't: dodging it frame by frame jerked the arm)
-        if (gr.hands.length === 1 && !(pm && pm.id === gr.id)) {
-          const v = outOfBody(skel, poses[f], field, false);
-          if (len(v) > 0.002) { dodge[gr.hands[0]][f] = add(v, scale3(norm(v), 0.006)); carried[f] = gr.id; }
-        }
-        if (len(off) > 5e-4) {
-          tr[f] = { ...tr[f], at: add(tr[f].at, off) };
-          for (const s of gr.hands) { const g = goals.hands[s]; if (g) poses[f] = reach(skel, poses[f], s, { ...g, at: add(g.at, off) }); }
-        }
-        const f1 = (q: Vec3) => sdf(qrot(qinv(tr[f].rot), sub(q, tr[f].at)));
-        if (gr.hands.length === 2) {
-          // (a thing between two palms can't be pushed out of both: each hand drawn back out of it instead)
-          // (a few times over: a reach lands within a centimetre, and the man's palms stayed that far into a shoe box)
-          for (const s of gr.hands) {
-            const g = goals.hands[s];
-            let goal = g?.at;
-            for (let k = 0; k < 3 && g && goal; k++) {
-              let deep = 0, at: Vec3 | undefined;
-              for (const x of handSurface(skel, pose(skel, poses[f]), s)) if (x.part === "palm" || x.part === "thumb1") { const d = -f1(x.at); if (d > deep) { deep = d; at = x.at; } }
-              if (!at || deep <= 5e-4) break;
-              goal = add(goal, scale3(fieldNormal(f1, at), deep + 0.001));
-              poses[f] = reach(skel, poses[f], s, { ...g, at: goal });
-            }
-          }
-        } else if (gr.guide && shapes[gr.hands[0]][f - 1]) {
-          // (a hand on a guide: out of the hand as it last closed on it, its fingers round it; laid straight, the
-          // knuckles' pads stand off the palm and pushed a can a centimetre and a half off it, out of the palm's reach)
-          const hs = gr.hands[0], shaped = handPose(skel, poses[f], hs, shapes[hs][f - 1]!);
-          tr[f] = { ...tr[f], at: add(tr[f].at, outOfHands(skel, shaped, gr.hands, f1, false)) };
-        } else tr[f] = { ...tr[f], at: add(tr[f].at, outOfHands(skel, poses[f], gr.hands, f1, GRASP[gr.grip].on.length === 5)) };
-      }
-      const field2 = (q: Vec3) => sdf(qrot(qinv(tr[f].rot), sub(q, tr[f].at)));
-      // (a thing in hand gripped fully, however freely the arm swings with it)
-      for (const s of gr.hands) {
-        const hand = { shape: shapes[s][f - 1] };
-        poses[f] = graspThing(skel, poses[f], s, field2, gr.grip, gr.close, held ? 1 : gr.w, hand);
-        shapes[s][f] = hand.shape;
-      }
-      if (held) (grasped[f] ??= []).push(gr);
-      // the other hand out of its way (hanging where a wine glass is brought down to the table)
-      for (const s of (["L", "R"] as Side[]).filter((x) => !gr.hands.includes(x))) {
-        const w = pose(skel, poses[f]);
-        let deep = 0, at: Vec3 | undefined;
-        for (const x of handSurface(skel, w, s)) { const d = -field2(x.at); if (d > deep) { deep = d; at = x.at; } }
-        if (at && deep > 0.002) dodge[s][f] = scale3(fieldNormal(field2, at), deep + 0.008);
-      }
-    }
-  }
-  easeDodges(skel, plan, poses, dodge, carried, tracks, grasped, shapes);
+  const misses = holdThings(skel, plan, h, poses, work, tracks);
   const at = <X,>(a: X[], f: number) => a[Math.max(0, Math.min(a.length - 1, Math.round(f)))];
   return {
     frames: perf.frames,

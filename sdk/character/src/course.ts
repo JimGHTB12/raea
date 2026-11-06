@@ -34,7 +34,7 @@
 //              (not the capture's own moves, nor a pick-up's squat or a throw)
 //   unfinished the course not run to its end
 import type { Vec3 } from "raea/3d";
-import { add, bodyScale, joint, palmAt, pose, qrot, type Pose, type Skeleton } from "raea/character";
+import { B, add, bodyScale, joint, palmAt, pose, qrot, type Pose, type Skeleton } from "raea/character";
 import { interact, planItems, type Interaction, type Item, type ItemClip, type ItemPlan, type ItemTask, type PickManner, type ThrowStyle } from "./items";
 import { motionLint } from "./lint";
 import type { ActionFit, MotionLibrary, Performance } from "./matching";
@@ -206,11 +206,11 @@ export interface CourseCheck {
 
 /** the body as capsules: bones (joint to joint) with a radius, as a share of the body's height (a child's build) */
 const CAPSULES: [string, string, number][] = [
-  ["Hips", "Spine1", 0.075], ["Spine1", "Neck", 0.07], ["Neck", "Head", 0.035],
-  ["LeftUpLeg", "LeftLeg", 0.045], ["LeftLeg", "LeftFoot", 0.034], ["LeftFoot", "LeftToeBase", 0.014],
-  ["RightUpLeg", "RightLeg", 0.045], ["RightLeg", "RightFoot", 0.034], ["RightFoot", "RightToeBase", 0.014],
-  ["LeftArm", "LeftForeArm", 0.028], ["LeftForeArm", "LeftHand", 0.024],
-  ["RightArm", "RightForeArm", 0.028], ["RightForeArm", "RightHand", 0.024],
+  [B.pelvis, B.chest, 0.075], [B.chest, B.neck, 0.07], [B.neck, B.head, 0.035],
+  [B.thigh("L"), B.calf("L"), 0.045], [B.calf("L"), B.foot("L"), 0.034], [B.foot("L"), B.ball("L"), 0.014],
+  [B.thigh("R"), B.calf("R"), 0.045], [B.calf("R"), B.foot("R"), 0.034], [B.foot("R"), B.ball("R"), 0.014],
+  [B.upperarm("L"), B.lowerarm("L"), 0.028], [B.lowerarm("L"), B.hand("L"), 0.024],
+  [B.upperarm("R"), B.lowerarm("R"), 0.028], [B.lowerarm("R"), B.hand("R"), 0.024],
 ];
 /** the head as a ball over the Head joint (its middle a share of the height above, its radius) */
 const HEAD = { up: 0.06, r: 0.07 };
@@ -234,9 +234,9 @@ export function checkCourse(skel: Skeleton, course: Course, perf: Performance, l
   const poseAt = (f: number): Pose => (live ? live.pose(f) : perf.pose(f));
   const J = (s: string) => joint(skel, s);
   const caps = CAPSULES.map(([a, b, r]) => ({ a: J(a), b: J(b), r: r * h, name: `${a}-${b}` }));
-  const head = J("Head");
+  const head = J(B.head);
   const feet = (["L", "R"] as const).map((s) => {
-    const a = J(s === "L" ? "LeftFoot" : "RightFoot"), t = J(s === "L" ? "LeftToeBase" : "RightToeBase");
+    const a = J(B.foot(s)), t = J(B.ball(s));
     // (the toes' tip, past the ball the skeleton ends at: a foot pushing off stands on it, its ball a few cm up)
     const jt = skel.joints[t], d = [0, 1, 2].map((k) => jt.tail[k] - jt.head[k]), dl = Math.hypot(...d) || 1;
     const tip = d.map((v) => (v / dl) * TOE * h) as Vec3;

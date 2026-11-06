@@ -27,7 +27,12 @@ impl Engine {
         #[cfg(not(target_arch = "wasm32"))]
         let group = group.disable::<bevy::render::pipelined_rendering::PipelinedRenderingPlugin>();
         // a registered Bevy plugin may change the group (plugins.rs: one that brings bevy_winit turns WinitPlugin off)
-        app.add_plugins(plugins::group(group))
+        app.add_plugins(plugins::group(group));
+        #[cfg(feature = "raytracing")]
+        if raea_render_raytrace::wanted(prog) {
+            raea_render_raytrace::add(&mut app);
+        }
+        app
         .init_resource::<Clock>()
         .init_resource::<Out>()
         .init_resource::<Error>()
@@ -152,6 +157,11 @@ impl Engine {
         mem_mark("engine: plugins built (DefaultPlugins, the render device)");
         app.finish();
         mem_mark("engine: plugins finished");
+        // RT4: MetalFX's denoiser goes in after Solari's lighting, which Solari's plugin adds as it finishes
+        #[cfg(feature = "raytracing")]
+        if raea_render_raytrace::wanted(prog) {
+            raea_render_raytrace::add_denoiser(&mut app);
+        }
         // lights clustered on the CPU, not by Bevy 0.19's GPU clustering: on a fresh engine's first frames the GPU's
         // cluster lists left a spot light out (its fog shaft drawn, its light on no surface), for as many updates as its
         // readback took, so a render (a fresh engine a frame) missed it where play, warm, had it: volumetric-grid's

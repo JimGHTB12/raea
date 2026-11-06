@@ -1,0 +1,12 @@
+[package]
+name = "raea-neural"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea neural: DLSS 5 neural rendering on a `render --aov` folder through the founder's own MLX-DLSS (docs/raytracing.feature RT2)"
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
+# the CLI's flag reader and result type
+raea-runtime-bundle = { path = "../../runtime/bundle" }

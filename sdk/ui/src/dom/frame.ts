@@ -1,4 +1,5 @@
 // The observers, matchMedia, and the frame: snapshot, observers, requestAnimationFrame.
+import * as wire from "../wire";
 import { DOMRectReadOnly_, Document_, Element_, EventTarget_, Event_, Node_, S, STRIDE, UIEvent_, body, computedOf, dispatch, dispatchDirect, doc, g, geo, html, nodeList, reportMisses, run, scanning } from "./all";
 
 // ---------------------------------------------------------------- observers
@@ -303,9 +304,36 @@ if (frameClock && g.performance) {
   Object.defineProperty(g.performance, "now", { value: now, configurable: true, writable: true });
 }
 
+/** The ops written when the page was last laid out (a frame's snapshot, or forceLayout). */
+let laidAt = -1;
+
+/** A box script reads that the last layout doesn't have yet, laid out now, as Chrome lays out on the read: the host's
+ *  layout.now (runtime/dom computed.rs) commits what's written, lays the page out and gives its snapshot, whose boxes
+ *  replace the frame's; the viewport and the observers wait for the frame. Once per change: a box that still isn't
+ *  there (display: none) isn't asked for again until something else is written. Off where there's no such call. */
+let noLayoutNow = false;
+export function forceLayout(): boolean {
+  if (noLayoutNow || laidAt === wire.writes()) return false;
+  let json: string | undefined;
+  try {
+    json = wire.callSync<string>("layout.now");
+  } catch (e) {
+    // a host without it (bevy_ui's) never will have it; one outside a step may next time
+    if (/no synchronous host call/.test(String(e))) noLayoutNow = true;
+    json = undefined;
+  }
+  laidAt = wire.writes();
+  if (!json) return false;
+  const s = JSON.parse(json) as { n: number[] };
+  geo.clear();
+  for (let i = 0; i + STRIDE <= s.n.length; i += STRIDE) geo.set(s.n[i], s.n.slice(i + 1, i + STRIDE));
+  return true;
+}
+
 /** The host's call after each frame's layout (runtime/js/src/dom.rs): the snapshot when it changed ("" when
  *  it didn't), then resize, matchMedia changes, the observers and the frame's animation callbacks. */
 export function onLayout(json: string) {
+  laidAt = wire.writes();
   S.frameNo++;
   S.wantFocus = undefined;
   let resized = false;

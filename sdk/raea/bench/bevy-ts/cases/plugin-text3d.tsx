@@ -12,7 +12,7 @@
 // probe: 32 22 r<20 g<20 b<20
 // probe: 2 2 r<20 g<20 b<20
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, Entity, ToneMapping } from "raea/3d";
+import { Entity, ToneMapping } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { Label3d } from "raea/plugins/text3d";
@@ -20,13 +20,13 @@ import { Label3d } from "raea/plugins/text3d";
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 3).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }} />
         <ToneMapping mode="none" />
         <Entity position={[0, 0, 0]}>
           <Label3d value={{ text: "H", size: 128, world_scale: 1.5, color: [1, 1, 1, 1], font: "Fira Mono" }} />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

@@ -170,12 +170,11 @@ fn render_children<S: PaintScene, F: FnMut(&mut S, &usvg::Node)>(
                     | usvg::ImageKind::WEBP(_) => {
                         #[cfg(feature = "image")]
                         {
-                            let Ok(decoded_image) = util::decode_raw_raster_image(img.kind())
-                            else {
+                            // raea: decoded once per image, not on every paint (a feed card's posters kept a core busy)
+                            let Some(image) = util::cached_raster_image(img.kind(), img.rendering_mode()) else {
                                 error_handler(scene, node);
                                 continue;
                             };
-                            let image = util::into_image(decoded_image, img.rendering_mode());
                             let image_ts = global_transform * util::to_affine(&img.abs_transform());
                             scene.draw_image(image.as_ref(), image_ts);
                         }

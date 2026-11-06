@@ -143,6 +143,10 @@ export interface ModelProps {
    * <Outline skip>, <Bloom skip>, <Grade skip>) leaves its pixels as drawn, and <Look passes> gives one its own paint;
    * a piece names at most three passes besides "scene"; keyed per frame */
   pass?: string;
+  /** a skinned model's own vertices replaced each frame by a baked cloth simulation (docs/cloth.md K2): `src` a .rseq
+   * of the model's vertices in its bind pose, in the glTF's order (raea/body tools/cloth.ts --bind), `frame` the one
+   * drawn (keyed per frame). The skin poses them, so its materials, alpha, morphs and bones are kept. */
+  cloth?: { src: string; frame: number };
   /** fixed to another model's bone (`to`: that model's name; `bone`: the node's name in its glTF, "Head"): it follows
    * the bone's animated pose, and its position, rotation and scale are in the bone's space (a glTF's armature is
    * often scaled, so a hat may need scale 0.01) */
@@ -184,7 +188,8 @@ export interface ModelProps {
    * bones in its `mask` alone (a wave on the arm over a walk: { add: [{ clip: "walk" }, { clip: "wave", mask: ["leg_l",
    * "leg_r"] }] }). Weights and clip times may change every frame. Up to 16 nodes; not with animation or animations */
   graph?: AnimGraphNode;
-  /** morph target (blend shape) weights, 0 to 1: by target name ({ smile: 0.8 }) or index ([0.8, 0]); up to 8 */
+  /** morph target (blend shape) weights, 0 to 1: by target name ({ smile: 0.8 }) or index ([0.8, 0]); up to 64. The
+   * names are fixed when the model is made: pass the same set every frame (0 for a target at rest) */
   morphs?: Record<string, number> | number[];
   /** seconds into the clip (by default the Sequence's time: frame / fps); the clip loops unless loop={false} */
   time?: number;
@@ -284,6 +289,7 @@ export function Model(props: ModelProps) {
   if (!Number.isFinite(time)) throw new RangeError(`Model: time must be a finite number of seconds, got ${time}`);
   if (props.look !== undefined && !["solid", "pixel", "site"].includes(props.look)) throw new TypeError(`Model: look must be "solid", "pixel" or "site", got ${JSON.stringify(props.look)}`);
   checkPass("Model", props.pass);
+  if (props.cloth !== undefined && !(typeof props.cloth?.src === "string" && /\.rseq$/.test(props.cloth.src) && Number.isFinite(props.cloth.frame))) throw new TypeError(`Model: cloth is { src: a .rseq file, frame: a number }, got ${JSON.stringify(props.cloth)}`);
   if (props.sampler !== undefined) samplerSpec("Model", props.sampler);
   if (props.pixelSize !== undefined && !(props.pixelSize >= 1)) throw new RangeError(`Model: pixelSize must be at least 1, got ${props.pixelSize}`);
   if (props.bones !== undefined && (typeof props.bones !== "object" || Object.values(props.bones).some((v) => typeof v !== "string"))) throw new TypeError(`Model: bones maps each joint's name to a model's name, got ${JSON.stringify(props.bones)}`);
@@ -308,7 +314,7 @@ export function Model(props: ModelProps) {
   if (props.morphs !== undefined) {
     const m = props.morphs;
     const entries: [string | number, number][] = Array.isArray(m) ? m.map((w, i) => [i, w]) : typeof m === "object" && m !== null ? Object.entries(m) : [];
-    if (entries.length < 1 || entries.length > 8) throw new RangeError(`Model: morphs names 1 to 8 targets (by name or index), got ${JSON.stringify(m)}`);
+    if (entries.length < 1 || entries.length > 64) throw new RangeError(`Model: morphs names 1 to 64 targets (by name or index), got ${JSON.stringify(m)}`);
     for (const [k, w] of entries) if (!Number.isFinite(w)) throw new RangeError(`Model: morphs.${k} is a weight, got ${w}`);
     p.morphs = entries.map(([k, w]) => ({ target: k, weight: w }));
   }

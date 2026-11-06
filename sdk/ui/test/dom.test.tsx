@@ -99,6 +99,34 @@ describe("P18 DOM surface", () => {
     expect(ops.some((o: any) => o.op === "update" && o.set?.scrollTop === 400)).toBe(true);
   });
 
+  test("a press goes where the host's cascade says: a child a stylesheet gives pointer events back, under a pointer-events-none layer", () => {
+    const host = fresh();
+    const log: string[] = [];
+    function App() {
+      return (
+        <div data-testid="root" onClick={() => log.push("behind")}>
+          <div data-testid="dock" className="pointer-events-none">
+            <div data-testid="row" className="[&>*]:pointer-events-auto">
+              <button data-testid="ok" onClick={() => log.push("allowed")}>Allow</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    mount(<App />, 0, { dom: true });
+    snap(host, { root: [0, 0, 800, 600], dock: [0, 400, 800, 200], row: [0, 400, 800, 100], ok: [10, 410, 40, 24] });
+    // without the host's target, sdk/ui's own walk can't read the child variant and the press falls through
+    host.send("root", "pointerdown", press(20, 420));
+    host.send("root", "pointerup", press(20, 420));
+    expect(log).toEqual(["behind"]);
+    log.length = 0;
+    // with it (Blitz's hit path, decided by Stylo as Chrome would), the button gets the click
+    const target = host.tid("ok");
+    host.send("root", "pointerdown", { ...press(20, 420), target });
+    host.send("root", "pointerup", { ...press(20, 420), target });
+    expect(log).toEqual(["allowed", "behind"]);
+  });
+
   test("a press: capture and bubble through native and React listeners in Chrome's order, then click", () => {
     const host = fresh();
     const log: string[] = [];
@@ -262,5 +290,33 @@ describe("P18 DOM surface", () => {
     const seen: string[] = [];
     for (let n = w.nextNode(); n; n = w.nextNode()) seen.push(n.getAttribute("data-testid") ?? n.id);
     expect(seen).toEqual(["root", "root", "made"]);
+  });
+});
+
+describe("dangerouslySetInnerHTML", () => {
+  test("its markup becomes the element's children on the host, an inline SVG in SVG's namespace, and follows a change", () => {
+    const host = fresh();
+    const icon = (fill: string) => `<svg viewBox="0 0 24 24" width="1em" height="1em"><title>Mark</title><path fill="${fill}" d="M0 0h24v24H0z"></path></svg>`;
+    let set!: (s: string) => void;
+    let ref: any;
+    function App() {
+      const [fill, setFill] = useState("#D97757");
+      set = setFill;
+      const r = useRef<any>(null);
+      useEffect(() => void (ref = r.current), []);
+      return <span ref={r} data-testid="mark" dangerouslySetInnerHTML={{ __html: icon(fill) }} />;
+    }
+    mount(<App />, 0, { dom: true });
+    const span = host.nodes.get(host.tid("mark"))!;
+    const svg = host.nodes.get(span.children[0])!;
+    expect(svg.kind).toBe("svg");
+    expect(svg.props.viewBox).toBe("0 0 24 24");
+    const path = svg.children.map((c) => host.nodes.get(c)!).find((n) => n.kind === "path")!;
+    expect(path.props.fill).toBe("#D97757");
+    expect(ref.querySelector("path").namespaceURI).toBe("http://www.w3.org/2000/svg");
+    flushSync(() => set("#1783FF"));
+    const svg2 = host.nodes.get(host.nodes.get(host.tid("mark"))!.children[0])!;
+    expect(svg2.children.map((c) => host.nodes.get(c)!).find((n) => n.kind === "path")!.props.fill).toBe("#1783FF");
+    expect(host.nodes.get(host.tid("mark"))!.children.length).toBe(1);
   });
 });

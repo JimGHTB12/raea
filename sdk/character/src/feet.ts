@@ -10,12 +10,12 @@
 // footDrift measures any performance: how far each standing foot's pivot slides (cm per contact, and its speed) and how
 // fast the knees bend while the feet stand (a buckle), so planting can be judged by numbers rather than by eye.
 import type { Vec3 } from "raea/3d";
-import { bodyScale, joint, pose, qaxis, qinv, qmul, qnorm, qrot, twoBone, type Pose, type Quat, type Skeleton } from "raea/character";
+import { B, bodyScale, joint, pose, qaxis, qinv, qmul, qnorm, qrot, twoBone, type Pose, type Quat, type Skeleton } from "raea/character";
 import { qlog } from "./effects";
 
-const SIDES = [["LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase"], ["RightUpLeg", "RightLeg", "RightFoot", "RightToeBase"]] as const;
+export const LEGS = [[B.thigh("L"), B.calf("L"), B.foot("L"), B.ball("L")], [B.thigh("R"), B.calf("R"), B.foot("R"), B.ball("R")]] as const;
 
-interface FootFrame {
+export interface FootFrame {
   hip: Vec3;
   ankle: Vec3;
   ball: Vec3;
@@ -23,9 +23,9 @@ interface FootFrame {
 }
 
 /** each frame's feet, posed */
-function feetOf(skel: Skeleton, p: Pose): FootFrame[] {
+export function feetOf(skel: Skeleton, p: Pose): FootFrame[] {
   const w = pose(skel, p);
-  return SIDES.map((names) => {
+  return LEGS.map((names) => {
     const [h, , a, b] = names.map((n) => joint(skel, n));
     return { hip: w.pos[h], ankle: w.pos[a], ball: w.pos[b], rot: w.rot[a] };
   });
@@ -33,13 +33,13 @@ function feetOf(skel: Skeleton, p: Pose): FootFrame[] {
 
 /** the floor heights of a standing ankle and ball (the skeleton's at rest, standing on the floor), and the body's size
  * (`z`, bodyScale: the centimetres and speeds here were set on a child) */
-function rests(skel: Skeleton): { ankle: number; ball: number; leg: number[]; z: number } {
+export function rests(skel: Skeleton): { ankle: number; ball: number; leg: number[]; z: number } {
   const J = skel.joints;
-  const leg = SIDES.map((names) => {
+  const leg = LEGS.map((names) => {
     const [h, k, a] = names.map((n) => J[joint(skel, n)].head);
     return Math.hypot(k[0] - h[0], k[1] - h[1], k[2] - h[2]) + Math.hypot(a[0] - k[0], a[1] - k[1], a[2] - k[2]);
   });
-  return { ankle: J[joint(skel, "LeftFoot")].head[1], ball: J[joint(skel, "LeftToeBase")].head[1], leg, z: bodyScale(skel) };
+  return { ankle: J[joint(skel, B.foot("L"))].head[1], ball: J[joint(skel, B.ball("L"))].head[1], leg, z: bodyScale(skel) };
 }
 
 /** Which frames each foot stands: low (ankle within 3 cm of its standing height, or the ball within 1.2 cm: a child's swing
@@ -112,7 +112,7 @@ export function plantFeet(skel: Skeleton, raw: Pose[], hint?: [number, number][]
   let feet = raw.map((p) => feetOf(skel, p));
   const stand = standing(skel, feet, hint, fps, raw.map((p) => p.root));
   // the knee's bend (degrees) a leg needs to span `d` from hip to ankle
-  const bones = SIDES.map((nm) => { const [h, k, a] = nm.map((x) => skel.joints[joint(skel, x)].head); return [Math.hypot(k[0] - h[0], k[1] - h[1], k[2] - h[2]), Math.hypot(a[0] - k[0], a[1] - k[1], a[2] - k[2])]; });
+  const bones = LEGS.map((nm) => { const [h, k, a] = nm.map((x) => skel.joints[joint(skel, x)].head); return [Math.hypot(k[0] - h[0], k[1] - h[1], k[2] - h[2]), Math.hypot(a[0] - k[0], a[1] - k[1], a[2] - k[2])]; });
   const bendFor = (s: number, d: number) => { const [la, lb] = bones[s], c = (la * la + lb * lb - d * d) / (2 * la * lb); return 180 - (Math.acos(Math.max(-1, Math.min(1, c))) * 180) / Math.PI; };
   // each foot's ankle target where it is held (null where it swings free), and the offset it carries into a swing
   const target: (Vec3 | null)[][] = [[], []], stepping: boolean[][] = [[], []];
@@ -257,7 +257,7 @@ export function plantFeet(skel: Skeleton, raw: Pose[], hint?: [number, number][]
   // lifts, the ball stays put), as a trailing leg does at the end of a long step: the heel's turn (about the ball's
   // across axis, level and square to the foot) that brings the ankle into reach, 0.8 at most
   const rollFor = (s: number, q: Pose, tg: Vec3): { th: number; ax: Vec3; lifted: (th: number) => Vec3; out: boolean } => {
-    const [hi, , ai, bi] = SIDES[s].map((nm) => joint(skel, nm));
+    const [hi, , ai, bi] = LEGS[s].map((nm) => joint(skel, nm));
     const w = pose(skel, q), hip = w.pos[hi], own = Math.hypot(...[0, 1, 2].map((i) => w.pos[ai][i] - hip[i]) as [number, number, number]);
     const L = Math.min(0.9995 * r.leg[s], Math.max(0.995 * r.leg[s], own));
     const reachOf = (a: Vec3) => Math.hypot(a[0] - hip[0], a[1] - hip[1], a[2] - hip[2]);
@@ -277,8 +277,11 @@ export function plantFeet(skel: Skeleton, raw: Pose[], hint?: [number, number][]
     for (let s = 0; s < 2; s++) {
       let tg = target[s][t];
       if (!tg) continue;
-      const legs = [SIDES[s][0], SIDES[s][1], SIDES[s][2]];
-      const [hi, , ai, bi] = SIDES[s].map((nm) => joint(skel, nm));
+      const legs = [LEGS[s][0], LEGS[s][1], LEGS[s][2]];
+      const [hi, , ai, bi] = LEGS[s].map((nm) => joint(skel, nm));
+      // the knee's way (psx trials, docs/skeleton.feature SK4): the clip's own knee off the hip-ankle line, a little
+      // toward the toes and never behind them, so a leg near straight never flips its knee or bends it backwards
+      const pole = kneePole(skel, p, s);
       const roll = (ax: Vec3, th: number) => {
         const w2 = pose(skel, q), shin = skel.joints[ai].parent;
         const turns = q.turns.slice();
@@ -294,7 +297,7 @@ export function plantFeet(skel: Skeleton, raw: Pose[], hint?: [number, number][]
           if (log) log.lift[s][t] = Math.abs(th);
           const was = tg;
           tg = lifted(th);
-          q = twoBone(skel, q, legs, tg, undefined, { keep: true });
+          q = twoBone(skel, q, legs, tg, pole, { keep: true });
           roll(ax, th);
           // the ankle's move with it too, so letting go doesn't drop the heel back in a frame
           lastRoll[s] = { ax, th, d: [tg[0] - was[0], tg[1] - was[1], tg[2] - was[2]] };
@@ -310,7 +313,7 @@ export function plantFeet(skel: Skeleton, raw: Pose[], hint?: [number, number][]
       const k = !stand[s][t] && g ? (() => { const u = Math.min(1, (t - g.at) / g.len); return 1 - u * u * (3 - 2 * u); })() : 0;
       if (g && k > 1e-3) tg = [tg[0] + g.d[0] * k, tg[1] + g.d[1] * k, tg[2] + g.d[2] * k];
       const base = q, own = pose(skel, p).pos[ai], clipBend = kneeOf(skel, p, s);
-      q = twoBone(skel, base, legs, tg, undefined, { keep: true });
+      q = twoBone(skel, base, legs, tg, pole, { keep: true });
       // never a buckle: a knee bent more than 12° past the clip's own lets the foot give toward the clip's, just enough
       // (never down: the clip's foot can be through the floor)
       // (not in a quick step: a foot lifted to step folds the knee, as it should)
@@ -318,10 +321,10 @@ export function plantFeet(skel: Skeleton, raw: Pose[], hint?: [number, number][]
         let lo = 0, hi3 = 1;
         for (let it = 0; it < 8; it++) {
           const m = (lo + hi3) / 2, t2: Vec3 = [tg[0] + (own[0] - tg[0]) * m, tg[1] + Math.max(0, own[1] - tg[1]) * m, tg[2] + (own[2] - tg[2]) * m];
-          if (kneeOf(skel, twoBone(skel, base, legs, t2, undefined, { keep: true }), s) - clipBend > 12) lo = m; else hi3 = m;
+          if (kneeOf(skel, twoBone(skel, base, legs, t2, pole, { keep: true }), s) - clipBend > 12) lo = m; else hi3 = m;
         }
         tg = [tg[0] + (own[0] - tg[0]) * hi3, tg[1] + Math.max(0, own[1] - tg[1]) * hi3, tg[2] + (own[2] - tg[2]) * hi3];
-        q = twoBone(skel, base, legs, tg, undefined, { keep: true });
+        q = twoBone(skel, base, legs, tg, pole, { keep: true });
       }
       if (g && k > 1e-3) roll(g.ax, g.th * k);
       else if (g && !stand[s][t]) rollGo[s] = null;
@@ -331,7 +334,7 @@ export function plantFeet(skel: Skeleton, raw: Pose[], hint?: [number, number][]
   // a leg's turns smoothed where planting made them change speed more suddenly than the clip's, by 2°/f² (twice, a
   // quarter, a half, a quarter): a lock, a roll or the knee guard giving way turned a knee or hip in a frame
   for (let s = 0; s < 2; s++) {
-    const js = [SIDES[s][0], SIDES[s][1], SIDES[s][2]].map((nm) => joint(skel, nm)), ai = js[2], bi = joint(skel, SIDES[s][3]);
+    const js = [LEGS[s][0], LEGS[s][1], LEGS[s][2]].map((nm) => joint(skel, nm)), ai = js[2], bi = joint(skel, LEGS[s][3]);
     const jerk = (P: Pose[], t: number, j: number) => {
       const v1 = qlog(qmul(qinv(P[t - 1].turns[j]), P[t].turns[j])), v2 = qlog(qmul(qinv(P[t].turns[j]), P[t + 1].turns[j]));
       return (Math.hypot(v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2]) * 180) / Math.PI;
@@ -378,7 +381,7 @@ export function footDrift(skel: Skeleton, poseAt: (f: number) => Pose, frames: n
   for (let f = 0; f < frames; f++) {
     const p = poseAt(f), w = pose(skel, p);
     feet.push(feetOf(skel, p));
-    knees.push(SIDES.map((names) => {
+    knees.push(LEGS.map((names) => {
       const [h, k, a] = names.map((x) => w.pos[joint(skel, x)]);
       const u = [h[0] - k[0], h[1] - k[1], h[2] - k[2]], v = [a[0] - k[0], a[1] - k[1], a[2] - k[2]];
       return (Math.acos(Math.max(-1, Math.min(1, (u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / Math.hypot(...u) / Math.hypot(...v)))) * 180) / Math.PI;
@@ -424,5 +427,20 @@ export function footDrift(skel: Skeleton, poseAt: (f: number) => Pose, frames: n
 
 const norm3 = (v: Vec3): Vec3 => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
 const rotAbout = (axis: Vec3, th: number, v: Vec3): Vec3 => qrot(qaxis(axis, th), v);
+/** Which way a leg's knee points for two-bone IK: the clip's knee off its hip-ankle line, plus 0.05 of the toes' way
+ * (level), with any part pointing behind the toes taken out (psx's knees: 0 flips, 0 bent backwards). */
+export function kneePole(skel: Skeleton, p: Pose, s: number): Vec3 {
+  const [hi, ki, ai, bi] = LEGS[s].map((nm) => joint(skel, nm)), w = pose(skel, p);
+  const hip = w.pos[hi], knee = w.pos[ki], ankle = w.pos[ai];
+  const d = [ankle[0] - hip[0], ankle[1] - hip[1], ankle[2] - hip[2]], dl = Math.hypot(d[0], d[1], d[2]) || 1, n = d.map((x) => x / dl);
+  const kv = [knee[0] - hip[0], knee[1] - hip[1], knee[2] - hip[2]], kd = kv[0] * n[0] + kv[1] * n[1] + kv[2] * n[2];
+  let off: Vec3 = [kv[0] - n[0] * kd, kv[1] - n[1] * kd, kv[2] - n[2] * kd];
+  const J = skel.joints, rd = [J[bi].head[0] - J[ai].head[0], 0, J[bi].head[2] - J[ai].head[2]] as Vec3;
+  const tw = qrot(w.rot[ai], rd), tl = Math.hypot(tw[0], tw[2]) || 1, toes: Vec3 = [tw[0] / tl, 0, tw[2] / tl];
+  const back = off[0] * toes[0] + off[2] * toes[2];
+  if (back < 0) off = [off[0] - toes[0] * back, off[1], off[2] - toes[2] * back];
+  return [off[0] + 0.05 * toes[0], off[1], off[2] + 0.05 * toes[2]];
+}
+
 /** a knee's bend, degrees: the shin's turn at the knee (at rest the leg is straight) */
-const kneeOf = (skel: Skeleton, p: Pose, s: number) => { const q = p.turns[joint(skel, SIDES[s][1])], w = Math.min(1, Math.abs(q[3])); return (2 * Math.acos(w) * 180) / Math.PI; };
+const kneeOf = (skel: Skeleton, p: Pose, s: number) => { const q = p.turns[joint(skel, LEGS[s][1])], w = Math.min(1, Math.abs(q[3])); return (2 * Math.acos(w) * 180) / Math.PI; };

@@ -143,6 +143,8 @@ pub fn remove(root: &Path, names: &[String]) -> R<Report> {
 /// Makes the project's node_modules what its package.json says: resolved against raea.lock (the registry asked only for
 /// what the lock doesn't have), fetched into the store, laid out, and the lock written.
 pub fn install(root: &Path, offline: bool) -> R<Report> {
+    // RAEA_OFFLINE: the packages raea already has, as --offline
+    let offline = offline || raea_io_home::offline("npm").is_err();
     let pj = PackageJson::read(root)?;
     let mut warnings = Vec::new();
     let mut deps: Vec<(String, PackageReq)> = Vec::new();

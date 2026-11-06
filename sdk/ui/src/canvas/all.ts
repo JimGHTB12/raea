@@ -3,5 +3,6 @@
 export * from "./core";
 export * from "./filter";
 export * from "./paths";
+export * from "./measure";
 export * from "./context";
 export * from "./images";

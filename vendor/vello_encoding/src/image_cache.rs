@@ -98,6 +98,12 @@ impl ImageCache {
         }
     }
 
+    /// raea: the atlas at its size with nothing to upload, for a resolve that uses no images (it keeps the renderer's
+    /// persistent atlas texture and what's resident in it)
+    pub(crate) fn unchanged(&self) -> Images<'_> {
+        Images { width: self.atlas.size().width as u32, height: self.atlas.size().height as u32, evicted: 0, images: &[] }
+    }
+
     pub(crate) fn bump_size(&mut self) -> bool {
         let mut new_size = self.atlas.size().width * 2;
         while new_size <= self.max_size {
@@ -210,6 +216,17 @@ mod tests {
     use super::*;
     use peniko::{Blob, ImageAlphaType, ImageFormat};
     use std::sync::Arc;
+
+    /// raea: a resolve with no images reports the atlas as it is, not 0x0 (which made the renderer drop its atlas)
+    #[test]
+    fn unchanged_keeps_the_atlas_size() {
+        let mut cache = ImageCache::new_with_sizes(64, 256);
+        cache.begin_resolve();
+        assert!(cache.get_or_insert(&image(1, 16, 16)).is_some());
+        cache.finish_resolve();
+        let i = cache.unchanged();
+        assert_eq!((i.width, i.height, i.images.len()), (64, 64, 0));
+    }
 
     fn image(id_byte: u8, width: u32, height: u32) -> ImageData {
         let len = (width * height * 4) as usize;

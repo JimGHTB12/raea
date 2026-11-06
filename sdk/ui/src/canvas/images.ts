@@ -57,7 +57,7 @@ export function canvasClass<T extends new (...a: any[]) => CanvasHost & { setAtt
       return (this._ctx ??= new CanvasRenderingContext2D_(this as unknown as CanvasHost & { width: number; height: number }));
     }
     toDataURL() {
-      return "data:,";
+      return (this.getContext("2d") as CanvasRenderingContext2D_)._dataUrl();
     }
   };
 }

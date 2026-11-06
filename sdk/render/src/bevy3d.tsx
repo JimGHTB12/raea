@@ -12,6 +12,8 @@ export { Quat, Affine2, Transform, Mesh3d, Camera3d, Srgba, LinearRgba, Standard
 export type { EulerRot, TransformValue, TransformBuilt, Mesh3dProps, Projection, Camera3dProps, AlphaMode, StandardMaterialProps, StandardMaterialAnimate, ToonExtensionAnimate, SampledImage, MetallicRoughnessMaps, GridExtensionProps, PaintExtensionProps, WearExtensionProps, ToonExtensionProps, ShaderExtensionProps, ExtendedMaterialProps, ToonMaterialProps, Mesh2dProps, CircleProps, RectangleProps, EllipseProps, RegularPolygonProps, ColorMaterialProps, PointLightProps, SpotLightProps, DirectionalLightProps, AmbientLightProps, RectLightProps } from "./bevy3d/all";
 
 export { eulerOf };
+// ray-traced lighting: Bevy's Solari (docs/raytracing.feature RT3)
+export { SolariLighting, Pathtracer, type SolariLightingProps, type PathtracerProps } from "./bevy3d/raytracing";
 export { ConicalFrustum, type ConicalFrustumProps } from "./3d/shapes";
 // a Bevy texture (a camera's target) drawn in an element (B3 H7)
 export { TextureView } from "./layers";

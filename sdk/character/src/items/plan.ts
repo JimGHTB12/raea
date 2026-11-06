@@ -1,6 +1,6 @@
 // planItems: the walks, reaches and waits that do the tasks.
 import type { Vec3 } from "raea/3d";
-import { bodyScale, joint, len, qrot, qyaw, sub, type Side } from "raea/character";
+import { B, bodyScale, joint, len, qrot, qyaw, sub, type Side } from "raea/character";
 import { route, type MotionLibrary, type Obstacle, type Step } from "../matching";
 import { handling, obstacleDistance, placeOn, shapeOf, standAt, surfacesOf, thingObstacles, toLocal, toWorld, under, type Handling, type Thing } from "../things";
 import { Beat, D, E, Item, ItemPlan, ItemTask, P, S, T, THROW_LEN, autoStyle, clipMove, gripTurn, reachAhead, wrap } from "./all";
@@ -11,7 +11,15 @@ export function planItems(lib: MotionLibrary, start: { at: Vec3; facing: number 
   const h = lib.skel.height, steps: Step[] = [], beats: Beat[] = [];
   const looks: number[] = [];
   const named = o.things && !Array.isArray(o.things) ? o.things : {};
-  const furniture = Array.isArray(o.things) ? o.things : Object.values(named);
+  const furniture = [...(Array.isArray(o.things) ? o.things : Object.values(named))];
+  // every seat the plan sits on is in the way of its walks (RAEA_SEAT_OBSTACLE=0 not): unknown to the routes, errands'
+  // walk to the chair's front from behind it went straight through it, the feet 15 cm into its base
+  if (process.env.RAEA_SEAT_OBSTACLE !== "0") for (const t of tasks) {
+    const sit = "step" in t ? (t.step as { sit?: { at: Vec3; facing: number | Vec3 } }).sit : undefined;
+    if (!sit) continue;
+    const fy = typeof sit.facing === "number" ? sit.facing : Math.atan2(sit.facing[0] - sit.at[0], sit.facing[2] - sit.at[2]);
+    furniture.push({ at: [sit.at[0], 0, sit.at[2]], size: [0.48, sit.at[1], 0.48], yaw: fy });
+  }
   let x = start.at[0], z = start.at[2], yaw = start.facing;
   const holding = new Map<string, Beat>();
   const carried = () => [...holding.values()].reduce((a, b) => a + b.how.load, 0);
@@ -19,8 +27,8 @@ export function planItems(lib: MotionLibrary, start: { at: Vec3; facing: number 
   // walk from walks, and a heavy thing takes the whole body from carries; a library without tags plays the step whole)
   // (a thing in one hand: that hand low at its side, as interact's hold has it, so a suitcase's carry is played rather
   // than a box's, the hands before the chest)
-  const SJ = lib.skel.joints, shY = SJ[joint(lib.skel, "LeftArm")].head[1];
-  const armL = len(sub(SJ[joint(lib.skel, "LeftForeArm")].head, SJ[joint(lib.skel, "LeftArm")].head)) + len(sub(SJ[joint(lib.skel, "LeftHand")].head, SJ[joint(lib.skel, "LeftForeArm")].head));
+  const SJ = lib.skel.joints, shY = SJ[joint(lib.skel, B.upperarm("L"))].head[1];
+  const armL = len(sub(SJ[joint(lib.skel, B.lowerarm("L"))].head, SJ[joint(lib.skel, B.upperarm("L"))].head)) + len(sub(SJ[joint(lib.skel, B.hand("L"))].head, SJ[joint(lib.skel, B.lowerarm("L"))].head));
   const held = (): Pick<Extract<Step, { walk: unknown }>, "tags" | "limbs"> => {
     if (!holding.size) return {};
     const hands: Partial<Record<Side, Vec3>> = {}, clear: Partial<Record<Side, number>> = {};
@@ -230,7 +238,14 @@ export function planItems(lib: MotionLibrary, start: { at: Vec3; facing: number 
       x = e[0]; z = e[1];
     } else if ("step" in t) {
       steps.push(t.step);
-      x = t.at[0]; z = t.at[1]; yaw = t.face;
+      const sit = (t.step as { sit?: { at: Vec3; facing: number | Vec3 } }).sit;
+      if (sit && process.env.RAEA_SEAT_OBSTACLE !== "0") {
+        // stood up, a step forward clear of it before turning anywhere (turned on the spot at its front, the turn's
+        // steps went back into it)
+        const out: [number, number] = [t.at[0] + Math.sin(t.face) * 0.45, t.at[1] + Math.cos(t.face) * 0.45];
+        steps.push({ walk: [[t.at[0], t.at[1]], out], speed: 0.8, ...held() });
+        x = out[0]; z = out[1]; yaw = t.face;
+      } else { x = t.at[0]; z = t.at[1]; yaw = t.face; }
     } else if (t.face !== undefined) {
       steps.push({ wait: t.wait, face: t.face, slack, ...held() });
       yaw = t.face;

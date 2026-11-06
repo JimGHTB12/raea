@@ -9,7 +9,7 @@
 // probe: 4 30 r<20 g<20 b<20
 // probe: 60 30 r<20 g<20 b<20
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, Entity } from "raea/3d";
+import { Entity } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { Sparks } from "raea/plugins/enoki";
@@ -17,12 +17,12 @@ import { Sparks } from "raea/plugins/enoki";
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 5).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }} />
         <Entity position={[32, -48, 0]}>
           <Sparks value={{ every: 0.02, amount: 1, lifetime: 1, speed: 60, direction: [0, 1], spread: 0, size: 6, color: [1, 0.6, 0.2, 1], gravity: 0 }} />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

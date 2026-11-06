@@ -35,7 +35,10 @@ use raea_runtime_dom::host::Roots;
 use raea_sys_page::view3d::ElementImages;
 use serde_json::{Value, json};
 
-use crate::page::HostPage;
+/// The page the stage is in: the app inserts it with the page it mounts (raea-page-host's page::mount).
+#[derive(Resource)]
+pub struct StagePage(pub Entity);
+
 
 /// What the page asks of the stage's thread.
 enum Cmd {
@@ -203,7 +206,7 @@ fn fit(stage: Res<Stage>, mut images: ResMut<Assets<Image>>) {
 
 /// The page's `<img data-raea-stage>` shows the stage's image while the stage has a picture (ElementImages: Vello draws
 /// it in the element's place).
-fn bind(stage: Res<Stage>, page: Option<Res<HostPage>>, roots: Option<NonSend<Roots>>, docs: Option<NonSend<Docs>>, mut shows: ResMut<ElementImages>, mut held: Local<Option<(Entity, blitz_dom::NodeId)>>) {
+fn bind(stage: Res<Stage>, page: Option<Res<StagePage>>, roots: Option<NonSend<Roots>>, docs: Option<NonSend<Docs>>, mut shows: ResMut<ElementImages>, mut held: Local<Option<(Entity, blitz_dom::NodeId)>>) {
     let (Some(page), Some(roots), Some(_docs)) = (page, roots, docs) else { return };
     let node = stage.size().and_then(|_| {
         let r = roots.0.iter().find(|r| r.page == page.0)?;

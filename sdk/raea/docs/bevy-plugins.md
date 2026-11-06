@@ -288,6 +288,9 @@ Most are a plain `plugin` expression. Rust was written only where the API isn't 
 - **navigator** (`src/navigator.rs`): `navigator/mesh {edges, obstacles?, mesh?}` builds (or, given `mesh`, rebuilds)
   a NavMesh in the plugin's assets from its outline and obstacles; `navigator/path {mesh, from, to}` gives `{length,
   points}` or null.
+- **save** (`src/save.rs`, PL16): `save/mark {entities, unload?}` marks entities Save (or Unload); `save/save {path}`
+  writes every Save entity's reflected components as RON and gives `{saved}`; `save/load {path}` despawns the Save
+  and Unload entities, spawns the file's, marks them Save again and gives `{loaded}`.
 - **northstar** (`src/northstar.rs`): `northstar/grid {size, walls?, chunk?, grid?}` spawns (or rebuilds) an entity
   with an OrdinalGrid3d; `northstar/path {grid, from, to, mode?}` gives `{cost, points}` or null.
 

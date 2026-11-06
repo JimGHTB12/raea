@@ -3,9 +3,9 @@
 // a 4096 map and a little more bias than Bevy's. The camera dollies along the columns, so their shadows cross from one
 // cascade to the next.
 import { AbsoluteFill, Composition, interpolate, registerRoot, useCurrentFrame } from "raea";
-import { Cylinder, Shadows } from "raea/3d";
+import { Shadows } from "raea/3d";
 import { StandardMaterial } from "raea/pbr";
-import { Cuboid, Mesh3d, Plane3d } from "raea/mesh";
+import { Cuboid, Mesh3d, Plane3d, ConicalFrustum } from "raea/mesh";
 import { AmbientLight, DirectionalLight, SpotLight } from "raea/light";
 import { Quat, Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
@@ -32,7 +32,7 @@ function Shot() {
         </Mesh3d>
         {columns.map((cz) => (
           <Mesh3d key={cz} transform={Transform.fromXyz(1.5, 2, cz)}>
-            <Cylinder args={[0.35, 0.4, 4, 24]} />
+            <ConicalFrustum radius_top={0.35} radius_bottom={0.4} height={4} />
             <StandardMaterial base_color="#e6dccb" perceptual_roughness={0.7} />
           </Mesh3d>
         ))}

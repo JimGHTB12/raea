@@ -50,7 +50,8 @@ fn resolve(src: &str) -> R<PathBuf> {
     if let Some(rest) = src.strip_prefix("/media/") {
         let dir = dir.ok_or("no composition is open, so /media/ has no folder")?;
         let rest = rest.split('/').map(|s| raea_io_net::percent_decode_str(s)).collect::<Vec<_>>().join("/");
-        return Ok(dir.join("media").join(rest));
+        // the project's media/, then its assets/ (S5a)
+        return Ok(raea_core_scene::media_path(&dir, &format!("/media/{rest}")));
     }
     let p = PathBuf::from(src);
     if p.is_absolute() {

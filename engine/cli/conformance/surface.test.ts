@@ -49,10 +49,11 @@ const listed = new Set([...help.matchAll(/raea ([a-z][\w-]*)/g), ...help.matchAl
 const shellVerbs = JSON.parse(/const SHELL: &\[&str\] = &(\[[^\]]*\]);/.exec(readFileSync(join(raea, "engine/cli/src/verbs.rs"), "utf8"))![1]) as string[];
 const handled = new Set([...cli.matchAll(/case "(\w+)":/g)].map((m) => m[1]).filter((c) => c !== "--help" && c !== "help"));
 
+/** the hand-written text under dir: a skill's reference/ is the help itself, written by tools/skills.sh gen */
 function files(dir: string, out: string[] = []): string[] {
   for (const f of readdirSync(dir)) {
     const p = join(dir, f);
-    if (lstatSync(p).isDirectory()) files(p, out);
+    if (lstatSync(p).isDirectory()) f !== "reference" && files(p, out);
     else if (f.endsWith(".md")) out.push(p);
   }
   return out;
@@ -133,6 +134,18 @@ describe("raea's surface", () => {
       expect(run("part", "add", "face-frame").stdout).toContain("already here");
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+    // by feature (S5a): space.json, package.json, assets/, src/ with main.tsx, a feature, shots/; never components/
+    const feat = mkdtempSync(join(tmpdir(), "raea-init-feature-"));
+    const go = (...a: string[]) => spawnSync("bun", [join(here, "src/native.ts"), bin, ...a], { cwd: feat, encoding: "utf8" });
+    try {
+      expect(go("init", "--layout", "feature").stdout).toContain("made space.json, package.json, src/main.tsx");
+      expect(["space.json", "package.json", "assets", "src/main.tsx", "src/title.tsx", "src/shots/opening.tsx", "src/screens", "src/ui", "AGENTS.md"].filter((f) => !existsSync(join(feat, f)))).toEqual([]);
+      expect(existsSync(join(feat, "components"))).toBe(false);
+      expect(go("init", "--layout", "feature").stdout).toContain("nothing to make");
+      expect(go("init", "--layout", "other").status).toBe(2);
+    } finally {
+      rmSync(feat, { recursive: true, force: true });
     }
   });
 

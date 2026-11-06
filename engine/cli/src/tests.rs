@@ -38,6 +38,20 @@ fn help_lists_every_verb() {
 }
 
 #[test]
+fn help_json_is_every_listed_verb() {
+    // `raea help --json` (tools/skills.sh gen's source): the verbs the help lists, not its prose, each with its flags
+    let help = run(&["help".to_string()]).unwrap();
+    let j: serde_json::Value = serde_json::from_str(&run(&["help".to_string(), "--json".to_string()]).unwrap()).unwrap();
+    let verbs: Vec<&str> = j["verbs"].as_array().unwrap().iter().map(|v| v["verb"].as_str().unwrap()).collect();
+    assert_eq!(verbs, verb_list(&help).iter().map(String::as_str).collect::<Vec<_>>());
+    assert!(!verbs.contains(&"compositions"), "the help's opening line isn't a verb: {verbs:?}");
+    let controller = j["verbs"].as_array().unwrap().iter().find(|v| v["verb"] == "controller").unwrap();
+    assert_eq!(controller["args"], 3);
+    assert!(controller["flags"].as_array().unwrap().iter().any(|f| f["flag"] == "--by" && f["values"] == 1));
+    assert!(j["verbs"].as_array().unwrap().iter().any(|v| v["verb"] == "gen" && v["own_parser"] == true));
+}
+
+#[test]
 fn a_verb_refuses_what_it_doesnt_take() {
     let help = run(&["help".to_string()]).unwrap();
     let a = |s: &[&str]| s.iter().map(|a| a.to_string()).collect::<Vec<_>>();
@@ -90,7 +104,7 @@ fn every_flag_a_verb_reads_is_in_the_help() {
         "--game", "--info", "--selftest", "--no-pointer", // an exported game's own player reads these (game.rs player_main)
         "--o", // track and splat take "--o" for -o, a slip they forgive
         "--nope", "--loud", // test fixtures
-        "--help",
+        "--help", "--version", // raea's own, before any verb
         "--filter", "--bundle-only", "--define", "--alias", "--node-stub", // `raea test`, raea's own conformance runner, unlisted
     ];
     let lit = regex::Regex::new(r#""(--[a-z0-9][a-z0-9-]*)[="]"#).unwrap();

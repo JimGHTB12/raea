@@ -8,7 +8,7 @@
 // probe: 2 2 r<20 g<20 b<20
 // probe: 61 61 r<20 g<20 b<20
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { BevyComponent, Canvas3D, Entity } from "raea/3d";
+import { BevyComponent, Entity } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { SmudShape } from "raea/plugins/smud";
@@ -16,7 +16,7 @@ import { SmudShape } from "raea/plugins/smud";
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 5).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }} />
         <Entity position={[32, -32, 0]}>
           <BevyComponent type="raea_sys_sprite::Draws2d" value={{}} />
@@ -32,7 +32,7 @@ function Shot() {
             }}
           />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

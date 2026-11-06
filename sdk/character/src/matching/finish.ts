@@ -1,6 +1,6 @@
 // perform's lookups and passes: each frame's asks, a switch's speed, still clips smoothed, an action's feet, the gaze.
 import type { Vec3 } from "raea/3d";
-import { bodyScale, joint, lookAt, pose, qnorm, qrot, qyaw, type Pose, type Quat, type Skeleton } from "raea/character";
+import { B, bodyScale, joint, lookAt, pose, qmul, qnorm, qrot, qyaw, setWorld, type Pose, type Quat, type Skeleton } from "raea/character";
 import { type RigEffect } from "../effects";
 import { MotionLibrary, Performance, PerformanceSpec, Step, TagCond, crouched, guide, labelCost, stateMix, stateQuery, stepTags, swingCost, wrap } from "./all";
 
@@ -111,7 +111,7 @@ export function smoothStill(raw: Pose[], G: Guide) {
 // still going, 15 cm), the whole body is moved back by the slide, the leg as the clip has it (held by the leg it
 // folded 20° past the clip's), and the offset eased out once no foot slides (the slower foot's, both down)
 export function holdActionFeet(skel: Skeleton, raw: Pose[], G: Guide, contacts: [number, number][]) {
-  const lows = ["LeftFoot", "RightFoot", "LeftToeBase", "RightToeBase"].map((nm) => joint(skel, nm));
+  const lows = B.feet().map((nm) => joint(skel, nm));
   const lowOf = (t: number, s: number) => { const w = pose(skel, raw[t]); const a = w.pos[lows[s]], b = w.pos[lows[s + 2]]; return a[1] - skel.joints[lows[s]].head[1] < b[1] - skel.joints[lows[s + 2]].head[1] ? a : b; };
   let off: [number, number] = [0, 0], from: [number, number] = [0, 0], since = -1;
   const EASE = 10;
@@ -143,7 +143,8 @@ export function holdActionFeet(skel: Skeleton, raw: Pose[], G: Guide, contacts: 
 export function stages(G: Guide, spec: PerformanceSpec, fps: number): Pick<Performance, "phase" | "step"> {
   const phase: Performance["phase"] = (frame) => {
     const a = G[Math.min(G.length - 1, Math.max(0, Math.round(frame)))]?.act;
-    if (!a || Math.round(frame) >= G.length) return null;
+    // (a sit's only: an action clip's play, a pick-up or a throw, is an act with no seat)
+    if (!a || !a.seat || Math.round(frame) >= G.length) return null;
     const [d, s] = a.len, j = a.j;
     const stage = j < d ? "down" : j < d + s ? "sat" : "up";
     const at = stage === "down" ? j : stage === "sat" ? j - d : j - d - s, n = a.len[stage === "down" ? 0 : stage === "sat" ? 1 : 2];
@@ -173,7 +174,7 @@ export const smooth = (u: number) => {
  * second before the body gets there. The face turns by most of the way the guide will have turned by then (up to
  * about 45°), about up only, so the clip's own nods stay. */
 export function leadGaze(skel: Skeleton, poses: Pose[], G: Performance["guide"]): Pose[] {
-  const head = joint(skel, "Head"), eyes = skel.landmarks.eyes, lead = 20;
+  const head = joint(skel, B.head), neck = joint(skel, B.neck), eyes = skel.landmarks.eyes, lead = 20;
   // the lead each frame, then smoothed over a third of a second either side: read raw it jumped where one step ends
   // and the next begins, and the head jerked (the motion lint's finding at the end of every walk)
   const want = poses.map((_, f) => {
@@ -187,6 +188,14 @@ export function leadGaze(skel: Skeleton, poses: Pose[], G: Performance["guide"])
   return poses.map((p, f) => {
     const g = G[Math.min(G.length - 1, f)], turn = turns[f];
     if (g?.act || Math.abs(turn) < 0.002) return p;
+    // the turn about the world's up, half at the neck and half at the head (RAEA_GAZE_ARC=1: the old look-at, whose
+    // shortest arc from a face pitched down to the same pitch turned aside tilts the head: turn 90's head rolled 10.7
+    // degrees over a second where the clips roll 5)
+    if (process.env.RAEA_GAZE_ARC !== "1") {
+      let q = p;
+      for (const j of [neck, head]) q = setWorld(skel, q, pose(skel, q), j, qmul(qyaw(turn / 2), pose(skel, q).rot[j]));
+      return q;
+    }
     const w = pose(skel, p);
     const at = add3(w.pos[head], qrot(w.rot[head], [eyes[0] - skel.joints[head].head[0], eyes[1] - skel.joints[head].head[1], eyes[2] - skel.joints[head].head[2]]));
     const fwd = qrot(qyaw(turn), qrot(w.rot[head], [0, 0, 1]));
@@ -206,7 +215,7 @@ export function strideEffect(skel: Skeleton, k: number): RigEffect {
   if (hit) return hit;
   const e: RigEffect = {
     posture: skel.joints.map(() => [0, 0, 0] as Vec3),
-    amplitude: skel.joints.map((j) => (/UpLeg$/.test(j.name) ? [kk, 1, 1] : /^(Left|Right)Leg$/.test(j.name) ? [Math.sqrt(kk), 1, 1] : [1, 1, 1]) as Vec3),
+    amplitude: skel.joints.map((j) => (/^thigh_/.test(j.name) ? [kk, 1, 1] : /^calf_/.test(j.name) ? [Math.sqrt(kk), 1, 1] : [1, 1, 1]) as Vec3),
     rate: 1,
   };
   strides.set(key, e);
@@ -215,3 +224,25 @@ export function strideEffect(skel: Skeleton, k: number): RigEffect {
 
 /** whether RAEA_LINT is set (every performance lints itself) */
 export const lintEnv = () => { const g = globalThis as { process?: { env?: Record<string, string | undefined> } }; return !!g.process?.env?.RAEA_LINT; };
+
+/** The matched motion's joints smoothed over time (the binomial mean of the five frames round each, twice): a switch's
+ * blend and the library's frame steps left the toes and feet snapping 10 to 25 degrees in a frame, which the planting
+ * that follows does not undo. The root's place and turn are the guide's and stay. */
+export function smoothTurns(raw: Pose[], passes = 2) {
+  const TAPS: [number, number][] = [[-2, 1], [-1, 4], [0, 6], [1, 4], [2, 1]];
+  for (let pass = 0; pass < passes; pass++) {
+    const was = raw.slice(), n = raw.length;
+    for (let t = 0; t < n; t++) {
+      const turns = was[t].turns.map((c, i) => {
+        if (i === 0) return c;
+        const m = [0, 0, 0, 0];
+        for (const [d, w] of TAPS) {
+          const q = was[Math.min(n - 1, Math.max(0, t + d))].turns[i], sg = q[0] * c[0] + q[1] * c[1] + q[2] * c[2] + q[3] * c[3] < 0 ? -w : w;
+          for (let a = 0; a < 4; a++) m[a] += sg * q[a];
+        }
+        return qnorm(m as Quat);
+      });
+      raw[t] = { ...was[t], turns };
+    }
+  }
+}

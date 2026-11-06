@@ -3,7 +3,7 @@
 //! They need no plugin of raea's: turning a feature on puts its plugin in Bevy's DefaultPlugins, which raea-render's Engine
 //! builds. One exception is handled here: bevy_audio's AudioPlugin plays to the device, not into raea's mixer, so a
 //! render wouldn't hear it and a play would hear it twice. The Engine leaves it out; a TypeScript App that wants
-//! Bevy's audio asks for it by name (`plugins: ["bevy_audio"]`).
+//! Bevy's audio asks for it by name (`plugins: ["bevy_audio"]`). And under RAEA_OFFLINE the http asset source is left out.
 
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
@@ -21,5 +21,7 @@ pub fn register() {
 }
 
 fn group(b: PluginGroupBuilder) -> PluginGroupBuilder {
-    b.disable::<bevy::audio::AudioPlugin>()
+    let b = b.disable::<bevy::audio::AudioPlugin>();
+    // RAEA_OFFLINE: no http(s) asset source, so a model or texture named by URL is refused rather than fetched
+    if raea_io_home::offline("Bevy's http asset source").is_err() { b.disable::<bevy::asset::io::web::WebAssetPlugin>() } else { b }
 }

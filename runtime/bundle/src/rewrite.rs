@@ -28,7 +28,7 @@ pub const MEDIA_EXTS: [&str; 10] = ["mp4", "mov", "m4v", "mp3", "wav", "m4a", "p
 /// statements, so an import over several lines is rewritten too. With `portable` a folder, imported media is copied
 /// into its media/ and named `media/<file>`, so the bundle and that folder travel together (to the iPhone).
 pub fn rewrite_into(src: &str, from_dir: &Path, motion_src: &Path, to_motion: &str, portable: Option<&Path>) -> R<String> {
-    // `export ... from` too: a package re-exporting the umbrella (tone.tsx's sao, lyria and fish) was left external
+    // `export ... from` too: a package re-exporting the umbrella (tone.tsx's sao and lyria) was left external
     let re = regex::Regex::new(r#"(?s)\b(?:(import)\s+([^;'"]*?)|(export)\s+((?:\*|\{|type\s*\{)[^;'"]*?))\s+from\s+(["'])([^"']+)["']"#).unwrap();
     let mut out = String::new();
     let mut last = 0;
@@ -43,7 +43,8 @@ pub fn rewrite_into(src: &str, from_dir: &Path, motion_src: &Path, to_motion: &s
         let ext = Path::new(spec).extension().and_then(|x| x.to_str()).unwrap_or("").to_lowercase();
         let local = spec.starts_with('.') || spec.starts_with('/');
         if kw == "import" && MEDIA_EXTS.contains(&ext.as_str()) && local {
-            let path = from_dir.join(spec);
+            // "/media/x" is the project's (its media/, then assets/: S5a), anything else beside the edit
+            let path = if spec.starts_with("/media/") { raea_core_scene::media_path(from_dir, spec) } else { from_dir.join(spec) };
             if !path.exists() {
                 return Err(format!("line {line}: {spec} doesn't exist (imported media resolves beside the edit)"));
             }

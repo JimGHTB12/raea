@@ -3,7 +3,7 @@
 // hanabi.rs builds the effect asset from it); its TSX wrapper is generated like any other (raea/plugins/hanabi,
 // from tools/bevy-plugins.sh gen). Render and play are compared by sdk/raea/bench/bevy/check.sh with RAEA_BIN=bevy-plugins/motion.sh.
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D } from "raea/3d";
+
 import { Particles } from "raea/plugins/hanabi";
 import { StandardMaterial } from "raea/pbr";
 import { ConicalFrustum, Mesh3d } from "raea/mesh";
@@ -17,7 +17,7 @@ const FRAMES = 120;
 function Fountains() {
   return (
     <AbsoluteFill style={{ background: "#0b1020" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 1.5, 7).lookingAt([0, 1.2, 0])} projection={{ Perspective: { fov: 0.785398163397448 } }} />
         <AmbientLight brightness={200} />
         <DirectionalLight transform={Transform.fromXyz(2, 5, 4).lookingAt([0, 0, 0])} illuminance={9600} shadow_maps_enabled />
@@ -31,7 +31,7 @@ function Fountains() {
           <StandardMaterial base_color="#475569" />
           <Particles value={{ rate: 300, lifetime: 1.6, speed: 4, spread: 0.3, size: 0.08, color: [0.3, 0.7, 1, 0.5], gravity: 5, seed: 7, opaque: false }} />
         </Mesh3d>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

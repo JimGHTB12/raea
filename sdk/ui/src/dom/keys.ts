@@ -1,6 +1,6 @@
 // Keys and activation: focus targets, Space and Enter clicks, and form submission.
 import * as wire from "../wire";
-import { Control_, Element_, Event_, HTMLButtonElement_, HTMLFormElement_, HTMLInputElement_, HTMLLabelElement_, HTMLOptionElement_, HTMLSelectElement_, InputEvent_, KeyboardEvent_, MODS, Node_, PointerEvent_, S, SubmitEvent_, disabledEl, dispatch, doc, focusTo, focusable, g, installed, isField, keyInit, query } from "./all";
+import { Control_, Element_, Event_, HTMLButtonElement_, HTMLFormElement_, HTMLInputElement_, HTMLLabelElement_, HTMLOptionElement_, HTMLSelectElement_, InputEvent_, KeyboardEvent_, MODS, Node_, PointerEvent_, S, SubmitEvent_, disabledEl, dispatch, doc, editKey, focusTo, focusable, g, installed, isField, keyInit, query } from "./all";
 
 /** An edit's inputType and data, from a field's value before and after it: what was put in (insertText, the text),
  *  else what was taken out (deleteContentBackward, or Forward when the caret's side stayed). */
@@ -37,8 +37,8 @@ export function key(t: Element_, payload: any) {
   if (payload && t instanceof Control_ && typeof payload.value === "string") t._value = payload.value;
   const init = keyInit(payload ?? {});
   const ok = dispatch(t, new KeyboardEvent_("keydown", init), true);
-  // the host's default actions (Tab's focus move) wait on this
-  if (!ok) wire.emit("prevented");
+  // the host's default actions (Tab's focus move) wait on this; an editable's key is its edit (editing.ts)
+  if (!ok || (!isField(t) && editKey(t, init))) wire.emit("prevented");
   S.spaceDown = init.key === " " ? { t, ok } : null;
   const tag = t.localName;
   // a closed select's type-ahead: a letter picks the next option whose text starts with it (input, then change)

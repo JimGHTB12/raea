@@ -1,9 +1,9 @@
 // raea/character, clip and matching under plain bun: the skeleton's forward kinematics, the goals landing
 // where they are sent, clips surviving their file format, routes keeping clear, and a performance being a pure
-// function of its inputs. The skeleton is a small stand-in with CMU's joints' names (no Anny export needed).
+// function of its inputs. The skeleton is a small stand-in on raea's game_engine joints (stick.ts).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { BevyApp } from "raea/bevy";
-import { flatHand, len, lookAt, palmAt, plant, pose, qaxis, qrot, reach, rest, softElbows, sub, twoBone, type Skeleton } from "raea/character";
+import { captured, flatHand, withFingers, len, lookAt, palmAt, plant, pose, qaxis, qrot, reach, rest, softElbows, sub, twoBone, type Skeleton } from "raea/character";
 import { readBvh, readClips, retarget, writeClips } from "raea/clip";
 import { before, libraryPose, libraryTable, mirror, motionLibrary, perform, planFloor, route, stateMix, through, walkPlan } from "raea/matching";
 import { applyEffect, clipMeans, learnEffect, mirrorEffect, mixEffects } from "raea/effects";
@@ -21,28 +21,28 @@ const near = (a: Vec3, b: Vec3, tol: number) => expect(len(sub(a, b))).toBeLessT
 
 describe("the skeleton", () => {
   test("at rest every joint is at its head", () => {
-    const w = pose(skel, rest(skel));
+    const w = withFingers(skel, pose(skel, rest(skel)));
     skel.joints.forEach((j, i) => near(w.pos[i], j.head, 1e-9));
   });
   test("a turn at the shoulder carries the arm round it", () => {
     const p = rest(skel);
-    p.turns[at("LeftArm")] = qaxis([0, 0, 1], -Math.PI / 2); // the left arm down
+    p.turns[at("upperarm_l")] = qaxis([0, 0, 1], -Math.PI / 2); // the left arm down
     const w = pose(skel, p);
-    near(w.pos[at("LeftHand")], [0.12, 0.98 - 0.42, 0], 1e-9);
+    near(w.pos[at("hand_l")], [0.12, 0.98 - 0.42, 0], 1e-9);
   });
   test("a mirrored pose mirrors the joints", () => {
     const p = rest(skel);
-    p.turns[at("LeftArm")] = qaxis([0, 0, 1], -1);
+    p.turns[at("upperarm_l")] = qaxis([0, 0, 1], -1);
     const w = pose(skel, p), m = pose(skel, mirror(skel, p));
-    near(m.pos[at("RightHand")], mirrorX(w.pos[at("LeftHand")]), 1e-9);
+    near(m.pos[at("hand_r")], mirrorX(w.pos[at("hand_l")]), 1e-9);
   });
 });
 
 describe("goals", () => {
   test("twoBone brings the wrist to a point in reach", () => {
     const target: Vec3 = [0.3, 0.75, 0.25];
-    const w = pose(skel, twoBone(skel, rest(skel), ["LeftArm", "LeftForeArm", "LeftHand"], target, [0, -1, 0]));
-    near(w.pos[at("LeftHand")], target, 1e-3);
+    const w = pose(skel, twoBone(skel, rest(skel), ["upperarm_l", "lowerarm_l", "hand_l"], target, [0, -1, 0]));
+    near(w.pos[at("hand_l")], target, 1e-3);
   });
   test("a limb never locks straight: out of reach it stops short, and a straight limb bends its own way", () => {
     const bend = (p: ReturnType<typeof rest>, a: string, b: string, c: string) => {
@@ -50,40 +50,40 @@ describe("goals", () => {
       return (Math.acos((u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / len(u) / len(v)) * 180) / Math.PI;
     };
     // a wrist sent a metre out: the elbow still about 11° bent
-    const far = twoBone(skel, rest(skel), ["LeftArm", "LeftForeArm", "LeftHand"], [1.2, 0.98, 0]);
-    expect(bend(far, "LeftArm", "LeftForeArm", "LeftHand")).toBeGreaterThan(9);
+    const far = twoBone(skel, rest(skel), ["upperarm_l", "lowerarm_l", "hand_l"], [1.2, 0.98, 0]);
+    expect(bend(far, "upperarm_l", "lowerarm_l", "hand_l")).toBeGreaterThan(9);
     // an ankle pulled a little up from a straight leg: the knee goes ahead, not out or back
-    const w = pose(skel, twoBone(skel, rest(skel), ["LeftUpLeg", "LeftLeg", "LeftFoot"], [0.1, 0.12, 0]));
-    const knee = w.pos[at("LeftLeg")];
+    const w = pose(skel, twoBone(skel, rest(skel), ["thigh_l", "calf_l", "foot_l"], [0.1, 0.12, 0]));
+    const knee = w.pos[at("calf_l")];
     expect(knee[2]).toBeGreaterThan(0.05);
     // a straight arm relaxed to 12°, one bent 30° left alone
-    expect(bend(softElbows(skel, rest(skel)), "LeftArm", "LeftForeArm", "LeftHand")).toBeCloseTo(12, 0);
+    expect(bend(softElbows(skel, rest(skel)), "upperarm_l", "lowerarm_l", "hand_l")).toBeCloseTo(12, 0);
     const bent = rest(skel);
-    bent.turns[at("LeftForeArm")] = qaxis([0, 1, 0], -(30 * Math.PI) / 180);
-    expect(bend(softElbows(skel, bent), "LeftArm", "LeftForeArm", "LeftHand")).toBeCloseTo(30, 1);
+    bent.turns[at("lowerarm_l")] = qaxis([0, 1, 0], -(30 * Math.PI) / 180);
+    expect(bend(softElbows(skel, bent), "upperarm_l", "lowerarm_l", "hand_l")).toBeCloseTo(30, 1);
     // relaxing bends the forearm ahead of the body
-    expect(pose(skel, softElbows(skel, rest(skel))).pos[at("LeftHand")][2]).toBeGreaterThan(0.02);
+    expect(pose(skel, softElbows(skel, rest(skel))).pos[at("hand_l")][2]).toBeGreaterThan(0.02);
   });
   test("reach lays the hand flat and puts the palm on the point", () => {
     const target: Vec3 = [0.25, 0.7, 0.3];
     const p = reach(skel, rest(skel), "L", { at: target, point: [0, 0, 1] });
-    const w = pose(skel, p);
+    const w = withFingers(skel, pose(skel, p));
     // the palm resting on the point: its middle half a hand's thickness over it
     near(palmAt(skel, w, "L"), [target[0], target[1] + 0.009 * skel.height, target[2]], 2e-3);
     // the fingers ahead and level
-    const f = sub(w.pos[at("LeftFingerBase")], w.pos[at("LeftHand")]);
+    const f = sub(w.pos[at("middle_01_l")], w.pos[at("hand_l")]);
     expect(f[2] / len(f)).toBeGreaterThan(0.99);
     void flatHand;
   });
   test("a planted foot's ankle stands over its spot at its height", () => {
     // on a step 10 cm up, a little ahead
     const w = pose(skel, plant(skel, rest(skel), "L", { at: [0.1, 0.1, 0.1] }));
-    near(w.pos[at("LeftFoot")], [0.1, 0.16, 0.1], 1e-3);
+    near(w.pos[at("foot_l")], [0.1, 0.16, 0.1], 1e-3);
   });
   test("lookAt turns the face to the target", () => {
     const target: Vec3 = [1, 1.14, 1];
     const w = pose(skel, lookAt(skel, rest(skel), target));
-    const h = at("Head");
+    const h = at("head");
     const fwd = qrot(w.rot[h], [0, 0, 1]);
     const eyes = sub(w.pos[h], qrot(w.rot[h], sub(skel.joints[h].head, skel.landmarks.eyes)));
     const want = sub(target, eyes);
@@ -99,7 +99,8 @@ describe("clips", () => {
     expect(b.frames.length).toBe(361);
   });
   test("retargeting onto the same skeleton keeps the walk's pace", () => {
-    expect(clip.frames).toBe(90);
+    // (3 s at 30 fps, both ends: a BVH's T-pose frames are trimmed by pose, not by a skipped first frame)
+    expect(clip.frames).toBe(91);
     const d = clip.root[(clip.frames - 1) * 3 + 2] - clip.root[2];
     expect(d / ((clip.frames - 1) / 30)).toBeCloseTo(1.1, 2);
   });
@@ -188,7 +189,7 @@ describe("the library's table, styles and effects", () => {
   });
   test("an effect learned from a clip against itself changes nothing, and at weight 0 nothing either", () => {
     const e = learnEffect(skel, walk, walk), base = clipMeans(skel, walk), p = readClips(writeClips(skel, [walk])).get("walk")!;
-    const q = { root: [p.root[30], p.root[31], p.root[32]] as Vec3, turns: Array.from({ length: skel.joints.length }, (_, i) => Array.from(p.turns.subarray((30 * skel.joints.length + i) * 4, (30 * skel.joints.length + i) * 4 + 4)) as [number, number, number, number]) };
+    const q = { root: [p.root[30], p.root[31], p.root[32]] as Vec3, turns: Array.from({ length: captured(skel) }, (_, i) => Array.from(p.turns.subarray((30 * captured(skel) + i) * 4, (30 * captured(skel) + i) * 4 + 4)) as [number, number, number, number]) };
     const out = applyEffect(skel, q, e, { base });
     for (let i = 0; i < q.turns.length; i++) for (let a = 0; a < 4; a++) expect(Math.abs(Math.abs(out.turns[i][a]) - Math.abs(q.turns[i][a]))).toBeLessThan(1e-3);
     expect(applyEffect(skel, q, mixEffects([[e, 1]]), { base, weight: 0 })).toBe(q);

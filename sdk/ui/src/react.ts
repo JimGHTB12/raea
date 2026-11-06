@@ -129,6 +129,9 @@ const config: Reconciler.HostConfig<string, Props, Container, Instance, { id: nu
     if (domMode) {
       const h = dom.hostElement(id, type, props, fiber, ctx === SVG_CTX);
       wire.create(id, h.kind, h.props, h.text);
+      // dangerouslySetInnerHTML, as React DOM sets it: the markup parsed into this element's children (an inline SVG
+      // icon, a sanitizer's HTML), each on the host now that the element is
+      dom.innerHtmlProp(h.el, undefined, props);
       dom.listenFor(h.el);
       return h.el as unknown as Instance;
     }
@@ -203,6 +206,9 @@ function unplace(p: any, c: any) {
 }
 
 const reconciler = Reconciler(config);
+// in development, React Refresh's runtime (the window's dev runner, apps/app blitz/runner.ts) installs the devtools hook
+// before React loads; registered with it, an edited component re-renders in place with its state kept
+if ((globalThis as { __REACT_DEVTOOLS_GLOBAL_HOOK__?: unknown }).__REACT_DEVTOOLS_GLOBAL_HOOK__) reconciler.injectIntoDevTools();
 const ConcurrentRoot = 1;
 
 /** Runs `fn` and commits what it set synchronously (each host event is run this way). */

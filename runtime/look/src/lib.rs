@@ -85,6 +85,13 @@ pub fn surface_spec(p: &Map<String, Value>) -> Value {
             o.insert(col.into(), Value::String(src_path(src)));
         }
     }
+    // how its alpha draws: a glTF's MASK hair made "coverage" (soft over MSAA), or a part made "blend"
+    if let Some(Value::String(a)) = p.get("alphaMode") {
+        o.insert("alpha".into(), Value::String(a.clone()));
+    }
+    if let Some(v) = num(p, "alphaCutoff") {
+        o.insert("alpha_cutoff".into(), Value::from(v));
+    }
     // StandardMaterial's other fields (docs/shaders.feature SH7)
     if let Some(f) = fields_of(p) {
         o.insert("fields".into(), Value::String(f));

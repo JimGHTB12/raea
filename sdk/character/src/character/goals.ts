@@ -1,15 +1,10 @@
 // Goals (inverse kinematics): two-bone reaches, elbows, hands.
 import { type Vec3 } from "@raea/render/3d";
-import { I, Pose, Posed, Quat, Skeleton, add, cross, dot, fingerJoints, joint, len, norm, pose, qaxis, qbasis, qfromTo, qinv, qmul, qrot, scale3, setWorld, slerp, sub } from "./all";
+import { B, FINGERS, I, Pose, Posed, Quat, Side, Skeleton, add, cross, dot, fingerJoints, joint, len, norm, pose, qaxis, qbasis, qfromTo, qinv, qmul, qrot, scale3, setWorld, slerp, sub } from "./all";
 
 // ---------------------------------------------------------------- goals (inverse kinematics)
 
-export type Side = "L" | "R";
-
-export const LIMB = {
-  arm: (s: Side) => (s === "L" ? ["LeftArm", "LeftForeArm", "LeftHand"] : ["RightArm", "RightForeArm", "RightHand"]),
-  leg: (s: Side) => (s === "L" ? ["LeftUpLeg", "LeftLeg", "LeftFoot"] : ["RightUpLeg", "RightLeg", "RightFoot"]),
-};
+export const LIMB = { arm: B.arm, leg: B.leg };
 
 /** Two bones (a hip, knee, ankle or a shoulder, elbow, wrist) bent so the end comes to `target`. The bend stays in the
  * plane it is in (so a clip's knees keep bending its way), unless `pole` says which way the middle joint points (a
@@ -52,8 +47,8 @@ export function twoBone(skel: Skeleton, p: Pose, names: string[], target: Vec3, 
   return setWorld(skel, p, w, c, endRot);
 }
 
-/** A pose with its elbows never quite straight: a bend under twice `least` degrees eases up toward `least` (a straight
- * arm gets `least`, one bent twice that or more is left alone), about the way the elbow bends, so arms a clip swings
+/** A pose with its elbows never quite straight: a bend under twice `least` degrees becomes `least` plus half of it (a
+ * straight arm gets `least`, one bent twice that or more is left alone), about the way the elbow bends, so arms a clip swings
  * locked straight (100STYLE's Neutral walks at 6° on average) hang relaxed. */
 export function softElbows(skel: Skeleton, p: Pose, least = 12): Pose {
   for (const s of ["L", "R"] as const) {
@@ -67,7 +62,9 @@ export function softElbows(skel: Skeleton, p: Pose, least = 12): Pose {
     const fp = sub(fore, scale3(hinge, dot(fore, hinge)));
     const bent = (Math.atan2(dot(cross(un, fp), hinge), dot(un, fp)) * 180) / Math.PI;
     if (bent >= 2 * least) continue;
-    const want = bent <= 0 ? least : least + (bent * bent) / (4 * least);
+    // (half the clip's own bend on top of `least`, so its swing stays: easing toward `least` flattened 100STYLE's
+    // 0-20 deg elbow swing to 12-18 and the arms read stiff)
+    const want = Math.max(least / 2, least + bent / 2);
     p = setWorld(skel, p, w, b, qmul(qaxis(hinge, ((want - bent) * Math.PI) / 180), w.rot[b]));
   }
   return p;
@@ -76,9 +73,10 @@ export function softElbows(skel: Skeleton, p: Pose, least = 12): Pose {
 /** The hand's own frame at rest: its length (wrist to knuckles), its across (thumb side out) and its palm's normal. */
 export function handRest(skel: Skeleton, s: Side) {
   const J = skel.joints;
-  const h = J[joint(skel, s === "L" ? "LeftHand" : "RightHand")];
-  const knuckles = J[joint(skel, s === "L" ? "LeftFingerBase" : "RightFingerBase")].tail;
-  const thumb = J[joint(skel, s === "L" ? "LThumb" : "RThumb")].head;
+  const h = J[joint(skel, B.hand(s))];
+  // (the knuckles: the middle finger's first joint; the thumb from its base)
+  const knuckles = J[joint(skel, B.finger("middle", 1, s))].head;
+  const thumb = J[joint(skel, B.finger("thumb", 2, s))].head;
   const along = norm(sub(knuckles, h.head));
   const across = norm(sub(sub(thumb, h.head), scale3(along, dot(sub(thumb, h.head), along))));
   // the palm faces away from the back of the hand: for the left hand, across x along is the palm side (checked on a
@@ -90,7 +88,7 @@ export function handRest(skel: Skeleton, s: Side) {
 /** A hand laid flat: fingers along `point` (in the body's frame, levelled), the palm facing `facing` (down by
  * default). */
 export function flatHand(skel: Skeleton, p: Pose, s: Side, point: Vec3, facing: Vec3 = [0, -1, 0]): Pose {
-  const i = joint(skel, s === "L" ? "LeftHand" : "RightHand");
+  const i = joint(skel, B.hand(s));
   const r = handRest(skel, s);
   const n = norm(facing);
   const f = norm(sub(point, scale3(n, dot(point, n))));
@@ -101,7 +99,6 @@ export function flatHand(skel: Skeleton, p: Pose, s: Side, point: Vec3, facing: 
   p = setWorld(skel, p, w, i, qmul(R1, qinv(R0)));
   // the fingers and thumb straight along the hand (as they are at rest), whatever the clip had them doing
   const turns = p.turns.slice();
-  for (const n of s === "L" ? ["LeftFingerBase", "LeftHandFinger1", "LThumb"] : ["RightFingerBase", "RightHandFinger1", "RThumb"]) turns[joint(skel, n)] = I;
   for (const i of fingerJoints(skel, s).flat()) if (i < turns.length) turns[i] = I;
   return { ...p, turns };
 }
@@ -110,41 +107,44 @@ export function flatHand(skel: Skeleton, p: Pose, s: Side, point: Vec3, facing: 
  * palm at their base and again along them, the thumb turned in across the palm. CMU's hands are captured flat, and a
  * ball laid on a flat palm read as floating off it in an overhand throw (Shane, 10-22). */
 export function cupHand(skel: Skeleton, p: Pose, s: Side, r: number, w = 1): Pose {
-  const { along, across } = handRest(skel, s), len = 2 * Math.hypot(...sub(handRest(skel, s).centre, skel.joints[joint(skel, s === "L" ? "LeftHand" : "RightHand")].head));
+  const { along, across } = handRest(skel, s), len = 2 * Math.hypot(...sub(handRest(skel, s).centre, skel.joints[joint(skel, B.hand(s))].head));
   // (a smaller ball against the same hand closes it further: about 60° at the knuckles for a ball a hand long across)
   const k = Math.min(1.3, Math.max(0.6, len / (2 * r)));
   const sg = s === "L" ? -1 : 1, turns = p.turns.slice();
   // (in place of the capture's own finger turns, by w: CMU's fingers are a marker or two, and a throw's flick bent them
   // back past straight with the ball in them)
   const at = (n: string, q: Quat) => { const i = joint(skel, n); turns[i] = slerp(turns[i], q, Math.min(1, w)); };
-  const L = s === "L" ? "Left" : "Right";
-  at(`${L}FingerBase`, qaxis(across, sg * 0.9 * k));
-  at(`${L}HandFinger1`, qaxis(across, sg * 0.7 * k));
-  at(s === "L" ? "LThumb" : "RThumb", qaxis(along, -sg * 0.6 * k));
+  while (turns.length < skel.joints.length) turns.push(I);
+  for (const f of FINGERS) {
+    if (f === "thumb") { at(B.finger(f, 1, s), qaxis(along, -sg * 0.6 * k)); continue; }
+    at(B.finger(f, 1, s), qaxis(across, sg * 0.9 * k));
+    at(B.finger(f, 2, s), qaxis(across, sg * 0.4 * k));
+    at(B.finger(f, 3, s), qaxis(across, sg * 0.3 * k));
+  }
   return { ...p, turns };
 }
 
 /** Where a ball of radius `r` sits in a cupped hand (cupHand): off the palm by its radius and toward the fingers that
  * close on it. */
 export function ballInHand(skel: Skeleton, w: Posed, s: Side, r: number): Vec3 {
-  const i = joint(skel, s === "L" ? "LeftHand" : "RightHand"), hr = handRest(skel, s);
+  const i = joint(skel, B.hand(s)), hr = handRest(skel, s);
   const len = 2 * Math.hypot(...sub(hr.centre, skel.joints[i].head));
   return add(palmAt(skel, w, s), add(scale3(palmFacing(skel, w, s), r + 0.004), scale3(qrot(w.rot[i], hr.along), 0.2 * len)));
 }
 
 /** where the middle of a hand's palm is, posed */
 export function palmAt(skel: Skeleton, w: Posed, s: Side): Vec3 {
-  const i = joint(skel, s === "L" ? "LeftHand" : "RightHand");
+  const i = joint(skel, B.hand(s));
   const r = handRest(skel, s);
   return add(w.pos[i], qrot(w.rot[i], sub(r.centre, skel.joints[i].head)));
 }
 
 /** the way a hand's fingers point (from the wrist to the knuckles), posed */
 export function handAlong(skel: Skeleton, w: Posed, s: Side): Vec3 {
-  return qrot(w.rot[joint(skel, s === "L" ? "LeftHand" : "RightHand")], handRest(skel, s).along);
+  return qrot(w.rot[joint(skel, B.hand(s))], handRest(skel, s).along);
 }
 
 /** the way a hand's palm faces, posed */
 export function palmFacing(skel: Skeleton, w: Posed, s: Side): Vec3 {
-  return qrot(w.rot[joint(skel, s === "L" ? "LeftHand" : "RightHand")], handRest(skel, s).palm);
+  return qrot(w.rot[joint(skel, B.hand(s))], handRest(skel, s).palm);
 }

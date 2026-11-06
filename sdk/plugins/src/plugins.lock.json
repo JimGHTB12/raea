@@ -103,7 +103,7 @@
     },
     "save": {
       "crate": "moonshine-save",
-      "version": "v0.8.0",
+      "version": "",
       "schema": "29d3be85d09e76b5"
     },
     "vox": {

@@ -29,6 +29,7 @@ pub fn fetch((dir, name, url): (&str, &str, &str)) -> Result<PathBuf, String> {
     let p = dir.join(name);
     if !p.exists() {
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        raea_io_home::offline(&format!("the {name} model from {url}"))?;
         let tmp = p.with_extension("part");
         let ok = std::process::Command::new("curl").args(["-fsSL", "-o"]).arg(&tmp).arg(url).status().map(|s| s.success()).unwrap_or(false);
         if !ok {

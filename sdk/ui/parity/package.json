@@ -8,6 +8,10 @@
   "dependencies": {
     "@tailwindcss/cli": "4.3.3",
     "@tanstack/react-virtual": "3.14.22",
+    "@tiptap/core": "3.32.0",
+    "@tiptap/pm": "3.32.0",
+    "@tiptap/react": "3.32.0",
+    "@tiptap/starter-kit": "3.32.0",
     "basecoat-css": "1.1.0",
     "radix-ui": "1.8.1",
     "react": "19.2.0",

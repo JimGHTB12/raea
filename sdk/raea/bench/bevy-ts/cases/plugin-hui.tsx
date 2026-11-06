@@ -8,7 +8,7 @@
 // probe: 32 32 g>200 r<60 b<60
 // probe: 4 4 b>200 r<60 g<60
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { BevyComponent, Canvas3D, Entity, ToneMapping } from "raea/3d";
+import { BevyComponent, Entity, ToneMapping } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { HtmlNode } from "raea/plugins/hui";
@@ -16,7 +16,7 @@ import { HtmlNode } from "raea/plugins/hui";
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 3).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }}>
           <BevyComponent type="bevy_ui::ui_node::IsDefaultUiCamera" value={{}} />
         </Camera3d>
@@ -24,7 +24,7 @@ function Shot() {
         <Entity name="ui">
           <HtmlNode value="plugin-hui.html" />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

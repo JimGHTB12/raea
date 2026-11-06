@@ -1,6 +1,6 @@
 // Building a database from clips.
 import { framePose, type Clip } from "../clip";
-import { bodyScale, joint, pose, qrot, qyaw, type Skeleton } from "raea/character";
+import { B, SIDES, bodyScale, joint, pose, qrot, qyaw, type Skeleton } from "raea/character";
 import { FEATURE_COUNT as NF, STATE_COUNT as NS, libraryRows, levelClip, swingClear } from "../matching";
 import { DbClip, FLAG, FS, HLEVELS, HSTEP, HW, MF_SIGN, MF_SRC, MS_SIGN, MS_SRC, QF, SS, TAGS, TAG_INDEX, Tag, hdcEncode, q16, tagsOf, writeDb } from "./all";
 
@@ -13,7 +13,7 @@ export function buildDb(skel: Skeleton, clips: Iterable<BuildClip>, log: (s: str
   const C = NF + 5 + NS, metas: DbClip[] = [], rowParts: Float32Array[] = [], hipParts: Uint16Array[] = [], spdParts: Uint16Array[] = [], movParts: Uint8Array[] = [], crParts: Uint8Array[] = [], rootParts: Float32Array[] = [];
   let n0 = 0, fps = 0;
   const t0 = performance.now();
-  const handJ = ["LeftHand", "RightHand"].map((x) => joint(skel, x)), handParts: Int16Array[] = [], clearParts: Int16Array[] = [];
+  const handJ = SIDES.map(B.hand).map((x) => joint(skel, x)), handParts: Int16Array[] = [], clearParts: Int16Array[] = [];
   for (const b of clips) {
     const c = levelClip(skel, b.clip);
     if (!fps) fps = c.fps;
@@ -83,7 +83,7 @@ export function buildDb(skel: Skeleton, clips: Iterable<BuildClip>, log: (s: str
     for (let i = 0; i < NS; i++) S[k * SS + i] = q16((raw[k * C + NF + 5 + i] - stateMean[i]) / stateSd[i]);
     G[k * 3] = raw[k * C + NF]; G[k * 3 + 1] = raw[k * C + NF + 1]; G[k * 3 + 2] = raw[k * C + NF + 2];
   }
-  const ankleRest = skel.joints.find((j) => j.name === "LeftFoot")!.head[1], restHips = skel.joints[0].head[1], hz = bodyScale(skel);
+  const ankleRest = skel.joints.find((j) => j.name === B.foot("L"))!.head[1], restHips = skel.joints[0].head[1], hz = bodyScale(skel);
   const hipY = new Float32Array(n0);
   { let a = 0; for (const b of rootParts) { hipY.set(b, a); a += b.length; } }
   const clipBits = metas.map((mt) => { const b: [number, number] = [0, 0]; for (const t of mt.tags) { const i = TAG_INDEX.get(t)!; b[i >> 5] |= 1 << (i & 31); } return b; });

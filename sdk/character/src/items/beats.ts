@@ -1,6 +1,6 @@
 // What interact asks of the body and the plan, beat by beat.
 import type { Vec3 } from "raea/3d";
-import { add, qinv, joint, len, norm, pose, qmul, qrot, qyaw, rest, scale3, sub, type Side, type Skeleton } from "raea/character";
+import { B, add, cross, qinv, joint, len, norm, pinchPoint, pose, qmul, qrot, qyaw, rest, scale3, sub, type Side, type Skeleton } from "raea/character";
 import { type Performance } from "../matching";
 import { handOn, pickGuide } from "../grasp";
 import { shapeOf, surfacesOf, toLocal } from "../things";
@@ -12,10 +12,10 @@ import { Beat, D, FRONT, GUIDED, ItemPlan, SEGMENTS, T, lerp, thingSdf, trunkTur
 export function beatGeometry(skel: Skeleton, perf: Performance, plan: ItemPlan) {
   const h = skel.height, dt = 1 / plan.fps;
   const J = skel.joints;
-  const chestY = J[joint(skel, "Spine1")].head[1], shoulderY = J[joint(skel, "LeftArm")].head[1], hipsY = J[0].head[1];
+  const chestY = J[joint(skel, B.chest)].head[1], shoulderY = J[joint(skel, B.upperarm("L"))].head[1], hipsY = J[0].head[1];
   // the shoulders at rest, in the body's frame (its middle over the floor), and an arm's length
-  const shoulder: Record<Side, Vec3> = { L: J[joint(skel, "LeftArm")].head, R: J[joint(skel, "RightArm")].head };
-  const armLength = len(sub(J[joint(skel, "LeftForeArm")].head, J[joint(skel, "LeftArm")].head)) + len(sub(J[joint(skel, "LeftHand")].head, J[joint(skel, "LeftForeArm")].head));
+  const shoulder: Record<Side, Vec3> = { L: J[joint(skel, B.upperarm("L"))].head, R: J[joint(skel, B.upperarm("R"))].head };
+  const armLength = len(sub(J[joint(skel, B.lowerarm("L"))].head, J[joint(skel, B.upperarm("L"))].head)) + len(sub(J[joint(skel, B.hand("L"))].head, J[joint(skel, B.lowerarm("L"))].head));
   const beatAt = new Map(plan.beats.map((b) => [b.step, b]));
   // the body's ground frame at a frame: the hips over the floor, its heading the hips' (over half a second, so the
   // hold doesn't sway with each step)
@@ -52,7 +52,16 @@ export function beatGeometry(skel: Skeleton, perf: Performance, plan: ItemPlan) 
         // the lower edges of its sides: the palm low on the side, turned up a little to the edge, the fingers down
         // past it to curl under the bottom
         case "wrap": out[s] = { at: [sd * (ex + 0.008), 0, -0.35 * ez], facing: [-sd, 0, 0.3], point: [0, 0.1, 1] }; break;
-        case "pinch": out[s] = { at: [sd * 0.25 * ex, ey + 0.004, -0.3 * ez], facing: [0, -1, 0], point: [-sd * 0.3, -0.3, 1] }; break;
+        // from above, the fingers across its length (along it, it went between the index and middle fingers), the
+        // thing where the captured pinch's pads meet (pinchPoint) rather than under the palm
+        case "pinch": {
+          const n: Vec3 = [0, -1, 0], f = norm(ez >= ex ? [-sd, -0.3, 0.3] : [-sd * 0.3, -0.3, 1]);
+          const c = s === "R" ? cross(f, n) : cross(n, f), [pa, pp, pc] = pinchPoint(skel, s);
+          const target: Vec3 = ez >= ex ? [0, 0, -0.25 * ez] : [sd * 0.25 * ex, 0, 0];
+          const mid = sub(target, add(add(scale3(f, pa), scale3(n, pp)), scale3(c, pc)));
+          out[s] = { at: add(mid, scale3(n, 0.009 * h)), facing: n, point: f };
+          break;
+        }
         // near its back end, from above and the side as it is written with, the fingers along it toward the point
         case "tripod": out[s] = { at: [sd * (ex + 0.006), 0.6 * ey, -0.25 * ez], facing: [-sd * 0.7, -0.7, 0], point: [0, -0.35, 1] }; break;
         // round the stem from its side, the fingers closing round it, the bowl over the hand
@@ -179,7 +188,7 @@ export function beatGeometry(skel: Skeleton, perf: Performance, plan: ItemPlan) 
       const sd = b.hands[0] === "L" ? 1 : -1;
       // (a wine glass carried before the body, upright, the upper arm hanging and the forearm out: hanging at the
       // side it spills)
-      at = sub(b.how.grip === "stem" ? [sd * 0.12 * h, shoulderY - 0.17 * h, 0.14 * h] : [sd * 0.12 * h, shoulderY - 0.78 * armLength, 0.1 * h], on[b.hands[0]]!.at);
+      at = sub(b.how.grip === "stem" || plan.items[b.item].upright ? [sd * 0.12 * h, shoulderY - 0.17 * h, 0.14 * h] : [sd * 0.12 * h, shoulderY - 0.78 * armLength, 0.1 * h], on[b.hands[0]]!.at);
     } else if (b.how.grip === "pole") at = [0, hipsY + 0.04 * h, 0.15 * h];
     else at = [0, chestY - 0.16 * h - ey - 0.05 * h * heavy, Math.max(0.2 * h - 0.04 * h * heavy, FRONT * h + ez + 0.02)];
     // raised and drawn in until the hands are in easy reach of the shoulders (a big thing is held high against the
@@ -202,7 +211,7 @@ export function beatGeometry(skel: Skeleton, perf: Performance, plan: ItemPlan) 
   // (the lean back up to 0.2 rad, the hips up to a twentieth of the height, the bend up to 0.25), solved on the body
   // at rest, so a ball or a mug moves nothing. `moved`: the load's middle moved with the trunk (the body's frame).
   type Statics = { pitch: number; back: number; roll: number; abduct: number; moved: Vec3 };
-  const restPose = rest(skel), restW = pose(skel, restPose), spineJ = joint(skel, "Spine");
+  const restPose = rest(skel), restW = pose(skel, restPose), spineJ = joint(skel, B.spine[1]);
   const comOf = (w: ReturnType<typeof pose>): Vec3 => {
     let c: Vec3 = [0, 0, 0], sum = 0;
     for (const [a, b2, k] of SEGMENTS) { const A = w.pos[joint(skel, a)], B = w.pos[joint(skel, b2)]; c = add(c, scale3(add(A, B), 0.5 * k)); sum += k; }
@@ -214,7 +223,7 @@ export function beatGeometry(skel: Skeleton, perf: Performance, plan: ItemPlan) 
   const staticsOf = (b: Beat): Statics => {
     if (staticsMemo.has(b)) return staticsMemo.get(b)!;
     const r = b.how.load, L0 = holdOf(b), one = b.hands.length === 1 && b.how.grip !== "stem", sd = b.hands[0] === "L" ? 1 : -1;
-    const shJ = joint(skel, b.hands[0] === "L" ? "LeftArm" : "RightArm");
+    const shJ = joint(skel, B.upperarm(b.hands[0]));
     const at = (t: number) => {
       const pitch = -0.2 * t * (one ? 0 : 1), back = 0.05 * h * t * (one ? 0 : 1), roll = one ? sd * 0.25 * t : 0;
       const w = pose(skel, trunkTurn(skel, restPose, 0, 0, pitch, roll));
@@ -265,8 +274,10 @@ export function beatGeometry(skel: Skeleton, perf: Performance, plan: ItemPlan) 
   const freeOf = (b: Beat) => {
     // (a wine glass carried steady before the waist, never swung)
     if (b.hands.length !== 1 || b.how.grip === "stem") return 0;
+    // (one carried upright swings a third as freely: steady, but not a steadicam's)
+    const up = plan.items[b.item].upright ? 0.35 : 1;
     const small = 1 - Math.min(1, Math.max(0, (Math.max(...plan.items[b.item].size) - 0.1 * h) / (0.1 * h)));
-    return 0.85 * small * (1 - Math.min(1, Math.max(0, (b.how.load - 0.003) / 0.027)));
+    return up * 0.85 * small * (1 - Math.min(1, Math.max(0, (b.how.load - 0.003) / 0.027)));
   };
   const holdW = (b: Beat) => 1 - freeOf(b);
   const grip = (b: Beat) => ({ pinch: 0.55, tripod: 0.6, top: 1, wrap: 1, handle: 1, stem: 1.1, palm: 0.35, sides: 0.45, edges: 0.9, cradle: 0.3, hug: 0.5, pole: 1 })[b.how.grip];

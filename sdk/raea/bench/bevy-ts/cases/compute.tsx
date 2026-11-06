@@ -9,7 +9,7 @@
 // probe: 47 32 r<40 g>200 b>200
 // probe: 32 4 r<40 g<40 b<40
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, Compute, ShaderMesh, ToneMapping } from "raea/3d";
+import { Compute, ShaderMesh, ToneMapping } from "raea/3d";
 import { Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
 
@@ -33,13 +33,13 @@ const pic = { src: "render:cgrid:4x4", sampler: { filter: "nearest" } };
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 6).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.872664625997165 } }} />
         <ToneMapping mode="none" />
         <Compute wesl={fill} workgroups={[1]} uniforms={{ red: 1 }} buffers={{ cells: [0, 1], count: { size: 1 } }} images={{ out: "render:cgrid:4x4" }} />
         <ShaderMesh shape="box(1, 1, 1)" position={[-1.4, 0, 0]} wesl={read(0.125)} textures={{ pic }} />
         <ShaderMesh shape="box(1, 1, 1)" position={[1.4, 0, 0]} wesl={read(0.875)} textures={{ pic }} />
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

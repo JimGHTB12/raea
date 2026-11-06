@@ -26,8 +26,11 @@ use serde_json::Value;
 use tiny_skia as sk;
 
 mod draw;
+mod measure;
+pub use measure::advances;
 mod filter;
 mod paint;
+mod subsets;
 pub mod svg;
 
 use paint::*;
@@ -79,13 +82,24 @@ pub fn videos(find: fn(&str) -> Option<std::path::PathBuf>) {
 /// The fonts a canvas was last drawn in (`canvas.read` has no World to ask).
 static FONTS: std::sync::Mutex<Option<std::sync::Arc<usvg::fontdb::Database>>> = std::sync::Mutex::new(None);
 
+/// Where the page's fonts are now, for `canvas.read`, from a host that has them (raea-page's Blitz page: blitz-dom's
+/// font database). Without it a read used the fonts the last shown canvas was drawn in, and a canvas read back just
+/// after the page added a face (Excalidraw drawing each element onto a canvas of its own once Excalifont was in) came
+/// back in the fallback, until some shown canvas was drawn again.
+static FONT_SOURCE: std::sync::OnceLock<fn() -> std::sync::Arc<usvg::fontdb::Database>> = std::sync::OnceLock::new();
+
+/// Gives `canvas.read` the page's fonts as they are when it's called. The first host's stands: there is one page font
+/// database a process.
+pub fn fonts(now: fn() -> std::sync::Arc<usvg::fontdb::Database>) {
+    let _ = FONT_SOURCE.set(now);
+}
+
 /// `canvas.read` {width, height, __canvas2d, x, y, w, h} -> {data: base64 RGBA}: the canvas's list drawn on a bitmap of
 /// its own and the rectangle read off it, outside the bitmap transparent black (getImageData's answer).
 pub fn read(args: &Value) -> Result<Value, String> {
     use base64::Engine as _;
     let props = args.as_object().ok_or("no canvas")?;
-    let db = FONTS.lock().unwrap().clone();
-    let opt = db.map_or_else(usvg::Options::default, |db| page_fonts(&db));
+    let opt = page_options();
     let (bw, bh, px) = Replay::update(None, props, &opt).rgba();
     let n = |k: &str| args[k].as_f64().unwrap_or(0.0) as i64;
     let (x, y, w, h) = (n("x"), n("y"), n("w").max(0), n("h").max(0));
@@ -107,6 +121,12 @@ pub fn read(args: &Value) -> Result<Value, String> {
         out[dst..dst + src.len()].copy_from_slice(&px[src]);
     }
     Ok(serde_json::json!({ "data": base64::engine::general_purpose::STANDARD.encode(out) }))
+}
+
+/// The text options a page's canvas draws with now: its fonts (`fonts`) as page_fonts makes them, else the defaults.
+pub(crate) fn page_options() -> usvg::Options<'static> {
+    let db = FONT_SOURCE.get().map(|now| now()).or_else(|| FONTS.lock().unwrap().clone());
+    db.map_or_else(usvg::Options::default, |db| page_fonts(&db))
 }
 
 /// Where a video's src is as a file, for its frames drawn on a canvas (`videos`).
@@ -162,21 +182,63 @@ mod tests {
         assert_eq!(pm.pixel(5, 5).unwrap().alpha(), 0);
         assert_eq!(pm.pixel(15, 5).unwrap().alpha(), 255);
     }
+
+    #[test]
+    fn a_canvas_drawn_on_another_is_its_list_replayed() {
+        let opt = usvg::Options::default();
+        let mut pm = sk::Pixmap::new(8, 8).unwrap();
+        let mut cx = Ctx { opt: &opt, images: HashMap::new() };
+        let st = serde_json::json!({"ts": [1, 0, 0, 1, 0, 0], "alpha": 1, "comp": "source-over", "clip": []});
+        // the source: a 2x2 canvas filled red; drawn at 4,4 scaled to 4x4
+        let rect = serde_json::json!([0, 0, 0, 1, 2, 0, 1, 2, 2, 1, 0, 2, 4]);
+        let src = serde_json::json!({"key": "test:1:1", "w": 2, "h": 2, "ops": [["fill", rect, "nonzero", [255, 0, 0, 1], st]]});
+        cx.op(&mut pm, &serde_json::json!(["canvas", src, null, null, null, null, 4, 4, 4, 4, st]));
+        let at = |x: u32, y: u32| pm.pixel(x, y).unwrap().demultiply();
+        assert_eq!((at(5, 5).red(), at(5, 5).alpha()), (255, 255));
+        assert_eq!(at(2, 2).alpha(), 0);
+    }
+
+    #[test]
+    fn image_under_a_scale() {
+        // Excalidraw's way: a 4x4 picture drawn at 2x size under a 0.5 transform covers 4x4 pixels at (2, 2)
+        let mut pm = sk::Pixmap::new(12, 12).unwrap();
+        let opt = usvg::Options::default();
+        let mut img = sk::Pixmap::new(4, 4).unwrap();
+        img.fill(sk::Color::from_rgba8(0, 200, 0, 255));
+        let mut cx = Ctx { opt: &opt, images: HashMap::from([("pic".to_string(), img)]) };
+        let st = serde_json::json!({"ts": [0.5, 0, 0, 0.5, 0, 0], "alpha": 1, "comp": "source-over", "clip": [], "shadow": null, "smooth": false});
+        cx.op(&mut pm, &serde_json::json!(["image", "pic", null, null, null, null, 4, 4, 8, 8, st]));
+        for (x, y) in [(2, 2), (5, 5), (3, 4)] {
+            assert_eq!(pm.pixel(x, y).unwrap().green(), 200, "inside at {x},{y}");
+        }
+        for (x, y) in [(1, 1), (6, 6), (9, 3)] {
+            assert_eq!(pm.pixel(x, y).unwrap().alpha(), 0, "outside at {x},{y}");
+        }
+    }
 }
 
 /// Text options for a canvas drawn without a Bevy world's fonts (raea-page's Blitz page): the faces in `db` (the
 /// system's and the page's own @font-face faces, blitz-dom's SVG faces), with Chrome's generic families on macOS
 pub fn page_fonts(db: &std::sync::Arc<usvg::fontdb::Database>) -> usvg::Options<'static> {
-    type Faces = std::sync::Arc<usvg::fontdb::Database>;
-    // the last `db` and its copy with the generic families set, made again when the page adds a face
-    static LAST: std::sync::Mutex<Option<(Faces, Faces)>> = std::sync::Mutex::new(None);
-    let mut last = LAST.lock().unwrap();
-    if !last.as_ref().is_some_and(|(from, _)| std::sync::Arc::ptr_eq(from, db)) {
+    let mut last = PAGE_FONTS.lock().unwrap();
+    if !last.as_ref().is_some_and(|(from, _, _)| std::sync::Arc::ptr_eq(from, db)) {
         let mut faces = (**db).clone();
         faces.set_sans_serif_family("Helvetica");
         faces.set_serif_family("Times");
         faces.set_monospace_family("Courier");
-        *last = Some((db.clone(), std::sync::Arc::new(faces)));
+        // a family the page split by unicode-range, each file under an alias of its own (subsets.rs)
+        let split = subsets::alias(&mut faces);
+        *last = Some((db.clone(), std::sync::Arc::new(faces), std::sync::Arc::new(split)));
     }
     usvg::Options { fontdb: last.as_ref().unwrap().1.clone(), ..Default::default() }
+}
+
+type Faces = std::sync::Arc<usvg::fontdb::Database>;
+/// The last `db` page_fonts was given, its copy with the generic families set and the split families aliased, made
+/// again when the page adds a face.
+static PAGE_FONTS: std::sync::Mutex<Option<(Faces, Faces, std::sync::Arc<subsets::Subsets>)>> = std::sync::Mutex::new(None);
+
+/// The split families of a database page_fonts made (none for any other: a Bevy world's fonts).
+pub(crate) fn split_families(db: &Faces) -> Option<std::sync::Arc<subsets::Subsets>> {
+    PAGE_FONTS.lock().unwrap().as_ref().filter(|(_, made, _)| std::sync::Arc::ptr_eq(made, db)).map(|(_, _, s)| s.clone())
 }

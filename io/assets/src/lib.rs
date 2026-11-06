@@ -4,15 +4,12 @@
 //!
 //! `make` is a registry keyed by model name: `stand-in` (a deterministic gradient and shapes drawn from the prompt and
 //! seed, what tests use), the two local audio models, `tokensynth` (an instrument's notes, for music) and `sao` (Stable
-//! Audio Open on Core ML, foley), and raea's API: `fish` (narration). `lyria` (music) is retired:
-//! a take made before plays from the index, and a new one is refused. The local models install themselves on first use (tools/sao/setup.sh,
+//! Audio Open on Core ML, foley). Every model runs on this computer. `lyria` (music) and `fish` (narration, through
+//! raea's API) are retired: a take made before plays from the index, and a new one is refused. Narration is Pocket TTS
+//! (raea/speech), and Fish Audio is a `raea gen` backend like fal or Replicate (`fish:<model>`, the founder's own key). The local models install themselves on first use (tools/sao/setup.sh,
 //! tools/tokensynth/setup.sh). Each made asset gets a line in `assets/made.jsonl` under its cache key, a hash of
 //! (model, prompt, seed, params); `made` reads only that index, so a render or a check that resolves a make() never
 //! generates.
-//!
-//! raea's API (`fish`, signed in with a device token) is the `service` feature; the public engine builds without it, and
-//! its paid-request bookkeeping below goes unused there.
-#![cfg_attr(not(feature = "service"), allow(dead_code))]
 
 use std::path::{Path, PathBuf};
 
@@ -27,17 +24,12 @@ pub use splat::{ensure_splat, splat_dir, splat_params};
 
 mod local;
 use local::*;
-mod api;
-use api::*;
 #[cfg(test)]
 mod tests;
 
-/// The models `make` knows, by the name an edit writes: local ones first, then the paid API's. `matchmove` (a camera
+/// The models `make` knows, by the name an edit writes: the local ones, then the retired ones whose takes still play. `matchmove` (a camera
 /// solve) is made from a clip, by `Store::matchmove`, and indexed the same way.
 pub const MODELS: [&str; 6] = ["stand-in", "tokensynth", "sao", "fish", "lyria", "matchmove"];
-
-/// Paid requests a run may send when the host doesn't say ($RAEA_GEN_BUDGET): the founder's choice, on and capped small.
-pub const PAID_PER_RUN: usize = 3;
 
 /// TokenSynth's runtimes (tools/tokensynth/run.py --precision), and the one a note gets when its params don't say.
 pub const TOKENSYNTH_PRECISIONS: [&str; 5] = ["fp32", "fp16", "bf16", "int8", "coreml"];
@@ -109,7 +101,8 @@ impl Store {
             "tokensynth" => tokensynth(prompt, seed, params, &part).map(|wav| (wav, "wav".to_string())),
             "matchmove" => Err("matchmove is made from a clip: Store::matchmove(clip, params)".to_string()),
             "lyria" => Err("lyria is retired (raea's generation policy, 2026-10-20): make music with tokensynth; a lyria take made before still plays from assets/made.jsonl".to_string()),
-            _ => api(model, prompt, params, &part),
+            "fish" => Err("fish is no longer part of raea (2026-11-05): narrate with <Speech> from raea/speech (Pocket TTS, on this computer), or make a line with a `raea gen` step on fish:<model> and your FISH_API_KEY; a fish take made before still plays from assets/made.jsonl".to_string()),
+            _ => Err(format!("unknown model `{model}`")),
         };
         let _ = std::fs::remove_file(&part);
         let (bytes, ext) = made?;
@@ -229,6 +222,7 @@ pub fn ensure_installed(model: &str) -> Result<PathBuf, String> {
     if std::env::var("RAEA_AUDIO_AUTOSETUP").as_deref() == Ok("0") {
         return Err(format!("{model} isn't installed: run {how}"));
     }
+    raea_io_home::offline(&format!("installing {model} ({size} downloaded)"))?;
     if !script.exists() {
         return Err(format!("{model} isn't installed in {}, and its setup script isn't at {}", dir.display(), script.display()));
     }

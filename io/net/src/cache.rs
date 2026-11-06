@@ -36,9 +36,7 @@ pub fn fetch(url: &str) -> Result<PathBuf, String> {
     if path.metadata().is_ok_and(|m| m.is_file() && m.len() > 0) {
         return Ok(named(path));
     }
-    if std::env::var_os("RAEA_OFFLINE").is_some() {
-        return Err(format!("{url}: not cached, and RAEA_OFFLINE is set"));
-    }
+    raea_io_home::offline(&format!("{url} (not in raea's cache)"))?;
     let agent = ureq::AgentBuilder::new().redirects(10).timeout(Duration::from_secs(300)).build();
     let r = agent.get(url).set("User-Agent", if google { CHROME_UA } else { PLAIN_UA }).call().map_err(|e| format!("{url}: {e}"))?;
     let mut bytes = Vec::new();

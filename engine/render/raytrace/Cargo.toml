@@ -1,0 +1,18 @@
+[package]
+name = "raea-render-raytrace"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea-render's ray tracing: Bevy's Solari for a scene whose camera asks for it (RT3), and MetalFX's temporal denoiser on it on the Mac (RT4)"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "3d_bevy_render", "bevy_solari"] }
+# the same wgpu Bevy uses (the guide pass records on its device; MetalFX runs on its Metal objects)
+wgpu = "=30.0.1"
+
+# MetalFX's temporal denoiser (wgpu 30 is on objc2-metal 0.3)
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-metal = { version = "0.3.2", default-features = false, features = ["std", "MTLTexture", "MTLCommandBuffer", "MTLCommandEncoder", "MTLBlitCommandEncoder", "MTLDevice", "MTLPixelFormat", "MTLResource"] }
+objc2-metal-fx = "=0.3.2"

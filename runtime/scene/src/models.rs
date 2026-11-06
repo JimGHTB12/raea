@@ -53,7 +53,7 @@ pub(crate) fn models_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         }
         if let Some(Value::Array(a)) = first.get("morphs") {
             row.insert("morph_names".into(), V::S(Value::Array(a.iter().map(|c| c.get("target").cloned().unwrap_or(Value::Null)).collect()).to_string()));
-            for i in 0..a.len() {
+            for i in 0..a.len().min(64) {
                 let vals: Vec<f64> = its.iter().map(|it| it.props.get("morphs").and_then(|x| x.get(i)).and_then(|c| c.get("weight")).and_then(Value::as_f64).unwrap_or(0.0)).collect();
                 column(p, &mut row, &id, &format!("morph{i}"), &vals);
             }
@@ -127,6 +127,7 @@ pub(crate) fn models_rows(tr: &Tracks, names: &[String], p: &mut Program) {
             }
         }
         meshseq::glitch_columns(p, &mut row, &id, &its);
+        meshseq::cloth_columns(p, &mut row, &id, &its);
         placement(p, &mut row, &id, &its);
         visible(p, &mut row, &id, &track);
         pass_column(p, &mut row, &id, &its, &names);

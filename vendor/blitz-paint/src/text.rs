@@ -12,7 +12,7 @@ use style::values::computed::{
 use style::values::generics::text::{GenericTextDecorationInset, GenericTextDecorationLength};
 
 use crate::color::{Color, ToColorColor as _};
-use crate::{FONT_EMBOLDEN_ENABLED, SELECTION_COLOR};
+use crate::FONT_EMBOLDEN_ENABLED;
 
 /// raea: how glyphs are drawn to match Chrome's text on macOS, as bevy-tsx's page fits it (its render/mod.rs
 /// `chrome_glyph_raster`): each outline grows by `per_size` of the font size up to `max` (CSS px), light text by
@@ -1134,19 +1134,25 @@ pub(crate) fn stroke_text<'a>(
 
 /// Draw selection highlight rectangles for the given byte range in a layout.
 /// Uses Parley's Selection type for accurate geometry calculation.
+/// raea: in `color` (the ::selection background), returning the rects as one path (layout units) so the selected
+/// glyphs can be drawn again inside them in the ::selection colour
 pub(crate) fn draw_text_selection(
     scene: &mut impl PaintScene,
     layout: &Layout<TextBrush>,
     transform: Affine,
     selection_start: usize,
     selection_end: usize,
-) {
+    color: Color,
+) -> kurbo::BezPath {
     let anchor = Cursor::from_byte_index(layout, selection_start, Affinity::Downstream);
     let focus = Cursor::from_byte_index(layout, selection_end, Affinity::Downstream);
     let selection = Selection::new(anchor, focus);
 
+    let mut path = kurbo::BezPath::new();
     selection.geometry_with(layout, |rect, _line_idx| {
         let rect = kurbo::Rect::new(rect.x0, rect.y0, rect.x1, rect.y1);
-        scene.fill(Fill::NonZero, transform, SELECTION_COLOR, None, &rect);
+        scene.fill(Fill::NonZero, transform, color, None, &rect);
+        kurbo::Shape::path_elements(&rect, 0.1).for_each(|e| path.push(e));
     });
+    path
 }

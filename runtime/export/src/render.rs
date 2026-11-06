@@ -49,6 +49,15 @@ pub fn render(args: &[String]) -> R<String> {
     };
     *MANIFEST.lock().unwrap() = flag(args, "--manifest").map(PathBuf::from);
     TEN_BIT.store(args.iter().any(|a| a == "--10bit"), std::sync::atomic::Ordering::Relaxed);
+    AOV.store(args.iter().any(|a| a == "--aov"), std::sync::atomic::Ordering::Relaxed);
+    if AOV.load(std::sync::atomic::Ordering::Relaxed) && !out_ext(&out).is_empty() {
+        return Err("--aov writes frames: -o names a folder (DIR/frame-NNNNN.png, DIR/motion, DIR/depth)".into());
+    }
+    let alpha = args.iter().any(|a| a == "--alpha");
+    if alpha && !matches!(out_ext(&out).as_str(), "png" | "") {
+        return Err("--alpha writes PNGs (OUT.png or a folder): video here is H.264 or HEVC, which hold no alpha. Encode the folder with alpha after (ffmpeg -i DIR/frame-%05d.png -c:v prores_ks -profile:v 4444 -pix_fmt yuva444p10le overlay.mov)".into());
+    }
+    ALPHA.store(alpha, std::sync::atomic::Ordering::Relaxed);
     let kbps = flag(args, "--kbps").map(|k| k.parse::<u32>().ok().filter(|k| *k > 0).ok_or("--kbps takes a bitrate in kbit/s")).transpose()?;
     KBPS.store(kbps.unwrap_or(0), std::sync::atomic::Ordering::Relaxed);
     let quality = flag(args, "--quality").map(|q| raea_io_media::parse_quality(&q)).transpose()?;
@@ -184,7 +193,7 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
     let mut cx = Ctx { dir, work: &work, sounds: Vec::new(), scene: Vec::new(), clear: None, marker: None, mix: None, audible: HashMap::new(), brand: page_css(dir, w, js), manifest: MANIFEST.lock().unwrap().as_ref().map(|_| Vec::new()), now: 0, said: Default::default(), made: HashMap::new(), scene3d: None, live3d: None };
     if fed {
         if let Some(p) = scene {
-            cx.scene3d = Some(raea_render::engine::Engine::new_live(&p, &raea_render::inserted_of(&p), dir)?);
+            cx.scene3d = Some(aov_on(raea_render::engine::Engine::new_live(&p, &raea_render::inserted_of(&p), dir)?));
             raea_runtime_react::startup_mark("the 3D's engine open");
         }
         if live3d {
@@ -197,7 +206,7 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
         let programmed = scene.is_some();
         match scene {
             Some(p) => {
-                cx.scene3d = Some(raea_render::engine::Engine::new_live(&p, &raea_render::inserted_of(&p), dir)?);
+                cx.scene3d = Some(aov_on(raea_render::engine::Engine::new_live(&p, &raea_render::inserted_of(&p), dir)?));
                 raea_runtime_react::startup_mark("the 3D's engine open");
             }
             None => cx.live3d = Some(LiveScene::default()),
@@ -218,7 +227,7 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
             if i == 0 && programmed && raea_runtime_page::VIEW_BOX.lock().unwrap().is_some() {
                 let upto = wanted.iter().max().map_or(0, |m| m + 1);
                 if let Some(p) = scene_program_checked(js, dir, upto, Some(&wanted))? {
-                    cx.scene3d = Some(raea_render::engine::Engine::new_live(&p, &raea_render::inserted_of(&p), dir)?);
+                    cx.scene3d = Some(aov_on(raea_render::engine::Engine::new_live(&p, &raea_render::inserted_of(&p), dir)?));
                     px = bevy_over_3d(app.world_mut(), pg, &mut cx, fps)?;
                 }
             }
@@ -228,6 +237,9 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
             }
             let dest = if folder { out.join(format!("frame-{i:05}.png")) } else { out.to_path_buf() };
             image::save_buffer(&dest, &px, w, h, image::ColorType::Rgba8).map_err(|e| format!("{}: {e}", dest.display()))?;
+            if folder {
+                write_aov(out, i, cx.scene3d.as_mut())?;
+            }
         }
         if let Some(t) = FED_CLIPPING.lock().unwrap().take() {
             let _ = t.join();
@@ -319,4 +331,28 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
     }
     drop(page);
     Ok(format!("APPLIED  {} frames rendered to {} ({react_ms:.0} ms a frame in React and bevy_ui)", frames.len(), out.display()))
+}
+
+/// An engine for the scene path, drawing the guide data when `--aov` asked for it.
+fn aov_on(mut e: raea_render::engine::Engine) -> raea_render::engine::Engine {
+    if AOV.load(std::sync::atomic::Ordering::Relaxed) {
+        e.want_aov();
+    }
+    e
+}
+
+/// Frame i's guide data (RT1) as mlxdlss run-sequence reads it: DIR/motion/frame-NNNNN.f32 (H x W x 2 float32) and
+/// DIR/depth/frame-NNNNN.f32 (H x W float32), little-endian, rows top to bottom.
+fn write_aov(out: &Path, i: usize, e: Option<&mut raea_render::engine::Engine>) -> R<()> {
+    if !AOV.load(std::sync::atomic::Ordering::Relaxed) {
+        return Ok(());
+    }
+    let a = e.and_then(|e| e.take_aov()).ok_or_else(|| format!("frame {i}: --aov, but the frame drew no motion vectors or depth (a 3D camera draws them)"))?;
+    for (sub, v) in [("motion", &a.motion), ("depth", &a.depth)] {
+        let d = out.join(sub);
+        std::fs::create_dir_all(&d).map_err(|e| format!("{}: {e}", d.display()))?;
+        let f = d.join(format!("frame-{i:05}.f32"));
+        std::fs::write(&f, v.iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>()).map_err(|e| format!("{}: {e}", f.display()))?;
+    }
+    Ok(())
 }

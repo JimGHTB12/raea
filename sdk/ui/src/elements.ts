@@ -1,8 +1,8 @@
 // Elements the page host draws that React's JSX doesn't type, typed as raea's own so `<view3d>` and its parts check
 // in a space's TSX (tools/sdk-coverage counts them as typed). Each prop is what runtime/js view3d.rs reads
 // (clear_color, projection, eye, spawn_part, mesh_of); the Blitz page's host builds its views with the same functions
-// (engine/page view3d.rs, run from host.rs). A composition's render doesn't draw them: its 3D is <Canvas3D>
-// (raea/3d), until M6 makes one tree. Vectors are [x, y, z]; angles are degrees; colours are CSS colours.
+// (engine/page view3d.rs, run from host.rs). A composition's render doesn't draw them: its 3D is raea/3d's
+// (a Camera3d and its parts). Vectors are [x, y, z]; angles are degrees; colours are CSS colours.
 import type { HTMLAttributes } from "react";
 
 type Vec3 = [number, number, number];

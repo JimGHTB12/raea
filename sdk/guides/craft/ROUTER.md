@@ -16,18 +16,18 @@ Two rules come before everything else:
 
 Run `raea context PROJECT` before anything else and read all of it. It prints, in order:
 
-1. **Taste** (`~/.raea/taste/`): the person's standing corrections, across every project. A line there beats any
-   guide.
-2. **The brief** (`brief.brief`): who it's for (`audience`), the one thing they should think afterwards (`believe`),
+1. **Taste** (`~/.raea/taste/taste.ts`, then the workspace's `taste.ts`): the person's standing corrections, across
+   every project. A line there beats any guide.
+2. **The brief** (`brief.ts`): who it's for (`audience`), the one thing they should think afterwards (`believe`),
    what kind of piece it is (`mode`), the narrator and tone (`voice`), what it delivers, the tasks and the agents.
-   Deliverables can have their own briefs, with a storyboard (`.board`) and a `## Direction`.
-3. **The look** (`## Look`, and `brand/brand.css` when there is one): the project's committed world.
+   Deliverables can have their own briefs, with a storyboard (`NAME.script.ts`) and a direction.
+3. **The look** (the brief's `look`, and `brand/brand.css` when there is one): the project's committed world.
 4. **The floor**: what breaks a piece, read again right before every edit.
 5. **One guide per mode**: what that kind of piece has to do.
 
 If it says the brief isn't shaped (no `believe`, no `mode`), shape it before making anything. Ask two or three
-questions, each with your best guess, or write your guess with `(assumed)` after it and go on. The person confirms
-assumed facts later.
+questions, each with your best guess, or write your guess and add its field to the brief's `assumed` list, and go on. The person
+confirms assumed facts later.
 
 ## Modes
 
@@ -52,7 +52,7 @@ leads. raea will add modes as its work grows; `raea context` says when a brief n
 3. **Plan:** for a pitch, an explain or a story, a storyboard file (scene · on screen · narration · payoff) and a
    camera map, approved by the person before anything renders.
 4. **Direction:** when the look or the structure is open, offer real options made with raea, and write the chosen
-   one into the deliverable's brief as `## Direction`.
+   one into the deliverable's brief as a section headed "Direction".
 5. **The floor:** read it right before you edit.
 6. **Make it.**
 7. **Evidence:** run `raea check`, look at the frames, critique against the mode's guide, fix, and look again.
@@ -74,11 +74,23 @@ moment it names:
 - **regrade:** colour and light;
 - **remix:** the sound;
 - **harden:** a game's edge cases;
+- **layout:** where things sit and how much room each gets;
+- **typeset:** the type on screen;
+- **animate:** motion added to what holds still;
+- **delight:** one small detail that rewards attention;
+- **adapt:** another size, length or platform;
+- **optimize:** smaller files, faster renders, smooth play;
+- **extract:** a brand kit read from finished work;
+- **generate:** variants of one element to pick from;
 - **polish:** close out the latest critique;
 - **critique:** judge the piece honestly before you call it done.
 
-Each move has a short playbook: `raea guide quieter` (and the rest). Read the one a note calls for before you act on
+Each move has a short guide: `raea guide quieter` (and the rest). Read the one a note calls for before you act on
 it. Never show these words to the person. Answer the note in their terms.
+
+raea has no colorize, onboard, overdrive or audit move. Colour is **regrade**; more of everything is **bolder** on
+the one beat that earns it, never on all of them; an audit is `raea check` and then **critique**; a game's first
+seconds are part of its mode (`raea guide play`), not a note.
 
 A note reaches you with the move already named when the feed can tell (`{verb, part or moment, words}`). The person's
 words still come first: if they say more than the verb, do what they say.

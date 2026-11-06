@@ -9,7 +9,7 @@
 // probe: 48 32 g>150 b>150 r<80
 // probe: 32 4 r<20 g<20 b<20
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, Entity } from "raea/3d";
+import { Entity } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { DiscComponent, RectangleComponent, Shape3d, ShapeFill, ShapeMaterial } from "raea/plugins/vector_shapes";
@@ -20,7 +20,7 @@ const srgb = (red: number, green: number, blue: number) => ({ Srgba: { red, gree
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 5).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }} />
         <Entity position={[-1, 0, 0]}>
           <ShapeMaterial value={material} />
@@ -34,7 +34,7 @@ function Shot() {
           <RectangleComponent value={{ alignment: "Flat", size: [1.2, 1.2], corner_radii: [0, 0, 0, 0] }} />
           <Shape3d value={{}} />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

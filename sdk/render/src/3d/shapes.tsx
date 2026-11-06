@@ -7,15 +7,16 @@ import { Canvas3DProps, Vec3, checkArgs, checkPass, checkVec, node3d, serialisab
 
 const FILL = { position: "absolute", left: 0, top: 0, width: "100%", height: "100%" } as const;
 
-/** The 3D scene's root; everything 3D goes inside it. `layered`: the 3D is drawn in the page's order, at the box of
- * the nearest positioned element around it (the whole frame when there's none; B3 H7), at that box's size and aspect:
+/** Only for `layered`: the 3D is drawn in the page's order, at the box of the nearest positioned element around it
+ * (the whole frame when there's none; B3 H7), at that box's size and aspect:
  *
  *   <div style={{ position: "absolute", left: 100, top: 50, width: 200, height: 150 }}>
  *     <Canvas3D layered><Camera3d transform={...} /><Mesh3d>...</Mesh3d></Canvas3D>
  *   </div>
- * @deprecated not needed (S2a): a <Camera3d> makes a view */
+ * Without `layered` it is its children, as written straight in the page (M6).
+ * @deprecated without `layered`: not needed, a <Camera3d> makes a view */
 export function Canvas3D(props: Canvas3DProps) {
-  if (!props.layered) return node3d("Canvas3D", props, props.children);
+  if (!props.layered) return <>{props.children}</>;
   // layered: a full-frame box in the page's flow, and the slot the 3D's frame is painted into (an <img> the renderer
   // points at the 3D's texture), first so the 3D parts after it stay out of the page's paint
   return (

@@ -25,6 +25,7 @@ fastnoise-lite = { version = "=1.1.1", optional = true, default-features = false
 noisy_bevy = { version = "=0.15.0", optional = true, default-features = false, features = ["cpu", "gpu"] }
 bevy_northstar = { version = "=0.8.0", optional = true, default-features = false, features = ["parallel"] }
 bevy_quinnet = { version = "=0.22.0", optional = true, default-features = false, features = ["client", "server", "shared-client-id", "recv_channels"] }
+moonshine-save = { version = "=0.8.0", optional = true, default-features = false, features = [] }
 bevy_simple_tilemap = { version = "=0.21.0", optional = true, default-features = false, features = [] }
 bevy_sprite3d = { version = "=10.1.0", optional = true, default-features = false, features = [] }
 bevy_trauma_shake = { version = "=0.9.0", optional = true, default-features = false, features = ["events", "commands", "system_param"] }
@@ -44,6 +45,7 @@ noise = ["dep:noise", "dep:fastnoise-lite"]
 noisy = ["dep:noisy_bevy"]
 northstar = ["dep:bevy_northstar"]
 quinnet = ["dep:bevy_quinnet"]
+save = ["dep:moonshine-save"]
 simple_tilemap = ["dep:bevy_simple_tilemap"]
 sprite3d = ["dep:bevy_sprite3d"]
 trauma_shake = ["dep:bevy_trauma_shake"]

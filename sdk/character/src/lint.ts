@@ -12,7 +12,7 @@
 // finding is measured again at every stage of the performance (the clip's frame as chosen, blended in, the feet
 // planted, the elbows relaxed, the gaze), and the first stage where it shows is the one that made it.
 import type { Quat } from "raea/character";
-import { captured, joint, qinv, qmul, qrot, qyaw, type Pose, type Skeleton } from "raea/character";
+import { B, isFinger, sideOf as sideOfJoint, captured, joint, qinv, qmul, qrot, qyaw, type Pose, type Skeleton } from "raea/character";
 import { framePose } from "./clip";
 import { qlog } from "./effects";
 import type { MotionLibrary, Performance } from "./matching";
@@ -51,7 +51,7 @@ function localTurn(p: Pose, i: number): Quat {
 /** a joint's turn from one frame to the next, as a rotation vector (radians) */
 const step = (a: Pose, b: Pose, i: number) => qlog(qmul(qinv(localTurn(a, i)), localTurn(b, i)));
 const DEG = 180 / Math.PI;
-const watched = (name: string) => !/Finger|Thumb/.test(name);
+const watched = (name: string) => !isFinger(name);
 
 const refs = new WeakMap<MotionLibrary, { speed: number[]; jerk: number[] }>();
 /** each joint's 99.5th percentile turn speed and change of speed over the library's frames (degrees a frame) */
@@ -80,7 +80,7 @@ function libraryLimits(lib: MotionLibrary): { speed: number[]; jerk: number[] } 
 
 /** a knee's bend, degrees: the shin's turn at the knee (at rest the leg is straight) */
 function kneeBend(skel: Skeleton, p: Pose, side: 0 | 1): number {
-  return Math.hypot(...qlog(localTurn(p, joint(skel, side ? "RightLeg" : "LeftLeg")))) * DEG;
+  return Math.hypot(...qlog(localTurn(p, joint(skel, side ? B.calf("R") : B.calf("L"))))) * DEG;
 }
 
 /** Lint a performance made with `trace: true` (see the head of the file). */
@@ -89,7 +89,7 @@ export function motionLint(lib: MotionLibrary, perf: Performance, o: { margin?: 
   if (!tr) throw new Error("motionLint: perform with { trace: true }");
   const skel = lib.skel, lim = libraryLimits(lib), m = o.margin ?? 1.25, n = perf.frames;
   const names = skel.joints.slice(0, captured(skel)).map((j) => j.name);
-  const sideOf = (name: string): 0 | 1 | -1 => (/^(Left|L[A-Z])/.test(name) ? 0 : /^(Right|R[A-Z])/.test(name) ? 1 : -1);
+  const sideOf = (name: string): 0 | 1 | -1 => (sideOfJoint(name) === "L" ? 0 : sideOfJoint(name) === "R" ? 1 : -1);
   const metric = (st: Stage, t: number, i: number, kind: "speed" | "jerk") => {
     const P = tr.stages[st];
     if (t < 2 || t >= P.length) return 0;
@@ -103,7 +103,7 @@ export function motionLint(lib: MotionLibrary, perf: Performance, o: { margin?: 
     return kind === "speed" ? Math.max(2, lim.speed[i] * r * m) : Math.max(1.5, lim.jerk[i] * r * r * m * 1.2);
   };
   const causes = (t: number, name: string): string[] => {
-    const out: string[] = [], side = sideOf(name), leg = /UpLeg|Leg$|Foot|Toe|Hips/.test(name);
+    const out: string[] = [], side = sideOf(name), leg = /^(thigh|calf|foot|ball)_|^pelvis$/.test(name);
     for (const s of tr.switches) if (Math.abs(s - t) <= 3) out.push(`clip switch @${s}`);
     if (tr.plant) {
       for (const e of tr.plant.events) if (Math.abs(e.t - t) <= 3 && leg && (side < 0 || side === e.foot)) out.push(`${e.foot ? "R" : "L"} ${e.what} @${e.t}`);
@@ -132,7 +132,7 @@ export function motionLint(lib: MotionLibrary, perf: Performance, o: { margin?: 
   }
   // buckles: a standing knee folded well past the clip's own
   if (tr.plant) for (const s of [0, 1] as const) {
-    const ki = joint(skel, s ? "RightLeg" : "LeftLeg");
+    const ki = joint(skel, s ? B.calf("R") : B.calf("L"));
     for (let t = 0; t < n; t++) {
       if (tr.plant.state[s][t] === "swing") continue;
       const over = kneeBend(skel, tr.stages.gaze[t], s) - kneeBend(skel, tr.stages.blend[t], s);

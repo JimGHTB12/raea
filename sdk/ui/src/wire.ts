@@ -100,7 +100,11 @@ let nextId = 1; // 0 is the root
 // ops pushed outside a handler (a call's answer awaited, a timer) go out at the next microtask
 let inDispatch = 0;
 let scheduled = false;
+/** How many ops the JS has written, ever: geometry asks whether the page changed since it was last laid out. */
+let written = 0;
+export const writes = () => written;
 function pend(op: Op) {
+  written++;
   pending.push(op);
   if (inDispatch || scheduled) return;
   scheduled = true;

@@ -40,6 +40,9 @@ pub(crate) use target::*;
 mod open;
 mod load;
 mod output;
+// RT1: each frame's motion vectors and depth, for a neural or denoising pass after the render
+mod aov;
+pub use aov::Aov;
 
 // a frame's rows, the edit, the clock and the row helpers every pass reads (raea-sys-frame)
 use raea_sys_frame::*;
@@ -215,6 +218,7 @@ impl Engine {
         self.pre_step();
         plugins::arm(self.app.world_mut());
         self.app.update();
+        self.capture_aov(f);
     }
 
     /// With MotionBlur, the frame before the clock's drawn first (its readback ignored): Bevy takes each mesh's,

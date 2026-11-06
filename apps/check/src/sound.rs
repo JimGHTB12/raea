@@ -23,8 +23,10 @@ pub(crate) fn pct(v: &[f64], q: f64) -> f64 {
     s[lo] + (s[hi] - s[lo]) * (r - lo as f64)
 }
 
-/// Each 10 ms step's level in dB, for the whole mix and in three bands (low < 500 Hz, mid to 4 kHz, high to 12 kHz):
-/// a bed that stops under a voice shows in the band the voice doesn't fill (a projector's clatter in the highs)
+/// Each 10 ms step's level in dBFS, for the whole mix and in three bands (low < 500 Hz, mid to 4 kHz, high to 12 kHz):
+/// a bed that stops under a voice shows in the band the voice doesn't fill (a projector's clatter in the highs). A band's
+/// level is its share of the step's mean square (Parseval, undoing the Hann window's power), so a tone reads the same in
+/// its band as in the mix
 pub(crate) fn levels(x: &[f32]) -> (Vec<f64>, [Vec<f64>; 3]) {
     use std::f64::consts::PI;
     let n = x.len() / HOP;
@@ -38,6 +40,8 @@ pub(crate) fn levels(x: &[f32]) -> (Vec<f64>, [Vec<f64>; 3]) {
     let bins: Vec<(usize, Vec<(f64, f64)>)> = (0..=HOP / 2)
         .filter_map(|k| Some((band(k)?, (0..HOP).map(|i| (-2.0 * PI * ((k * i) % HOP) as f64 / HOP as f64).sin_cos()).collect())))
         .collect();
+    // one-sided bins (no DC or Nyquist in any band) count twice; the window keeps mean(w²) of the power
+    let scale = 2.0 / (HOP * HOP) as f64 / (hann.iter().map(|h| h * h).sum::<f64>() / HOP as f64);
     let (mut rms, mut bands) = (Vec::with_capacity(n), [Vec::with_capacity(n), Vec::with_capacity(n), Vec::with_capacity(n)]);
     for f in x.chunks_exact(HOP) {
         let ms = f.iter().map(|&v| (v as f64).powi(2)).sum::<f64>() / HOP as f64;
@@ -49,17 +53,22 @@ pub(crate) fn levels(x: &[f32]) -> (Vec<f64>, [Vec<f64>; 3]) {
             e[*b] += re * re + im * im;
         }
         for b in 0..3 {
-            bands[b].push(10.0 * (e[b] / HOP as f64 + 1e-12).log10());
+            bands[b].push(10.0 * (e[b] * scale + 1e-18).log10());
         }
     }
     (rms, bands)
 }
 
 /// Dead stops: a steady sound (a bed: a projector, rain, room tone, a held chord) that goes in one 10 ms step instead of
-/// fading. Steady: over the second before, its level smoothed to 50 ms varies by under 3 dB (a voice or music with
-/// phrases never holds that still). The stop: down 12 dB or more in one step, and the 300 ms after it DROP dB under the
-/// bed. In the whole mix or one band, so a bed that stops under a voice shows where the voice doesn't cover it.
+/// fading. Steady: over the second before, its level smoothed to 50 ms varies by under 3 dB. The stop: down 12 dB or more
+/// in one step, from within AT dB of the bed one or two steps before (a fade that has already brought it down isn't a
+/// stop), to DROP dB under the bed by the next step (gone, not a voice's tail that comes back up), and the 300 ms after it
+/// DROP dB under the bed. In the whole mix or one band, so a bed that stops under a voice shows where the voice doesn't
+/// cover it. Dense speech can pass for steady in the lows (its pitch fills them evenly), but a word ends in a tail that
+/// rises again after the first drop, where a cut source is gone in one step.
 pub(crate) fn dead_stops(rms: &[f64], bands: &[Vec<f64>; 3]) -> Vec<(f64, String)> {
+    /// dB under the bed the sound may be just before it stops
+    const AT: f64 = 6.0;
     let mut found: Vec<(f64, String)> = Vec::new();
     let n = rms.len();
     for (name, lv) in [("the mix", rms), ("the lows", &bands[0][..]), ("the mids", &bands[1][..]), ("the highs", &bands[2][..])] {
@@ -71,10 +80,13 @@ pub(crate) fn dead_stops(rms: &[f64], bands: &[Vec<f64>; 3]) -> Vec<(f64, String
             let pre = &sm[i - 100..i - 2];
             let (bed, mean) = (pct(pre, 50.0), pre.iter().sum::<f64>() / pre.len() as f64);
             let sd = (pre.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / pre.len() as f64).sqrt();
-            let floor = if name == "the mix" { -50.0 } else { -65.0 };
+            // under this nobody hears it stop
+            let floor = if name == "the mix" { -50.0 } else { -80.0 };
             let at = i as f64 * HOP as f64 / SR as f64;
-            if bed > floor && sd < 3.0 && bed - pct(&lv[i..i + 30], 10.0) >= DROP && !found.iter().any(|(t, _)| (t - at).abs() < 0.5) {
-                found.push((at, format!("{name}: a steady sound at {bed:.0} dB stops dead in 10 ms: its source ran out (make it as long as its Sequence), or a Sequence cut it with no fadeOut")));
+            let was_up = lv[i - 1].max(lv[i - 2]) >= bed - AT;
+            let gone = lv[i + 1] <= bed - DROP && bed - pct(&lv[i..i + 30], 10.0) >= DROP;
+            if bed > floor && sd < 3.0 && was_up && gone && !found.iter().any(|(t, _)| (t - at).abs() < 0.5) {
+                found.push((at, format!("{name}: a steady sound at {bed:.0} dBFS stops dead in 10 ms: its source ran out (make it as long as its Sequence), or a Sequence cut it with no fadeOut or one too short to hear (fade a bed out over 100 ms or more)")));
             }
         }
     }

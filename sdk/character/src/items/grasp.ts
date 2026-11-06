@@ -1,6 +1,6 @@
 // A thing's distance field, the hands kept out of it, and a grip's fingers closed on it.
 import type { Vec3 } from "raea/3d";
-import { add, closeOn, surface, handPose, handSurface, norm, pose, qrot, scale3, slerp, sub, type Finger, type HandShape, type Pose, type Side, type Skeleton } from "raea/character";
+import { add, closeOn, pathHand, surface, handPose, type Closing, handSurface, norm, pose, qrot, scale3, slerp, sub, type Finger, type HandShape, type Pose, type Side, type Skeleton } from "raea/character";
 import { type Guide } from "../grasp";
 import { shapeOf, type Handling, type Thing } from "../things";
 import { fingers } from "./all";
@@ -98,25 +98,39 @@ export function turnGuide(g: Guide, pt: (v: Vec3) => Vec3, dir: (v: Vec3) => Vec
   }
 }
 
-// each grip's fingers: which close on the thing (the rest held as `rest` says), how far they may close (a fist's
-// curl is about 1.5 at the knuckle), the fan and the thumb's opposition. A ball in the palm is held by all five,
-// spread round it; a pencil by the thumb, index and middle, the ring and pinky tucked; a wine glass's stem between
-// the thumb and the first two fingers, the others curled under the foot; a box's edge by the four fingers curled
-// under it, the thumb along its side; a big thing by spread fingers lying on it
-export const GRASP: Record<Handling["grip"], { on: Finger[]; rest?: Partial<Record<Finger, [number, number, number]>>; max: number; spread: number; opp: number }> = {
-  palm: { on: ["thumb", "index", "middle", "ring", "pinky"], max: 1.4, spread: 0.35, opp: 0.7 },
-  top: { on: ["thumb", "index", "middle", "ring", "pinky"], max: 1.6, spread: 0.3, opp: 0.5 },
-  wrap: { on: ["thumb", "index", "middle", "ring", "pinky"], max: 1.6, spread: 0, opp: 0.8 },
-  handle: { on: ["thumb", "index", "middle", "ring", "pinky"], max: 1.6, spread: 0, opp: 0.6 },
-  pole: { on: ["thumb", "index", "middle", "ring", "pinky"], max: 1.6, spread: 0, opp: 0.8 },
-  pinch: { on: ["thumb", "index"], rest: { middle: [0.6, 0.7, 0.4], ring: [0.8, 0.9, 0.5], pinky: [0.9, 1, 0.6] }, max: 1.3, spread: 0.1, opp: 0.9 },
-  tripod: { on: ["thumb", "index", "middle"], rest: { ring: [1.3, 1.4, 0.9], pinky: [1.4, 1.5, 1] }, max: 1.3, spread: 0.15, opp: 0.9 },
-  stem: { on: ["thumb", "index", "middle"], rest: { ring: [1.2, 1.3, 0.9], pinky: [1.3, 1.4, 1] }, max: 1.5, spread: -0.05, opp: 0.8 },
-  edges: { on: ["index", "middle", "ring", "pinky"], rest: { thumb: [0.15, 0.1, 0.05] }, max: 1.5, spread: 0, opp: 0 },
-  sides: { on: ["thumb", "index", "middle", "ring", "pinky"], max: 0.6, spread: 0.1, opp: 0.2 },
-  cradle: { on: ["thumb", "index", "middle", "ring", "pinky"], max: 0.7, spread: 0.3, opp: 0.15 },
-  hug: { on: ["thumb", "index", "middle", "ring", "pinky"], max: 0.9, spread: 0.2, opp: 0.15 },
+// each grip's fingers, along captured hands (character/captured.ts: Godot XR Tools' poses, CC0): which close on the
+// thing, along which poses (open to closed), the rest held where (`rest`, places on that path) and how far along it
+// they may go (`max`). A power grip (a can, a mug's handle, a pole, a box's edge) closes through the capture's own
+// steps from open round a shaft (Grip Shaft: its thumb opposed, not folded over the fingers as in a fist) to a fist; a pinch through Pinch Large to Pinch Tight, the other three tucked as
+// it tucks them; a pencil's tripod and a wine glass's stem the same with the middle finger closing under it; a ball
+// in the palm through Cup; a big thing's spread fingers no further than Rounded or Cup, lying on it
+const POWER = ["Default pose", "Grip 5", "Grip Shaft", "Grip 1", "Grip"] as const;
+const PINCH = ["Default pose", "Pinch Large", "Pinch Tight"] as const;
+const ROUND = ["Default pose", "Rounded", "Cup"] as const;
+const ALL: Finger[] = ["thumb", "index", "middle", "ring", "pinky"];
+const tucked = { middle: [2, 2, 2], ring: [2, 2, 2], pinky: [2, 2, 2] } as Partial<Record<Finger, [number, number, number]>>;
+export const GRASP: Record<Handling["grip"], Closing> = {
+  palm: { on: ALL, path: ["Default pose", "Cup", "Grip"], max: 2, spread: 0, opp: 0, thumb: { max: 1.4, opp: 0.7 } },
+  top: { on: ALL, path: POWER, max: 4, spread: 0, opp: 0, thumb: { max: 1.6, opp: 0.5 } },
+  wrap: { on: ALL, path: POWER, max: 4, spread: 0, opp: 0, thumb: { max: 1.6, opp: 0.8 } },
+  handle: { on: ALL, path: POWER, max: 4, spread: 0, opp: 0, thumb: { max: 1.6, opp: 0.6 } },
+  pole: { on: ALL, path: POWER, max: 4, spread: 0, opp: 0, thumb: { max: 1.6, opp: 0.8 } },
+  pinch: { on: ["thumb", "index"], path: PINCH, rest: tucked, max: 2, spread: 0, opp: 0 },
+  tripod: { on: ["thumb", "index", "middle"], path: PINCH, rest: { ring: [2, 2, 2], pinky: [2, 2, 2] }, max: 2, spread: 0, opp: 0 },
+  stem: { on: ["thumb", "index", "middle"], path: PINCH, rest: { ring: [2, 2, 2], pinky: [2, 2, 2] }, max: 2, spread: 0, opp: 0, thumb: { max: 1.5, opp: 0.8 } },
+  edges: { on: ["index", "middle", "ring", "pinky"], path: POWER, max: 4, spread: 0, opp: 0 },
+  sides: { on: ALL, path: ROUND, max: 1, spread: 0, opp: 0, thumb: { max: 0.6, opp: 0.2 } },
+  cradle: { on: ALL, path: ROUND, max: 1.5, spread: 0, opp: 0, thumb: { max: 0.7, opp: 0.15 } },
+  hug: { on: ALL, path: ROUND, max: 1.5, spread: 0, opp: 0, thumb: { max: 0.9, opp: 0.15 } },
 };
+
+/** a hand in a grip's shape `shape` (closeOn's: curls, or places along the grip's captured path) */
+export function shapedHand(skel: Skeleton, p: Pose, s: Side, grip: Handling["grip"], shape: HandShape): Pose {
+  const g = GRASP[grip];
+  if (!g.path) return handPose(skel, p, s, shape);
+  const on = pathHand(skel, p, s, g.path, shape, g.thumb ? 1 : 0);
+  return g.thumb ? handPose(skel, on, s, shape, ["thumb"]) : on;
+}
 
 /**
  * A hand's fingers closed on a thing (its distance field in the scene, `field`): closeOn curls each the grip closes
@@ -127,7 +141,7 @@ export const GRASP: Record<Handling["grip"], { on: Finger[]; rest?: Partial<Reco
 export function graspThing(skel: Skeleton, p: Pose, s: Side, field: (q: Vec3) => number, grip: Handling["grip"], close: number, w: number, hand?: { shape?: HandShape }): Pose {
   const shape = closeOn(skel, p, s, field, GRASP[grip], close, hand?.shape);
   if (hand) hand.shape = shape;
-  const done = handPose(skel, p, s, shape);
+  const done = shapedHand(skel, p, s, grip, shape);
   if (w >= 1) return done;
   return { ...done, turns: done.turns.map((q, i) => (i < p.turns.length ? slerp(p.turns[i], q, w) : slerp([0, 0, 0, 1], q, w))) };
 }

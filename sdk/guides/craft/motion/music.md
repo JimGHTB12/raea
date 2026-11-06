@@ -22,7 +22,7 @@
     pads, kicks, risers and anything synthetic.
 - Make sound effects and foley with SAO: `Tone.sao("a bright arcade coin chime, short", { seconds: 1 })` in a
   Sampler or Player, or `sao(...)` in an `<Audio>` (`motion/sound`). Narration over the picture is
-  `Tone.fish("...")` / `fish("...")` (raea's generation API, paid and capped).
+  `<Speech>` from `raea/speech` (Pocket TTS, local; `motion/sound`).
 - Build the graph at the top level of the file: every instrument, effect and channel, and how they connect. The graph
   is the one the composition has when its first frame renders. Schedule notes with the Transport (or with explicit
   times). Never trigger notes from inside a component's render: a game's one-shots go through `<Tone.Sfx>`.
@@ -100,7 +100,7 @@ SAO run on this computer and install themselves the first time they're used (a f
 notes on instruments can be edited note by note, cut on the bar and ducked per part; a generated track can't.
 
 Policy: music is Tone.js instruments (TokenSynth, the sample libraries, synths), foley and effects are SAO, narration
-is Fish. No other generation: no generated images, video or remote sound effects. (`lyria()`, a remote music model, is
+is Pocket TTS (`<Speech>`), all local. No other generation: no generated images, video or remote sound effects. (`lyria()`, a remote music model, is
 retired: an older edit keeps the take it made, and a new one is refused.)
 
 ## Common mistakes

@@ -13,7 +13,7 @@
 // probe: 43 43 r<40 g<40
 // rows: specularTint.*anisotropy
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, Fog, ToneMapping } from "raea/3d";
+import { Fog, ToneMapping } from "raea/3d";
 import { StandardMaterial } from "raea/pbr";
 import { Affine2 } from "raea/math";
 import { Cuboid, Mesh3d, Plane3d } from "raea/mesh";
@@ -25,7 +25,7 @@ const glow = { base_color: "#000000", perceptual_roughness: 1 } as const;
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 6).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.872664625997165 } }} />
         <ToneMapping mode="none" />
         <Fog color="#ffffff" near={1} far={2} />
@@ -42,7 +42,7 @@ function Shot() {
           <Plane3d normal={[0, 0, 1]} half_size={[0.8, 0.6]} />
           <StandardMaterial {...glow} emissive="#ffffff" emissive_texture={{ path: "checker2.png", sampler: { filter: "nearest", wrap: "repeat" } }} fog_enabled={false} uv_transform={Affine2.fromTranslation([0.5, 0])} />
         </Mesh3d>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

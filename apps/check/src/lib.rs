@@ -7,9 +7,9 @@
 //! manifest (`raea render … --manifest render.json`): text clipped off the frame, text in the platform's UI zones,
 //! text held too briefly to read, caption contrast against the pixels behind it. With the transcript too: captions
 //! that come on away from the word they carry. With the face's place (`--perception`, the perception.json `raea cut`
-//! writes): text over more than 8% of the face. With `--taste FILE|DIR`: the person's own mechanical rules, from the
-//! `## Checks` section of their taste briefs (`- text-above 62%: Captions sit clear of the bottom.`), each a P1 when
-//! broken, since the person's rule beats the floor's default (docs/craft-system.md, J). Exits 1 when a P0 or P1 is found.
+//! writes): text over more than 8% of the face. With `--taste taste.ts|DIR`: the person's own mechanical rules, the
+//! rules in their taste.ts files that carry a check (`{ text: "Captions sit clear of the bottom.", check: { form:
+//! "text-above", value: 62 } }`), each a P1 when broken, since the person's rule beats the floor's default (docs/craft-system.md, J). Exits 1 when a P0 or P1 is found.
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::process::Command;
@@ -20,6 +20,7 @@ mod picture;
 use picture::*;
 mod text;
 use text::*;
+pub mod quick;
 #[cfg(test)]
 mod tests;
 
@@ -33,8 +34,10 @@ struct Issue {
     says: String,
 }
 
-pub fn cli(args: &[String]) -> i32 {
-    match run(args) {
+/// `raea check …` with the person's taste, none or more (taste.ts and the kinds beside it, which the raea CLI evaluates: it owns the engine):
+/// its rules' checks hold the export to the person's own lines.
+pub fn cli_with(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> i32 {
+    match run(args, tastes) {
         Ok((report, bad)) => {
             println!("{report}");
             i32::from(bad)
@@ -50,7 +53,7 @@ fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
     args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).map(String::as_str)
 }
 
-pub const USAGE: &str = "raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste FILE|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, cues, loudness, blotching, a placeholder brand kit; P0-P3)";
+pub const USAGE: &str = "raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, cues, loudness, blotching, a placeholder brand kit; P0-P3)";
 
 /// A rule from the person's taste: a form raea can measure, its value, and the taste line it stands for.
 #[derive(Clone, Debug, PartialEq)]
@@ -60,56 +63,9 @@ struct Taste {
     line: String,
 }
 
-/// the forms a taste check can take, and what each measures (apps/app/host/taste.ts offers the Director these)
-pub const TASTE_FORMS: [(&str, &str); 6] = [
-    ("text-hold", "S: every text holds at least S seconds"),
-    ("text-above", "P%: every text's bottom edge sits above P% of the frame's height"),
-    ("text-below", "P%: every text's top edge sits below P% of the frame's height"),
-    ("text-margin", "N: every text keeps N px (at 1080 on the short side) from each edge"),
-    ("loudness", "L: integrated loudness within 1 LU of L LUFS (instead of -14)"),
-    ("still-max", "S: nothing holds still longer than S seconds (instead of 3)"),
-];
-
-/// The `## Checks` lines of a taste brief, or of every `.brief` in a folder. A form raea doesn't know is skipped and
-/// named, so a hand-written line never breaks a check.
-fn taste_rules(path: &str) -> R<(Vec<Taste>, Vec<String>)> {
-    let p = std::path::Path::new(path);
-    let files: Vec<std::path::PathBuf> = if p.is_dir() {
-        let mut v: Vec<_> = std::fs::read_dir(p).map_err(|e| format!("{path}: {e}"))?.filter_map(|e| e.ok().map(|e| e.path())).filter(|f| f.extension().is_some_and(|x| x == "brief")).collect();
-        v.sort();
-        v
-    } else {
-        vec![p.to_path_buf()]
-    };
-    let (mut rules, mut skipped) = (Vec::new(), Vec::new());
-    for f in files {
-        let text = std::fs::read_to_string(&f).map_err(|e| format!("{}: {e}", f.display()))?;
-        let (r, s) = parse_taste(&text);
-        rules.extend(r);
-        skipped.extend(s);
-    }
-    Ok((rules, skipped))
-}
-
-fn parse_taste(text: &str) -> (Vec<Taste>, Vec<String>) {
-    let (mut rules, mut skipped, mut on) = (Vec::new(), Vec::new(), false);
-    for l in text.lines() {
-        let t = l.trim();
-        if let Some(h) = t.strip_prefix("## ") {
-            on = h.trim().eq_ignore_ascii_case("checks");
-            continue;
-        }
-        let Some(item) = t.strip_prefix("- ").filter(|_| on) else { continue };
-        let (rule, line) = item.split_once(':').map(|(a, b)| (a.trim(), b.trim())).unwrap_or((item, ""));
-        let mut words = rule.split_whitespace();
-        let form = words.next().unwrap_or("").to_lowercase();
-        let value = words.next().map(|v| v.trim_end_matches(|c: char| c.is_alphabetic() || c == '%')).and_then(|v| v.parse::<f64>().ok());
-        match value {
-            Some(value) if TASTE_FORMS.iter().any(|(f, _)| *f == form) => rules.push(Taste { form, value, line: if line.is_empty() { rule.to_string() } else { line.to_string() } }),
-            _ => skipped.push(rule.to_string()),
-        }
-    }
-    (rules, skipped)
+/// The checks among a person's taste rules (taste.ts and its kinds), each with the line it stands for.
+fn taste_rules(tastes: &[raea_core_brief::Taste]) -> Vec<Taste> {
+    tastes.iter().flat_map(|t| &t.sections).flat_map(|s| &s.rules).filter_map(|r| r.check.map(|c| Taste { form: c.form().to_string(), value: c.value(), line: r.text.clone() })).collect()
 }
 
 fn taste_of<'a>(rules: &'a [Taste], form: &str) -> Option<&'a Taste> {
@@ -148,7 +104,7 @@ fn taste_text(rules: &[Taste], runs: &[Run], w: f64, h: f64, issues: &mut Vec<Is
 /// the flags `raea check` takes, each with a value
 const TAKES: [&str; 7] = ["--manifest", "--words", "--perception", "--shape", "--platform", "--taste", "-o"];
 
-fn run(args: &[String]) -> R<(String, bool)> {
+fn run(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String, bool)> {
     let video = args.iter().enumerate().find(|(i, a)| !a.starts_with('-') && !(*i > 0 && TAKES.contains(&args[i - 1].as_str()))).map(|(_, a)| a.clone()).ok_or(USAGE)?;
     if !std::path::Path::new(&video).exists() {
         return Err(format!("no file at {video}\n{USAGE}"));
@@ -156,14 +112,7 @@ fn run(args: &[String]) -> R<(String, bool)> {
     let probe = Probe::of(&video)?;
     let mut issues = Vec::new();
     let mut passed = Vec::new();
-    let (taste, skipped) = match flag(args, "--taste") {
-        Some(t) if std::path::Path::new(t).exists() => taste_rules(t)?,
-        _ => (Vec::new(), Vec::new()),
-    };
-    for s in skipped {
-        passed.push(format!("taste: \"{s}\" isn't a form raea measures; kept as a line, not checked"));
-    }
-
+    let taste = taste_rules(&tastes);
     let manifest: Option<Value> = match flag(args, "--manifest") {
         Some(m) => Some(serde_json::from_str(&std::fs::read_to_string(m).map_err(|e| format!("{m}: {e}"))?).map_err(|e| format!("{m}: {e}"))?),
         None => None,
@@ -192,9 +141,14 @@ fn run(args: &[String]) -> R<(String, bool)> {
         }
     }
 
+    report(&video, issues, passed, flag(args, "-o"))
+}
+
+/// The issues ranked, written to -o as JSON when asked, and the report's text; true when a P0 or P1 is among them.
+fn report(video: &str, mut issues: Vec<Issue>, passed: Vec<String>, out: Option<&str>) -> R<(String, bool)> {
     issues.sort_by(|a, b| a.p.cmp(&b.p).then(a.at.unwrap_or(0.0).total_cmp(&b.at.unwrap_or(0.0))));
     let bad = issues.iter().any(|i| i.p <= 1);
-    if let Some(out) = flag(args, "-o") {
+    if let Some(out) = out {
         let j = json!({
             "file": video,
             "issues": issues.iter().map(|i| json!({"rule": i.rule, "p": format!("P{}", i.p), "at": i.at, "says": i.says})).collect::<Vec<_>>(),

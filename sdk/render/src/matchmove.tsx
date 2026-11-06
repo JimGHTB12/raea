@@ -7,7 +7,7 @@
 // 0 looking down -Z. `<Text3D position={[0, 0, -4]}>` stands on the ground.
 import { createContext, useContext, type ReactNode } from "react";
 import { useCurrentFrame, useVideoConfig } from "@raea/app/clock";
-import { Canvas3D, PerspectiveCamera, Plate, ToneMapping, type Vec3 } from "./3d";
+import { PerspectiveCamera, Plate, ToneMapping, type Vec3 } from "./3d";
 import { hasNative, native } from "@raea/app/native";
 
 export interface MatchmoveCamera {
@@ -162,7 +162,7 @@ export function matchmoveIndex(solve: MatchmoveSolve, time: number): number {
 
 /**
  * Footage with real 3D standing in it: the clip behind, its camera solved and followed, the subject in front. Fills
- * the frame (it is its own Canvas3D); its children are the 3D in the shot's world, lights included.
+ * the frame (its camera's view is the frame's); its children are the 3D in the shot's world, lights included.
  */
 export function Matchmove(props: MatchmoveProps) {
   checkMatchmove(props);
@@ -193,12 +193,10 @@ export function Matchmove(props: MatchmoveProps) {
   return (
     <MatchmoveContext.Provider value={state}>
       <div style={{ position: "absolute", left: 0, top: 0, width, height, overflow: "hidden", background: "#000000" }}>
-        <Canvas3D>
           <PerspectiveCamera position={p} lookAt={lookAt} up={up} fov={solve.fov} near={0.05} far={2000} {...(plain ? {} : { view })} />
           <ToneMapping mode={props.toneMapping ?? "none"} />
           <Plate src={props.src} time={time} k1={solve.k1} />
           {props.children}
-        </Canvas3D>
         {cut ? <img fetchPriority="low" src={cut} style={{ position: "absolute", left: -view.x, top: -view.y, width: view.width, height: view.height }} /> : null}
       </div>
     </MatchmoveContext.Provider>

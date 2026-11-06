@@ -1,7 +1,7 @@
 // React's event system as React DOM runs it, and the host's input turned into DOM events.
 import * as wire from "../wire";
 import type { Ev } from "../wire";
-import { Control_, DIRECT, Element_, Event_, FocusEvent_, InputEvent_, MouseEvent_, Node_, PointerEvent_, REACT_BY_NATIVE, S, WheelEvent_, activate, addListener, body, byWid, computedOf, container, dispatch, focusTarget, focusable, g, inputKind, isField, key, keyUp, report, rootContainer, run, scrolling, tellCapture } from "./all";
+import { Control_, DIRECT, Element_, Event_, FocusEvent_, InputEvent_, MouseEvent_, Node_, PointerEvent_, REACT_BY_NATIVE, S, WheelEvent_, activate, addListener, body, byWid, computedOf, container, dispatch, editPointer, focusTarget, focusable, g, inputKind, isField, key, keyUp, report, rootContainer, run, scrolling, selection, tellCapture } from "./all";
 
 // ---------------------------------------------------------------- React's event system, as React DOM runs it
 
@@ -146,6 +146,8 @@ export function transition(to: Element_ | null, tellHost: boolean) {
     dispatchDirect(to, new FocusEvent_("focus", { relatedTarget: from, view: g, composed: true }));
     dispatch(to, new FocusEvent_("focusin", { bubbles: true, relatedTarget: from, view: g, composed: true }), true);
   }
+  // the caret shows only in a focused editable (selection.ts's paint)
+  selection._changed(false);
   if (tellHost) {
     S.wantFocus = S.active;
     if (S.active?._wired && S.active.__wid !== undefined) wire.emit("focus", S.active.__wid);
@@ -199,6 +201,17 @@ export function hit(from: Node_, x: number, y: number): Element_ | null {
   return best;
 }
 
+/** The element a press or move is for. sdk/ui's own walk (hit) reads pointer-events only from inline styles and plain
+ *  pointer-events-* classes; the host sends the deepest element it knows on Blitz's hit path, which Stylo's cascade
+ *  decided as Chrome's would (a `[&>*]:pointer-events-auto` child under a pointer-events-none dock, a stylesheet's
+ *  layer). The walk's answer stands when it lies inside the host's; when they disagree, the host's wins. */
+function pointed(from: Node_, x: number, y: number, p: { target?: unknown }): Element_ | null {
+  const h = hit(from, x, y);
+  const t = typeof p.target === "number" ? byWid(p.target) : null;
+  if (!t || !t.isConnected || (h && t.contains(h))) return h;
+  return from === body || from.contains(t) ? t : h;
+}
+
 function commonAncestor(a: Node_, b: Node_): Element_ | null {
   const sa = new Set<Node_>();
   for (let n: Node_ | null = a; n; n = n.parentNode) sa.add(n);
@@ -206,7 +219,7 @@ function commonAncestor(a: Node_, b: Node_): Element_ | null {
   return null;
 }
 
-type Ptr = { clientX?: number; clientY?: number; button?: number; detail?: number; shiftKey?: boolean; ctrlKey?: boolean; altKey?: boolean; metaKey?: boolean; deltaX?: number; deltaY?: number };
+type Ptr = { target?: number; clientX?: number; clientY?: number; button?: number; detail?: number; shiftKey?: boolean; ctrlKey?: boolean; altKey?: boolean; metaKey?: boolean; deltaX?: number; deltaY?: number };
 
 function mouseInit(p: Ptr, target: Element_, extra: Record<string, unknown> = {}) {
   const x = p.clientX ?? lastPointer[0];
@@ -244,7 +257,7 @@ export function hostEvent(el: Node_, ev: Ev, payload: any) {
       case "pointerdown": {
         const p = (payload ?? {}) as Ptr;
         lastPointer = [p.clientX ?? 0, p.clientY ?? 0];
-        const t = hit(from, lastPointer[0], lastPointer[1]) ?? (from instanceof Element_ && from !== body ? from : body);
+        const t = pointed(from, lastPointer[0], lastPointer[1], p) ?? (from instanceof Element_ && from !== body ? from : body);
         // a secondary press comes as pointerdown (button 2) before its contextmenu, as Chrome sends them
         buttons = p.button === 2 ? 2 : 1;
         S.downTarget = t;
@@ -260,21 +273,25 @@ export function hostEvent(el: Node_, ev: Ev, payload: any) {
           const f = focusTarget(t);
           if (f) focusTo(f, false);
           else if (S.active) transition(null, false);
+          // in an editable: the caret placed, a word or paragraph picked, a drag started (editing.ts)
+          editPointer("down", t, lastPointer[0], lastPointer[1], p);
         }
         break;
       }
       case "pointermove": {
         const p = (payload ?? {}) as Ptr;
         lastPointer = [p.clientX ?? 0, p.clientY ?? 0];
-        const t = S.pointerCapture ?? hit(body, lastPointer[0], lastPointer[1]) ?? body;
+        const t = S.pointerCapture ?? pointed(body, lastPointer[0], lastPointer[1], p) ?? body;
         if (dispatch(t, new PointerEvent_("pointermove", mouseInit(p, t, { cancelable: true })), true) && !downPrevented) dispatch(t, new MouseEvent_("mousemove", mouseInit(p, t)), true);
+        if (buttons && !downPrevented) editPointer("move", t, lastPointer[0], lastPointer[1], p);
         break;
       }
       case "pointerup": {
         const p = (payload ?? {}) as Ptr;
         lastPointer = [p.clientX ?? lastPointer[0], p.clientY ?? lastPointer[1]];
-        const t = S.pointerCapture ?? hit(body, lastPointer[0], lastPointer[1]) ?? body;
+        const t = S.pointerCapture ?? pointed(body, lastPointer[0], lastPointer[1], p) ?? body;
         buttons = 0;
+        editPointer("up", t, lastPointer[0], lastPointer[1], p);
         dispatch(t, new PointerEvent_("pointerup", mouseInit(p, t)), true);
         if (!downPrevented) dispatch(t, new MouseEvent_("mouseup", mouseInit(p, t)), true);
         if (S.pointerCapture) {

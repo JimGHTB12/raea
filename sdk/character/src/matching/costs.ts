@@ -1,6 +1,6 @@
 // What a frame costs: states, phases, a crouch, an arm's swing past held things, tags.
 import type { Vec3 } from "raea/3d";
-import { bodyScale, joint, palmAt, palmFacing, pose, surface, type Posed, type Quat, type Skeleton } from "raea/character";
+import { B, bodyScale, joint, palmAt, palmFacing, pose, surface, type Posed, type Quat, type Skeleton } from "raea/character";
 import { STYLE_KEYS, type StyleVector } from "../style";
 import { STATES } from "../effects";
 import { MotionLibrary, NF, NS, STATE, Step, TagCond, TagSpec, add3, libraryPose, movingAt } from "./all";
@@ -147,8 +147,8 @@ function swingCapsules(skel: Skeleton) {
     const d = surface(skel, rest, re, side as "L" | "R" | undefined).map((x) => segDist(x.at, rest.pos[a], rest.pos[b])).sort((x, y) => x - y);
     return d.length ? d[Math.floor(0.9 * (d.length - 1))] : guess * bodyScale(skel);
   };
-  const thigh = (["L", "R"] as const).map((s) => { const a = J(s === "L" ? "LeftUpLeg" : "RightUpLeg"), b = J(s === "L" ? "LeftLeg" : "RightLeg"); return [a, b, fit(a, b, /^thigh$/, s, 0.075)] as [number, number, number]; });
-  const wa = J("Hips"), wb = J("Spine");
+  const thigh = (["L", "R"] as const).map((s) => { const a = J(B.thigh(s)), b = J(B.calf(s)); return [a, b, fit(a, b, /^thigh$/, s, 0.075)] as [number, number, number]; });
+  const wa = J(B.pelvis), wb = J(B.spine[1]);
   c = { thigh, waist: [wa, wb, fit(wa, wb, /^(waist|hips)$/, undefined, 0.12)] };
   capsulesOf.set(skel, c);
   return c;

@@ -10,7 +10,7 @@
 // Every measurement is in the body's own ground frame (x its left, z ahead), in metres, degrees, seconds or ratios,
 // and is the same for a clip and its mirror image except the signed ones (trunkRoll, asym*), which flip.
 import type { Vec3 } from "raea/3d";
-import { captured, joint, pose, qrot, sub, type Posed, type Skeleton } from "raea/character";
+import { B, SIDES, captured, joint, pose, qrot, sub, type Posed, type Skeleton } from "raea/character";
 import { framePose, type Clip } from "./clip";
 
 /** the measurements, in order, with what each one is */
@@ -54,8 +54,8 @@ const angleAt = (a: Vec3, b: Vec3, c: Vec3) => {
 /** The style of a clip's frames f0 to f1 (exclusive). */
 export function styleOf(skel: Skeleton, c: Clip, f0: number, f1: number): StyleVector {
   const J = (n: string) => joint(skel, n);
-  const [hips, neck, head, arm, fore, hand, up, leg, foot, toe] = [J("Hips"), J("Neck"), J("Head"), ["LeftArm", "RightArm"].map(J), ["LeftForeArm", "RightForeArm"].map(J),
-    ["LeftHand", "RightHand"].map(J), ["LeftUpLeg", "RightUpLeg"].map(J), ["LeftLeg", "RightLeg"].map(J), ["LeftFoot", "RightFoot"].map(J), ["LeftToeBase", "RightToeBase"].map(J)];
+  const [hips, neck, head, arm, fore, hand, up, leg, foot, toe] = [J(B.pelvis), J(B.neck), J(B.head), SIDES.map(B.upperarm).map(J), SIDES.map(B.lowerarm).map(J),
+    SIDES.map(B.hand).map(J), SIDES.map(B.thigh).map(J), SIDES.map(B.calf).map(J), SIDES.map(B.foot).map(J), SIDES.map(B.ball).map(J)];
   const R = skel.joints.map((j) => j.head);
   const restHips = R[hips][1], restKnee = R[leg[0]][1], restShoulder = (R[arm[0]][1] + R[arm[1]][1]) / 2 - R[neck][1];
   const ankleRest = R[foot[0]][1], toeRest = R[toe[0]][1];

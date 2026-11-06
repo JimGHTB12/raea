@@ -36,7 +36,7 @@
   that the step falls back to when the Clock has none, so `raea render` plays it the same way every time.
 - Theme the field and the Arena's parts from the brand (`--brand-text`, `--brand-accent`, `--brand-background`) like any
   other piece, each with a fallback colour (`var(--brand-accent, #ff5a36)`): a project with no brand defines none, and
-  a bare `var()` draws nothing (a GLM table-tennis game's paddles and net were invisible).
+  a bare `var()` draws nothing (an agent's table-tennis game's paddles and net were invisible).
 - When an entity has modes (idle, run, jump, hurt; patrol, chase; playing, won, game over), write each as a state
   machine: `machine<Ctx, Env>()({ id, initial, states })` from `raea`, guards polled every frame, delays in
   frames, the snapshot kept in the entity at `sm` and stepped inside the step (`stepAll` for one per enemy). The rules

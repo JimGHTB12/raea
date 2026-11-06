@@ -1,6 +1,6 @@
 // The agent shell's own verbs (init ...) on the native `raea`, which runs this file on its JavaScriptCore with Node's core
 // (runtime/react/src/scene.rs shell(), raea_native::js::run_node), so each verb has one source: this package's handler.
-// The host's ops it needs are answered here, one more with each verb ported (docs/agent-context.md); the rest refuse.
+// The host's ops it needs are answered here, one more with each verb ported (docs/agent-surfaces.md); the rest refuse.
 //
 //   native.ts RAEA VERB ARGS...    RAEA: the native raea's path, for the engine's own verbs
 import { spawnSync } from "node:child_process";
@@ -81,14 +81,24 @@ function words(take: string, hear = false): Word[] {
     .map((w) => ({ text: w.text.trim(), from: w.start_ms / 1000, to: w.end_ms / 1000 }));
 }
 
+/** A tool a clean Mac lacks, found or installed once by raea's tools/ensure.sh (docs/app.feature AP6), which sits in
+ *  share/raea/tools beside a release's bin/raea, or in the tree a built raea is in; the bare name if there's none */
+function ensure(name: string): string {
+  const real = realpathSync(raea);
+  const script = [`${dirname(real)}/../share/raea/tools/ensure.sh`, `${dirname(real)}/../../tools/ensure.sh`].find(existsSync);
+  if (!script) return name;
+  const r = spawnSync("bash", [script, name], { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
+  return r.status === 0 && r.stdout.trim() ? r.stdout.trim() : name;
+}
+
 function hearTake(take: string, out: string) {
   const dir = mkdtempSync(`${tmpdir()}/raea-hear-`);
   try {
     const wav = `${dir}/take.wav`;
     const a = spawnSync(raea, ["media", "audio", at(take), "--rate", "16000", "--mono", "-o", wav], { encoding: "utf8" });
     if (a.status !== 0) throw new Error(`no sound to transcribe in ${take}: ${(a.stdout + a.stderr).trim()}`);
-    const p = spawnSync("parakeet-mlx", [wav, "--output-format", "json", "--output-dir", dir], { encoding: "utf8" });
-    if (p.status !== 0) throw new Error(`transcribing ${take} needs parakeet-mlx (pip install parakeet-mlx), or cut it by time: --at A-B`);
+    const p = spawnSync(ensure("parakeet-mlx"), [wav, "--output-format", "json", "--output-dir", dir], { encoding: "utf8" });
+    if (p.status !== 0) throw new Error(`transcribing ${take} needs parakeet-mlx (tools/ensure.sh installs it: ${(p.stderr ?? "").trim().split("\n").pop()}), or cut it by time: --at A-B`);
     const heard = JSON.parse(readFileSync(`${dir}/take.json`, "utf8")) as { sentences: { tokens: { text: string; start: number; end: number }[] }[] };
     const ws = heard.sentences.flatMap((s) => wordsOf(s.tokens)).map((w) => ({ text: w.text, start_ms: Math.round(w.start * 1000), end_ms: Math.round(w.end * 1000) }));
     writeFileSync(out, JSON.stringify(ws) + "\n");
@@ -353,6 +363,20 @@ function brand(a: { brand: string }): string {
   return kit.said;
 }
 
+/** An op of the feed host's libraries (apps/app host/library/service.ts): POST $RAEA_FEED_HOST/host/library. The feed
+ *  sets RAEA_FEED_HOST for the agents it starts; elsewhere it's given by hand. */
+function library(a: Record<string, unknown>): unknown {
+  const at = process.env.RAEA_FEED_HOST;
+  if (!at) throw new Error("libraries live in the raea app: run this from an agent the app started, or set RAEA_FEED_HOST to the app's address");
+  const r = spawnSync("curl", ["-sS", "--max-time", "120", "-w", "\n%{http_code}", "-H", "content-type: application/json", "--data-binary", "@-", `${at.replace(/\/$/, "")}/host/library`], { input: JSON.stringify(a), encoding: "utf8", maxBuffer: 64 << 20 });
+  const text = r.stdout ?? "";
+  const cut = text.lastIndexOf("\n");
+  const [body, code] = [text.slice(0, cut), Number(text.slice(cut + 1))];
+  if (r.status !== 0) throw new Error(`the raea app at ${at} didn't answer: ${(r.stderr ?? "").trim()}`);
+  if (!(code >= 200 && code < 300)) throw new Error(body.trim() || `the raea app said ${code}`);
+  return JSON.parse(body);
+}
+
 const host: Host = (op, a) => {
   switch (op) {
     case "shape":
@@ -363,6 +387,8 @@ const host: Host = (op, a) => {
       return cut(a as Parameters<typeof cut>[0]);
     case "brand":
       return brand(a as Parameters<typeof brand>[0]);
+    case "library":
+      return library(a);
     default:
       throw new Error(`raea: this step (${op}) isn't in the native raea yet`);
   }

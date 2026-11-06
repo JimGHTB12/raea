@@ -9,8 +9,9 @@ import { Animate3d, apply3d, node3d } from "./all";
 export interface SurfaceDrawProps {
   /** "opaque" (the default), "blend" (what `transparent` gives), "mask" (cut out where the alpha is under
    * `alphaCutoff`: leaves, chain-link, a sprite's edge; no sorting), "add" (glows add up: sparks, light beams),
-   * "multiply" (darkens what's behind: stained glass, a shadow decal), "premultiplied" */
-  alphaMode?: "opaque" | "blend" | "mask" | "add" | "multiply" | "premultiplied";
+   * "multiply" (darkens what's behind: stained glass, a shadow decal), "premultiplied", "coverage" (soft cut-out edges
+   * from the alpha over MSAA's samples: hair cards, foliage; needs <AntiAliasing mode="msaa">, without it draws solid) */
+  alphaMode?: "opaque" | "blend" | "mask" | "add" | "multiply" | "premultiplied" | "coverage";
   /** with alphaMode="mask": the alpha under which it's cut away, 0..1 (0.5) */
   alphaCutoff?: number;
   /** which faces draw: "front" (the default), "back" (the inside only: a sky dome, a room seen from outside),
@@ -194,7 +195,7 @@ export function checkTextures(owner: string, textures: Record<string, string | R
 
 /** One shader over every lit standard surface in the scene that has none of its own (meshes, Models' materials,
  * Characters), so the whole scene shares one look (docs/shaders.feature SH4). Unlit, toon, paint, flat and looked
- * surfaces and ShaderMesh keep theirs. Inside a <Canvas3D>; one per scene.
+ * surfaces and ShaderMesh keep theirs. In the 3D beside the camera; one per scene.
  * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_shader::ShaderExt>> */
 export function SurfaceShader(props: SurfaceShaderSpec) {
   return node3d("SurfaceShader", { shader: surfaceShader("SurfaceShader", props) });
@@ -223,7 +224,7 @@ export interface FramePassProps {
 
 const PASS_HOOK = /(^|[^A-Za-z0-9_])fn\s+shade\s*\(|@fragment/;
 
-/** A full-screen pass over the scene camera's frame, inside a <Canvas3D>; several run in the order written. With a
+/** A full-screen pass over the scene camera's frame, beside the camera; several run in the order written. With a
  * frame <Look> they run on its cells, before the look's composite.
  * @bevy raea_sys_framepass::FramePasses */
 export function FramePass(props: FramePassProps) {
@@ -277,7 +278,7 @@ export function checkMaterial(owner: string, props: Record<string, unknown>): vo
     if (v !== undefined && !(typeof v === "number" && v >= 0 && v <= 1)) throw new RangeError(`${owner}: ${k} must be in [0, 1], got ${v}`);
   }
   const am = props.alphaMode;
-  if (am !== undefined && !["opaque", "blend", "mask", "add", "multiply", "premultiplied"].includes(am as string)) throw new TypeError(`${owner}: alphaMode is opaque, blend, mask, add, multiply or premultiplied, got ${JSON.stringify(am)}`);
+  if (am !== undefined && !["opaque", "blend", "mask", "add", "multiply", "premultiplied", "coverage"].includes(am as string)) throw new TypeError(`${owner}: alphaMode is opaque, blend, mask, add, multiply, premultiplied or coverage, got ${JSON.stringify(am)}`);
   if (props.side !== undefined && !["front", "back", "double"].includes(props.side as string)) throw new TypeError(`${owner}: side is front, back or double, got ${JSON.stringify(props.side)}`);
   if (props.ior !== undefined && !(typeof props.ior === "number" && props.ior >= 1)) throw new RangeError(`${owner}: ior must be 1 or more, got ${props.ior}`);
   if (props.thickness !== undefined && !(typeof props.thickness === "number" && props.thickness >= 0)) throw new RangeError(`${owner}: thickness must be 0 or more metres, got ${props.thickness}`);

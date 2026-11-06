@@ -189,3 +189,13 @@ material?: string, style?: string,
  * what a near crop of it must show
  */
 near?: string, };
+
+export type Controller = { id: string, title: string, help?: string, groups: Array<Group>, };
+
+export type Group = { id: string, title: string, help?: string, fields: Array<Field>, };
+
+export type Field = { id: string, label: string, help?: string, } & ({ "type": "toggle", value: boolean, } | { "type": "choice", options: Array<string>, value: string, } | { "type": "number", value: number, unit?: string, min?: number, max?: number, step?: number, } | { "type": "text", value: string, placeholder?: string, multiline?: boolean, } | { "type": "list", value: Array<string>, placeholder?: string, } | { "type": "agents", value: Array<string>, } | { "type": "channels", value: Array<string>, } | { "type": "workflow", value: Array<Step>, channels?: Array<string>, } | { "type": "servers", value: Array<string>, } | { "type": "skills", value: Array<string>, });
+
+export type Kind = { "type": "toggle", value: boolean, } | { "type": "choice", options: Array<string>, value: string, } | { "type": "number", value: number, unit?: string, min?: number, max?: number, step?: number, } | { "type": "text", value: string, placeholder?: string, multiline?: boolean, } | { "type": "list", value: Array<string>, placeholder?: string, } | { "type": "agents", value: Array<string>, } | { "type": "channels", value: Array<string>, } | { "type": "workflow", value: Array<Step>, channels?: Array<string>, } | { "type": "servers", value: Array<string>, } | { "type": "skills", value: Array<string>, };
+
+export type Step = { name: string, by?: string, back?: string, };

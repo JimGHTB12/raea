@@ -14,6 +14,7 @@ ml = ["dep:raea-sys-ml", "dep:raea-sys-speech"]
 raea-runtime-plugins = { path = "../plugins" }
 raea-native = { path = "../../engine/native", default-features = false }
 raea-core-shape = { path = "../../core/shape" }
+raea-core-scene = { path = "../../core/scene" }
 raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio", "apple"] }
 raea-io-net = { path = "../../io/net" }
 raea-sys-mix = { path = "../../systems/mix" }

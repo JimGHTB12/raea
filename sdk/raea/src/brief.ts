@@ -1,0 +1,31 @@
+// raea/brief: what an agent writes for raea as data (docs/handoff/authoring.md, docs/projects.feature PJ0). A spec is a
+// module whose default export is one of these values; it renders nothing and imports nothing that renders.
+//
+//   // brief.ts
+//   import { brief } from "raea/brief";
+//   export default brief({ title: "Spring drop", believe: "...", mode: ["pitch"] });
+//
+// The types are generated from the Rust schemas (core/brief, raea-core-brief) into brief.gen.ts, so what tsc checks is
+// what raea reads: `raea context` evaluates the module and Rust validates its default export again.
+import type { Brief, Controller, Field, Group, Plan, Script, Taste } from "./brief.gen";
+
+export type * from "./brief.gen";
+
+/** A field as written: its id is filled in from its label when left out. */
+export type FieldInput = Field extends infer F ? (F extends Field ? Omit<F, "id"> & { id?: string } : never) : never;
+/** A controller as written: ids are filled in from titles and labels when left out. */
+export type ControllerInput = Omit<Controller, "id" | "groups"> & {
+  id?: string;
+  groups: (Omit<Group, "id" | "fields"> & { id?: string; fields: FieldInput[] })[];
+};
+
+/** A project's brief (brief.ts): what to make, for whom, the one thing to believe, its deliverables and staged tasks. */
+export const brief = (b: Brief): Brief => b;
+/** A storyboard or a screenplay (script.ts): scenes, beats, lines, camera and cut. */
+export const script = (s: Script): Script => s;
+/** Taste (taste.ts): standing rules, some with a check `raea check --taste` holds every export to. */
+export const taste = (t: Taste): Taste => t;
+/** An object's plan (plan.ts): its parts by name, levels, counts, materials. */
+export const plan = (p: Plan): Plan => p;
+/** A workspace's controller (controllers/<id>.ts): settings in groups of typed fields that every agent works to. */
+export const controller = (c: ControllerInput): ControllerInput => c;

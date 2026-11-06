@@ -2,6 +2,9 @@
 
 use super::*;
 
+/// the most values a part keys in a frame: placement (9), animation (1, 8 mixed, 32 graph), morphs (64) and a few more
+const WANT: usize = 128;
+
 impl LiveScene {
     /// `diff(current(f))` for a frame whose parts are all known, without the rows: each known part's changing values worked out into a fixed array and held
     /// against what was sent in place, as diff holds a row (the same rules: recoloured meshes keyed, the emissive strength
@@ -111,7 +114,7 @@ impl LiveScene {
         // pass 2: each part's values, then held against what was sent
         for (i, id) in parts {
             let it = &its[i];
-            let mut want: [(&str, Option<f64>); 24] = [("", None); 24];
+            let mut want: [(&str, Option<f64>); WANT] = [("", None); WANT];
             let mut nw = 0usize;
             let mut put = |k: &'static str, v: f64| {
                 want[nw] = (k, Some(r6(v)));
@@ -185,7 +188,7 @@ impl LiveScene {
                         }
                     }
                     if let Some(Value::Array(a)) = it.props.get("morphs") {
-                        for (i, c) in a.iter().enumerate().take(8) {
+                        for (i, c) in a.iter().enumerate().take(MORPH_COLS.len()) {
                             put(MORPH_COLS[i], c.get("weight").and_then(Value::as_f64).unwrap_or(0.0));
                         }
                     }
@@ -194,6 +197,9 @@ impl LiveScene {
                     }
                     if it.props.contains_key("screenPower") {
                         put("screen_power", n(&it.props, "screenPower", 1.0));
+                    }
+                    if let Some(f) = it.props.get("cloth").and_then(|c| c.get("frame")).and_then(Value::as_f64) {
+                        put("cloth_frame", f);
                     }
                     place(&mut put);
                     "model"
@@ -223,7 +229,7 @@ impl LiveScene {
             let r = self.rows.get_mut(id).expect("checked in pass 1");
             r.seen = true;
             r.missing = 0;
-            let set = |want: &mut [(&str, Option<f64>); 24], nw: &mut usize, k: &'static str, v: Option<f64>, only_if_absent: bool| {
+            let set = |want: &mut [(&str, Option<f64>); WANT], nw: &mut usize, k: &'static str, v: Option<f64>, only_if_absent: bool| {
                 match want[..*nw].iter_mut().find(|w| w.0 == k) {
                     Some(w) => {
                         if !only_if_absent {

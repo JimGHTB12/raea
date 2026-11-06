@@ -1,6 +1,6 @@
 // HTMLElement and the form controls: focusability, values, selection, forms, anchors and labels.
 import * as wire from "../wire";
-import { Element_, Event_, FOCUSABLE_TAGS, PointerEvent_, S, activate, body, computedOf, dispatch, doc, focusTo, g, isField, nodeList, query, submitForm, transition } from "./all";
+import { Element_, Event_, FOCUSABLE_TAGS, PointerEvent_, S, activate, body, computedOf, dispatch, doc, focusTo, focusedHost, g, isEditable, isEditingHost, isField, nodeList, query, submitForm, transition } from "./all";
 
 export class HTMLElement_ extends Element_ {
   get hidden() {
@@ -42,10 +42,19 @@ export class HTMLElement_ extends Element_ {
     return this.getAttribute("draggable") === "true";
   }
   get contentEditable() {
-    return this.getAttribute("contenteditable") ?? "inherit";
+    const a = this.getAttribute("contenteditable");
+    if (a === null) return "inherit";
+    const l = a.toLowerCase();
+    return l === "" || l === "true" ? "true" : l === "false" || l === "plaintext-only" ? l : "inherit";
+  }
+  set contentEditable(v: string) {
+    const l = String(v).toLowerCase();
+    if (l === "inherit") this.removeAttribute("contenteditable");
+    else if (l === "true" || l === "false" || l === "plaintext-only") this.setAttribute("contenteditable", l);
+    else throw new Error(`SyntaxError: contentEditable can't be ${v}`);
   }
   get isContentEditable() {
-    return false;
+    return this.isConnected && isEditable(this);
   }
   get accessKey() {
     return this.getAttribute("accesskey") ?? "";
@@ -73,6 +82,7 @@ export class HTMLElement_ extends Element_ {
   focus(opts?: { preventScroll?: boolean; focusVisible?: boolean }) {
     void opts?.preventScroll;
     focusTo(this, true);
+    if (S.active === this) focusedHost(this);
   }
   blur() {
     if (S.active === this) transition(null, true);
@@ -104,6 +114,7 @@ export function nativelyFocusable(el: Element_): boolean {
   if (t === "a" || t === "area") return el.hasAttribute("href");
   if (FOCUSABLE_TAGS.has(t)) return !(t === "input" && el.getAttribute("type") === "hidden");
   if (t === "summary" || t === "iframe") return true;
+  if (isEditingHost(el)) return true;
   return false;
 }
 
@@ -163,10 +174,11 @@ export class Control_ extends HTMLElement_ {
   set value(v: string) {
     const s = v === null || v === undefined ? "" : String(v);
     this._value = s;
-    if (isField(this) && this._wired && this.__wid !== undefined) {
-      this._extra.value = s;
-      wire.set(this.__wid, "value", s);
-    }
+    if (!isField(this)) return;
+    // kept for the host node too when it's made later: a field JS made and filled before placing it (Excalidraw's text
+    // editor) is created with its value (materialize), else it showed empty
+    this._extra.value = s;
+    if (this._wired && this.__wid !== undefined) wire.set(this.__wid, "value", s);
   }
   get defaultValue() {
     return this.getAttribute("value") ?? "";

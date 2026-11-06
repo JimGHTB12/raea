@@ -2,10 +2,10 @@
 // (position and lookAt animated); a Group turns its children together; a pillar grows (non-uniform scale); a sphere
 // appears at frame 30 from a Sequence.
 import { AbsoluteFill, Composition, interpolate, registerRoot, Sequence, useCurrentFrame } from "raea";
-import { Cylinder, Sphere, SpotLight, Torus, Entity } from "raea/3d";
+import { Cylinder, Sphere, Torus, Entity } from "raea/3d";
 import { StandardMaterial } from "raea/pbr";
 import { Cuboid, Mesh3d } from "raea/mesh";
-import { AmbientLight, DirectionalLight, PointLight } from "raea/light";
+import { AmbientLight, DirectionalLight, PointLight, SpotLight } from "raea/light";
 import { Quat, Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
 
@@ -24,7 +24,7 @@ function Shot() {
         <AmbientLight brightness={60} />
         <DirectionalLight transform={Transform.fromXyz(-4, 6, 2).lookingAt([0, 0, 0])} illuminance={2000} />
         <PointLight color="#ffd29a" transform={Transform.fromXyz(Math.cos(a) * 2.5, 1.8, Math.sin(a) * 2.5)} intensity={1080000} range={12} shadow_maps_enabled />
-        <SpotLight position={[0, 6, 0]} target={[0, 0, 0]} angle={0.5} penumbra={0.4} intensity={2.5} color="#9ad0ff" castShadow />
+        <SpotLight color="#9ad0ff" transform={Transform.fromXyz(0, 6, 0).lookingAt([0, 0, 0], [0, 0, -1])} intensity={2250000} outer_angle={0.5} inner_angle={0.3} shadow_maps_enabled />
         <Mesh3d transform={Transform.fromXyz(0, -0.05, 0)}>
           <Cuboid half_size={[6, 0.05, 6]} />
           <StandardMaterial base_color="#9aa0a6" perceptual_roughness={0.8} />

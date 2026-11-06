@@ -4,11 +4,13 @@
 //! types (`declarations`), so what tsc checks is exactly what this crate reads.
 
 pub mod brief;
+pub mod controller;
 pub mod plan;
 pub mod script;
 pub mod taste;
 
 pub use brief::Brief;
+pub use controller::Controller;
 pub use plan::Plan;
 pub use script::Script;
 pub use taste::Taste;
@@ -26,7 +28,8 @@ macro_rules! decls {
     ($cfg:ident; $($t:ty),* $(,)?) => { vec![$(format!("export {}", <$t as TS>::decl(&$cfg))),*] };
 }
 
-/// The TypeScript declarations of every schema, one file's worth (core/brief/brief.d.ts is this, checked by a test).
+/// The TypeScript declarations of every schema, one file's worth: sdk/raea/src/brief.gen.ts is this, checked by a test, and
+/// `raea/brief` (sdk/raea/src/brief.ts) types its builders with it, so the declarations ship with the SDK.
 pub fn declarations() -> String {
     let cfg = Config::new();
     let mut out = vec!["// Generated from raea-core-brief (core/brief) by its `declarations`; edit the Rust, not this.".to_string()];
@@ -35,6 +38,7 @@ pub fn declarations() -> String {
         script::Script, script::Scene, script::Beat, script::Line,
         taste::Taste, taste::TasteSection, taste::Rule, taste::Check,
         plan::Plan, plan::Concept, plan::Level, plan::Count, plan::Part,
+        controller::Controller, controller::Group, controller::Field, controller::Kind, controller::Step,
     ));
     out.join("\n\n") + "\n"
 }

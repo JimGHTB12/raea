@@ -1,6 +1,6 @@
 // The body's surface, reaching, planting, looking, sitting, and solving goals.
 import { type Vec3 } from "@raea/render/3d";
-import { FINGERS, Finger, I, LIMB, Pose, Posed, Side, Skeleton, add, cross, fingerJoints, flatHand, held, joint, len, norm, palmAt, pose, qaxis, qfromTo, qmul, qrot, qyaw, scale3, setWorld, skinJoints, slerp, sub, twoBone, withFingers } from "./all";
+import { B, FINGERS, Finger, I, LIMB, Pose, Posed, Side, Skeleton, add, cross, fingerJoints, flatHand, held, joint, len, norm, palmAt, pose, qaxis, qfromTo, qmul, qrot, qyaw, scale3, setWorld, skinJoints, slerp, sub, twoBone, withFingers } from "./all";
 
 export interface FingerSegment { joint: number; head: Vec3; tail: Vec3; radius: number }
 
@@ -20,13 +20,13 @@ export function fingerSegments(skel: Skeleton, w: Posed, s: Side): { finger: Fin
 
 export interface SurfacePoint { part: string; side: Side | ""; joint: string; at: Vec3; normal: Vec3 }
 
-/** The skin's surface samples posed (character.py's `surface`): each a vertex of the skinned mesh, where the skin puts it
- * (the glb's own linear blend of its skin joints) and its normal. `parts` picks them by part ("palm", "thumb1",
- * "index2", "chest", "waist", "foreArm"...) or by skin joint's name (a RegExp tests both); `side` by side. For hugging a
+/** The skin's surface samples posed (skeleton.json's `surface`): each a vertex of the skinned mesh, where the skin puts
+ * it (the glb's own linear blend of its joints) and its normal. `parts` picks them by part ("palm", "thumb1",
+ * "index2", "chest", "waist", "foreArm"...) or by joint's name (a RegExp tests both); `side` by side. For hugging a
  * thing to the chest without it going in, keeping fingertips on a thing's surface. */
 export function surface(skel: Skeleton, w: Posed, parts?: RegExp | string[], side?: Side): SurfacePoint[] {
-  if (!skel.surface || !skel.skin) return [];
-  const sk = skel.skin, sj = skinJoints(skel, w);
+  if (!skel.surface) return [];
+  const sk = skel.joints, sj = skinJoints(skel, w);
   const want = (part: string, name: string) => !parts || (parts instanceof RegExp ? parts.test(part) || parts.test(name) : parts.includes(part) || parts.includes(name));
   const out: SurfacePoint[] = [];
   for (const x of skel.surface) {
@@ -62,7 +62,7 @@ export function reach(skel: Skeleton, p: Pose, s: Side, g: HandGoal): Pose {
   if (g.point) p = flatHand(skel, p, s, g.point, g.facing);
   // a flat hand's middle half its thickness off the surface it rests on (about 1% of the body's height)
   if (g.point) g = { ...g, at: sub(g.at, scale3(norm(g.facing ?? [0, -1, 0]), 0.009 * skel.height)) };
-  const hi = joint(skel, s === "L" ? "LeftHand" : "RightHand");
+  const hi = joint(skel, B.hand(s));
   // the wrist where the palm lands at the at, with the hand's turn as it will be (twoBone keeps it)
   let w = pose(skel, p);
   const off = sub(palmAt(skel, w, s), w.pos[hi]);
@@ -87,8 +87,8 @@ export interface FootGoal {
 
 /** A foot planted: the leg bent so the ankle stands over `at` at its height at rest, the sole flat. */
 export function plant(skel: Skeleton, p: Pose, s: Side, g: FootGoal): Pose {
-  const fi = joint(skel, s === "L" ? "LeftFoot" : "RightFoot");
-  const ti = joint(skel, s === "L" ? "LeftToeBase" : "RightToeBase");
+  const fi = joint(skel, B.foot(s));
+  const ti = joint(skel, B.ball(s));
   const J = skel.joints;
   const ankle = J[fi].head[1];
   if (g.flat !== false) {
@@ -104,10 +104,10 @@ export function plant(skel: Skeleton, p: Pose, s: Side, g: FootGoal): Pose {
 }
 
 /** The head (with the neck taking a share) turned so the eyes look at `target`. */
-export function lookAt(skel: Skeleton, p: Pose, target: Vec3, share: [number, number, number] = [0.25, 0.25, 0.5]): Pose {
-  const chain = ["Neck", "Neck1", "Head"].map((n) => joint(skel, n));
+export function lookAt(skel: Skeleton, p: Pose, target: Vec3, share: [number, number] = [0.5, 0.5]): Pose {
+  const chain = [B.neck, B.head].map((n) => joint(skel, n));
   const eyesRest = skel.landmarks.eyes;
-  const head = chain[2];
+  const head = chain[1];
   for (let k = 0; k < 4; k++) {
     const w0 = pose(skel, p);
     const eyes = add(w0.pos[head], qrot(w0.rot[head], sub(eyesRest, skel.joints[head].head)));
@@ -116,7 +116,7 @@ export function lookAt(skel: Skeleton, p: Pose, target: Vec3, share: [number, nu
     // the turn taking the face's forward to the target, split up the neck (yaw about the body's up, then pitch)
     const turn = qfromTo(fwd, want);
     // each joint's share of the turn, about the same axis in the body's frame, so the shares add up to the whole
-    for (let c = 0; c < 3; c++) {
+    for (let c = 0; c < chain.length; c++) {
       const w = pose(skel, p);
       p = setWorld(skel, p, w, chain[c], qmul(slerp(I, turn, share[c]), w.rot[chain[c]]));
     }
@@ -142,17 +142,17 @@ export function sit(skel: Skeleton, p: Pose, g: SeatGoal): Pose {
   const hips = J[0].head;
   // the hip joints sit a little above the seat (the buttocks under them): their height over the lowest of the body at
   // the hips, from the rest's leg (about a fifth of the thigh)
-  const over = skel.landmarks.sitDrop ?? 0.3 * len(sub(J[joint(skel, "LeftLeg")].head, J[joint(skel, "LeftUpLeg")].head));
-  p = { ...p, root: [g.at[0], g.at[1] + over + (hips[1] - J[joint(skel, "LeftUpLeg")].head[1]), g.at[2]] };
+  const over = skel.landmarks.sitDrop ?? 0.3 * len(sub(J[joint(skel, B.calf("L"))].head, J[joint(skel, B.thigh("L"))].head));
+  p = { ...p, root: [g.at[0], g.at[1] + over + (hips[1] - J[joint(skel, B.thigh("L"))].head[1]), g.at[2]] };
   const lean = g.lean ?? 0.15;
   p = held(skel, {
-    LeftUpLeg: [0.08, -0.05, 1], RightUpLeg: [-0.08, -0.05, 1],
-    LowerBack: [0, 1, Math.tan(lean)], Spine: [0, 1, Math.tan(lean)], Spine1: [0, 1, Math.tan(lean)],
+    [B.thigh("L")]: [0.08, -0.05, 1], [B.thigh("R")]: [-0.08, -0.05, 1],
+    [B.spine[0]]: [0, 1, Math.tan(lean)], [B.spine[1]]: [0, 1, Math.tan(lean)], [B.spine[2]]: [0, 1, Math.tan(lean)],
   }, p);
   const floor = g.floor ?? 0;
   for (const s of ["L", "R"] as Side[]) {
     const w = pose(skel, p);
-    const knee = w.pos[joint(skel, s === "L" ? "LeftLeg" : "RightLeg")];
+    const knee = w.pos[joint(skel, B.calf(s))];
     const at = g.feet?.[s] ?? [knee[0], floor, knee[2] + 0.05];
     p = plant(skel, p, s, { at, toes: [0, 0, 1] });
   }
@@ -187,7 +187,7 @@ export function blend(a: Pose, b: Pose, w: number): Pose {
 export function leanToward(skel: Skeleton, p: Pose, hands: Partial<Record<Side, HandGoal>>, o: { reach?: number; most?: number } = {}): Pose {
   const goals = (Object.entries(hands) as [Side, HandGoal | undefined][]).filter((e): e is [Side, HandGoal] => !!e[1]);
   if (!goals.length) return p;
-  const chain = ["LowerBack", "Spine", "Spine1"].map((n) => joint(skel, n)), share = [0.25, 0.35, 0.4];
+  const chain = [B.spine[0], B.spine[1], B.chest].map((n) => joint(skel, n)), share = [0.25, 0.35, 0.4];
   const J = skel.joints;
   const arm = (s: Side) => {
     const [a, b, c] = LIMB.arm(s).map((n) => joint(skel, n));

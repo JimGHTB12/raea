@@ -28,8 +28,8 @@ error and so is a URL (`https://...`). `staticFile` checks both. A module import
 fails loudly with the line that has it instead of rendering a black clip.
 
 Generated imagery is banned outright (floor): no AI-generated images or video, ever. Generated sound is allowed by
-policy, and made on this computer but for narration: TokenSynth for an instrument's notes (music), SAO for foley, Fish
-for narration over the picture. The sample libraries are recordings under open licences (CC0, CC-BY, public domain);
+policy, and made on this computer: TokenSynth for an instrument's notes (music), SAO for foley, Pocket TTS
+(`<Speech>`) for narration over the picture. The sample libraries are recordings under open licences (CC0, CC-BY, public domain);
 a CC-BY one is credited where the piece is shown.
 
 ## Common mistakes

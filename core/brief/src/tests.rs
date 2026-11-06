@@ -2,13 +2,13 @@ use super::*;
 
 #[test]
 fn declarations_match_the_committed_file() {
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/brief.d.ts");
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../sdk/raea/src/brief.gen.ts");
     let now = declarations();
     if std::env::var_os("RAEA_WRITE").is_some() {
         std::fs::write(path, &now).unwrap();
     }
     let committed = std::fs::read_to_string(path).unwrap_or_default();
-    assert!(committed == now, "core/brief/brief.d.ts is out of date: RAEA_WRITE=1 cargo test -p raea-core-brief");
+    assert!(committed == now, "sdk/raea/src/brief.gen.ts is out of date: RAEA_WRITE=1 cargo test -p raea-core-brief");
 }
 
 #[test]
@@ -74,4 +74,46 @@ fn a_close_view_needs_tertiary_detail() {
     let p: Plan = read("plan.ts", r#"{"concept": {"what": "toy rocking horse", "style": "painted wood", "size": 0.9, "seenFrom": 0.5, "material": "beech"},
         "parts": {"body": {"role": "body", "level": "primary"}, "rocker": {"role": "rocker", "level": "secondary", "parent": "body", "count": 2}}}"#).unwrap();
     assert!(plan::check(&p).iter().any(|m| m.contains("tertiary")));
+}
+
+const DELIVERY: &str = r#"{"title": "Delivery", "help": "What every final keeps", "groups": [{"title": "Format", "fields": [
+    {"label": "Aspect ratio", "type": "choice", "options": ["9:16", "4:5", "1:1"], "value": "9:16"},
+    {"label": "Loudness", "type": "number", "value": -14, "unit": "LUFS", "min": -30, "max": 0},
+    {"label": "Burn in captions", "type": "toggle", "value": true},
+    {"label": "Steps", "type": "workflow", "value": [{"name": "Cut", "by": "@cutter"}, {"name": "Review", "by": "you", "back": "Cut"}]}]}]}"#;
+
+#[test]
+fn a_controller_fills_ids_from_titles_and_labels() {
+    let c = controller::normalize(&serde_json::from_str(DELIVERY).unwrap()).unwrap();
+    assert_eq!(c.id, "delivery");
+    assert_eq!(c.groups[0].id, "format");
+    let ids: Vec<_> = c.groups[0].fields.iter().map(|f| f.id.as_str()).collect();
+    assert_eq!(ids, ["aspect-ratio", "loudness", "burn-in-captions", "steps"]);
+    let controller::Kind::Workflow { value, .. } = &c.groups[0].fields[3].kind else { panic!("a workflow") };
+    assert_eq!(value[0].by.as_deref(), Some("cutter"));
+    // what it writes back reads as the same controller (the page's types are these)
+    let again = controller::normalize(&serde_json::to_value(&c).unwrap()).unwrap();
+    assert_eq!(again, c);
+}
+
+#[test]
+fn a_controller_says_what_is_wrong_in_a_sentence_the_agent_can_act_on() {
+    let bad = |j: &str| controller::normalize(&serde_json::from_str(j).unwrap()).unwrap_err();
+    assert!(bad(r#"{"title": "X", "groups": [{"title": "G", "fields": [{"label": "A", "type": "slider"}]}]}"#).contains("type must be one of"));
+    assert!(bad(r#"{"title": "X", "groups": [{"title": "G", "fields": [{"label": "A", "type": "choice", "options": ["one"]}]}]}"#).contains("at least two options"));
+    assert!(bad(r#"{"title": "X"}"#).contains("needs groups"));
+    assert!(bad(r#"{"groups": []}"#).contains("needs a title"));
+    assert!(bad(r#"{"title": "X", "groups": [{"title": "G", "fields": [{"label": "A", "type": "toggle"}, {"label": "a", "type": "toggle"}]}]}"#).contains("two fields are called a"));
+}
+
+#[test]
+fn a_value_is_checked_against_its_field() {
+    let c = controller::normalize(&serde_json::from_str(DELIVERY).unwrap()).unwrap();
+    let cs = [c];
+    let f = |p: &str| controller::field(&cs, p).unwrap();
+    assert!(controller::check_value(f("delivery.format.loudness"), &serde_json::json!(-16)).is_ok());
+    assert!(controller::check_value(f("delivery.format.loudness"), &serde_json::json!(4)).unwrap_err().contains("between -30 and 0"));
+    assert!(controller::check_value(f("delivery.format.aspect-ratio"), &serde_json::json!("16:9")).unwrap_err().contains("one of: 9:16, 4:5, 1:1"));
+    assert!(controller::check_value(f("delivery.format.burn-in-captions"), &serde_json::json!("yes")).is_err());
+    assert!(controller::field(&cs, "delivery.format.nope").is_none());
 }

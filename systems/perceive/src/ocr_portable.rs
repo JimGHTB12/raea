@@ -15,6 +15,7 @@ fn model(name: &str, url: &str) -> Result<PathBuf, String> {
     if !p.exists() {
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let tmp = p.with_extension("part");
+        raea_io_home::offline("a text or face model download")?;
         let ok = std::process::Command::new("curl").args(["-fsSL", "-o"]).arg(&tmp).arg(url).status().map(|s| s.success()).unwrap_or(false);
         if !ok {
             return Err(format!("couldn't fetch {url}"));

@@ -8,7 +8,6 @@
 //! Its bevy_ui host (elements as bevy_ui nodes, with their controls, svg, layout snapshot and painter) went in the
 //! overhaul (docs/overhaul.md, 10-27): no app mounted it after docs/blitz-bevy.feature B5d, since every page is Blitz's.
 
-pub mod bundle;
 pub mod calls;
 pub mod html_page;
 pub mod js;

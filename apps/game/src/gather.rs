@@ -94,7 +94,7 @@ pub(crate) fn gather(bundle: &mut String, dir: &Path, game: &Path, got: &mut Gat
         let decoded = raea_io_net::percent_decode_str(s);
         let mut cands: Vec<PathBuf> = Vec::new();
         if let Some(rest) = decoded.strip_prefix("/media/") {
-            cands.push(dir.join("media").join(rest));
+            cands.push(raea_runtime_react::scene::media_path(dir, &format!("/media/{rest}")));
         }
         if decoded.starts_with('/') {
             cands.push(PathBuf::from(&decoded));

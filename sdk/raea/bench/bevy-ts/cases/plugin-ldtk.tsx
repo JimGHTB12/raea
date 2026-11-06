@@ -10,7 +10,7 @@
 // probe: 16 48 g>200 r<60 b<60
 // probe: 48 48 r>200 g<60 b<60
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, Entity } from "raea/3d";
+import { Entity } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { CurrentLevel, LdtkProjectHandle } from "raea/plugins/ldtk";
@@ -18,13 +18,13 @@ import { CurrentLevel, LdtkProjectHandle } from "raea/plugins/ldtk";
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 5).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }} />
         <Entity position={[0, -64, 0]}>
           <LdtkProjectHandle value={{ handle: "plugin-ldtk.ldtk" }} />
           <CurrentLevel value={{ index: 0 }} />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

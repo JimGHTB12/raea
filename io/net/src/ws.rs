@@ -21,6 +21,10 @@ pub enum Cmd {
 /// The socket `args` {url, protocols} opens, run until it closes or `rx` hangs up.
 pub fn run(args: &Value, rx: Receiver<Cmd>, tell: &dyn Fn(Value)) {
     let fail = || tell(json!({"ev": "close", "code": 1006, "reason": "", "clean": false, "error": true}));
+    if let Err(e) = raea_io_home::offline(&format!("WebSocket {}", args["url"].as_str().unwrap_or(""))) {
+        eprintln!("{e}");
+        return fail();
+    }
     let Some(mut req) = args["url"].as_str().and_then(|u| u.into_client_request().ok()) else { return fail() };
     let protos: Vec<String> = args["protocols"].as_array().into_iter().flatten().filter_map(|p| p.as_str().map(String::from)).collect();
     if !protos.is_empty()

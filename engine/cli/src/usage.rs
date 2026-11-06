@@ -139,8 +139,8 @@ pub fn usage_of(help: &str, verb: &str) -> Option<Usage> {
 /// the ones it takes. None when it is, or when the help doesn't give the verb's usage.
 pub fn stray(help: &str, args: &[String]) -> Option<String> {
     let verb = args.first()?;
-    // physics hands its subverb's arguments to the bake, the goo or the part, which check them
-    if verb == "physics" {
+    // physics hands its subverb's arguments to the bake, the goo or the part, which check them; gen to raea-io-gen's own
+    if verb == "physics" || verb == "gen" {
         return None;
     }
     let u = usage_of(help, verb)?;
@@ -162,4 +162,54 @@ pub fn stray(help: &str, args: &[String]) -> Option<String> {
         i += 1;
     }
     None
+}
+
+/// Every verb the help lists, in its order (each `raea VERB` it names).
+pub fn verb_list(help: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for line in help.lines() {
+        // a usage line, not the help's prose ("raea: renders … raea compositions")
+        let line = line.trim().trim_start_matches("usage:").trim();
+        if !line.starts_with("raea ") {
+            continue;
+        }
+        let toks: Vec<&str> = line.split("   (").next().unwrap_or("").split_whitespace().collect();
+        for w in toks.windows(2).filter(|w| w[0] == "raea") {
+            let v = w[1].trim_end_matches(':');
+            if v.chars().all(|c| c.is_ascii_lowercase() || c == '-') && !v.is_empty() && !out.iter().any(|o| o == v) {
+                out.push(v.to_string());
+            }
+        }
+    }
+    out
+}
+
+/// Where a verb runs (docs/agent-surfaces.md section 4): HEADLESS unless it needs the feed's host.
+fn access(verb: &str) -> &'static str {
+    match verb {
+        // the person's libraries live in the raea app's host; a folder an agent adds waits for the person's yes
+        "library" => "HOST, then PERSON to add a folder",
+        _ => "HEADLESS",
+    }
+}
+
+/// `raea help --json`: each verb with its usage lines, its flags (with how many values follow each), how many
+/// arguments it takes (null: any number), its access tag, and `own_parser` when its own parser checks them (its flags
+/// are then its own help's, not these). tools/skills.sh gen writes the CLI reference from it.
+pub fn help_json(help: &str) -> serde_json::Value {
+    // a verb whose arguments its own parser checks: stray() lets even a flag no verb has through
+    let own = |v: &str| stray(help, &[v.to_string(), "--no-such-flag".to_string()]).is_none();
+    let rows: Vec<_> = verb_list(help)
+        .into_iter()
+        .map(|v| match usage_of(help, &v) {
+            Some(u) => {
+                let mut flags: Vec<_> = u.flags.into_iter().collect();
+                flags.sort();
+                json!({"verb": v, "usage": u.lines, "flags": flags.into_iter().map(|(f, n)| json!({"flag": f, "values": n})).collect::<Vec<_>>(), "args": u.slots, "access": access(&v), "own_parser": own(&v)})
+            }
+            // passes its arguments on (media's ffmpeg): its line, unparsed
+            None => json!({"verb": v, "usage": help.lines().map(str::trim).filter(|l| l.contains(&format!("raea {v} "))).collect::<Vec<_>>(), "flags": [], "args": null, "access": access(&v), "own_parser": true}),
+        })
+        .collect();
+    json!({"verbs": rows})
 }

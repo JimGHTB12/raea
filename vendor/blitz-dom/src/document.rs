@@ -328,6 +328,9 @@ pub struct BaseDocument {
 
     /// Text selection state (for non-input text)
     pub(crate) text_selection: TextSelection,
+    /// raea: a caret outside inputs: the inline root and byte offset it's drawn at (a focused contenteditable's
+    /// collapsed selection, which raea's page sets; blitz-paint draws it as a text input's)
+    pub caret: Option<(NodeId, usize)>,
 
     // TODO: collapse animating state into a bitflags
     /// Whether there are active CSS animations/transitions (so we should re-render every frame)
@@ -567,6 +570,7 @@ impl BaseDocument {
             scrollbar_activity: HashMap::new(),
             scroll_animation: ScrollAnimationState::None,
             text_selection: TextSelection::default(),
+            caret: None,
         };
 
         // Initialise document with root Document node
@@ -2124,19 +2128,29 @@ impl BaseDocument {
 
     /// raea: a field's ::placeholder style
     pub fn placeholder_style(&self, node_id: NodeId) -> Option<style::servo_arc::Arc<style::properties::ComputedValues>> {
+        self.lazy_pseudo_style(node_id, &style::selector_parser::PseudoElement::Placeholder)
+    }
+
+    /// raea: a range input's thumb style (::-webkit-slider-thumb, ::-moz-range-thumb)
+    pub fn slider_thumb_style(&self, node_id: NodeId) -> Option<style::servo_arc::Arc<style::properties::ComputedValues>> {
+        self.lazy_pseudo_style(node_id, &style::selector_parser::PseudoElement::SliderThumb)
+    }
+
+    /// raea: a list item's ::marker style
+    pub fn marker_style(&self, node_id: NodeId) -> Option<style::servo_arc::Arc<style::properties::ComputedValues>> {
+        self.lazy_pseudo_style(node_id, &style::selector_parser::PseudoElement::Marker)
+    }
+
+    fn lazy_pseudo_style(
+        &self,
+        node_id: NodeId,
+        pseudo: &style::selector_parser::PseudoElement,
+    ) -> Option<style::servo_arc::Arc<style::properties::ComputedValues>> {
         let node = self.get_node(node_id)?;
         let parent = node.primary_styles()?;
         let read_guard = self.guard.read();
         let guards = StylesheetGuards::same(&read_guard);
-        self.stylist.lazily_compute_pseudo_element_style(
-            &guards,
-            node,
-            &style::selector_parser::PseudoElement::Placeholder,
-            style::stylist::RuleInclusion::All,
-            &parent,
-            false,
-            None,
-        )
+        self.stylist.lazily_compute_pseudo_element_style(&guards, node, pseudo, style::stylist::RuleInclusion::All, &parent, false, None)
     }
 
     pub fn clear_hover(&mut self) -> bool {

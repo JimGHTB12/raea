@@ -176,7 +176,11 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
     match t.kind.as_str() {
         // directional (as before), point or spot: scene3d
         "light" => scene3d::light(world, e, vals),
-        "model" => scene3d::model(world, e, t, inserted, dir)?,
+        // and its cloth, when it has one (meshseq/cloth.rs)
+        "model" => {
+            scene3d::model(world, e, t, inserted, dir)?;
+            meshseq::cloth::spawn(world, e, t, inserted, dir)?
+        }
         // a picture pressed onto a surface (<Decal>): decal.rs
         "decal" => decal::spawn(world, e, t, inserted, dir)?,
         // a box of air a <VolumetricFog> draws: scene3d

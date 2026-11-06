@@ -56,7 +56,7 @@ exit = "a bevy_ui_widgets release on parley 0.12"
 path = "vendor/blitz-paint"
 upstream = "crates.io:0.3.0-beta.4"
 kind = "patch"
-reason = "angled tile gradients, many-tile gradient layers as one brush, text-shadow, ellipsis, inline-box opacity, box-shadow blur as Chrome's; filters by GPU passes (B4a/B4b)"
+reason = "angled tile gradients, many-tile gradient layers as one brush, text-shadow, ellipsis, inline-box opacity, box-shadow blur as Chrome's; filters by GPU passes (B4a/B4b); z-index boxes clipped by the overflow between them and their stacking context; a range input's thumb"
 exit = "a Blitz release that draws these"
 
 [blitz-dom]
@@ -84,7 +84,7 @@ exit = "parley carrying the fix"
 path = "vendor/stylo"
 upstream = "crates.io:0.22.0"
 kind = "patch"
-reason = "line-clamp and text-wrap-style (with Chrome's pretty) for Servo too, Gecko-only upstream; url() filters"
+reason = "line-clamp, text-wrap-style (with Chrome's pretty) and pointer-events' SVG keywords (all, visible, painted...) for Servo too, Gecko-only upstream; url() filters; ::-webkit-slider-thumb and ::-moz-range-thumb as the slider thumb"
 exit = "Servo's stylo enabling them"
 
 [anyrender]
@@ -105,7 +105,7 @@ exit = "anyrender_svg drawing these"
 path = "vendor/vello_encoding"
 upstream = "crates.io:0.11.0"
 kind = "patch"
-reason = "bump buffer sizes set by the embedder (vello#1861's BumpAllocationSizes), not 165 MiB of defaults, grown with the target past 1080p (bump_sizes_for: ptcl holds every tile's initial allocation, which alone filled 99% of a fixed 2M at 4K), and back at the defaults while set_bump_full is on (a frame that came out all black drawn again); glyph tops for the CoreGraphics y-map (RAEA_PAGE_CG_YMAP)"
+reason = "bump buffer sizes set by the embedder (vello#1861's BumpAllocationSizes), not 165 MiB of defaults, grown with the target past 1080p (bump_sizes_for: ptcl holds every tile's initial allocation, which alone filled 99% of a fixed 2M at 4K), and back at the defaults while set_bump_full is on (a frame that came out all black drawn again); glyph tops for the CoreGraphics y-map (RAEA_PAGE_CG_YMAP); a resolve with no images keeps the image atlas (resolve.rs: a solid-only scene reported 0x0, the renderer swapped in a 1x1 atlas and every cached image then drew blank)"
 exit = "vello#1861 in a release; the y-map hook stays ours"
 
 # checked 2026-10-26 for firewheel and its graph, macros and nodes: crates.io 0.14.0 (latest) and Firewheel main 34b35cad stop at glam-32 and bevy_reflect 0.19; bevy_seedling 0.8.0 and its main ab4a88b4 need firewheel 0.12 and Bevy 0.19

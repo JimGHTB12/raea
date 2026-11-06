@@ -4,6 +4,7 @@
 // (native.ts answers it), and every other verb is the engine's own command line (`engine`: the native `raea`), so there
 // is one `raea`, and its help is the native one. Every command prints what a person would read; files hold the rest.
 import { REGISTRY, TEMPLATE } from "./registry.gen";
+import { FEATURE_DIRS, featureLayout } from "./layout";
 
 /** The host's answer to an op (src/native.ts answers shape, cut, frame and brand). Throws when there's no host. */
 export type Host = (op: string, args: Record<string, unknown>) => any;
@@ -20,6 +21,8 @@ type Fs = {
 };
 type Ctx = { cwd: string; fs: Fs };
 const out = (stdout: string, exitCode = 0, stderr = "") => ({ stdout, stderr, exitCode });
+// `raea library` (library.ts), kept apart from the imports above
+import { libraryVerb } from "./library";
 
 function flag(args: string[], name: string): string | undefined {
   const i = args.indexOf(name);
@@ -88,8 +91,8 @@ eyes 38% down as the speaker moves; an objectPosition or transform turns it off)
 <Img src>. Media files import as modules: import take from
 "./media/x.mov". Sound: music in Tone.js (import * as Tone from "raea/tone"): instruments in a Tone.Sampler
 playing a Part or Sequence, the instrument's notes from Tone.tokensynth("a warm upright bass", ["C2", "C3", "C4"]) or a
-sample library (\`raea sounds\`); sao("prompt", {seconds}) for an effect, as an <Audio src>; fish("words") for
-narration. All local but fish. <Mix lufs ceiling> masters the sound.
+sample library (\`raea sounds\`); sao("prompt", {seconds}) for an effect, as an <Audio src>; narration
+is <Speech text start> from raea/speech (Pocket TTS). All of it local. <Mix lufs ceiling> masters the sound.
 Words: useWords() -> [{text, from, to}] (frames, the cuts' words), word("phrase") -> the frame it's said,
 findPhrase(words, "phrase", {occurrence, edge: "start" | "end"}).
 Placement: <Region name="top" | "bottom" | "center" | "auto" | "full"> keeps a part in a band clear of the face and
@@ -138,6 +141,14 @@ export function raeaHandler(host?: Host, engine?: Engine) {
             made.push(name);
           };
           const shape = ask("shape", {}) as { width: number; height: number; fps: number };
+          // by feature, as a Bevy project is (S5a): opt-in until it's the default
+          if (args.includes("--layout") && args[args.indexOf("--layout") + 1] !== "feature") return out("", 2, "raea init [--layout feature]\n");
+          if (args.includes("--layout")) {
+            for (const d of FEATURE_DIRS) await c.fs.mkdir(p(d), { recursive: true });
+            const name = c.cwd.replace(/\/$/, "").split("/").pop() || "project";
+            for (const [f, body] of Object.entries(featureLayout(name, shape))) await put(f, body);
+            return out(made.length ? `made ${made.join(", ")}; render it with raea render src/main.tsx\n` : "nothing to make: the project's files are here\n");
+          }
           await c.fs.mkdir(p("components"), { recursive: true });
           await put("edit.tsx", TEMPLATE["edit.tsx"]);
           await put("cuts.ts", cutsModule([], shape));
@@ -221,6 +232,8 @@ export function raeaHandler(host?: Host, engine?: Engine) {
           if (!q) return out("", 2, "raea brand DOMAIN|URL  (stripe.com, or the site's URL: read on this machine)\n");
           return out(text(ask("brand", { brand: q })));
         }
+        case "library":
+          return out(libraryVerb(ask, args.slice(1), (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {}));
         default:
           return await native();
       }

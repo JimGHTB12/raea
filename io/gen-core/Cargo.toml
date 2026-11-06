@@ -1,0 +1,12 @@
+[package]
+name = "raea-io-gen-core"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Generation flows' ground: the flow format and its op table, settings, and the hosted backends a step runs on (made.app at provider cost, fal, Replicate, OpenRouter, Modal)"
+
+[dependencies]
+raea-io-home = { path = "../home" }
+serde_json = "1"
+sha2 = "0.10"

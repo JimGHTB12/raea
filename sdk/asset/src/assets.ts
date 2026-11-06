@@ -1,7 +1,7 @@
 // Generated assets as values (spec: "Generated assets as values"). lyria() and sao() only describe what to make;
 // the renderer generates each one once, under the run's paid-generation cap, and caches it by id.
 
-export type AssetKind = "lyria" | "sao" | "fish" | "tokensynth";
+export type AssetKind = "lyria" | "sao" | "tokensynth";
 
 export interface GeneratedAsset {
   kind: AssetKind;
@@ -11,7 +11,7 @@ export interface GeneratedAsset {
   id: string;
   /** "asset:<kind>/<id>" */
   src: string;
-  /** the generator's own settings (a TokenSynth note's midi, velocity, seed and device; a Fish voice) */
+  /** the generator's own settings (a TokenSynth note's midi, velocity, seed and device) */
   options?: Record<string, unknown>;
 }
 
@@ -45,17 +45,11 @@ export function sao(prompt: string, options: { seconds?: number } = {}): Generat
   return describe("sao", prompt, options.seconds ?? 2);
 }
 
-/** Non-diegetic speech to generate (Fish: a narrator, a UI voice): the words are the prompt. `speed` is Fish's
- * prosody speed (1 is its own pace; a documentary narrator reads nearer 0.85). */
-export function fish(text: string, options: { seconds?: number; voice?: string; speed?: number } = {}): GeneratedAsset {
-  const a = describe("fish", text, options.seconds ?? 4);
-  const o: Record<string, unknown> = {};
-  if (options.voice) o.reference_id = options.voice;
-  if (options.speed !== undefined) {
-    if (!(options.speed >= 0.5 && options.speed <= 2)) throw new RangeError(`fish("${text.slice(0, 24)}..."): speed is 0.5 to 2, got ${options.speed}`);
-    o.prosody = { speed: options.speed };
-  }
-  return Object.keys(o).length ? { ...a, options: o } : a;
+/** Retired on 2026-11-05: Fish narration is no longer part of raea. Narrate with `<Speech text start>` from
+ * raea/speech (Pocket TTS, on this computer), or make a line with a `raea gen` step on `fish:<model>` and your own
+ * FISH_API_KEY. Kept as a name only, so an older edit says what to use instead of failing to bundle. */
+export function fish(text: string, _options: Record<string, unknown> = {}): never {
+  throw new Error(`fish("${String(text).slice(0, 24)}"): fish left raea on 2026-11-05. Narrate with <Speech text start> from "raea/speech", or a raea gen step on fish:<model> with your FISH_API_KEY`);
 }
 
 /** One note of an instrument described in words, rendered by TokenSynth (local, CPU): a Sampler's root note. */
@@ -73,7 +67,7 @@ export function isGeneratedAsset(v: unknown): v is GeneratedAsset {
   return (
     typeof v === "object" &&
     v !== null &&
-    ["lyria", "sao", "fish", "tokensynth"].includes((v as GeneratedAsset).kind) &&
+    ["lyria", "sao", "tokensynth"].includes((v as GeneratedAsset).kind) &&
     typeof (v as GeneratedAsset).src === "string"
   );
 }

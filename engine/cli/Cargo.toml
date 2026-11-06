@@ -22,6 +22,10 @@ required-features = ["bevy-plugins"]
 [dependencies]
 raea-runtime-plugins = { path = "../../runtime/plugins" }
 raea-io-home = { path = "../../io/home" }
+# the schemas of what an agent writes (brief.ts, script.ts, taste.ts, controllers): raea context reads specs against them
+raea-core-brief = { path = "../../core/brief" }
+# `raea workspace`, `raea project` and `raea controller` (docs/projects.feature PJ1-PJ4)
+raea-app-workspace = { path = "../../apps/workspace" }
 raea-runtime-react = { path = "../../runtime/react", default-features = false, features = ["h264", "av1", "scripts", "modules", "network", "ml"] }
 # the sound of its renders and plays: <Seedling> samples and speech (raea-runtime-sound's features)
 raea-runtime-sound = { path = "../../runtime/sound", features = ["seedling", "ml"] }
@@ -38,7 +42,10 @@ raea-io-media = { path = "../../io/media", default-features = false, features = 
 raea-io-npm = { path = "../../io/npm" }
 # the agent's sandbox (WASI tools on Wasmtime/Pulley) as wsx.* native calls
 wsx = { path = "../../engine/sandbox/wsx" }
+serde = "1"
 serde_json = "1"
+# `raea neural` (docs/raytracing.feature RT2)
+raea-neural = { path = "../neural" }
 regex = "1"
 # the app crates' verbs: `raea check`, `raea ci`, and the local tools' (sao, tokensynth, setup-audio, sounds, splat)
 raea-app-check = { path = "../../apps/check" }

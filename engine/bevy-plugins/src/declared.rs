@@ -82,7 +82,7 @@ pub fn install() {
     #[cfg(feature = "rapier3d")]
     raea_bevy_adapters::rapier3d::register();
     #[cfg(feature = "save")]
-    use moonshine_save as _;
+    raea_runtime_plugins::register(raea_runtime_plugins::Registered { name: "save", install: |app| { raea_bevy_calls::save::calls(app); }, group: None, on_demand: false });
     #[cfg(feature = "simple_tilemap")]
     raea_runtime_plugins::register(raea_runtime_plugins::Registered { name: "simple_tilemap", install: |app| { crate::AddOnce::add_once(bevy_simple_tilemap::prelude::SimpleTileMapPlugin, app); raea_bevy_calls::simple_tilemap::calls(app); }, group: None, on_demand: false });
     #[cfg(feature = "skein")]
@@ -164,7 +164,7 @@ pub fn declared() -> Vec<Declared> {
     #[cfg(feature = "rapier2d")] v.push(Declared { name: "rapier2d", krate: "bevy_rapier2d", source: "version = \"=0.37.0\"", prefixes: &["bevy_rapier2d::", "raea_bevy_adapters::rapier2d::"], headless: &[], on_demand: false });
     #[cfg(feature = "rapier3d")] v.push(Declared { name: "rapier3d", krate: "bevy_rapier3d", source: "version = \"=0.37.0\"", prefixes: &["bevy_rapier3d::", "raea_bevy_adapters::rapier3d::"], headless: &[], on_demand: false });
      v.push(Declared { name: "remote", krate: "bevy_remote", source: "version = \"=0.20.0\"", prefixes: &["bevy_remote::"], headless: &[], on_demand: false });
-    #[cfg(feature = "save")] v.push(Declared { name: "save", krate: "moonshine-save", source: "version = \"=0.8.0\"", prefixes: &["moonshine_save::"], headless: &[], on_demand: false });
+    #[cfg(feature = "save")] v.push(Declared { name: "save", krate: "moonshine-save", source: "version = \"=0.8.0\"", prefixes: &["moonshine_save::"], headless: &["assets"], on_demand: false });
     #[cfg(feature = "simple_tilemap")] v.push(Declared { name: "simple_tilemap", krate: "bevy_simple_tilemap", source: "version = \"=0.21.0\"", prefixes: &["bevy_simple_tilemap::"], headless: &["shader", "image"], on_demand: false });
     #[cfg(feature = "skein")] v.push(Declared { name: "skein", krate: "bevy_skein", source: "version = \"=0.7.0-rc.1\"", prefixes: &["bevy_skein::"], headless: &[], on_demand: false });
     #[cfg(feature = "smud")] v.push(Declared { name: "smud", krate: "bevy_smud", source: "version = \"=0.15.0\"", prefixes: &["bevy_smud::"], headless: &["shader", "mesh"], on_demand: false });

@@ -31,6 +31,10 @@ Before you say a piece is done, every line here is true of the last render, not 
   transcript heard them.
 - **You looked.** You have seen the frames at the moments that matter, at the size it ships, and opened the whole
   export, not just a shot.
+- **A note got its move.** Before any edit for a note, you picked the move it asks for (`raea guide router` lists
+  them) and read that move's guide (`raea guide layout`, `raea guide quieter`, ...).
+- **The last version is still there.** Each version renders to a new file beside the old (`card-v2.mp4` next to
+  `card.mp4`), never over it, and in the app it's posted naming the item it `replaces`.
 
 ## Refuse
 
@@ -63,7 +67,7 @@ No reason makes these right:
 - **Invented facts.** No number, result, price, quote, customer or comparison that the brief, the person or the
   footage didn't give you. If the piece needs proof you don't have, make it without the proof and say what would help.
 - **Generated images or video.** Pictures come from real footage, stock in the project's media, or are built:
-  components, drawn shapes, 3D. Generated sound is allowed: TokenSynth instruments and SAO foley (both local), Fish for
-  narration.
+  components, drawn shapes, 3D. Generated sound is allowed: TokenSynth instruments, SAO foley and Pocket TTS
+  narration (all local).
 - **Redrawn logos.** Use the real files.
 - **Calling it done without looking.** A render nobody looked at isn't finished.

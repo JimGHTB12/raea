@@ -54,6 +54,27 @@ fn user_dir(apple: &str, xdg: &str, xdg_default: &str, windows: &str) -> Option<
     Some(base.join("raea"))
 }
 
+/// A path an environment variable names, else `under_home` in the founder's home folder: RAEA_GEN_CACHE's
+/// ~/.cache/raea-gen, RAEA_ENV_FILE's ~/.raea/env. An empty variable counts as unset.
+pub fn env_path(var: &str, under_home: &str) -> std::path::PathBuf {
+    match std::env::var_os(var).filter(|v| !v.is_empty()) {
+        Some(p) => p.into(),
+        None => std::path::PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(under_home),
+    }
+}
+
+/// A setting: the process environment first, then raea's settings file ($RAEA_ENV_FILE, else ~/.raea/env), where a
+/// line is NAME=value (quotes around the value dropped) and a line starting with # is a comment. Empty is unset.
+pub fn setting(name: &str) -> Option<String> {
+    if let Some(v) = std::env::var(name).ok().filter(|v| !v.trim().is_empty()) {
+        return Some(v.trim().to_string());
+    }
+    std::fs::read_to_string(env_path("RAEA_ENV_FILE", ".raea/env")).ok()?.lines().find_map(|l| {
+        let (k, v) = l.trim().split_once('=')?;
+        (k.trim() == name && !l.trim_start().starts_with('#')).then(|| v.trim().trim_matches('"').to_string())
+    }).filter(|v| !v.is_empty())
+}
+
 /// A local file as a page's `src` (an <img>, a page's snapshot): its path on Unix; on Windows a file URL, since the
 /// page reads `C:\...` as a URL whose scheme is `c` and loads nothing (PT20). A verbatim `\\?\C:\` path loses its
 /// prefix first.
@@ -94,5 +115,50 @@ mod tests {
             // a relative XDG_CACHE_HOME is ignored, as the spec says
             assert_eq!((c.to_str().unwrap(), l.to_str().unwrap()), ("/h/.cache/raea", "/state/raea"));
         }
+    }
+}
+
+/// RAEA_OFFLINE (in the environment, or set in raea's settings file, $RAEA_ENV_FILE else ~/.raea/env): raea sends
+/// nothing over the network. Every outbound call asks this first, so set, a fetch, a model download, a sample library, a
+/// composition's own fetch() or WebSocket, a generation step or a signing request is refused instead, saying what wanted
+/// out; what's already on disk (raea's caches, installed models) still works. "0" or empty is off.
+pub fn offline(what: &str) -> Result<(), String> {
+    let on = |v: &str| !v.trim().is_empty() && v.trim() != "0";
+    let set = match std::env::var("RAEA_OFFLINE") {
+        Ok(v) => on(&v),
+        Err(_) => {
+            let file = std::env::var_os("RAEA_ENV_FILE").map(std::path::PathBuf::from).or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".raea/env")));
+            file.and_then(|f| std::fs::read_to_string(f).ok()).is_some_and(|s| {
+                s.lines().filter(|l| !l.trim_start().starts_with('#')).filter_map(|l| l.split_once('=')).any(|(k, v)| k.trim() == "RAEA_OFFLINE" && on(v.trim().trim_matches('"')))
+            })
+        }
+    };
+    if set { Err(format!("{what}: not sent, because RAEA_OFFLINE is set (raea makes no network requests)")) } else { Ok(()) }
+}
+
+#[cfg(test)]
+mod offline_tests {
+    // the only test that touches RAEA_OFFLINE and RAEA_ENV_FILE in this crate
+    #[test]
+    fn offline_is_read_from_the_environment_then_the_settings_file() {
+        let file = std::env::temp_dir().join(format!("raea-offline-{}.env", std::process::id()));
+        // SAFETY: no other test in this crate reads these
+        unsafe {
+            std::env::remove_var("RAEA_OFFLINE");
+            std::env::set_var("RAEA_ENV_FILE", &file);
+        }
+        assert!(super::offline("x").is_ok(), "no file, no variable: online");
+        std::fs::write(&file, "# RAEA_OFFLINE=1\nRAEA_OFFLINE=1\n").unwrap();
+        let e = super::offline("the sao model").unwrap_err();
+        assert!(e.starts_with("the sao model: not sent") && e.contains("RAEA_OFFLINE"), "{e}");
+        unsafe { std::env::set_var("RAEA_OFFLINE", "0") };
+        assert!(super::offline("x").is_ok(), "the environment's 0 wins over the file");
+        unsafe { std::env::set_var("RAEA_OFFLINE", "1") };
+        assert!(super::offline("x").is_err());
+        unsafe {
+            std::env::remove_var("RAEA_OFFLINE");
+            std::env::remove_var("RAEA_ENV_FILE");
+        }
+        let _ = std::fs::remove_file(&file);
     }
 }

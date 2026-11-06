@@ -1,5 +1,12 @@
 use super::*;
 
+#[test]
+fn a_new_fish_take_is_refused() {
+    let s = Store { dir: std::env::temp_dir().join(format!("render-fish-{}", std::process::id())) };
+    let e = s.make("fish", "Three drops.", 1, &json!({})).unwrap_err();
+    assert!(e.contains("no longer part of raea") && e.contains("<Speech>"), "{e}");
+    let _ = std::fs::remove_dir_all(&s.dir);
+}
 
 #[test]
 fn a_new_lyria_take_is_refused() {
@@ -7,7 +14,6 @@ fn a_new_lyria_take_is_refused() {
     assert!(s.make("lyria", "warm lo-fi bed", 1, &json!({})).unwrap_err().contains("lyria is retired"));
     let _ = std::fs::remove_dir_all(&s.dir);
 }
-
 
 #[test]
 fn the_key_ignores_param_order_but_not_seed_or_params() {

@@ -1,6 +1,6 @@
 // Nodes: Node, the tree's mutations, attributes and props, and the style object.
 import * as wire from "../wire";
-import { Document_, Element_, EventTarget_, MutationRecord_, body, cloneOf, connectedTree, disconnected, doc, htmlDoc, observers, query, queueRecord, rootContainer, svgNs, syncListens, wireOf } from "./all";
+import { Document_, Element_, EventTarget_, MutationRecord_, body, cloneOf, connectedTree, disconnected, doc, htmlDoc, liveRanges, observers, query, queueRecord, rangesChildList, rangesSplit, rangesText, rootContainer, svgNs, syncListens, wireOf } from "./all";
 
 // ---------------------------------------------------------------- nodes
 
@@ -11,6 +11,12 @@ export const SVG_NS = "http://www.w3.org/2000/svg";
 export const SVG_TAGS = new Set(["svg", "path", "circle", "rect", "line", "polyline", "polygon", "ellipse", "g", "defs", "linearGradient", "radialGradient", "stop", "clipPath", "mask", "use", "symbol", "text", "tspan", "pattern", "filter", "foreignObject", "image", "marker", "title", "desc"]);
 
 export function mutated(target: Node_, rec: Partial<MutationRecord_>) {
+  // the selection's range moved as the tree changed (selection.ts): a child list's index from its siblings now
+  if (liveRanges() && rec.type === "childList") {
+    const prev = rec.previousSibling;
+    const at = prev ? target._kids.indexOf(prev) + 1 : 0;
+    rangesChildList(target, at, rec.addedNodes?.length ?? 0, rec.removedNodes?.[0] ?? null);
+  }
   if (observers.size) queueRecord(target, rec);
 }
 
@@ -225,10 +231,16 @@ export function materialize(n: Node_) {
 
 export class Text_ extends Node_ {
   nodeType = 3;
-  data: string;
+  _d: string;
   constructor(data = "") {
     super();
-    this.data = String(data);
+    this._d = String(data);
+  }
+  get data() {
+    return this._d;
+  }
+  set data(v: string) {
+    this.setData(v ?? "");
   }
   get nodeName() {
     return "#text";
@@ -251,11 +263,45 @@ export class Text_ extends Node_ {
   get length() {
     return this.data.length;
   }
-  setData(v: string, fromReact = false) {
-    const old = this.data;
-    this.data = String(v);
+  /** The data replaced (DOM's replace data): `count` characters from `at` by `v`, the live ranges moved with it.
+   *  A whole replace (nodeValue, data, textContent) is from 0 over all of it. */
+  setData(v: string, fromReact = false, at = 0, count = this.data.length) {
+    const old = this._d;
+    this._d = String(v);
     if (!fromReact && this._wired && this.__wid !== undefined) wire.text(this.__wid, this.data);
+    if (liveRanges()) rangesText(this, at, count, this.data.length - old.length + count);
     mutated(this, { type: "characterData", oldValue: old });
+  }
+  substringData(at: number, count: number) {
+    this._at(at);
+    return this.data.slice(at, at + count);
+  }
+  replaceData(at: number, count: number, v: string) {
+    this._at(at);
+    count = Math.min(count, this.data.length - at);
+    this.setData(this.data.slice(0, at) + v + this.data.slice(at + count), false, at, count);
+  }
+  insertData(at: number, v: string) {
+    this.replaceData(at, 0, v);
+  }
+  deleteData(at: number, count: number) {
+    this.replaceData(at, count, "");
+  }
+  appendData(v: string) {
+    this.replaceData(this.data.length, 0, v);
+  }
+  _at(at: number) {
+    if (at < 0 || at > this.data.length) throw new Error(`IndexSizeError: offset ${at} is past the text's length ${this.data.length}`);
+  }
+  /** The text split at `at`: what's after goes to a new text node after this one (DOM's split a Text node). */
+  splitText(at: number): Text_ {
+    this._at(at);
+    const next = new Text_(this.data.slice(at));
+    const p = this.parentNode;
+    if (p) p.insertBefore(next, this.nextSibling);
+    if (liveRanges()) rangesSplit(this, at, next);
+    this.replaceData(at, this.data.length - at, "");
+    return next;
   }
 }
 

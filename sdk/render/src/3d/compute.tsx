@@ -23,7 +23,7 @@ export interface ComputeProps {
 
 const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-/** A compute over the frame, inside a <Canvas3D>; several run in the order written, before the cameras draw.
+/** A compute over the frame, in the 3D beside the camera; several run in the order written, before the cameras draw.
  * @bevy raea_sys_compute::Computes */
 export function Compute(props: ComputeProps) {
   const { wesl, wgsl, workgroups, uniforms = {}, buffers = {}, images = {}, defs } = props;

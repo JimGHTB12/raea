@@ -69,16 +69,18 @@ pub fn mount(world: &mut World, w: u32, h: u32, code: &str, preamble: &[String],
     world.init_resource::<HostCalls>();
     world.init_resource::<SpaceActions>();
     world.init_resource::<PageAsks>();
-    // a page's fetch of its own origin is a file under its roots (net.rs page_fetch); the rest goes out as raea-runtime-js's
+    // a page's fetch of its own origin is a file under its roots (net.rs page_fetch), or its host's (RAEA_PAGE_HOST: host.rs); the rest goes out as raea-runtime-js's
     if !world.contains_resource::<PageFetch>() {
         world.insert_resource(PageFetch);
         world.resource_mut::<HostCalls>().on("net.fetch", |_w, args, answer| {
-            std::thread::spawn(move || match raea_sys_page::net::page_fetch(&args).map(Ok).unwrap_or_else(|| raea_io_net::http::fetch(&args)) {
+            std::thread::spawn(move || match raea_sys_page::net::fetch(&args).map(Ok).unwrap_or_else(|| raea_io_net::http::fetch(&args)) {
                 Ok(v) => answer.ok(v),
                 Err(e) => answer.err(e),
             });
         });
         raea_runtime_js::calls::on_sync("canvas.read", raea_sys_canvas::read);
+        raea_runtime_js::calls::on_sync("canvas.advances", raea_sys_canvas::advances);
+        raea_sys_canvas::fonts(blitz_dom::util::svg_fonts);
         raea_sys_canvas::videos(|src| Some(raea_sys_page::net::page_path(src.strip_prefix("http://localhost").unwrap_or(src)).into()));
     }
     if world.get_non_send::<Roots>().is_none() {

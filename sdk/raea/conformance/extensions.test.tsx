@@ -96,7 +96,8 @@ describe("3D", () => {
     const html = renderFrame(
       <Canvas3D><Mesh position={[1, 2, 3]}><Box args={[1, 2, 3]} /><MeshStandardMaterial color="#ff0000" /></Mesh></Canvas3D>,
       { ...base, frame: 0 });
-    expect(html).toContain('data-3d="Canvas3D"');
+    // a plain Canvas3D is its children (M6): no root of its own
+    expect(html).not.toContain('data-3d="Canvas3D"');
     expect(html).toContain('data-3d="Mesh"');
     expect(html).toContain('data-shape="box(1, 2, 3)"');
     expect(html).toContain("&quot;position&quot;:[1,2,3]");

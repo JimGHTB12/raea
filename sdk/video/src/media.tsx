@@ -189,7 +189,7 @@ export function Audio(props: AudioProps) {
     attrs["data-generate"] = asset.kind;
     attrs["data-prompt"] = asset.prompt;
     attrs["data-seconds"] = asset.seconds;
-    // the generator's own settings (a TokenSynth note's midi, velocity, seed and precision; a Fish voice and speed),
+    // the generator's own settings (a TokenSynth note's midi, velocity, seed and precision),
     // which the renderer passes to it with the prompt (sdk/react audio.rs `generated_params`)
     if (asset.options && Object.keys(asset.options).length) attrs["data-options"] = JSON.stringify(asset.options);
   }

@@ -12,6 +12,7 @@ raea-sys-page = { path = "../../systems/page" }
 raea-sys-fonts = { path = "../../systems/fonts" }
 raea-runtime-twins = { path = "../../runtime/twins" }
 raea-runtime-dom = { path = "../../runtime/dom" }
+raea-runtime-edit = { path = "../../runtime/edit" }
 raea-runtime-input = { path = "../../runtime/input" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_asset", "bevy_image", "bevy_log", "bevy_window", "ui_bevy_render", "bevy_picking", "ui_picking", "bevy_input_focus"] }
 # the document: stylo's styles, Taffy's and Blitz's layout (floats on, as Chrome lays them out)

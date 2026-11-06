@@ -163,6 +163,23 @@ const TAG_CLASS: Record<string, typeof HTMLElement_> = {
   dialog: HTMLDialogElement_,
 };
 
+/** Chrome's per-tag classes that have no behaviour of their own here. Pages test them: Excalidraw's isWritableElement
+ *  asks `instanceof HTMLBRElement` on every keydown, and with no such global every shortcut threw. Each is a window
+ *  global and what its tags make. */
+const PLAIN: Record<string, string[]> = {
+  HTMLBRElement: ["br"], HTMLParagraphElement: ["p"], HTMLHRElement: ["hr"], HTMLPreElement: ["pre", "listing", "xmp"],
+  HTMLHeadingElement: ["h1", "h2", "h3", "h4", "h5", "h6"], HTMLQuoteElement: ["blockquote", "q"], HTMLDListElement: ["dl"],
+  HTMLTableElement: ["table"], HTMLTableRowElement: ["tr"], HTMLTableCellElement: ["td", "th"], HTMLTableSectionElement: ["thead", "tbody", "tfoot"],
+  HTMLFieldSetElement: ["fieldset"], HTMLLegendElement: ["legend"], HTMLPictureElement: ["picture"], HTMLSourceElement: ["source"],
+  HTMLLinkElement: ["link"], HTMLMetaElement: ["meta"], HTMLTimeElement: ["time"],
+};
+export const plainClasses: Record<string, typeof HTMLElement_> = {};
+for (const [name, tags] of Object.entries(PLAIN)) {
+  const C = class extends HTMLElement_ {};
+  plainClasses[name] = C;
+  for (const t of tags) TAG_CLASS[t] ??= C;
+}
+
 export function makeElement(tag: string, ns?: string): Element_ {
   const svg = ns === SVG_NS || (ns === undefined && SVG_TAGS.has(tag) && tag !== "text" && tag !== "image" && tag !== "title");
   if (svg) return tag === "svg" ? new SVGSVGElement_(tag, SVG_NS) : new SVGElement_(tag, SVG_NS);

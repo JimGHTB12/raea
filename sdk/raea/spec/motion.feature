@@ -207,15 +207,16 @@ Feature: raea, the behaviour of its API
         ("<name> covers <p>% of the face at x .. y .. w .. h"); the renderer measures each part after layout and
         refuses a frame with faults
     Scenario: Generated assets as values
-      Then `sao(prompt, {seconds = 2})`, `fish(text, {seconds = 4, voice?})` and `lyria(prompt, {seconds = 30})` return
+      Then `sao(prompt, {seconds = 2})` and `lyria(prompt, {seconds = 30})` return
         an asset {kind, prompt, seconds, id, src}: id is a stable hash of kind, prompt and seconds (the same call always
         gives the same id) and src is "asset:<kind>/<id>"; `Tone.tokensynth(timbre, notes = ["C2", "C3", "C4"],
         {seconds = 2, velocity = 100, seed = 1234, precision = "fp16"})` returns one such asset per note, a Sampler's urls
       And an Audio given an asset as src carries data-generate="<kind>", data-prompt and data-seconds, so the renderer
         makes it once and caches it in the edit's assets/ by everything that decides its bytes: sao and tokensynth on
-        this computer (installed on first use), fish through raea's API under the run's paid-generation cap
+        this computer (installed on first use)
       And music is written as Tone.js instruments (TokenSynth notes or an open sample library's in a Sampler); sao is
-        foley; fish is narration; lyria is retired: a take an older edit made still plays, a new one is refused
+        foley; narration is <Speech> (raea/speech, Pocket TTS on this computer); lyria is retired: a take an older edit
+        made still plays, a new one is refused; fish left raea on 11-05 (Fish Audio is a `raea gen` backend, fish:<model>)
     Scenario: 3D in the same tree
       Then `raea/3d` (src/3d.tsx) has Canvas3D, Mesh {position = [0,0,0], rotation = [0,0,0] (radians),
         scale = 1 (or [x,y,z]), shape?}, the geometries Box {args: [w, h, d]}, Sphere {args: [r]}, Plane {args: [w,

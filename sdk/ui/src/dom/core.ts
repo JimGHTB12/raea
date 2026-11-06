@@ -1,7 +1,7 @@
 // The layout snapshot, the runner, the API scan, install (window and document) and an HTML page: what the parts share.
 import * as wire from "../wire";
 import { canvasGlobals } from "../canvas";
-import { AnimationEvent_, ClipboardEvent_, Comment_, CompositionEvent_, CustomEvent_, DOMRectReadOnly_, DOMRect_, DocumentFragment_, Document_, DragEvent_, Element_, EventTarget_, Event_, FocusEvent_, HTMLAnchorElement_, HTMLBodyElement_, HTMLButtonElement_, HTMLCanvasElement_, HTMLDialogElement_, HTMLDivElement_, HTMLElement_, HTMLFormElement_, HTMLHeadElement_, HTMLHtmlElement_, HTMLIFrameElement_, HTMLImageElement_, HTMLInputElement_, HTMLLIElement_, HTMLLabelElement_, HTMLMediaElement_, HTMLOptionElement_, HTMLSelectElement_, HTMLSpanElement_, HTMLStyleElement_, HTMLTextAreaElement_, HTMLUListElement_, InputEvent_, IntersectionObserver_, KeyboardEvent_, MediaNews, MouseEvent_, MutationObserver_, NodeFilter_, Node_, PointerEvent_, ResizeObserver_, SVGElement_, SVGSVGElement_, ShadowRoot_, SubmitEvent_, Text_, TouchEvent_, TransitionEvent_, TreeWalker_, UIEvent_, WheelEvent_, addListener, cancelAnimationFrame, cssEscape, dispatch, fontWaits, getComputedStyle, heard, key, keyUp, makeElement, matchMedia, materialize, mediaNews, mirrorPlace, mirrorRemove, onLayout, query, reactContainer, removeListener, requestAnimationFrame, syncRoot, wireOf } from "./all";
+import { AnimationEvent_, ClipboardEvent_, FontFace_, Comment_, CompositionEvent_, CustomEvent_, DOMRectReadOnly_, DOMRect_, DocumentFragment_, Document_, DragEvent_, Element_, EventTarget_, Event_, FocusEvent_, HTMLAnchorElement_, HTMLBodyElement_, HTMLButtonElement_, HTMLCanvasElement_, HTMLDialogElement_, HTMLDivElement_, HTMLElement_, HTMLFormElement_, HTMLHeadElement_, HTMLHtmlElement_, HTMLIFrameElement_, HTMLImageElement_, HTMLInputElement_, HTMLLIElement_, HTMLLabelElement_, HTMLMediaElement_, HTMLOptionElement_, HTMLSelectElement_, HTMLSpanElement_, HTMLStyleElement_, HTMLTextAreaElement_, HTMLUListElement_, InputEvent_, IntersectionObserver_, KeyboardEvent_, MediaNews, MouseEvent_, MutationObserver_, NodeFilter_, Node_, DOMParser_, Range_, Selection_, CaretPosition_, markEditing, resetSelection, selection, PointerEvent_, ResizeObserver_, SVGElement_, SVGSVGElement_, ShadowRoot_, SubmitEvent_, Text_, TouchEvent_, TransitionEvent_, TreeWalker_, UIEvent_, WheelEvent_, addListener, cancelAnimationFrame, cssEscape, dispatch, fontWaits, getComputedStyle, heard, key, keyUp, makeElement, matchMedia, materialize, mediaNews, mirrorPlace, mirrorRemove, onLayout, plainClasses, query, reactContainer, removeListener, requestAnimationFrame, syncRoot, wireOf } from "./all";
 
 export const g = globalThis as any;
 
@@ -267,6 +267,7 @@ export function resetMount() {
   S.wantFocus = undefined;
   S.spaceDown = null;
   S.downTarget = S.pointerCapture = null;
+  resetSelection();
   geo.clear();
   heard.delete(rootContainer);
   syncRoot();
@@ -321,8 +322,11 @@ export function install() {
     HTMLSelectElement: HTMLSelectElement_, HTMLOptionElement: HTMLOptionElement_, HTMLFormElement: HTMLFormElement_, HTMLAnchorElement: HTMLAnchorElement_, HTMLLabelElement: HTMLLabelElement_,
     HTMLDivElement: HTMLDivElement_, HTMLSpanElement: HTMLSpanElement_, HTMLUListElement: HTMLUListElement_, HTMLLIElement: HTMLLIElement_, HTMLImageElement: HTMLImageElement_, HTMLMediaElement: HTMLMediaElement_, HTMLVideoElement: HTMLMediaElement_, HTMLAudioElement: HTMLMediaElement_, HTMLStyleElement: HTMLStyleElement_,
     HTMLBodyElement: HTMLBodyElement_, HTMLHtmlElement: HTMLHtmlElement_, HTMLHeadElement: HTMLHeadElement_, HTMLIFrameElement: HTMLIFrameElement_, HTMLDialogElement: HTMLDialogElement_, HTMLCanvasElement: HTMLCanvasElement_, ...canvasGlobals(),
+    DOMParser: DOMParser_, Range: Range_, Selection: Selection_, CaretPosition: CaretPosition_,
     DOMRect: DOMRect_, DOMRectReadOnly: DOMRectReadOnly_, NodeFilter: NodeFilter_, TreeWalker: TreeWalker_,
     MutationObserver: MutationObserver_, ResizeObserver: ResizeObserver_, IntersectionObserver: IntersectionObserver_,
+    FontFace: FontFace_,
+    ...plainClasses,
   };
   for (const [k, v] of Object.entries(classes)) {
     put(k, v);
@@ -347,7 +351,7 @@ export function install() {
   put("cancelAnimationFrame", cancelAnimationFrame);
   g.requestIdleCallback ??= (fn: (d: unknown) => void) => setTimeout(() => fn({ didTimeout: false, timeRemaining: () => 0 }), 1);
   g.cancelIdleCallback ??= (id: number) => clearTimeout(id);
-  put("getSelection", () => ({ rangeCount: 0, isCollapsed: true, type: "None", anchorNode: null, focusNode: null, removeAllRanges() {}, addRange() {}, getRangeAt() {}, collapse() {}, toString: () => "" }));
+  put("getSelection", () => selection);
   put("scrollTo", () => {});
   put("scrollBy", () => {});
   put("scroll", () => {});
@@ -396,6 +400,8 @@ export function install() {
     }
   });
   g.__ui_layout = onLayout;
+  // contenteditable edits as Chrome's (editing.ts, P14e): a rich-text editor (Tiptap) can rely on this
+  markEditing();
   if (scanning) {
     Object.setPrototypeOf(EventTarget_.prototype, scanProxy("EventTarget"));
     Object.setPrototypeOf(Event_.prototype, scanProxy("Event"));

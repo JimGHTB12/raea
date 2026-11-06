@@ -4,10 +4,17 @@ use super::*;
 /// resolution on top (raea-bundle's script.rs: the SDK from its source, the test API, raea-runtime-react's node_modules as the
 /// fallback); its default export, if a function, is called and awaited, then the run ends.
 pub fn bundle_script(ts: &Path, out: &Path) -> R<()> {
-    let entry = format!(
-        "import * as M from {:?};\nconst call = (globalThis as any).__raea_call;\nPromise.resolve().then(() => (typeof (M as any).default === \"function\" ? (M as any).default() : undefined)).then(() => call(\"done\", JSON.stringify({{ code: 0 }})), (e: any) => {{ call(\"print\", JSON.stringify({{ text: \"error: \" + (e && e.stack ? e.stack : String(e)) }})); call(\"done\", JSON.stringify({{ code: 1 }})); }});\n",
-        spec(ts)
-    );
+    bundle_module(ts, out, "Promise.resolve().then(() => (typeof (M as any).default === \"function\" ? (M as any).default() : undefined)).then(() => call(\"done\", JSON.stringify({ code: 0 })), (e: any) => { call(\"print\", JSON.stringify({ text: \"error: \" + (e && e.stack ? e.stack : String(e)) })); call(\"done\", JSON.stringify({ code: 1 })); });")
+}
+
+/// What a spec's run does (brief.ts, script.ts, taste.ts, a controller: docs/projects.feature PJ0), for bundle_module:
+/// it prints the module's default export as one line of JSON and ends, or prints the error and exits 1. The reader is
+/// engine/cli spec.rs.
+pub const PRINT_DEFAULT: &str = "try { const v = (M as any).default; if (v === undefined) throw new Error(\"it has no default export\"); call(\"print\", JSON.stringify({ text: JSON.stringify(v) })); call(\"done\", JSON.stringify({ code: 0 })); } catch (e: any) { call(\"print\", JSON.stringify({ text: \"error: \" + (e && e.message ? e.message : String(e)) })); call(\"done\", JSON.stringify({ code: 1 })); }";
+
+/// An entry that imports the module as M, with the engine's `call`, then runs `body` (PRINT_DEFAULT for a spec).
+pub fn bundle_module(ts: &Path, out: &Path, body: &str) -> R<()> {
+    let entry = format!("import * as M from {:?};\nconst call = (globalThis as any).__raea_call;\n{body}\n", spec(ts));
     bundle_entry(&entry, out, &[])
 }
 
@@ -226,9 +233,12 @@ pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&P
         }
         let to_motion = format!("{}motion", "../".repeat(rel.components().count()));
         let from_dir = dir.join(rel.parent().unwrap_or(Path::new("")));
-        let text = point_outside(&std::fs::read_to_string(&p).map_err(|e| e.to_string())?, &from_dir, &Path::new("src").join(rel.parent().unwrap_or(Path::new(""))), &dir, &outs);
+        // compared with the file as it was: one whose only change is an outside import pointed at its copy (a helper
+        // importing ../floors/generate and nothing of the SDK) is written too
+        let was = std::fs::read_to_string(&p).map_err(|e| e.to_string())?;
+        let text = point_outside(&was, &from_dir, &Path::new("src").join(rel.parent().unwrap_or(Path::new(""))), &dir, &outs);
         let rewritten = rewrite_into(&text, &from_dir, &motion_src, &to_motion, portable).map_err(|e| format!("{}: {e}", rel.display()))?;
-        if rewritten != text {
+        if rewritten != was {
             std::fs::write(&p, rewritten).map_err(|e| e.to_string())?;
         }
     }

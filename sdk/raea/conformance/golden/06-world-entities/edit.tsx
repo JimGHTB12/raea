@@ -2,7 +2,7 @@
 // (cylinder) as its child, turned by a system each frame; the gun's Transform is in the ship's space. The reference
 // (edit.rrl) is lowered from reference.tsx, which places the same meshes by hand with <Mesh>.
 import { AbsoluteFill, useCurrentFrame } from "../../../src";
-import { AmbientLight, Canvas3D, DirectionalLight, Entities, PerspectiveCamera } from "../../../src/3d";
+import { AmbientLight, DirectionalLight, Entities, PerspectiveCamera } from "../../../src/3d";
 import { createWorld } from "raea/ecs";
 
 const game = createWorld();
@@ -14,12 +14,12 @@ export default function Ships() {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{ background: "#0b1020" }}>
-      <Canvas3D>
+      <>
         <PerspectiveCamera position={[0, 1.5, 6]} fov={50} />
         <AmbientLight intensity={1} />
         <DirectionalLight position={[2, 3, 4]} intensity={1} />
         <Entities world={game.at(frame)} />
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

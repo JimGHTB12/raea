@@ -11,6 +11,7 @@ license = "FSL-1.1-ALv2"
 coreml = ["ort/coreml"]
 
 [dependencies]
+raea-io-home = { path = "../../io/home" }
 # the same ort pin and prebuilt runtime as the legacy app's voice and raea's perception
 ort = { version = "=2.0.0-rc.13", features = ["half"] }
 half = "2"

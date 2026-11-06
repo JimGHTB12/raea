@@ -20,6 +20,16 @@ pub(super) fn glitch_columns(p: &mut Program, row: &mut BTreeMap<String, V>, id:
     }
 }
 
+/// A Character part's cloth (`<Model cloth={{src, frame}}>`, docs/cloth.md K2): the baked `.rseq` of the part's own
+/// vertices in its bind pose (raea/body tools/cloth.ts `--bind`), as `cloth`, and its frame keyed per frame as
+/// `cloth_frame`. The engine puts that frame's positions and normals on the part's mesh and the skin poses them.
+pub(super) fn cloth_columns(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item]) {
+    let Some(src) = its.iter().find_map(|i| i.props.get("cloth").and_then(|c| c.get("src")).and_then(Value::as_str)) else { return };
+    row.insert("cloth".into(), V::S(src_path(src)));
+    let f = |i: &Item| i.props.get("cloth").and_then(|c| c.get("frame")).and_then(Value::as_f64).unwrap_or(0.0);
+    column(p, row, id, "cloth_frame", &its.iter().map(f).collect::<Vec<_>>());
+}
+
 /// Numeric props of a sequence and the columns they key (the default when a frame leaves one out).
 const KEYED: &[(&str, &str, f64)] = &[("frame", "frame", 0.0), ("roughness", "rough", 0.3), ("metalness", "metal", 0.0)];
 

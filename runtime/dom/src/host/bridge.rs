@@ -197,7 +197,14 @@ impl EventHandler for Bridge<'_> {
             (DomEventData::PointerDown(p) | DomEventData::PointerUp(p) | DomEventData::PointerMove(p), Some((id, n))) => {
                 // a press's count on its release too: sdk/ui gives click and dblclick their detail from it
                 let detail = if matches!(ev, Ev::PointerDown | Ev::PointerUp) { self.clicks } else { 0 };
-                wire::event(id, ev, pointer_json(p, d.get_client_bounding_rect(n), detail))
+                let mut payload = pointer_json(p, d.get_client_bounding_rect(n), detail);
+                // the deepest element sdk/ui knows on Blitz's hit path: Stylo's pointer-events and z-order decided it, as
+                // Chrome's would (sdk/ui's own walk sees only inline styles and Tailwind classes, so a stylesheet's
+                // `pointer-events: none` layer over the page, Excalidraw's SVGLayer, took every release and no click came)
+                if let Some(target) = path.iter().find_map(|n| self.nodes.id_of(*n)) {
+                    payload["target"] = json!(target);
+                }
+                wire::event(id, ev, payload)
             }
             (DomEventData::PointerEnter(_) | DomEventData::PointerLeave(_), Some((id, _))) => wire::event(id, ev, Value::Null),
             (DomEventData::Wheel(w), Some((id, n))) => {

@@ -672,7 +672,9 @@
             "0.19": "=0.7.0",
             "0.20": "=0.8.0"
           },
-          "library": true
+          "library": true,
+          "calls": "save",
+          "headless": ["assets"]
         },
         "svg": {
           "crate": "bevy_svg",

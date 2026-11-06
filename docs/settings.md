@@ -8,6 +8,18 @@ which setting is missing.
 mkdir -p ~/.raea && touch ~/.raea/env && chmod 600 ~/.raea/env
 ```
 
+## Network
+
+| Setting | What |
+|---|---|
+| `RAEA_OFFLINE=1` | raea makes no network requests: a remote URL not already in raea's cache, a model or sample library not yet installed, a composition's own `fetch()` or WebSocket, Bevy's http asset source and every `raea gen` step are refused with what wanted out. What's on disk keeps working |
+
+## Generation (`raea gen`, optional)
+
+| Setting | What |
+|---|---|
+| `FISH_API_KEY` | Your Fish Audio key, for an `audio.speech` step on `fish:<model>` (`fish:` alone is s2.1-pro); a plan quotes Fish's price for the words first |
+
 ## Local audio models
 
 Two models make sound on your Mac, free, with no account. Each installs itself the first time a composition or a

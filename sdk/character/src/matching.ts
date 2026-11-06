@@ -19,3 +19,4 @@ export { FEATURE_COUNT, STATE, STATE_COUNT, mirror, libraryPose, libraryRows, mo
 export type { MotionLibrary, SearchQuery, SearchBackend, TagCond, TagSpec, LibraryOptions, LibraryTable, MotionState, PhaseGoal, ObstacleKind, ActionFit, Obstacle, Mark, Step, Limbs, Seat, PerformanceSpec, PerformOptions, Performance } from "./matching/all";
 
 
+export { MotionDebug, type MotionDebugProps } from "./matching/debug";

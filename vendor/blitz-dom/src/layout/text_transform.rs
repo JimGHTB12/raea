@@ -115,6 +115,8 @@ pub(crate) struct TextTransformer {
     /// raea: the bidi controls open around the text being built (construct.rs), outermost first: each is closed
     /// before a preserved newline and opened again after it, as a paragraph ends every embedding (UAX #9 X8)
     pub(crate) bidi: Vec<(&'static str, &'static str)>,
+    /// raea: each text node's bytes in the builder's text, as pushed (TextLayout::text_nodes)
+    pub(crate) texts: Vec<(blitz_traits::node_id::NodeId, usize, usize)>,
 }
 
 impl TextTransformer {

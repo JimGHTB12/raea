@@ -255,6 +255,45 @@ pub(crate) fn default_error_handler<S: PaintScene>(scene: &mut S, node: &usvg::N
     );
 }
 
+/// raea: an SVG's raster image decoded and made a brush once, found again by its bytes (Blitz parses an inline <svg>
+/// again on each relayout, so the same image comes in a new tree each frame), so a page painting it every frame
+/// neither decodes it again nor hands Vello a new image (a new blob is a new upload) each time. Bounded by the decoded
+/// bytes it holds, the least recently used dropped first.
+#[cfg(feature = "image")]
+pub(crate) fn cached_raster_image(kind: &usvg::ImageKind, mode: usvg::ImageRendering) -> Option<ImageBrush> {
+    use std::hash::{Hash, Hasher};
+    use std::sync::Mutex;
+    type Key = (usize, u64, u8);
+    static CACHE: Mutex<Vec<(Key, usize, ImageBrush)>> = Mutex::new(Vec::new());
+    const BUDGET: usize = 256 << 20;
+    let data = match kind {
+        usvg::ImageKind::JPEG(d) | usvg::ImageKind::PNG(d) | usvg::ImageKind::GIF(d) | usvg::ImageKind::WEBP(d) => d,
+        usvg::ImageKind::SVG(_) => return None,
+    };
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    data.as_slice().hash(&mut h);
+    let key: Key = (data.len(), h.finish(), mode as u8);
+    {
+        let mut cache = CACHE.lock().unwrap();
+        if let Some(i) = cache.iter().position(|(k, ..)| *k == key) {
+            let hit = cache.remove(i);
+            let brush = hit.2.clone();
+            cache.push(hit);
+            return Some(brush);
+        }
+    }
+    let decoded = decode_raw_raster_image(kind).ok()?;
+    let size = decoded.as_raw().len();
+    let brush = into_image(decoded, mode);
+    let mut cache = CACHE.lock().unwrap();
+    cache.push((key, size, brush.clone()));
+    let mut total: usize = cache.iter().map(|e| e.1).sum();
+    while total > BUDGET && cache.len() > 1 {
+        total -= cache.remove(0).1;
+    }
+    Some(brush)
+}
+
 #[cfg(feature = "image")]
 pub(crate) fn decode_raw_raster_image(
     img: &usvg::ImageKind,

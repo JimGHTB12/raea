@@ -230,13 +230,11 @@ pub fn apply(doc: &mut BaseDocument, nodes: &mut Nodes, ops: Vec<Op>) {
                         }
                     }
                     let svg = in_svg(kind);
+                    // a textarea's value is its text too: Blitz makes its editor from its text (construct.rs)
+                    let area = (kind == "editableText" && m.element_name(n).is_some_and(|q| &*q.local == "textarea")).then(|| set.as_ref()?.get("value")?.as_str().map(str::to_string)).flatten();
                     let kept = nodes.props.entry(id).or_default();
-                    for key in unset.iter().flatten() {
-                        kept.remove(key);
-                    }
-                    for (key, value) in set.iter().flatten() {
-                        kept.insert(key.clone(), value.clone());
-                    }
+                    for key in unset.iter().flatten() { kept.remove(key); }
+                    kept.extend(set.iter().flatten().map(|(k, v)| (k.clone(), v.clone())));
                     if kind == "canvas" && set.iter().flatten().any(|(k, _)| matches!(k.as_str(), "__canvas2d" | "width" | "height")) {
                         canvases.push(id);
                     }
@@ -255,6 +253,7 @@ pub fn apply(doc: &mut BaseDocument, nodes: &mut Nodes, ops: Vec<Op>) {
                             None => m.clear_attribute(n, qual(&attr)),
                         }
                     }
+                    if let Some(t) = area.map(|v| m.create_text_node(&v)) { m.remove_and_drop_all_children(n); m.append_children(n, &[t]); }
                 }
                 // events go through the bridge (B3, H3: host.rs), not the document
                 Op::Listen { id, events } => {

@@ -1,6 +1,6 @@
 // Actions: a clip's floor, levelled, and fitted onto an obstacle.
 import type { Vec3 } from "raea/3d";
-import { bodyScale, captured, joint, pose, type Posed, type Skeleton } from "raea/character";
+import { B, bodyScale, captured, joint, pose, qaxis, qmul, qrot, setWorld, type Posed, type Skeleton } from "raea/character";
 import { framePose, type Clip } from "../clip";
 
 // ---------------------------------------------------------------- actions
@@ -35,7 +35,7 @@ export interface ActionFit {
 export function clipFloor(skel: Skeleton, c: Clip): { floor: number; contact: [number, number][] } {
   const hit = floors.get(c);
   if (hit && hit.skel === skel) return hit.g;
-  const F = ["LeftFoot", "RightFoot", "LeftToeBase", "RightToeBase"].map((n) => joint(skel, n));
+  const F = B.feet().map((n) => joint(skel, n));
   // (centimetres and speeds by the body's size, bodyScale: a capture on a bigger body travels further in the same time)
   const rest = F.map((i) => skel.joints[i].head[1]), z = bodyScale(skel);
   const soles = Array.from({ length: c.frames }, (_, f) => { const w = pose(skel, framePose(c, f)); return F.map((i, q) => [w.pos[i][0], w.pos[i][1] - rest[q], w.pos[i][2]] as Vec3); });
@@ -67,17 +67,17 @@ const floors = new WeakMap<Clip, { skel: Skeleton; g: { floor: number; contact: 
  * a line along the way the hips go, through the soles of the feet standing still (those well over the line, on a box,
  * dropped, twice over), and taken off the root's height: the clip's floor at 0 all along. Unchanged with too few stances
  * to fit, and only the mean taken off when it barely moves. */
-export function levelClip(skel: Skeleton, c: Clip): Clip {
-  const F = ["LeftFoot", "RightFoot", "LeftToeBase", "RightToeBase"].map((n) => joint(skel, n)), rest = F.map((i) => skel.joints[i].head[1]), z = bodyScale(skel);
+export function levelClip(skel: Skeleton, c: Clip, residual = process.env.RAEA_LEVEL_RESIDUAL !== "0"): Clip {
+  const F = B.feet().map((n) => joint(skel, n)), rest = F.map((i) => skel.joints[i].head[1]), z = bodyScale(skel);
   const W = Array.from({ length: c.frames }, (_, f) => pose(skel, framePose(c, f)));
   const a = W[0].pos[0], b = W[c.frames - 1].pos[0], L = Math.hypot(b[0] - a[0], b[2] - a[2]);
   const along = (f: number) => (L > 0.5 ? ((W[f].pos[0][0] - a[0]) * (b[0] - a[0]) + (W[f].pos[0][2] - a[2]) * (b[2] - a[2])) / L : 0);
-  const pts: [number, number][] = [];
+  const pts: [number, number, number][] = [];
   for (let f = 0; f < c.frames; f++) for (const s of [0, 1]) {
     const lowAt = (g: number) => { const p = W[g].pos[F[s]][1] - rest[s] < W[g].pos[F[s + 2]][1] - rest[s + 2] ? F[s] : F[s + 2]; return W[g].pos[p]; };
     const p0 = lowAt(Math.max(0, f - 1)), p1 = lowAt(Math.min(c.frames - 1, f + 1));
     if ((Math.hypot(p1[0] - p0[0], p1[2] - p0[2]) * c.fps) / 2 > 0.4 * z) continue;
-    pts.push([along(f), Math.min(W[f].pos[F[s]][1] - rest[s], W[f].pos[F[s + 2]][1] - rest[s + 2])]);
+    pts.push([along(f), Math.min(W[f].pos[F[s]][1] - rest[s], W[f].pos[F[s + 2]][1] - rest[s + 2]), f]);
   }
   if (pts.length < 8) return c;
   let k0 = 0, k1 = 0, use = pts;
@@ -95,9 +95,44 @@ export function levelClip(skel: Skeleton, c: Clip): Clip {
   if (Math.abs(k1) * L > 0.08 * z) k1 = 0;
   const res = use.map((p) => p[1] - k1 * p[0]).sort((x, y) => x - y);
   k0 = res[Math.floor(res.length * 0.2)];
+  // what the line leaves, over time: a take whose floor rises and falls as it turns (the volume calibrated off level in
+  // two directions; a turn walks back over it) stood 4 to 5 cm over the floor through WalkTurnChange's middle, so its
+  // feet never read as standing and were never locked. The stances' height above the line, Gaussian-weighted over 0.4 s
+  // either side, taken off frame by frame (at most 6 cm; a stance on a box, over 4 cm, still dropped)
+  const sg = 0.4 * c.fps, near = use.filter((p) => Math.abs(p[1] - (k0 + k1 * p[0])) < 0.04 * z);
+  const off = new Float32Array(c.frames);
+  for (let f = 0; f < c.frames; f++) {
+    let w = 0, v = 0;
+    for (const p of near) { const d = (p[2] - f) / sg; if (Math.abs(d) > 3) continue; const e = Math.exp(-0.5 * d * d); w += e; v += e * (p[1] - (k0 + k1 * p[0])); }
+    off[f] = w > 0.5 ? Math.max(-0.06 * z, Math.min(0.06 * z, v / w)) : NaN;
+  }
+  // (frames far from any stance, a run's flights, take the nearest stance's)
+  for (let f = 0; f < c.frames; f++) if (Number.isNaN(off[f])) { let a = f, b = f; while (a >= 0 && Number.isNaN(off[a])) a--; while (b < c.frames && Number.isNaN(off[b])) b++; off[f] = a >= 0 && b < c.frames ? (off[a] + off[b]) / 2 : a >= 0 ? off[a] : b < c.frames ? off[b] : 0; }
   const root = new Float32Array(c.root);
-  for (let f = 0; f < c.frames; f++) root[f * 3 + 1] -= k0 + k1 * along(f);
-  return { ...c, root };
+  for (let f = 0; f < c.frames; f++) root[f * 3 + 1] -= k0 + k1 * along(f) + (residual ? off[f] : 0);
+  const out = { ...c, root };
+  return process.env.RAEA_UPRIGHT_HEAD !== "0" ? uprightHead(skel, out) : out;
+}
+
+/** The clip's head carried level: its mean sideways tilt (the head's left-right axis over the hips' heading) taken off
+ * at the neck, about the way the hips face, every frame. ACCAD's Male2 holds his head 3.5 degrees to his right through
+ * every take, and the library plays each clip mirrored too: a switch between the two swung the head 9 degrees, and a
+ * walk's head rolled 8 a second where the capture's rolls 2 (docs/locomotion.md, U4). The tilt's motion stays. */
+export function uprightHead(skel: Skeleton, c: Clip): Clip {
+  const head = joint(skel, B.head), neck = joint(skel, B.neck), nj = c.turns.length / (c.frames * 4);
+  if (neck >= nj || head >= nj) return c;
+  const W = Array.from({ length: c.frames }, (_, f) => pose(skel, framePose(c, f)));
+  const fwdOf = (w: Posed) => { const v = qrot(w.rot[0], [0, 0, 1]), l = Math.hypot(v[0], v[2]) || 1; return [v[0] / l, 0, v[2] / l] as Vec3; };
+  let m = 0;
+  for (const w of W) m += Math.asin(Math.max(-1, Math.min(1, qrot(w.rot[head], [1, 0, 0])[1])));
+  m /= c.frames;
+  if (Math.abs(m) < 0.003) return c;
+  const turns = new Float32Array(c.turns);
+  for (let f = 0; f < c.frames; f++) {
+    const p = framePose(c, f), q = setWorld(skel, p, W[f], neck, qmul(qaxis(fwdOf(W[f]), -m), W[f].rot[neck]));
+    turns.set(q.turns[neck], (f * nj + neck) * 4);
+  }
+  return { ...c, turns };
 }
 
 /** How an action clip clears an obstacle of a kind (its longest flight, its stretch up on a box, its lowest head, its
@@ -106,7 +141,7 @@ export function fitAction(skel: Skeleton, c: Clip, kind: ObstacleKind): ActionFi
   const n = c.frames, W: Posed[] = Array.from({ length: n }, (_, f) => pose(skel, framePose(c, f)));
   // (lengths and speeds by the body's size, bodyScale: set on the child, a man's head ducked into the bar)
   const J = (s: string) => joint(skel, s), z = bodyScale(skel);
-  const feet = ["LeftFoot", "RightFoot", "LeftToeBase", "RightToeBase"].map(J), head = J("Head");
+  const feet = B.feet().map(J), head = J(B.head);
   const hip = (f: number) => W[f].pos[0];
   const a = hip(0), b = hip(n - 1), L = Math.hypot(b[0] - a[0], b[2] - a[2]), dir = [(b[0] - a[0]) / L, (b[2] - a[2]) / L];
   const along = (p: number[]) => (p[0] - a[0]) * dir[0] + (p[2] - a[2]) * dir[1];

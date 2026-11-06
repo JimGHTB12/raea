@@ -4,7 +4,7 @@
 // from avian's TypeRegistry; no raea-render system is per component. Render and play
 // must agree: sdk/raea/bench/bevy/check.sh with RAEA_BIN=bevy-plugins/motion.sh.
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, Sphere } from "raea/3d";
+import { Sphere } from "raea/3d";
 import { AngularVelocity, ColliderConstructor, Friction, GravityResource, LinearVelocity, Restitution, RigidBody } from "raea/plugins/avian";
 import { StandardMaterial } from "raea/pbr";
 import { Cuboid, Mesh3d } from "raea/mesh";
@@ -29,7 +29,7 @@ const crates = [
 function Drop() {
   return (
     <AbsoluteFill style={{ background: "#0f1720" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 2.5, 9).lookingAt([0, 1, 0])} projection={{ Perspective: { fov: 0.785398163397448 } }} />
         <AmbientLight brightness={200} />
         <DirectionalLight transform={Transform.fromXyz(3, 6, 4).lookingAt([0, 0, 0])} illuminance={10400} shadow_maps_enabled />
@@ -60,7 +60,7 @@ function Drop() {
             {c.kick ? <LinearVelocity value={[-4, 3, 0]} from={60} /> : null}
           </Mesh3d>
         ))}
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

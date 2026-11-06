@@ -33,6 +33,10 @@ pub struct TextLayout {
     /// containing block (as `SPAN_*_CB` flags). The inline root claims those boxes in its place.
     /// Set by each `RunMode::PerformLayout` run of inline layout.
     pub span_cb_flags: stylo_taffy::StyleFlags,
+    /// raea: each text node's bytes in `text`, [start, end) as the builder had them after its white-space processing
+    /// (a collapsed run's space may sit just before or after): what maps a DOM offset in it to the layout's and back
+    /// (raea-runtime-dom's editing.rs: Range rects, caretPositionFromPoint, the selection's paint)
+    pub text_nodes: Vec<(NodeId, usize, usize)>,
 }
 
 impl TextLayout {

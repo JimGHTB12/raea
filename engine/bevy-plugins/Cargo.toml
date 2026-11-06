@@ -7,6 +7,7 @@ publish = false
 description = "Bevy plugins compiled into raea's engine, each behind a feature (sdk/raea/docs/bevy-plugins.md): declared in a project's package.json, resolved here by tools/bevy-plugins.sh, registered with raea-render's plugin hooks, driven from TSX by generic reflect rows and from TypeScript by bevy_remote's method table, stepped by the frame index"
 
 [dependencies]
+raea-io-home = { path = "../../io/home" }
 raea-runtime-plugins = { path = "../../runtime/plugins" }
 # a declaration's Blitz widgets, registered for every page App (declared.rs)
 raea-sys-page = { path = "../../systems/page" }
@@ -51,7 +52,6 @@ iyes_progress = { version = "=0.18.0", optional = true, default-features = false
 bevy_quinnet = { version = "=0.22.0", optional = true, default-features = false, features = ["client", "server", "shared-client-id", "recv_channels"] }
 bevy_rand = { version = "=0.16.0", optional = true, default-features = false, features = ["std", "wyrand", "bevy_reflect", "thread_local_entropy"] }
 bevy_remote = { version = "=0.20.0", default-features = false }
-moonshine-save = { version = "=0.8.0", optional = true, default-features = false, features = [] }
 bevy_simple_tilemap = { version = "=0.21.0", optional = true, default-features = false, features = [] }
 bevy_skein = { version = "=0.7.0-rc.1", optional = true, default-features = false, features = [] }
 bevy_smud = { version = "=0.15.0", optional = true, default-features = false, features = [] }
@@ -108,7 +108,7 @@ rand = ["dep:bevy_rand"]
 rapier2d = ["raea-bevy-adapters/rapier2d"]
 rapier3d = ["raea-bevy-adapters/rapier3d"]
 remote = ["bevy_remote/http"]
-save = ["dep:moonshine-save"]
+save = ["raea-bevy-calls/save"]
 simple_tilemap = ["dep:bevy_simple_tilemap", "raea-bevy-calls/simple_tilemap"]
 skein = ["dep:bevy_skein"]
 smud = ["dep:bevy_smud"]

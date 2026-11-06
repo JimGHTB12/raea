@@ -1,6 +1,6 @@
 // TreeWalker and NodeFilter, and the Document.
 import * as wire from "../wire";
-import { Comment_, CustomEvent_, DOMRect_, DocumentFragment_, Element_, Event_, HTML_NS, KeyboardEvent_, MouseEvent_, Node_, S, Text_, body, g, head, hit, html, makeElement, nodeList, query } from "./all";
+import { Comment_, CustomEvent_, DocumentFragment_, Range_, caretAt, caretRangeAt, implementation, selection, Element_, Event_, HTML_NS, KeyboardEvent_, MouseEvent_, Node_, S, Text_, body, g, head, hit, html, makeElement, nodeList, query } from "./all";
 
 // ---------------------------------------------------------------- TreeWalker
 
@@ -149,26 +149,159 @@ const fontsLoaded = () =>
     if (fontWaits.length === 1) wire.emit("fonts.wait", true);
   });
 
+// FontFace (the CSS Font Loading API): a face made in script becomes an @font-face rule in one sheet of the page's
+// own (<style data-raea-fonts> in body), which the host loads as it loads any sheet's faces; load() and `loaded`
+// settle as document.fonts does, once nothing is still loading. Excalidraw makes its fonts this way.
+const faces = new Set<FontFace_>();
+let faceSheet: Element_ | null = null;
+
+const cssString = (s: string) => `"${s.replace(/["\\]/g, "\\$&")}"`;
+
+function writeFaces() {
+  const css = [...faces]
+    .map((f) => `@font-face{font-family:${cssString(f.family)};src:${f._src};font-style:${f.style};font-weight:${f.weight};font-stretch:${f.stretch};unicode-range:${f.unicodeRange};font-display:${f.display}}`)
+    .join("\n");
+  if (!faceSheet) {
+    faceSheet = makeElement("style");
+    faceSheet.setAttribute("data-raea-fonts", "");
+    body.appendChild(faceSheet);
+  }
+  if (faceSheet.textContent !== css) faceSheet.textContent = css;
+}
+
+/** A font's bytes as a data URL, for a face made from an ArrayBuffer or a typed array. */
+function bytesUrl(src: ArrayBuffer | ArrayBufferView): string {
+  const b = src instanceof ArrayBuffer ? new Uint8Array(src) : new Uint8Array(src.buffer, src.byteOffset, src.byteLength);
+  let s = "";
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
+  return `url(data:font/ttf;base64,${btoa(s)})`;
+}
+
+type FaceDescriptors = { style?: string; weight?: string; stretch?: string; unicodeRange?: string; display?: string; featureSettings?: string };
+
+export class FontFace_ {
+  family: string;
+  style = "normal";
+  weight = "normal";
+  stretch = "normal";
+  unicodeRange = "U+0-10FFFF";
+  display = "auto";
+  featureSettings = "normal";
+  variant = "normal";
+  status: "unloaded" | "loading" | "loaded" | "error" = "unloaded";
+  /** the rule's src: the url()/local() list as given, or the bytes as a data URL */
+  _src: string;
+  loaded: Promise<FontFace_>;
+  private _done!: (f: FontFace_) => void;
+  constructor(family: string, source: string | ArrayBuffer | ArrayBufferView, descriptors: FaceDescriptors = {}) {
+    this.family = String(family).replace(/^["']|["']$/g, "");
+    for (const k of Object.keys(descriptors) as (keyof FaceDescriptors)[]) if (descriptors[k] !== undefined) (this as any)[k] = String(descriptors[k]);
+    this._src = typeof source === "string" ? source : bytesUrl(source);
+    this.loaded = new Promise((done) => (this._done = done));
+    // a face from bytes is loaded once made, as in Chrome (its data is already here)
+    if (typeof source !== "string") this.load();
+  }
+  load(): Promise<FontFace_> {
+    if (this.status === "unloaded") {
+      this.status = "loading";
+      // a face loads by being in the page's sheet, so one loaded by hand joins it as add() would
+      faces.add(this);
+      writeFaces();
+      void fontsLoaded().then(() => {
+        this.status = "loaded";
+        this._done(this);
+        fontSet._loaded(this);
+      });
+    }
+    return this.loaded;
+  }
+}
+
+/** The families a CSS font shorthand names ("bold 20px Excalifont, sans-serif" -> Excalifont, sans-serif). */
+function familiesOf(font: string): string[] {
+  const m = font.match(/(?:^|\s)[\d.]+(?:px|pt|em|rem|%|vh|vw)(?:\/\S+)?\s+(.+)$/);
+  return (m ? m[1] : font).split(",").map((f) => f.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+}
+
+type FontsListener = ((e: { type: string; fontfaces: FontFace_[] }) => void) | { handleEvent(e: unknown): void };
+
 class FontFaceSet_ {
-  status = "loaded";
+  onloading: unknown = null;
+  onloadingdone: unknown = null;
+  onloadingerror: unknown = null;
+  private listeners = new Map<string, Set<FontsListener>>();
+  private done: FontFace_[] = [];
+  get status() {
+    return [...faces].some((f) => f.status === "loading") ? "loading" : "loaded";
+  }
   get ready() {
     return fontsLoaded().then(() => this);
   }
-  load(_font: string, _text?: string) {
-    return fontsLoaded().then(() => []);
+  /** As in Chrome: the faces of the font's families start loading, and the promise has those loaded. */
+  load(font: string, _text?: string) {
+    const names = new Set(familiesOf(font));
+    const mine = [...faces].filter((f) => names.has(f.family));
+    return Promise.all(mine.map((f) => f.load())).then(() => mine.filter((f) => f.status === "loaded"));
   }
-  check(_font: string, _text?: string) {
-    return true;
+  /** False while a face of one of the font's families is in the set but not loaded, as in Chrome; Excalidraw waits on
+   *  this, and measured text in the fallback when it always said true. */
+  check(font: string, _text?: string) {
+    const names = new Set(familiesOf(font));
+    const mine = [...faces].filter((f) => names.has(f.family));
+    return !mine.length || mine.some((f) => f.status === "loaded");
+  }
+  /** A face finished loading: one loadingdone for the faces done in this turn, which is how Excalidraw learns to
+   *  redraw text it drew in the fallback. */
+  _loaded(f: FontFace_) {
+    this.done.push(f);
+    if (this.done.length > 1) return;
+    queueMicrotask(() => {
+      const fontfaces = this.done;
+      this.done = [];
+      const e = { type: "loadingdone", fontfaces };
+      if (typeof this.onloadingdone === "function") (this.onloadingdone as (e: unknown) => void)(e);
+      for (const l of [...(this.listeners.get("loadingdone") ?? [])]) typeof l === "function" ? l(e) : l.handleEvent(e);
+    });
+  }
+  add(f: FontFace_) {
+    if (!faces.has(f)) {
+      faces.add(f);
+      writeFaces();
+    }
+    return this;
+  }
+  delete(f: FontFace_) {
+    const had = faces.delete(f);
+    if (had) writeFaces();
+    return had;
+  }
+  clear() {
+    faces.clear();
+    writeFaces();
   }
   get size() {
-    return 0;
+    return faces.size;
   }
-  forEach() {}
-  has() {
-    return false;
+  forEach(fn: (f: FontFace_, k: FontFace_, set: FontFaceSet_) => void) {
+    for (const f of faces) fn(f, f, this);
   }
-  addEventListener() {}
-  removeEventListener() {}
+  has(f: FontFace_) {
+    return faces.has(f);
+  }
+  values() {
+    return faces.values();
+  }
+  [Symbol.iterator]() {
+    return faces.values();
+  }
+  addEventListener(type: string, l: FontsListener | null) {
+    if (!l) return;
+    if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+    this.listeners.get(type)!.add(l);
+  }
+  removeEventListener(type: string, l: FontsListener | null) {
+    if (l) this.listeners.get(type)?.delete(l);
+  }
 }
 
 const fontSet = new FontFaceSet_();
@@ -272,11 +405,22 @@ export class Document_ extends Node_ {
   hasFocus() {
     return true;
   }
+  get implementation() {
+    return implementation;
+  }
   getSelection() {
-    return g.getSelection();
+    return selection;
   }
   createRange() {
-    return { setStart() {}, setEnd() {}, selectNodeContents() {}, collapse() {}, getBoundingClientRect: () => new DOMRect_(), getClientRects: () => [], cloneContents: () => new DocumentFragment_(), commonAncestorContainer: body };
+    const r = new Range_();
+    r.setStart(this, 0);
+    return r;
+  }
+  caretPositionFromPoint(x: number, y: number) {
+    return caretAt(x, y);
+  }
+  caretRangeFromPoint(x: number, y: number) {
+    return caretRangeAt(x, y);
   }
   execCommand() {
     return false;

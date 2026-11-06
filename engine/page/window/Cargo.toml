@@ -1,0 +1,25 @@
+[package]
+name = "raea-page-window"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's desktop window around a page: its chrome (--chrome inset: the page under a transparent title bar, window.drag and window.zoom) and what a Mac app does that a page can't (the clipboard, links, notifications, the dock badge, raea:// links)"
+
+[features]
+# on screen (raea-page-host's --window): AppKit's calls are made; without it they are recorded and answered
+window = ["bevy/bevy_winit", "dep:objc2", "dep:objc2-app-kit", "dep:objc2-foundation", "dep:raw-window-handle", "dep:block2"]
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_window"] }
+raea-runtime-js = { path = "../../../runtime/js" }
+serde_json = "1"
+
+# --chrome inset's unified toolbar (the traffic lights centred in a 52 pt title area) and native.rs's AppKit calls
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "0.6", optional = true }
+objc2-app-kit = { version = "0.3", optional = true, default-features = false, features = ["std", "NSResponder", "NSView", "NSWindow", "NSToolbar"] }
+objc2-foundation = { version = "0.3", optional = true, default-features = false, features = ["std", "NSString"] }
+raw-window-handle = { version = "0.6", optional = true }
+# completion handlers for notifications
+block2 = { version = "0.6", optional = true }

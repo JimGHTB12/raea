@@ -74,6 +74,14 @@ static STAGE: std::sync::Mutex<Option<(u32, u32)>> = std::sync::Mutex::new(None)
 /// render exactly (8-bit limited-range H.264 errs up to 2/255 by its own round trip; lightspeed Q3.colour).
 static TEN_BIT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+/// `render --aov` (docs/raytracing.feature RT1): each frame's motion vectors and depth beside its picture, in DIR/motion
+/// and DIR/depth, for a neural or denoising pass after the render (`raea neural`).
+static AOV: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// `render --alpha`: PNGs (a frame or a folder) kept transparent where the composition draws nothing, the pages
+/// composited over a clear background instead of black: overlays for another editor's timeline.
+static ALPHA: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// `render --kbps N`: the video's average bitrate (raea_io_media::default_kbps when 0, from the size and frame rate).
 static KBPS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
@@ -142,7 +150,7 @@ pub(crate) struct Ctx<'a> {
 fn generated(props: &mut Map<String, Value>, cx: &mut Ctx) -> bool {
     let (Some(model), Some(prompt)) = (props.get("data-generate").and_then(|v| v.as_str()).map(str::to_string), props.get("data-prompt").and_then(|v| v.as_str()).map(str::to_string)) else { return true };
     let seconds = num(props, "data-seconds").unwrap_or(4.0);
-    // the generator's own settings (a TokenSynth note's pitch and seed, a Fish voice's speed) make another sound
+    // the generator's own settings (a TokenSynth note's pitch and seed) make another sound
     let options = props.get("data-options").and_then(|v| v.as_str()).map(str::to_string);
     let key = format!("{model}|{prompt}|{seconds}|{}", options.as_deref().unwrap_or(""));
     if !cx.made.contains_key(&key) {

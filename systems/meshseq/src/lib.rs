@@ -29,8 +29,10 @@ use bevy::mesh::{Indices, VertexAttributeValues};
 use bevy::render::render_resource::PrimitiveTopology;
 use std::sync::Arc;
 
+pub mod cloth;
+
 pub fn install(app: &mut App) {
-    app.add_systems(PostUpdate, (sync_meshseqs, sync_glitches).after(bevy::transform::TransformSystems::Propagate));
+    app.add_systems(PostUpdate, (sync_meshseqs, sync_glitches, cloth::sync_cloth).after(bevy::transform::TransformSystems::Propagate));
 }
 
 #[derive(Component)]

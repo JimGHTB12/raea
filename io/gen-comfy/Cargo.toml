@@ -1,0 +1,11 @@
+[package]
+name = "raea-io-gen-comfy"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "ComfyUI both ways for generation flows: any workflow read and lifted to a flow, a flow written as a workflow, and a ComfyUI server as a place steps run"
+
+[dependencies]
+raea-io-gen-core = { path = "../gen-core" }
+serde_json = "1"

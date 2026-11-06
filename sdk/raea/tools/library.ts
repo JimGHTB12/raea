@@ -3,8 +3,9 @@
 // ranges into 100STYLE's 1.5 GB zip, CMU's per-clip zips), so nothing but the retargeted clips lands on disk. Clips
 // already written are skipped, so a run picks up where the last one stopped.
 //
-//   bun sdk/raea/tools/library.ts 100style SKELETON.json OUT [--moves FW,ID] [--styles Neutral,Old,...]
+//   bun sdk/raea/tools/library.ts 100style SKELETON.json OUT [--moves FW,ID,...] [--styles Neutral,Old,...]
 //   bun sdk/raea/tools/library.ts cmu SKELETON.json OUT [--match REGEX] [--not REGEX] [--ids 127_03,64_27,...] [--max N]
+//   bun sdk/raea/tools/library.ts accad SKELETON.json OUT [--match REGEX]   ACCAD's BVHs (unzipped in ACCAD_DIR)
 //   bun sdk/raea/tools/library.ts index OUT
 //   bun sdk/raea/tools/library.ts tables SKELETON.json OUT    each clip file's per-frame table (FILE.table.json)
 //   bun sdk/raea/tools/library.ts effects SKELETON.json OUT   each 100STYLE style's rig effect against Neutral, from
@@ -18,10 +19,13 @@
 //
 // 100STYLE (CC BY 4.0): 100 styles of one actor, each walked forward (FW), back (BW), sideways (SW), run (FR, BR,
 // SR), stood (ID) and turned (TR1-3), cut by its Frame_Cuts.csv. CMU (free for any use; cgspeed's BVH conversion):
-// 2,505 clips, chosen by their descriptions in ~/.cache/raea-mocap/cmu/index/all.tsv.
+// 2,505 clips, chosen by their descriptions in ~/.cache/raea-mocap/cmu/index/all.tsv. ACCAD's Open Motion Project
+// (CC BY 3.0, the Ohio State University's ACCAD): three actors' takes (Male1, Male2, Female1), among them picking up,
+// lifting, carrying and putting down a box from a stand, a walk and a run; each actor's turns measured from its own
+// A1_Stand (retarget's `rest`), since its files' zero pose isn't a person standing.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { inflateRawSync } from "node:zlib";
-import { readBvh, readClips, retarget, writeClips, type ClipFile } from "raea/clip";
+import { readBvh, readClips, retarget, retargetIK, writeClips, type ClipFile } from "raea/clip";
 import { libraryTable } from "raea/matching";
 import { buildDb, type BuildClip } from "@raea/character/clips";
 import { learnEffect, type RigEffect } from "raea/effects";
@@ -30,6 +34,11 @@ import type { Skeleton } from "raea/character";
 
 const STYLE_ZIP = "https://zenodo.org/api/records/8127870/files/100STYLE.zip/content";
 const STYLE_MAP = JSON.parse(readFileSync(new URL("./maps/100style.json", import.meta.url), "utf8")) as Record<string, string>;
+const CMU_MAP = JSON.parse(readFileSync(new URL("./maps/cmu.json", import.meta.url), "utf8")) as Record<string, string>;
+/** 100STYLE unpacked on disk (read from there when it is; from Zenodo's zip by HTTP ranges when not) */
+const STYLE_DIR = process.env.STYLE_DIR ?? `${process.env.HOME}/.cache/raea-mocap/100style-full`;
+const ACCAD_MAP = JSON.parse(readFileSync(new URL("./maps/accad.json", import.meta.url), "utf8")) as Record<string, string>;
+const ACCAD_DIR = process.env.ACCAD_DIR ?? `${process.env.HOME}/.cache/raea-mocap/accad`;
 const CMU_INDEX = `${process.env.HOME}/.cache/raea-mocap/cmu/index/all.tsv`;
 const MOVES = ["BR", "BW", "FR", "FW", "ID", "SR", "SW", "TR1", "TR2", "TR3"];
 
@@ -103,10 +112,13 @@ function flag(args: string[], name: string): string | undefined {
 async function style(skel: Skeleton, out: string, args: string[]) {
   const dir = `${out}/100style`;
   mkdirSync(dir, { recursive: true });
-  const zip = await remoteZip(STYLE_ZIP);
+  const zip = existsSync(`${STYLE_DIR}/100STYLE/Frame_Cuts.csv`)
+    ? { read: async (name: string) => readFileSync(`${STYLE_DIR}/${name}`, "utf8") }
+    : await remoteZip(STYLE_ZIP);
   const cuts = (await zip.read("100STYLE/Frame_Cuts.csv")).trim().split("\n").map((l) => l.split(","));
   const head = cuts.shift()!;
-  const moves = (flag(args, "--moves") ?? "FW,ID").split(",");
+  // (every move: 100STYLE is the locomotion, docs/skeleton.feature SK7)
+  const moves = (flag(args, "--moves") ?? MOVES.join(",")).split(",");
   const only = flag(args, "--styles")?.split(",");
   // the actor's carriage, from their Neutral walk: every style's neck and head move about it, so a style's own
   // carriage (Old's hanging head) stays
@@ -124,7 +136,7 @@ async function style(skel: Skeleton, out: string, args: string[]) {
       const a = row[head.indexOf(`${mv}_START`)], b = row[head.indexOf(`${mv}_STOP`)];
       if (!a || a === "N/A" || clips.some((c) => c.name === `${name}_${mv}`)) continue;
       const bvh = readBvh(await zip.read(`100STYLE/${name}/${name}_${mv}.bvh`));
-      clips.push(retarget(skel, bvh, { name: `${name}_${mv}`, from: +a / 60, to: +b / 60, map: STYLE_MAP, carriage }));
+      clips.push(retargetIK(skel, bvh, { name: `${name}_${mv}`, from: +a / 60, to: +b / 60, map: STYLE_MAP, carriage }));
       added++;
     }
     if (added) {
@@ -150,9 +162,35 @@ async function cmu(skel: Skeleton, out: string, args: string[]) {
     const zip = await wholeZip(id[2].replace("github.com/", "raw.githubusercontent.com/").replace("/raw/", "/"));
     const bvhName = zip.names.find((x) => x.endsWith(".bvh"));
     if (!bvhName) { console.log(`${id[1]}: no BVH in its zip`); continue; }
-    const c = retarget(skel, readBvh(await zip.read(bvhName)), { name: `c${id[1]}` });
+    const c = retargetIK(skel, readBvh(await zip.read(bvhName)), { name: `c${id[1]}`, map: CMU_MAP, unit: 0.056444 });
     writeFileSync(file, JSON.stringify(writeClips(skel, [c])));
     console.log(`c${id[1]}: ${c.frames} frames, ${f[3].trim()}`);
+  }
+}
+
+/** ACCAD's takes: OUT/accad/<take>.json, clip `a<take>` (Male1_A5_PickUpBox: aMale1_A5_PickUpBox) */
+async function accad(skel: Skeleton, out: string, args: string[]) {
+  const dir = `${out}/accad`;
+  mkdirSync(dir, { recursive: true });
+  const match = new RegExp(flag(args, "--match") ?? ".", "i");
+  for (const actor of ["Male1", "Male2", "Female1"]) {
+    const src = `${ACCAD_DIR}/${actor}_bvh`;
+    if (!existsSync(src)) { console.log(`${src}: not there (unzip ${actor}_bvh.zip from accad.osu.edu)`); continue; }
+    const files = readdirSync(src).filter((x) => x.endsWith(".bvh")).sort();
+    const stand = files.find((x) => /_A0?1_Stand\.bvh$/.test(x));
+    if (!stand) throw new Error(`accad: ${actor} has no A1_Stand to measure from`);
+    const standB = readBvh(readFileSync(`${src}/${stand}`, "utf8")), rest = standB.frames[0];
+    const shape = (b: { joints: { name: string }[] }) => b.joints.map((j) => j.name).join(" ");
+    for (const f of files.filter((x) => match.test(x))) {
+      const take = f.replace(/\.bvh$/, ""), file = `${dir}/${take}.json`;
+      if (existsSync(file)) continue;
+      const b = readBvh(readFileSync(`${src}/${f}`, "utf8"));
+      // (three of Male2's takes are another skeleton, with no stand of their own to measure from)
+      if (shape(b) !== shape(standB)) { console.log(`a${take}: skipped, not ${stand}'s skeleton`); continue; }
+      const c = retargetIK(skel, b, { name: `a${take}`, map: ACCAD_MAP, rest, unit: 0.01 });
+      writeFileSync(file, JSON.stringify(writeClips(skel, [c])));
+      console.log(`a${take}: ${c.frames} frames`);
+    }
   }
 }
 
@@ -164,12 +202,14 @@ function index(out: string) {
     if (id) desc.set(`c${id[1]}`, f[3].trim());
   }
   const rows: { name: string; source: string; file: string; label: string; move?: string; frames: number; fps: number }[] = [];
-  for (const src of ["100style", "cmu"]) {
+  for (const src of ["100style", "cmu", "accad"]) {
     if (!existsSync(`${out}/${src}`)) continue;
     for (const f of readdirSync(`${out}/${src}`).filter((x: string) => x.endsWith(".json") && !x.endsWith(".table.json")).sort()) {
       const file = JSON.parse(readFileSync(`${out}/${src}/${f}`, "utf8")) as ClipFile;
       for (const c of file.clips) {
-        const [label, move] = src === "100style" ? c.name.split("_") : [desc.get(c.name) ?? "", undefined];
+        const [label, move] = src === "100style" ? c.name.split("_")
+          : src === "accad" ? [c.name.slice(1).split("_").slice(2).join(" ").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase(), undefined]
+          : [desc.get(c.name) ?? "", undefined];
         rows.push({ name: c.name, source: src, file: `${src}/${f}`, label, move, frames: c.frames, fps: c.fps });
       }
     }
@@ -180,7 +220,7 @@ function index(out: string) {
 }
 
 function clipFiles(out: string): string[] {
-  return ["100style", "cmu"].filter((s) => existsSync(`${out}/${s}`)).flatMap((s) =>
+  return ["100style", "cmu", "accad"].filter((s) => existsSync(`${out}/${s}`)).flatMap((s) =>
     readdirSync(`${out}/${s}`).filter((x) => x.endsWith(".json") && !x.endsWith(".table.json")).sort().map((x) => `${out}/${s}/${x}`));
 }
 
@@ -259,12 +299,12 @@ else if (cmd === "tables" || cmd === "styles" || cmd === "effects") {
   const skel = JSON.parse(readFileSync(rest[0], "utf8")) as Skeleton;
   ({ tables, styles, effects })[cmd](skel, rest[1]);
 }
-else if (cmd === "100style" || cmd === "cmu") {
+else if (cmd === "100style" || cmd === "cmu" || cmd === "accad") {
   const [skelPath, out] = rest;
   const skel = JSON.parse(readFileSync(skelPath, "utf8")) as Skeleton;
-  await (cmd === "100style" ? style : cmu)(skel, out, rest.slice(2));
+  await ({ "100style": style, cmu, accad })[cmd](skel, out, rest.slice(2));
   index(out);
 } else {
-  console.error("usage: library.ts 100style|cmu|tables|styles|effects SKELETON.json OUT [...] | library.ts index OUT");
+  console.error("usage: library.ts 100style|cmu|accad|tables|styles|effects SKELETON.json OUT [...] | library.ts index OUT");
   process.exit(2);
 }

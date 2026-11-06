@@ -6,6 +6,7 @@ description = "A project's npm dependencies installed without Node: resolved by 
 license = "FSL-1.1-ALv2"
 
 [dependencies]
+raea-io-home = { path = "../../io/home" }
 # Deno's npm resolver and semver, on their own: no deno_core, no V8 (raea's V8 runs what's installed)
 deno_npm = "0.72"
 deno_semver = "0.10"

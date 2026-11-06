@@ -12,7 +12,7 @@
 // probe: 32 1 r>200 g>200 b>200
 // probe: 32 32 r<40 g<40 b<40
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, FramePass, ShaderMesh, ToneMapping } from "raea/3d";
+import { FramePass, ShaderMesh, ToneMapping } from "raea/3d";
 import { Cuboid, Mesh3d } from "raea/mesh";
 import { Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
@@ -42,7 +42,7 @@ fn shade(in: FullscreenVertexOutput) -> vec4<f32> {
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 6).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.872664625997165 } }} />
         <ToneMapping mode="none" />
         <ShaderMesh shape="box(1, 1, 1)" position={[-1.4, 1.2, 0]} wesl={pick} uniforms={{ layer: 0 }} textures={{ frames }} />
@@ -50,7 +50,7 @@ function Shot() {
         <Mesh3d transform={Transform.fromXyz(-1.4, -1.2, 0)}><Cuboid half_size={[0.5, 0.5, 0.5]} /><ExtendedMaterial base={<StandardMaterial base_color="#ffffff" />} extension={<ShaderExtension wesl={strip(0)} textures={{ strip: checker }} />} /></Mesh3d>
         <Mesh3d transform={Transform.fromXyz(1.4, -1.2, 0)}><Cuboid half_size={[0.5, 0.5, 0.5]} /><ExtendedMaterial base={<StandardMaterial base_color="#ffffff" />} extension={<ShaderExtension wesl={strip(1)} textures={{ strip: checker }} />} /></Mesh3d>
         <FramePass wesl={band} textures={{ ramp: { layers: [one("#000000"), one("#ffffff")] } }} />
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

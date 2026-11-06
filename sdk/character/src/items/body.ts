@@ -1,6 +1,6 @@
 // The body's trunk turned, crouched and stooped, and its fingers.
 import type { Vec3 } from "raea/3d";
-import { add, joint, len, twoBone, palmAt, pose, qaxis, qmul, qrot, qyaw, reach, scale3, setWorld, slerp, sub, type HandGoal, type Pose, type Side, type Skeleton } from "raea/character";
+import { B, FINGERS, I, handRest, add, joint, len, twoBone, palmAt, pose, qaxis, qmul, qrot, qyaw, reach, scale3, setWorld, slerp, sub, type HandGoal, type Pose, type Side, type Skeleton } from "raea/character";
 import { lerp } from "./all";
 
 /** The trunk turned: twisted about up (`twist`, + to the body's left), pitched about the body's left (`pitch`, +
@@ -8,7 +8,7 @@ import { lerp } from "./all";
  * so the shoulders and arms ride with it. */
 export function trunkTurn(skel: Skeleton, p: Pose, yaw: number, twist: number, pitch: number, roll = 0): Pose {
   if (!twist && !pitch && !roll) return p;
-  const chain = ["LowerBack", "Spine", "Spine1"].map((n) => joint(skel, n)), share = [0.25, 0.35, 0.4];
+  const chain = [B.spine[0], B.spine[1], B.chest].map((n) => joint(skel, n)), share = [0.25, 0.35, 0.4];
   const left = qrot(qyaw(yaw), [1, 0, 0]), ahead = qrot(qyaw(yaw), [0, 0, 1]);
   for (let c = 0; c < 3; c++) {
     const w = pose(skel, p);
@@ -30,7 +30,9 @@ export function crouched(skel: Skeleton, p: Pose, hands: Partial<Record<Side, Ha
 export function crouchedAt(skel: Skeleton, p: Pose, hands: Partial<Record<Side, HandGoal>>, drop: number, lean: number, stoopAt?: number, back = 0): { pose: Pose; stoop: number } {
   // (on the floor as far as it squats: a carry at a run keeps its stride's feet, in the air over a hurdle too)
   const down = Math.min(1, Math.max(0, drop / 0.06));
-  const w0 = pose(skel, p), feet = (["L", "R"] as Side[]).map((s) => { const i = joint(skel, s === "L" ? "LeftFoot" : "RightFoot"), a = w0.pos[i]; return [a[0], (a[1] - skel.joints[i].head[1]) * (1 - down), a[2]] as Vec3; });
+  // (a foot mid-step, over 2.5 cm up, stays where the step has it: put on the floor, it was dragged along the floor
+  // the whole step, errands' turn at the desk sliding 11 cm)
+  const w0 = pose(skel, p), feet = (["L", "R"] as Side[]).map((s) => { const i = joint(skel, B.foot(s)), a = w0.pos[i], up = a[1] - skel.joints[i].head[1]; return [a[0], up > 0.025 ? up : up * (1 - down), a[2]] as Vec3; });
   // the hips go back as they go down (a squat sits back over the heels, balancing the knees ahead)
   let q: Pose = { ...p, root: add(p.root, add([0, -drop, 0], scale3(backOf(p), 0.25 * drop + back))) };
   let th = 0, axis: Vec3 = [1, 0, 0];
@@ -46,7 +48,7 @@ export function crouchedAt(skel: Skeleton, p: Pose, hands: Partial<Record<Side, 
     // the hips no higher than lets both feet stand flat on the floor (sat back and bent over, the legs would stretch
     // and leave the body on its toes)
     const legs = (["L", "R"] as Side[]).map((s, i) => {
-      const [u, k, f] = (s === "L" ? ["LeftUpLeg", "LeftLeg", "LeftFoot"] : ["RightUpLeg", "RightLeg", "RightFoot"]).map((n) => joint(skel, n));
+      const [u, k, f] = B.leg(s).map((n) => joint(skel, n));
       const J = skel.joints, L = 0.985 * (len(sub(J[k].head, J[u].head)) + len(sub(J[f].head, J[k].head)));
       const hip = pose(skel, q).pos[u], ankle: Vec3 = [feet[i][0], J[f].head[1] + feet[i][1], feet[i][2]];
       const dh = Math.hypot(hip[0] - ankle[0], hip[2] - ankle[2]), dv = hip[1] - ankle[1];
@@ -55,12 +57,12 @@ export function crouchedAt(skel: Skeleton, p: Pose, hands: Partial<Record<Side, 
     const sink = Math.max(...legs);
     if (sink > 0) q = { ...q, root: [q.root[0], q.root[1] - sink, q.root[2]] };
     (["L", "R"] as Side[]).forEach((s, i) => {
-      const fi = joint(skel, s === "L" ? "LeftFoot" : "RightFoot"), knee = qrot(qyaw(yaw), [s === "L" ? 0.25 : -0.25, 0, 1]);
+      const fi = joint(skel, B.foot(s)), knee = qrot(qyaw(yaw), [s === "L" ? 0.25 : -0.25, 0, 1]);
       // (the ankle at its standing height over the floor: the foot flat)
-      q = twoBone(skel, q, s === "L" ? ["LeftUpLeg", "LeftLeg", "LeftFoot"] : ["RightUpLeg", "RightLeg", "RightFoot"], [feet[i][0], skel.joints[fi].head[1] + feet[i][1], feet[i][2]], knee);
+      q = twoBone(skel, q, B.leg(s), [feet[i][0], skel.joints[fi].head[1] + feet[i][1], feet[i][2]], knee);
       // the foot flat on the floor, turned the way its toes point (not tipped onto its toes with the shin, nor up on
       // them as the walk had it mid-step)
-      const ti = joint(skel, s === "L" ? "LeftToeBase" : "RightToeBase"), restDir = sub(skel.joints[ti].head, skel.joints[fi].head), now = qrot(w0.rot[fi], restDir);
+      const ti = joint(skel, B.ball(s)), restDir = sub(skel.joints[ti].head, skel.joints[fi].head), now = qrot(w0.rot[fi], restDir);
       const wq = pose(skel, q);
       q = setWorld(skel, q, wq, fi, slerp(w0.rot[fi], qyaw(Math.atan2(now[0], now[2]) - Math.atan2(restDir[0], restDir[2])), down));
     });
@@ -70,7 +72,7 @@ export function crouchedAt(skel: Skeleton, p: Pose, hands: Partial<Record<Side, 
   // of the stoop
   if (th > 0) for (const s of ["L", "R"] as Side[]) {
     if (hands[s]) continue;
-    const i = joint(skel, s === "L" ? "LeftArm" : "RightArm"), w = pose(skel, q);
+    const i = joint(skel, B.upperarm(s)), w = pose(skel, q);
     q = setWorld(skel, q, w, i, qmul(qaxis(axis, -0.85 * th), w.rot[i]));
   }
   return { pose: q, stoop: th };
@@ -87,9 +89,9 @@ function backOf(p: Pose): Vec3 {
  * up the back. (leanToward bends the back alone, which for a reach to the floor brings the shoulders down too little.) */
 export function stoop(skel: Skeleton, p: Pose, hands: Partial<Record<Side, HandGoal>>, most: number, fixed?: number): { pose: Pose; th: number; axis: Vec3 } {
   const goals = Object.entries(hands) as [Side, HandGoal][];
-  const J = skel.joints, chain = ["LowerBack", "Spine", "Spine1"].map((n) => joint(skel, n)), share = [0.2, 0.2, 0.15], hipShare = 0.45;
-  const arm = (s: Side) => joint(skel, s === "L" ? "LeftArm" : "RightArm");
-  const armLen = (s: Side) => { const [a, b, c] = (s === "L" ? ["LeftArm", "LeftForeArm", "LeftHand"] : ["RightArm", "RightForeArm", "RightHand"]).map((n) => J[joint(skel, n)].head); return len(sub(b, a)) + len(sub(c, b)); };
+  const J = skel.joints, chain = [B.spine[0], B.spine[1], B.chest].map((n) => joint(skel, n)), share = [0.2, 0.2, 0.15], hipShare = 0.45;
+  const arm = (s: Side) => joint(skel, B.upperarm(s));
+  const armLen = (s: Side) => { const [a, b, c] = B.arm(s).map((n) => J[joint(skel, n)].head); return len(sub(b, a)) + len(sub(c, b)); };
   const w0 = pose(skel, p);
   const mid = scale3(add(w0.pos[arm("L")], w0.pos[arm("R")]), 0.5);
   const toward = goals.reduce<Vec3>((acc, [, g]) => add(acc, sub(g.at, mid)), [0, 0, 0]);
@@ -155,13 +157,13 @@ export function fingers(skel: Skeleton, p: Pose, amounts: Partial<Record<Side, n
   const turns = p.turns.slice();
   for (const [s, amount] of Object.entries(amounts) as [Side, number][]) {
     if (!(amount > 0)) continue;
-    // the fingers curl about the hand's across axis: at rest the arms are out along x, the palms down, so the fingers
-    // (along x) curl about z
-    const ax: Vec3 = [0, 0, 1], sign = s === "L" ? -1 : 1;
-    for (const [n, a] of [["FingerBase", 0.5], ["HandFinger1", 1.1], ["Thumb", 0.4]] as [string, number][]) {
-      const name = n === "Thumb" ? `${s}Thumb` : `${s === "L" ? "Left" : "Right"}${n}`;
-      const i = skel.joints.findIndex((j) => j.name === name);
-      if (i >= 0) turns[i] = qmul(turns[i], qaxis(ax, sign * a * amount));
+    // the fingers curl about the hand's across axis at rest (the knuckles a little, the two joints past them more),
+    // the thumb in about the hand's length
+    const { along, across } = handRest(skel, s), sign = s === "L" ? -1 : 1;
+    while (turns.length < skel.joints.length) turns.push(I);
+    for (const f of FINGERS) for (const k of [1, 2, 3] as const) {
+      const i = joint(skel, B.finger(f, k, s));
+      turns[i] = qmul(turns[i], f === "thumb" ? qaxis(along, -sign * 0.4 * amount) : qaxis(across, sign * (k === 1 ? 0.5 : 0.55) * amount));
     }
   }
   return { ...p, turns };

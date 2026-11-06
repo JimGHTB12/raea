@@ -8,7 +8,7 @@
 // probe: 32 32 g>200 r<60 b<60
 // probe: 4 4 r<30 g<30 b<30
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { BevyComponent, Canvas3D, Entity, ToneMapping } from "raea/3d";
+import { BevyComponent, Entity, ToneMapping } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { ClassList, Styled } from "raea/plugins/flair";
@@ -18,7 +18,7 @@ const black = { Srgba: { red: 0, green: 0, blue: 0, alpha: 0 } };
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 3).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }}>
           <BevyComponent type="bevy_ui::ui_node::IsDefaultUiCamera" value={{}} />
         </Camera3d>
@@ -29,7 +29,7 @@ function Shot() {
           <Styled value={{ StyleSheet: "plugin-flair.css" }} />
           <ClassList value={["box"]} />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

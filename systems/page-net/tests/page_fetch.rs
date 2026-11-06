@@ -33,6 +33,11 @@ fn the_page_fetches_only_inside_the_root() {
     assert_eq!(status(&format!("http://localhost{}", base.join("secret.txt").display())), Some(404));
     assert_eq!(status("http://localhost/link.txt"), Some(404));
     assert_eq!(status("http://localhost/media/none.wav"), Some(404));
+    // /media/ falls back to the root's assets/ (S5a), confined the same way
+    std::fs::create_dir_all(root.join("assets")).unwrap();
+    std::fs::write(root.join("assets/kept.wav"), "RIFF").unwrap();
+    assert_eq!(status("http://localhost/media/kept.wav"), Some(200));
+    assert_eq!(status("http://localhost/media/..%2f..%2fsecret.txt"), Some(404));
     assert_eq!(page_fetch(&json!({ "url": "http://localhost/media/in.wav", "method": "POST" })).unwrap()["status"], 404);
     // other origins go to the network
     assert_eq!(status("http://localhost:8080/media/in.wav"), None);

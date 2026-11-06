@@ -17,6 +17,8 @@ path = "src/main.rs"
 [features]
 # the page on QuickJS (raea-runtime-js's portable engine) in place of JavaScriptCore
 portable = ["raea-runtime-js/portable"]
+# raea's window on screen (--window: the desktop app, docs/app.feature AP5/AP6); the benches and tests stay headless
+window = ["bevy/bevy_winit", "dep:raea-runtime-plugins", "raea-page-window/window"]
 
 [dependencies]
 # the window as an image the UI camera draws, picking's pointer input, the remote protocol, and every image format the
@@ -26,6 +28,8 @@ raea-runtime-js = { path = "../../../runtime/js" }
 # the page's accessibility records
 raea-sys-a11y = { path = "../../../systems/a11y" }
 raea-page = { path = ".." }
+# the desktop window: --chrome and the native calls (clipboard, links, notifications, the dock badge, raea:// links)
+raea-page-window = { path = "../window" }
 raea-sys-page = { path = "../../../systems/page" }
 raea-sys-fonts = { path = "../../../systems/fonts" }
 raea-runtime-dom = { path = "../../../runtime/dom" }
@@ -38,22 +42,14 @@ blitz-dom = { version = "=0.3.0-beta.4", default-features = false }
 stylo = "=0.22.0"
 image = { version = "0.25", default-features = false, features = ["png"] }
 serde_json = "1"
-# the live stage (src/stage.rs): raea-runtime-live, with raea-runtime-react's features turned on here (the legacy app's), on
-# the shared device Bevy renders on here (raea-runtime-view's render_creation)
-raea-runtime-react = { path = "../../../runtime/react", default-features = false, features = ["h264", "av1", "scripts", "modules", "network"] }
-# and its sound's <Seedling> samples
-raea-runtime-sound = { path = "../../../runtime/sound", features = ["seedling"] }
-raea-runtime-live = { path = "../../../runtime/live" }
-# its stage's bakes find the bundle's functions (raea-runtime-bake's modules, as raea-runtime-react's were)
-raea-runtime-bake = { path = "../../../runtime/bake", features = ["modules"] }
-raea-gpu-device = { path = "../../../gpu/device" }
+# the live stage: <img data-raea-stage> (raea-page-stage)
+raea-page-stage = { path = "../stage" }
+# the window build turns bevy_winit on for every Bevy app in the process; the stage's engine is told to leave it out (main.rs)
+raea-runtime-plugins = { path = "../../../runtime/plugins", optional = true }
 raea-runtime-view = { path = "../../../runtime/view" }
-wgpu = "=30.0.1"
-# a picked element's prop written into the game's next version
-raea-sys-tweak = { path = "../../../systems/tweak" }
 tiny_http = "0.12"
 base64 = "0.22"
 
 # raea-io-media is here for its feature (the platform decoders raea-page and raea-runtime-js use), not called directly
 [package.metadata.cargo-shear]
-ignored = ["raea-io-media", "raea-runtime-react", "raea-runtime-bake", "raea-runtime-sound"]
+ignored = ["raea-io-media"]

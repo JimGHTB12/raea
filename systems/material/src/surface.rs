@@ -66,6 +66,10 @@ fn over(base: &StandardMaterial, s: &Surface) -> StandardMaterial {
     if has("normal_map") {
         m.normal_map_texture = s.made.normal_map_texture.clone();
     }
+    // how its alpha draws (alphaMode): a glTF's MASK hair made "coverage", or a part made "blend"
+    if has("alpha") {
+        m.alpha_mode = s.made.alpha_mode;
+    }
     if has("rough") {
         m.perceptual_roughness = s.made.perceptual_roughness;
     }

@@ -1,5 +1,5 @@
 use super::ElementCx;
-use crate::color::Color;
+use crate::color::{Color, ToColorColor as _};
 use anyrender::PaintScene;
 use blitz_dom::local_name;
 use kurbo::{BezPath, Cap, Circle, Join, Point, Stroke};
@@ -18,6 +18,9 @@ impl ElementCx<'_, '_> {
     pub(super) fn draw_input(&self, scene: &mut impl PaintScene) {
         if self.node.local_name() != "input" {
             return;
+        }
+        if self.node.attr(local_name!("type")) == Some("range") {
+            return self.draw_range(scene);
         }
         let Some(on) = self.element.checkbox_input_checked() else {
             return;
@@ -67,5 +70,41 @@ impl ElementCx<'_, '_> {
             };
             scene.stroke(&style, t, Color::WHITE, None, &path);
         }
+    }
+}
+
+impl ElementCx<'_, '_> {
+    /// raea: a range input's thumb at its value, as Chrome draws it: the page's own (::-webkit-slider-thumb with a
+    /// width, its height, background and corner radius: Excalidraw's opacity slider) centred on the input, else
+    /// Chrome's on macOS, a 4px track blue up to a 16px blue thumb. Blitz drew no thumb, only the input's own box.
+    fn draw_range(&self, scene: &mut impl PaintScene) {
+        let num = |v: Option<&str>| v.and_then(|v| v.trim().parse::<f64>().ok()).filter(|v| v.is_finite());
+        let min = num(self.node.attr(local_name!("min"))).unwrap_or(0.0);
+        let max = num(self.node.attr(local_name!("max"))).unwrap_or(100.0).max(min);
+        let value = num(self.node.attr(local_name!("value"))).unwrap_or((min + max) / 2.0).clamp(min, max);
+        let at = if max > min { (value - min) / (max - min) } else { 0.0 };
+        let (px, b, t) = (self.scale, self.frame.border_box, self.transform);
+        let thumb = self.context.dom.slider_thumb_style(self.node.id);
+        let length = |s: &style::values::computed::Size| match s {
+            style::values::generics::length::GenericSize::LengthPercentage(lp) => lp.0.to_length().map(|l| f64::from(l.px())),
+            _ => None,
+        };
+        let own = thumb.as_ref().and_then(|th| length(&th.get_position().width).map(|w| (th, w)));
+        if let Some((th, w)) = own {
+            let h = length(&th.get_position().height).unwrap_or(w);
+            let (w, h) = (w * px, h * px);
+            let r = th.get_border().border_top_left_radius.0.width.0.resolve(style::values::computed::Length::new((w / px) as f32));
+            let color = th.get_background().background_color.resolve_to_absolute(&th.clone_color()).as_srgb_color();
+            let cx = b.x0 + w / 2.0 + at * (b.width() - w);
+            let rect = kurbo::Rect::from_center_size((cx, b.center().y), (w, h));
+            scene.fill(Fill::NonZero, t, color, None, &rect.to_rounded_rect(f64::from(r.px()) * px));
+            return;
+        }
+        let d = 16.0 * px;
+        let cx = b.x0 + d / 2.0 + at * (b.width() - d);
+        let track = kurbo::Rect::new(b.x0, b.center().y - 2.0 * px, b.x1, b.center().y + 2.0 * px);
+        scene.fill(Fill::NonZero, t, Color::from_rgba8(239, 239, 239, 255), None, &track.to_rounded_rect(2.0 * px));
+        scene.fill(Fill::NonZero, t, ACCENT, None, &track.with_size((cx - b.x0, track.height())).to_rounded_rect(2.0 * px));
+        scene.fill(Fill::NonZero, t, ACCENT, None, &Circle::new((cx, b.center().y), d / 2.0));
     }
 }

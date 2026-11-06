@@ -9,7 +9,7 @@
 // probe: 54 32 g>150 r<80 b<80
 // probe: 8 32 r<30 g<30 b<30
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, ToneMapping } from "raea/3d";
+import { ToneMapping } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { Transform } from "raea/transform";
 import { StandardMaterial } from "raea/pbr";
@@ -19,7 +19,7 @@ import { PanOrbitCamera } from "raea/plugins/panorbit";
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, -5).lookingAt([0, 0, -10])} projection={{ Perspective: { fov: 0.785398 } }}>
           <PanOrbitCamera value={{ focus: [0, 0, 0], yaw: Math.PI / 2, pitch: 0, radius: 5 } as PanOrbitCamera} />
         </Camera3d>
@@ -32,7 +32,7 @@ function Shot() {
           <Cuboid half_size={[0.4, 0.4, 0.4]} />
           <StandardMaterial base_color="#00ff00" unlit />
         </Mesh3d>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

@@ -9,7 +9,10 @@ L = ["/ The frame on the GPU: the camera's target T is the background (clear col
      "/ Luma and chroma are bilinear; YUV is BT.709 limited range in 8.8 fixed point. One RGBA word per pixel.",
      "x:i!w", "y:i%w",
      "bg:tex[T;x;y]",
-     "r:and[bg;255]", "g:and[shr[bg;8];255]", "b:and[shr[bg;16];255]"]
+     "r:and[bg;255]", "g:and[shr[bg;8];255]", "b:and[shr[bg;16];255]",
+     # coverage, carried so a transparent clear (render --alpha) stays transparent where nothing is drawn; over an
+     # opaque background every step below keeps it 255, so those frames are the same pixels as before
+     "a:and[shr[bg;24];255]"]
 for s in range(SLOTS):
     P, c = f"P{s}", lambda k: f"word[C;{s * 12 + k}]"
     L += [f"/ clip slot {s}",
@@ -46,13 +49,15 @@ for s in range(SLOTS):
           f"r:shr[(am{s}*rr{s})+((256-am{s})*r);8]",
           f"g:shr[(am{s}*gg{s})+((256-am{s})*g);8]",
           f"b:shr[(am{s}*bb{s})+((256-am{s})*b);8]",
+          f"a:shr[(am{s}*255)+((256-am{s})*a);8]",
           "end"]
 L += ["/ the overlay, premultiplied: o + below * (255 - a) / 255",
       "o:word[O;i]", "oa:and[shr[o;24];255]",
       "r:and[o;255]+((r*(255-oa))+127)%255",
       "g:and[shr[o;8];255]+((g*(255-oa))+127)%255",
       "b:and[shr[o;16];255]+((b*(255-oa))+127)%255",
-      "px:pack[r;g;b;255]"]
+      "a:oa+((a*(255-oa))+127)%255",
+      "px:pack[r;g;b;a]"]
 open("kernels/composite.k", "w").write("\n".join(L) + "\n")
 
 # composite_tex.k: the same, with each slot's planes as textures, as VideoToolbox's IOSurface-backed buffers wrap

@@ -247,7 +247,7 @@ Missing means it isn't there.
 - `Channel.duck(key, {amount, threshold, attack, release})`: sidechain ducking.
 - `<Sfx when play>`: frame-exact one-shots.
 - `vary(instrument, {pitch, volume})`: seeded variation per event.
-- Generated sources: `sao`, `lyria`, `fish` and `tokensynth(timbre, notes)`.
+- Generated sources: `sao`, `lyria` and `tokensynth(timbre, notes)`; narration is `<Speech>` (raea/speech).
 - `Time(...).toFrames(fps)`: cuts on bars and beats.
 - `raea/music` (Part and Sequence on named instruments, MIDI in and out) is a shorthand. It plays through
   this layer: each instrument name is a Tone preset.
@@ -258,13 +258,12 @@ A Sampler's `urls` and a Player's `url` take a media path, or a generated asset:
 - `Tone.tokensynth(timbre, notes, {seconds, velocity, seed, precision})`: one asset per root note, by TokenSynth,
   local CPU. The Sampler pitches between the roots. This is how raea makes music.
 - `Tone.sao(prompt, {seconds})`: foley, by Stable Audio Open Small on Core ML, local.
-- `Tone.fish(text, {voice})`: narration over the picture, by Fish, paid.
 - `Tone.lyria(prompt)`: a music bed, by Lyria, paid. Still wired; the guides no longer use it.
 - A file from an open sample library in the media folder: `raea sounds get PACK/INSTRUMENT` (below).
 
 How a source is made and played:
 - **Policy** (2026-10-19). Music is Tone.js instruments: TokenSynth notes, an open sample library's notes, or
-  synths, in a Sampler playing a Part or Sequence. SAO for foley, Fish for non-diegetic voice. No other generation
+  synths, in a Sampler playing a Part or Sequence. SAO for foley, Pocket TTS (`<Speech>`) for non-diegetic voice. No other generation
   (no images, video or remote sound effects); Lyria stays in the code for older edits. Nothing in this work spent money: the fixtures' sounds come from SAO and TokenSynth (local) and the
   voice from macOS `say` at test time.
 - **Resolution.** The graph's sources are resolved by react (audio.rs `tone_of`): media paths through the media

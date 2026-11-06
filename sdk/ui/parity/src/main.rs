@@ -134,7 +134,7 @@ fn parse() -> Result<Opts, String> {
 }
 
 fn usage() -> &'static str {
-    "usage: ui-parity run|calibrate|list [--only TEXT]... [--tier quick|full] [--jobs N] [--out DIR] [--self] [--bevy BIN] [--chrome BIN] [--engine jsc|quickjs]\n       ui-parity wpt [--area NAME]... [--only TEXT]... [--tier quick|full] [--jobs N] [--out DIR] [--chrome BIN] [--motion BIN] [--page blitz] [--wpt DIR]   (src/wpt.rs)\n       ui-parity app [--only TEXT]... [--out DIR] [--bevy BIN] [--chrome BIN] [--engine jsc|quickjs]   (src/app.rs: apps/app's screens)"
+    "usage: ui-parity run|calibrate|list [--only TEXT]... [--tier quick|full] [--jobs N] [--out DIR] [--self] [--bevy BIN] [--chrome BIN] [--engine jsc|quickjs]\n       ui-parity wpt [--area NAME]... [--only TEXT]... [--tier quick|full] [--jobs N] [--out DIR] [--chrome BIN] [--motion BIN] [--page blitz] [--wpt DIR]   (src/wpt.rs)\n       ui-parity app [--only TEXT]... [--out DIR] [--bevy BIN] [--chrome BIN] [--engine jsc|quickjs]   (src/app.rs: apps/app's screens; RAEA_PARITY_APP=DIR for a copy of it)"
 }
 
 #[derive(Clone, Debug)]
@@ -446,7 +446,7 @@ fn main() {
     };
     let code = match o.cmd.as_str() {
         "run" | "list" => run(o),
-        "app" => chrome_bin(&o).and_then(|chrome| app::run(app::Opts { out: o.out.clone(), chrome, bevy: o.bevy.clone(), engine: o.engine.clone(), only: o.only.clone(), app: repo().join("apps/app") })),
+        "app" => chrome_bin(&o).and_then(|chrome| app::run(app::Opts { out: o.out.clone(), chrome, bevy: o.bevy.clone(), engine: o.engine.clone(), only: o.only.clone(), app: std::env::var_os("RAEA_PARITY_APP").map(PathBuf::from).unwrap_or_else(|| repo().join("apps/app")) })),
         "wpt" => chrome_bin(&o).and_then(|chrome| wpt::run(wpt::Opts { tier: o.tier, jobs: o.jobs, out: o.out, chrome, motion: o.motion, wpt: o.wpt, only: o.only, areas: o.areas, page: o.page })),
         "calibrate" => {
             // every case Chrome against Chrome (identical by construction: each must pass, the calibration cases as

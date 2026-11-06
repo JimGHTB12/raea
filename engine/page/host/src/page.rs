@@ -68,6 +68,7 @@ pub fn mount(world: &mut World, m: Mount) -> Result<Entity, String> {
         }
     }
     world.insert_resource(HostPage(page));
+    world.insert_resource(raea_page_stage::StagePage(page));
     let shows = world.spawn((Shows, Node { position_type: PositionType::Absolute, width: percent(100), height: percent(100), ..default() }, UiTargetCamera(cam))).id();
     if m.picking {
         // the node itself isn't a hit (bevy_ui's backend would report it above the page's twins, and nothing would
@@ -253,6 +254,10 @@ pub fn tree(page: Res<HostPage>, roots: NonSend<Roots>, docs: NonSend<Docs>, win
             n["state"] = json!(state);
             if let Some(t) = s("data-text") {
                 n["text"] = json!(t);
+            } else if p.get("contentEditable").or(p.get("contenteditable")).is_some_and(|v| *v != json!(false) && *v != "false") {
+                // a contenteditable's text, as Chrome's textContent has it (an editor's document isn't in its props)
+                let node = roots.0.iter().find(|r| r.page == page.0).and_then(|r| r.nodes.by_id.get(&e.id)).and_then(|&n| docs.0.get(&page.0)?.get_node(n));
+                n["text"] = json!(node.map(|d| d.text_content()).unwrap_or_default());
             }
             if let Some([top, max]) = e.scroll {
                 n["scroll"] = json!({"top": r1(top), "max": r1(max)});

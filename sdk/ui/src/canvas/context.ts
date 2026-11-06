@@ -1,6 +1,7 @@
 // CanvasRenderingContext2D.
 import * as wire from "../wire";
-import { COMPOSITES, CanvasHost, Gradient, ID, ImageData_, Paint, Path, Path2D_, S, State, fresh, metrics, mul, paintOf, parseColor, parseFilter, parseFont, unb64 } from "./all";
+import { base64, encodePng } from "./png";
+import { COMPOSITES, CanvasHost, Gradient, ID, ImageData_, Paint, Path, Path2D_, S, State, fresh, measure, mul, paintOf, parseColor, parseFilter, parseFont, unb64 } from "./all";
 
 export class CanvasRenderingContext2D_ {
   private s: State = fresh();
@@ -29,13 +30,33 @@ export class CanvasRenderingContext2D_ {
   }
   private push(op: unknown[]) {
     const [w, h] = [this.canvas.width, this.canvas.height];
-    if (w !== this.size[0] || h !== this.size[1]) {
+    if (w !== this.size[0] || h !== this.size[1] || this.coversAll(op, w, h)) {
       this.list = [];
       this.gen++;
       this.size = [w, h];
     }
     this.list.push(op);
     this.send();
+  }
+  /** A clear, or an opaque source-over fill, over the whole bitmap: nothing drawn before it shows, so the list can
+   *  start again with it. Libraries that clear under a transform (Excalidraw's zoom and pixel ratio) never hit
+   *  clearRect's own case, and their lists grew by a whole scene every frame. */
+  private coversAll(op: unknown[], w: number, h: number) {
+    const kind = op[0];
+    if (kind !== "clear" && kind !== "fill") return false;
+    const d = op[1];
+    const st = op[op.length - 1] as { alpha: number; comp: string; clip: unknown[]; shadow: unknown; filter: unknown };
+    if (!Array.isArray(d) || !st || st.clip.length || st.shadow || st.filter) return false;
+    if (kind === "fill") {
+      const paint = op[3];
+      if (st.alpha !== 1 || st.comp !== "source-over" || !Array.isArray(paint) || paint[3] !== 1) return false;
+    }
+    // a rectangle: move, three lines, close (each command then its point), axis-aligned, covering 0,0..w,h
+    if (d.length !== 13 || d[0] !== 0 || d[3] !== 1 || d[6] !== 1 || d[9] !== 1 || d[12] !== 4) return false;
+    const xs = [d[1], d[4], d[7], d[10]] as number[];
+    const ys = [d[2], d[5], d[8], d[11]] as number[];
+    const axis = (xs[0] === xs[1] || ys[0] === ys[1]) && (xs[1] === xs[2] || ys[1] === ys[2]);
+    return axis && Math.min(...xs) <= 0 && Math.min(...ys) <= 0 && Math.max(...xs) >= w && Math.max(...ys) >= h;
   }
   private send() {
     if (this.pending) return;
@@ -46,6 +67,28 @@ export class CanvasRenderingContext2D_ {
       if (id === undefined || !this.canvas._wired) return;
       wire.set(id, "__canvas2d", { gen: this.gen, w: this.size[0], h: this.size[1], ops: this.list });
     });
+  }
+  private static uids = 0;
+  private uid = ++CanvasRenderingContext2D_.uids;
+  /** The list as it is now, for this canvas drawn onto another (systems/canvas's "canvas" op replays it there), with
+   *  a key the host keeps its bitmap by: the list only grows within a generation, so the key names its contents. */
+  _snapshot(): { key: string; w: number; h: number; ops: unknown[] } | null {
+    const [w, h] = [this.canvas.width, this.canvas.height];
+    if (!w || !h) return null;
+    const same = w === this.size[0] && h === this.size[1];
+    return { key: `${this.uid}:${this.gen}:${same ? this.list.length : 0}:${w}x${h}`, w, h, ops: same ? this.list.slice() : [] };
+  }
+  private snap?: { gen: number; n: number; w: number; h: number; url: string };
+  /** The bitmap as a PNG data URL, read back from the host (toDataURL; this canvas drawn onto another, where an
+   *  image op can only name a src). Kept until something more is drawn. */
+  _dataUrl(): string {
+    const [w, h] = [this.canvas.width, this.canvas.height];
+    if (!w || !h) return "data:,";
+    const k = this.snap;
+    if (k && k.gen === this.gen && k.n === this.list.length && k.w === w && k.h === h) return k.url;
+    const url = `data:image/png;base64,${base64(encodePng(w, h, this.getImageData(0, 0, w, h).data))}`;
+    this.snap = { gen: this.gen, n: this.list.length, w, h, url };
+    return url;
   }
   private state() {
     const s = this.s;
@@ -377,22 +420,22 @@ export class CanvasRenderingContext2D_ {
     this.text("stroke", t, x, y, maxWidth);
   }
   measureText(text: string) {
-    const f = parseFont(this.s.font)!;
-    const fam = f.family.replace(/["']/g, "").split(",")[0].trim().toLowerCase();
-    const m = metrics.get(fam) ?? metrics.get(S.defaultFamily.toLowerCase());
-    // without the host's advances: the default face's (Fira Mono, monospace: 600 units of 1000 a character)
-    let w = 0;
-    for (const ch of String(text)) w += m ? (m.adv[ch] ?? m.dflt) / m.em : 0.6;
-    w *= f.size;
-    return { width: w, actualBoundingBoxLeft: 0, actualBoundingBoxRight: w, fontBoundingBoxAscent: f.size * 0.8, fontBoundingBoxDescent: f.size * 0.2, actualBoundingBoxAscent: f.size * 0.7, actualBoundingBoxDescent: 0 };
+    return measure(this.s.font, String(text));
   }
   drawImage(img: { src?: string; currentSrc?: string; _canvas2d?: CanvasRenderingContext2D_; width?: number; height?: number; naturalWidth?: number; naturalHeight?: number }, ...a: number[]) {
-    const src = img.currentSrc || img.src;
-    if (!src) return;
     let s: (number | null)[];
     if (a.length === 2) s = [null, null, null, null, a[0], a[1], null, null];
     else if (a.length === 4) s = [null, null, null, null, a[0], a[1], a[2], a[3]];
     else s = a.slice(0, 8);
+    // a canvas as the source: its list as it is now, drawn on the host (no pixels come back to JS)
+    const ctx = (img as { _ctx?: CanvasRenderingContext2D_ })._ctx;
+    if (ctx && !img.currentSrc && !img.src) {
+      const snap = ctx._snapshot();
+      if (snap) this.push(["canvas", snap, ...s, this.state()]);
+      return;
+    }
+    const src = img.currentSrc || img.src || "";
+    if (!src || src === "data:,") return;
     // a video: the frame it shows now, decoded where the list is drawn (its time rides at the end)
     const v = img as { tagName?: string; currentTime?: number };
     if (String(v.tagName).toUpperCase() === "VIDEO") this.push(["video", src, ...s, this.state(), Number(v.currentTime) || 0]);

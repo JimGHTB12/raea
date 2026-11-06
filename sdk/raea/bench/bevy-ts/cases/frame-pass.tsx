@@ -5,7 +5,7 @@
 // probe: 32 32 b>200 g>200 r<40
 // probe: 4 4 r>200 g<40 b<40
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { ToneMapping, Canvas3D, FramePass } from "raea/3d";
+import { ToneMapping, FramePass } from "raea/3d";
 import { StandardMaterial } from "raea/pbr";
 import { Cuboid, Mesh3d } from "raea/mesh";
 import { AmbientLight } from "raea/light";
@@ -26,14 +26,14 @@ fn shade(in: FullscreenVertexOutput) -> vec4<f32> {
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 5).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.872664625997165 } }} />
         <ToneMapping mode="none" />
         <AmbientLight brightness={400} />
         <Mesh3d><Cuboid half_size={[0.5, 0.5, 0.5]} /><StandardMaterial base_color="#ffffff" /></Mesh3d>
         <FramePass wesl={probe} at="before-tonemap" prepass={{ depth: true, normal: true }} uniforms={{ far: 10 }} />
         <FramePass wesl={swap} />
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

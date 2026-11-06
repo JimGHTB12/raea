@@ -26,6 +26,7 @@ the topic files here link to those, except `rows.md` and `plugins.md`, which onl
 | a 3D game: state, input, entities, collisions, state machines | `games.md` |
 | a game's sound: one-shots on transitions (`<Tone.Sfx>`), buses, a bed ducked under a voice (Tone.js on raea) | `games.md` (Sound), then `raea guide motion/music` |
 | glTF models, pictures in space, media files | `assets.md` |
+| an asset to fix before it goes in: scale and pivot, a heavy mesh, FBX/OBJ/.blend to .glb, a rig, a bake (Blender, `raea blender run`; never a whole scene) | `blender.md` |
 | gaussian splats: a real scene or object trained from footage (`raea splat train`), `<Splat>` and its reveal, assemble, disperse, explode, wave, twist, morph, pulse | `splats.md` |
 | liquids and goo: coffee dumped from a mug, a tap's stream, honey, things melting (`<Goo>`, sph or mpm, baked) | `liquids.md` |
 | bloom, fog, tone mapping, exposure, fisheye and lens distortion, motion blur, fire (`<Fire>`), frame looks (pixel, ink, painted illustration `<Look mode="paint">`, cartoon `<Look mode="cartoon">`) | `post.md` |

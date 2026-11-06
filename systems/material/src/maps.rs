@@ -224,6 +224,8 @@ pub fn material(world: &mut World, t: &Tup, inserted: &[Tup], dir: &Path) -> Res
             "add" => AlphaMode::Add,
             "multiply" => AlphaMode::Multiply,
             "premultiplied" => AlphaMode::Premultiplied,
+            // soft cut-outs from the alpha over MSAA's samples (hair cards, foliage); without MSAA Bevy draws it solid
+            "coverage" => AlphaMode::AlphaToCoverage,
             _ => AlphaMode::Opaque,
         };
     }

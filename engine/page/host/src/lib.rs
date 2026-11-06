@@ -5,10 +5,13 @@
 //! adds [`HostPlugin`] and mounts its own (page::mount), its systems around the host's.
 
 pub mod brp;
+/// the desktop window's chrome and native calls, in raea-page-window (kept under these names for main.rs and tests)
+pub use raea_page_window::{chrome, native};
+/// the live stage, in raea-page-stage
+pub use raea_page_stage as stage;
 pub mod inject;
 pub mod mcp;
 pub mod page;
-pub mod stage;
 pub mod tree;
 
 use std::time::Duration;
@@ -85,5 +88,18 @@ pub fn camera(mut commands: Commands, mut images: ResMut<Assets<Image>>, size: R
     let norm = target.normalize(None).expect("an image target normalizes");
     let cam = commands.spawn((Camera2d, Camera { clear_color: ClearColorConfig::Custom(Color::BLACK), ..default() }, target)).id();
     commands.insert_resource(inject::Target { image, norm, scale: 1.0, windowed: false });
+    commands.insert_resource(UiCam(cam));
+}
+
+/// On screen (raea's window, the `window` feature): the UI camera draws to the primary window at its own scale; the
+/// window's pointer reaches picking through inject::window_pointer, its keys through bevy_winit as any app's.
+pub fn camera_window(mut commands: Commands, mut images: ResMut<Assets<Image>>, primary: Query<Entity, With<bevy::window::PrimaryWindow>>) {
+    let win = primary.single().expect("raea's window has a primary window");
+    let target = RenderTarget::Window(bevy::window::WindowRef::Primary);
+    let norm = target.normalize(Some(win)).expect("the primary window normalizes");
+    let cam = commands.spawn((Camera2d, Camera { clear_color: ClearColorConfig::Custom(Color::BLACK), ..default() }, target)).id();
+    // the image is unused on screen (inject::Target), a pixel to fill the field
+    let image = images.add(Image::new_target_texture(1, 1, TextureFormat::Rgba8UnormSrgb, None));
+    commands.insert_resource(inject::Target { image, norm, scale: 1.0, windowed: true });
     commands.insert_resource(UiCam(cam));
 }

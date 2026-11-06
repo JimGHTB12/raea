@@ -86,6 +86,7 @@ pub(crate) fn fetch(url: &str, cached: &Path) -> R<()> {
     if cached.exists() {
         return Ok(());
     }
+    raea_io_home::offline(&format!("the sample library file {url}"))?;
     std::fs::create_dir_all(cached.parent().unwrap()).map_err(|e| e.to_string())?;
     let part = cached.with_extension("part");
     let o = std::process::Command::new("curl").args(["-fsSL", "--retry", "2", "-o"]).arg(&part).arg(url).output().map_err(|e| format!("curl: {e}"))?;

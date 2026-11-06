@@ -17,6 +17,7 @@ face-portable = ["dep:rten", "dep:rten-tensor"]
 vision-portable = ["face-portable", "ocr-portable"]
 
 [dependencies]
+raea-io-home = { path = "../../io/home" }
 raea-sys-layout = { path = "../layout" }
 raea-sys-vision = { path = "../vision" }
 ocrs = { version = "0.13.1", optional = true }

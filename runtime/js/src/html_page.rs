@@ -50,12 +50,19 @@ pub fn read_answer(dir: &Path, args: &Value) -> R<Value> {
     Ok(out)
 }
 
-/// The runtime's bundle (sdk/ui/src/html.ts), bundled once a process.
+/// The runtime's bundle (sdk/ui/src/html.ts), bundled once a process by raea's own bundler (Rolldown, in process),
+/// from raea's files where `raea_io_home` finds them: an install's share/raea, else this checkout. `BEVY_TSX_UI` names
+/// another sdk/ui/src. (It was bun and this crate's js/build.ts, beside the tree it was built from: a release has
+/// neither, so `raea render PAGE.html` failed installed.)
 pub fn bundle() -> R<String> {
     static CODE: OnceLock<R<String>> = OnceLock::new();
     CODE.get_or_init(|| {
-        let entry = std::env::var("BEVY_TSX_UI").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../sdk/ui/src")).join("html.ts");
-        crate::bundle::build(&entry)
+        let ui = std::env::var_os("BEVY_TSX_UI").map(PathBuf::from).unwrap_or_else(|| raea_io_home::home().join("sdk/ui/src"));
+        let entry = ui.join("html.ts");
+        if !entry.is_file() {
+            return Err(format!("{}: the HTML runtime isn't there (BEVY_TSX_UI names another sdk/ui/src)", entry.display()));
+        }
+        raea_runtime_bundle::inproc::bundle(&entry, json!({})).map(|(js, _css)| js).map_err(|e| format!("the HTML runtime ({}): {e}", entry.display()))
     })
     .clone()
 }
@@ -88,7 +95,15 @@ fn listing(dir: &Path) -> Vec<String> {
 /// The root composition's size as its markup gives it (data-width / data-height of the first composition), before
 /// the page runs.
 fn size_of(src: &str) -> (u32, u32) {
-    let at = src.find("data-composition-id").unwrap_or(0);
+    // the first element carrying data-composition-id: an attribute (whitespace before, `=` after), not the name in a
+    // stylesheet's selector (`[data-composition-id="main"] > div`), which comes first in a page's <head> and sized a
+    // 1080 x 1920 page at the 1920 x 1080 default
+    let key = "data-composition-id";
+    let at = src
+        .match_indices(key)
+        .map(|(i, _)| i)
+        .find(|&i| i > 0 && src.as_bytes()[i - 1].is_ascii_whitespace() && src[i + key.len()..].trim_start().starts_with('='))
+        .unwrap_or(0);
     let tag_start = src[..at].rfind('<').unwrap_or(0);
     let tag_end = src[at..].find('>').map(|i| at + i).unwrap_or(src.len());
     let tag = &src[tag_start..tag_end];
@@ -175,3 +190,13 @@ pub fn videos_of(done: &Value) -> Vec<VideoAt> {
         .unwrap_or_default()
 }
 
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn size_comes_from_the_root_element_not_a_selector() {
+        let page = r#"<html><head><style>[data-composition-id="main"] > div { position: absolute; }</style></head>
+<body><div id="root" data-composition-id="main" data-start="0" data-width="1080" data-height="1920"></div></body></html>"#;
+        assert_eq!(super::size_of(page), (1080, 1920));
+        assert_eq!(super::size_of("<div data-composition-id='m'></div>"), (1920, 1080));
+    }
+}

@@ -17,7 +17,7 @@
 // log: postures add (weighted), gains and rates multiply (as powers), so half of one and half of another is a body
 // between them, and a weight of 0 is the motion as it was.
 import type { Vec3 } from "raea/3d";
-import { captured, joint, pose, qinv, qmul, qnorm, qrot, qyaw, type Pose, type Quat, type Skeleton } from "raea/character";
+import { B, mirrorName, captured, joint, pose, qinv, qmul, qnorm, qrot, qyaw, type Pose, type Quat, type Skeleton } from "raea/character";
 import { framePose, type Clip } from "./clip";
 import { styleMean } from "./style";
 
@@ -49,7 +49,7 @@ export function qexp(v: Vec3): Quat {
 const feetOf = new WeakMap<Skeleton, number[]>();
 const FEET = (skel: Skeleton) => {
   let f = feetOf.get(skel);
-  if (!f) feetOf.set(skel, (f = ["LeftFoot", "RightFoot", "LeftToeBase", "RightToeBase"].map((n) => joint(skel, n))));
+  if (!f) feetOf.set(skel, (f = B.feet().map((n) => joint(skel, n))));
   return f;
 };
 
@@ -125,9 +125,9 @@ export function learnEffect(skel: Skeleton, neutral: Clip, styled: Clip, o: { n?
   // each arm's swing, calibrated: the joints' gains don't come out as the hand's swing (a posture that rolls the trunk
   // or turns the arm changes how much of a joint's swing is the hand's, fore and aft), so neutral with the effect is
   // measured and each arm's gains scaled until its hand swings as the style's does (a limp's arms swing unevenly)
-  const arms = [["LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand"], ["RightShoulder", "RightArm", "RightForeArm", "RightHand"]].map((s) => s.map((n) => joint(skel, n)));
+  const arms = [[B.clavicle("L"), B.upperarm("L"), B.lowerarm("L"), B.hand("L")], [B.clavicle("R"), B.upperarm("R"), B.lowerarm("R"), B.hand("R")]].map((s) => s.map((n) => joint(skel, n)));
   // and likewise the hips' and thighs' gains for the feet's sway under the hips (which their gains overshoot)
-  const legs = ["Hips", "LeftUpLeg", "RightUpLeg"].map((n) => joint(skel, n)).filter((i) => i >= 0);
+  const legs = [B.pelvis, B.thigh("L"), B.thigh("R")].map((n) => joint(skel, n)).filter((i) => i >= 0);
   const want = [vs.armSwingL, vs.armSwingR], m1 = Math.min(n1, n0 + 30 * neutral.fps);
   for (let it = 0; it < 3; it++) {
     const got = styleMean(skel, mapped(skel, neutral, n0, m1, (p) => applyEffect(skel, p, e, { base: mn })));
@@ -186,7 +186,7 @@ export function applyEffect(skel: Skeleton, p: Pose, e: RigEffect, o: { base: Cl
   return { root: [p.root[0], p.root[1] + low(p) - low(out), p.root[2]], turns };
 }
 
-const SWAP = (n: string) => n.startsWith("Left") ? "Right" + n.slice(4) : n.startsWith("Right") ? "Left" + n.slice(5) : /^L[A-Z]/.test(n) ? "R" + n.slice(1) : /^R[A-Z]/.test(n) ? "L" + n.slice(1) : n;
+const SWAP = mirrorName;
 
 /** An effect seen in a mirror: left and right swapped (a limp on the left one on the right), for mirrored motion. */
 export function mirrorEffect(skel: Skeleton, e: RigEffect): RigEffect {

@@ -1,24 +1,38 @@
 // Fingers: hand shapes and closing on a thing.
 import { type Vec3 } from "@raea/render/3d";
-import { FingerSegment, I, Pose, Posed, Quat, Side, Skeleton, add, cross, dot, fingerSegments, handRest, joint, norm, place, pose, qaxis, qmul, qrot, scale3, slerp, sub, surface, withFingers } from "./all";
+import { B, FINGERS, Finger, FingerSegment, alongPath, captured, capturedHand, I, pathHand, Pose, Posed, Quat, Side, Skeleton, add, cross, dot, fingerSegments, handRest, joint, norm, place, pose, qaxis, qmul, qrot, scale3, slerp, sub, surface, withFingers } from "./all";
 
 // ---------------------------------------------------------------- fingers
 
-export const FINGERS = ["thumb", "index", "middle", "ring", "pinky"] as const;
-
-export type Finger = (typeof FINGERS)[number];
-
 /** Each finger's own joints on a side (thumb first), phalanx 1 to 3; empty for a skeleton without them. */
 export function fingerJoints(skel: Skeleton, s: Side): number[][] {
-  const S = s === "L" ? "Left" : "Right", has = skel.joints.some((j) => j.name === `${S}HandIndex1`);
-  if (!has) return [];
-  return FINGERS.map((f) => [1, 2, 3].map((k) => joint(skel, `${S}Hand${f[0].toUpperCase()}${f.slice(1)}${k}`)));
+  if (!skel.joints.some((j) => j.name === B.finger("index", 1, s))) return [];
+  return FINGERS.map((f) => ([1, 2, 3] as const).map((k) => joint(skel, B.finger(f, k, s))));
 }
 
 /** A hand's shape: each finger's curl at its three joints (radians; + bends toward the palm, about each bone's own
  * hinge, so a fist is about [1.4, 1.6, 1.1] on the fingers), how far the fingers fan apart (radians at the index and
  * pinky, + spreads), and the thumb's opposition (radians about the hand's length, + swings it under the palm toward
  * the fingers, as a pinch or a grip round a glass's stem wants). A finger left out is straight. */
+/** A hand at ease, as a hanging hand rests: the fingers a little curled, more toward the pinky, the thumb in a little
+ * (for clips without fingers: 100STYLE's and most of CMU's) */
+export const RELAXED_HAND: HandShape = {
+  index: [0.2, 0.3, 0.15], middle: [0.28, 0.38, 0.2], ring: [0.34, 0.44, 0.24], pinky: [0.4, 0.5, 0.28],
+  thumb: [0.1, 0.2, 0.1], spread: 0.04, thumbOpp: 0.25,
+};
+
+/** the captured hand a hanging hand rests in (Godot XR Tools' "Rounded": the fingers curled at all three joints, more
+ * toward the pinky; RELAXED_HAND's curls left the middle and end joints near straight, a flat hand) */
+export const RELAXED_CAPTURE = "Rounded";
+
+/** a pose with both hands at ease (RELAXED_CAPTURE on a body with fingers, else RELAXED_HAND) where it has no finger
+ * turns of its own */
+export function relaxHands(skel: Skeleton, p: Pose): Pose {
+  if (p.turns.length > captured(skel)) return p;
+  if (fingerJoints(skel, "L").length) return capturedHand(skel, capturedHand(skel, p, "L", RELAXED_CAPTURE), "R", RELAXED_CAPTURE);
+  return handPose(skel, handPose(skel, p, "L", RELAXED_HAND), "R", RELAXED_HAND);
+}
+
 export interface HandShape {
   thumb?: [number, number, number];
   index?: [number, number, number];
@@ -66,12 +80,11 @@ const clampTo = (x: number, [lo, hi]: [number, number]) => Math.max(lo, Math.min
 /** A hand shaped: each finger's and the thumb's joints curled as `h` says (held inside HAND_LIMITS), in place of the
  * capture's own fingers (the finger base, finger and thumb it turns are set straight, so the shape is the hand's
  * whatever the clip had them doing). For a skeleton without fingers of its own, the pose as it was. */
-export function handPose(skel: Skeleton, p: Pose, s: Side, h: HandShape): Pose {
+export function handPose(skel: Skeleton, p: Pose, s: Side, h: HandShape, only?: readonly Finger[]): Pose {
   const F = fingerJoints(skel, s);
   if (!F.length) return p;
   const ax = axesOf(skel, s), turns = p.turns.slice();
   while (turns.length < skel.joints.length) turns.push(I);
-  for (const n of s === "L" ? ["LeftFingerBase", "LeftHandFinger1", "LThumb"] : ["RightFingerBase", "RightHandFinger1", "RThumb"]) turns[joint(skel, n)] = I;
   // (the fan: the index out the most, the middle barely, the ring and pinky the other way)
   const fan = [0, 1, 0.15, -0.55, -1];
   // the thumb `t` of the way to its shape (its curl and its swing under the palm; a thumb curled back or swung out
@@ -83,7 +96,7 @@ export function handPose(skel: Skeleton, p: Pose, s: Side, h: HandShape): Pose {
     turns[i] = q;
   });
   FINGERS.forEach((f, k) => {
-    if (k === 0) return;
+    if (k === 0 || (only && !only.includes(f))) return;
     const c = h[f] ?? [0, 0, 0];
     F[k].forEach((i, ph) => {
       let q = qaxis(ax.hinge[k][ph], clampTo(c[ph], HAND_LIMITS.finger[ph]));
@@ -91,6 +104,7 @@ export function handPose(skel: Skeleton, p: Pose, s: Side, h: HandShape): Pose {
       turns[i] = q;
     });
   });
+  if (only && !only.includes("thumb")) return { ...p, turns };
   thumbAt(1);
   // the thumb rests on the fingers, never in them: closed as far as its skin clears the fingers' (a full wrap swung it
   // under the palm through the index's knuckle, its tip out the back of the hand; Shane, 10-22: "column 2 of the grips
@@ -118,10 +132,22 @@ function thumbInFingers(skel: Skeleton, p: Pose, s: Side): boolean {
 
 /** How a hand closes on a thing (closeOn; items.ts's grips): the fingers that close on it (`on`), the shape the
  * others hold (`rest`), how far one may curl at a joint (`max`, radians), the fan and the thumb's opposition. */
-export interface Closing { on: readonly Finger[]; rest?: Partial<Record<Finger, [number, number, number]>>; max: number; spread: number; opp: number }
+export interface Closing {
+  on: readonly Finger[]; rest?: Partial<Record<Finger, [number, number, number]>>; max: number; spread: number; opp: number;
+  /** captured hand poses, open to closed (HAND_POSES' names): the fingers close along them, each joint's number its
+   * place on the path (0 the first pose, 1 the next, ...) rather than a curl, `rest` and `max` too, and the fan and
+   * the thumb's swing are the poses' own (Shane, 11-01: the made-up curls looked wrong; captured hands don't) */
+  path?: readonly string[];
+  /** with a path, the thumb closing as a curl and a swing under the palm instead (radians: how far it curls, and its
+   * opposition): a power grip's thumb goes round the far side of a can, where the captured grips lay it along the
+   * fingers and nothing held the can against them */
+  thumb?: { max: number; opp: number };
+}
 
 // how a finger curls as one while it closes: the middle joint the most, the tip the least (the thumb's knuckle most)
 const CURL: [number, number, number] = [1, 1.1, 0.75], THUMB_CURL: [number, number, number] = [0.45, 0.8, 0.6];
+// (along a captured path the poses already move the joints together)
+const EVEN: [number, number, number] = [1, 1, 1];
 
 /** how far a finger's skin may press into a thing it rests on (soft skin gives a few millimetres: ContactOpt's
  * 2-3 mm), metres */
@@ -163,22 +189,26 @@ function fingerSkinOf(skel: Skeleton, s: Side) {
  * eases rather than flicks, and where that is in the thing, opens from there as little as clears it.
  */
 export function closeOn(skel: Skeleton, p: Pose, s: Side, field: (q: Vec3) => number, g: Closing, close = 1, prev?: HandShape): HandShape {
-  const shape: HandShape = { spread: g.spread * close, thumbOpp: g.opp * close };
+  // (along the path or not, finger by finger: a power grip's thumb curls as ever)
+  const onPath = (k: number) => !!g.path && !(k === 0 && g.thumb);
+  const shape: HandShape = { spread: g.spread * close, thumbOpp: (g.thumb?.opp ?? g.opp) * close };
   for (const [f, c] of Object.entries(g.rest ?? {}) as [Finger, [number, number, number]][]) shape[f] = c.map((v) => v * close) as [number, number, number];
   for (const f of g.on) shape[f] = [0, 0, 0];
   const F = fingerJoints(skel, s);
-  if (!F.length || !skel.surface || !skel.skin || !skel.bind) return shape;
-  const P = handPose(skel, p, s, shape), turns = P.turns;
+  if (!F.length || !skel.surface) return shape;
+  const P = g.path ? pathHand(skel, p, s, g.path, shape, g.thumb ? 1 : 0) : handPose(skel, p, s, shape), turns = P.turns;
   const w = withFingers(skel, pose(skel, P)), wp: Posed = { pos: w.pos.slice(), rot: w.rot.slice() };
-  const ax = axesOf(skel, s), skin = fingerSkinOf(skel, s), sk = skel.skin, { turns: bt, heads } = skel.bind;
+  const ax = axesOf(skel, s), skin = fingerSkinOf(skel, s), sk = skel.joints;
   const fan = [0, 1, 0.15, -0.55, -1];
   const order = [1, 2, 3, 4, 0];
-  const lim = (k: number) => (k === 0 ? HAND_LIMITS.thumb : HAND_LIMITS.finger);
+  const end = g.path ? g.path.length - 1 : 0, along: [number, number][] = [[0, end], [0, end], [0, end]];
+  const lim = (k: number) => (onPath(k) ? along : k === 0 ? HAND_LIMITS.thumb : HAND_LIMITS.finger);
   // finger k's skin at curl c (and the thumb's opposition o): each phalanx's nearest to the surface (metres, < 0 in
   // it), and for the thumb whether it is in the fingers
   let segs: FingerSegment[] = [];
   const at = (k: number, c: [number, number, number], o: number) => {
     F[k].forEach((i, ph) => {
+      if (onPath(k)) { turns[i] = alongPath(skel, s, g.path!, k, ph, c[ph]); place(skel, turns, wp, i, i + 1, P.root); return; }
       let q = qaxis(ax.hinge[k][ph], clampTo(c[ph], lim(k)[ph]));
       if (ph === 0 && k === 0 && o) q = qmul(qaxis(ax.opp, clampTo(o, HAND_LIMITS.thumbOpp)), q);
       if (ph === 0 && k > 0 && shape.spread) q = qmul(qaxis(ax.spread, fan[k] * clampTo(shape.spread, HAND_LIMITS.spread)), q);
@@ -187,8 +217,7 @@ export function closeOn(skel: Skeleton, p: Pose, s: Side, field: (q: Vec3) => nu
     });
     const sj: { pos: Vec3; rot: Quat }[] = [];
     for (const j of skin[k].sj) {
-      const x = sk[j], fr = qmul(wp.rot[x.drive], bt[x.drive]);
-      sj[j] = { pos: add(wp.pos[x.drive], qrot(fr, sub(x.head, heads[x.drive]))), rot: x.from === x.to ? qmul(wp.rot[x.from], bt[x.from]) : slerp(qmul(wp.rot[x.from], bt[x.from]), qmul(wp.rot[x.to], bt[x.to]), x.u) };
+      sj[j] = { pos: wp.pos[j], rot: wp.rot[j] };
     }
     const near: [number, number, number] = [Infinity, Infinity, Infinity];
     let inFingers = false;
@@ -245,13 +274,13 @@ export function closeOn(skel: Skeleton, p: Pose, s: Side, field: (q: Vec3) => nu
     return best ?? outOf(k, x, open);
   };
   for (const k of order) {
-    const f = FINGERS[k], on = g.on.includes(f), R = k === 0 ? THUMB_CURL : CURL, L = lim(k);
+    const f = FINGERS[k], on = g.on.includes(f), R = onPath(k) ? EVEN : k === 0 ? THUMB_CURL : CURL, L = lim(k);
     if (k === 0) segs = fingerSegments(skel, wp, s).slice(1).flatMap((x) => x.segments);
-    const o0 = k === 0 ? shape.thumbOpp ?? 0 : 0, cap = (m: number) => Math.min(g.max * close, L[m][1]);
+    const o0 = k === 0 ? shape.thumbOpp ?? 0 : 0, mx = k === 0 && g.thumb ? g.thumb.max : g.max, cap = (m: number) => Math.min(mx * close, L[m][1]);
     // where it closes to (a finger the grip holds as it is: that shape) and where it opens to: past straight as far
     // as the hand lets it, the thumb swung out from under the palm
     const want: Fit = [on ? [cap(0), cap(1), cap(2)] : shape[f] ?? [0, 0, 0], o0];
-    const open: Fit = [[L[0][0], L[1][0], L[2][0]], k === 0 ? HAND_LIMITS.thumbOpp[0] : 0];
+    const open: Fit = [[L[0][0], L[1][0], L[2][0]], k === 0 && !onPath(0) ? HAND_LIMITS.thumbOpp[0] : 0];
     let x: Fit;
     if (!on) {
       // (a finger the grip holds as it is: opened until it only just touches)

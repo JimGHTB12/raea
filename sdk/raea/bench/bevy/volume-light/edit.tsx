@@ -5,10 +5,10 @@
 // over the right of the field, unseen: only its shadow and the gap it cuts in the shafts show. Every value is the
 // frame's, so render equals play (check.sh).
 import { AbsoluteFill, Composition, interpolate, registerRoot, useCurrentFrame } from "raea";
-import { Cylinder, FogVolume, Shadows, Sphere, ToneMapping, VolumetricFog } from "raea/3d";
+import { FogVolume, Shadows, Sphere, ToneMapping, VolumetricFog } from "raea/3d";
 import { Cloud } from "../../../../../examples/volumes/cloud";
 import { StandardMaterial } from "raea/pbr";
-import { Cuboid, Mesh3d } from "raea/mesh";
+import { Cuboid, Mesh3d, ConicalFrustum } from "raea/mesh";
 import { AmbientLight, DirectionalLight } from "raea/light";
 import { Quat, Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
@@ -50,7 +50,7 @@ function Shot() {
           <StandardMaterial base_color="#7c8a5c" perceptual_roughness={0.95} />
         </Mesh3d>
         <Mesh3d transform={Transform.fromXyz(-6, 4, 2)} name="column">
-          <Cylinder args={[1, 1.2, 8]} />
+          <ConicalFrustum radius_top={1} radius_bottom={1.2} height={8} />
           <StandardMaterial base_color="#d8d2c6" perceptual_roughness={0.7} />
         </Mesh3d>
         <Mesh3d transform={Transform.fromXyz(4, 1.5, 6)} name="ball">

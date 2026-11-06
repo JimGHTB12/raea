@@ -1,6 +1,6 @@
 // Items' tasks and plans, and the moments and measures of a reach, a carry and a throw.
 import type { Vec3 } from "raea/3d";
-import { joint, palmAt, pose, rest, type HandGoal, type Side, type Skeleton } from "raea/character";
+import { B, SIDES, joint, palmAt, pose, rest, type HandGoal, type Side, type Skeleton } from "raea/character";
 import { type PerformanceSpec, type Step } from "../matching";
 import { type Handling, type Thing } from "../things";
 import { crouchDrop, crouchedAt, stoop } from "./all";
@@ -91,8 +91,8 @@ export const FRONT = 0.092;
 
 // the body's segments' masses, a share of the whole each, at the middle of its two joints (de Leva 1996): the trunk,
 // the head, and each side's upper arm, forearm, hand, thigh, shin and foot
-export const SEGMENTS: [string, string, number][] = [["Hips", "Spine1", 0.497], ["Neck", "Head", 0.081],
-  ...["Left", "Right"].flatMap((s) => [[s + "Arm", s + "ForeArm", 0.028], [s + "ForeArm", s + "Hand", 0.016], [s + "Hand", s + "Hand", 0.006], [s + "UpLeg", s + "Leg", 0.1], [s + "Leg", s + "Foot", 0.0465], [s + "Foot", s + "ToeBase", 0.0145]] as [string, string, number][])];
+export const SEGMENTS: [string, string, number][] = [[B.pelvis, B.chest, 0.497], [B.neck, B.head, 0.081],
+  ...SIDES.flatMap((s) => [[B.upperarm(s), B.lowerarm(s), 0.028], [B.lowerarm(s), B.hand(s), 0.016], [B.hand(s), B.hand(s), 0.006], [B.thigh(s), B.calf(s), 0.1], [B.calf(s), B.foot(s), 0.0465], [B.foot(s), B.ball(s), 0.0145]] as [string, string, number][])];
 
 // a patient pick, after it: raised before the chest and turned over in the hand, looked at, then lowered to the hold
 // (seconds)
@@ -145,7 +145,7 @@ export const leanFor = (bend: number) => lerp(1.4, 0.7, bend);
  * body standing at rest with the crouch interact uses, so the plan never asks a squat to reach past its arms (it would
  * fold flat over its knees to get there). */
 export function reachAhead(skel: Skeleton, y: number, bend: number): number {
-  const p0 = rest(skel), x = skel.joints[joint(skel, "RightArm")].head[0], h = skel.height;
+  const p0 = rest(skel), x = skel.joints[joint(skel, B.upperarm("R"))].head[0], h = skel.height;
   const ok = (d: number) => {
     const goal: HandGoal = { at: [x, y, d] }, { drop, stoop } = crouchDrop(skel, p0, { R: goal }, leanFor(bend), bend);
     const pa = palmAt(skel, pose(skel, crouchedAt(skel, p0, { R: goal }, drop, leanFor(bend), stoop).pose), "R");

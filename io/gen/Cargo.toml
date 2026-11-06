@@ -1,0 +1,15 @@
+[package]
+name = "raea-io-gen"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Generation flows: made.app's models at provider cost, ComfyUI workflows read and written, and the runner that routes each step to made, fal, Replicate, OpenRouter, Modal, a ComfyUI server or a local model"
+
+[dependencies]
+raea-io-gen-comfy = { path = "../gen-comfy" }
+raea-io-gen-core = { path = "../gen-core" }
+raea-io-home = { path = "../home" }
+serde_json = "1"
+# image.crop, image.scale, image.stitch, run here (native.rs)
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }

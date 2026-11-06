@@ -10,7 +10,7 @@
 // probe: 2 2 r<20 g<20 b<20
 // probe: 61 61 r<20 g<20 b<20
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { BevyComponent, Canvas3D, Entity } from "raea/3d";
+import { BevyComponent, Entity } from "raea/3d";
 import { Camera3d } from "raea/camera";
 import { DirectionalLight } from "raea/light";
 import { Transform } from "raea/transform";
@@ -18,13 +18,13 @@ import { Transform } from "raea/transform";
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 6).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.785398 } }} />
         <DirectionalLight transform={Transform.fromXyz(0.2, 0.3, 1).lookingAt([0, 0, 0])} illuminance={10000} />
         <Entity>
           <BevyComponent type="bevy_world_serialization::components::WorldAssetRoot" value="plugin-trenchbroom.map#Scene" />
         </Entity>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

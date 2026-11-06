@@ -712,7 +712,8 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 ServoTextControlInnerEditor
             },
             "slider-fill" => SliderFill,
-            "slider-thumb" => SliderThumb,
+            // raea: Chrome's and Firefox's names for it, as pages write them (Excalidraw's opacity slider)
+            "slider-thumb" | "-webkit-slider-thumb" | "-moz-range-thumb" => SliderThumb,
             "slider-track" => SliderTrack,
             "-moz-progress-bar" => MozProgressBar,
             "-servo-anonymous-box" => {

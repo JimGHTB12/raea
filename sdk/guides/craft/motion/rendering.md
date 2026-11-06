@@ -39,3 +39,19 @@ looking again, finds more than a still per change and costs less.
 - Calling it done without listening. The voice must stay intelligible over the bed, and every sound should land on
   its beat.
 - Answering while `raea check` still names a fault.
+
+## Bitrate, quality and dark material
+
+A video's bitrate follows its size and frame rate (about 20 Mbit/s at 1080p30, 80 at 4K30; VideoToolbox spends less on
+flat pictures), and `--kbps N` sets it. `--quality draft|high|master` (or 0..1: 0.6, 0.85, 0.95) asks for constant
+quality instead, each frame getting the bits it needs: `master` keeps thin type and hard vector edges clean at 4K
+(about 31 Mbit/s on flat motion graphics). Blotching in dark areas is the encoder, not the composition: export dark
+material as PNG frames (`RAEA_READBACK=rgba raea render piece.tsx -o frames/`) and encode them with more bits for the
+darks.
+
+## A person's hand edits
+
+A person's hand edit in the raea app comes back as props, so keep them when you revise: `<Composition ... edit={{
+segments: [[0, 412], [430, 3285]] }}>` plays those frame ranges one after another (a trim, a split, a cut word), and
+`<Nudge x={0} y={-156}>` around an element moves it by those px. Edit the composition under them; change the segments
+only when the cut itself should change.

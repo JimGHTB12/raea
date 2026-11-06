@@ -1,6 +1,6 @@
 // Element: attributes, classes, geometry from the layout snapshot, focus and pointer capture.
 import * as wire from "../wire";
-import { ATTR_PROP, Comment_, DOMRect_, HTML_NS, Node_, S, body, computedOf, cssText, doc, geo, html, htmlDoc, installed, kebab, makeStyle, matchesSelector, mutated, nodeList, parseCss, parseSelector, pointerEventsOf, query, tellCapture, wireStyle } from "./all";
+import { ATTR_PROP, Comment_, DOMRect_, HTML_NS, editableChanged, forceLayout, setInnerHtml, Node_, S, body, computedOf, cssText, doc, geo, html, htmlDoc, installed, kebab, makeStyle, matchesSelector, mutated, nodeList, parseCss, parseSelector, pointerEventsOf, query, tellCapture, wireStyle } from "./all";
 
 // ---------------------------------------------------------------- elements
 
@@ -123,6 +123,7 @@ export class Element_ extends Node_ {
     }
     this._attrs.set(name, value);
     this._toWire(name, value);
+    if (name === "contenteditable") editableChanged(this);
     mutated(this, { type: "attributes", attributeName: name, oldValue: old });
   }
   setAttributeNS(_ns: string | null, n: string, v: unknown) {
@@ -138,6 +139,7 @@ export class Element_ extends Node_ {
     }
     this._attrs.delete(name);
     this._toWire(name, null);
+    if (name === "contenteditable") editableChanged(this);
     mutated(this, { type: "attributes", attributeName: name, oldValue: old });
   }
   removeAttributeNS(_ns: string | null, n: string) {
@@ -245,8 +247,7 @@ export class Element_ extends Node_ {
     return this._kids.map((k) => (k instanceof Element_ ? k.outerHTML : escapeHtml(k.textContent ?? ""))).join("");
   }
   set innerHTML(v: string) {
-    // no HTML parser: a string with no markup is its text; markup is out of scope (P18: innerHTML)
-    this.textContent = String(v).replace(/<[^>]*>/g, "");
+    setInnerHtml(this, String(v ?? ""));
   }
   get outerHTML(): string {
     const attrs = [...this._attrs].map(([k, v]) => ` ${k}="${escapeHtml(v)}"`).join("");
@@ -307,7 +308,9 @@ export class Element_ extends Node_ {
   // ---- geometry
   _box(): number[] | undefined {
     if (this === body || this === html) return undefined;
-    return this._wired && this.__wid !== undefined && this.isConnected ? geo.get(this.__wid) : undefined;
+    if (!(this._wired && this.__wid !== undefined && this.isConnected)) return undefined;
+    // placed since the page was last laid out: laid out now, as Chrome does for the read (forceLayout)
+    return geo.get(this.__wid) ?? (forceLayout() ? geo.get(this.__wid) : undefined);
   }
   getBoundingClientRect(): DOMRect_ {
     if (this === html || this === body) return new DOMRect_(0, 0, S.vw, this === html ? S.vh : S.vh);

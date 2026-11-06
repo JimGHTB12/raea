@@ -11,8 +11,9 @@
 #   .spare/live.mp4                      not in the feed (hidden): the live cases copy it into a renders/ folder
 #   library/still-01.png .. still-40.png forty small stills, not in the feed (no renders/): the left panel's Assets
 #                                        list overflows at every size, so the left-list scroll cases have a range
-#   .home/films/raea-play/pong/          the world's home (the runner moves .home there): the play item's game,
-#                                        ~/films/raea-play/pong/pong.tsx, as links to the repo's own bench Pong
+#   .home/Studio/internal/projects/raea-play/pong/   the world's home (the runner moves .home there): the play
+#                                        item's game, pong.tsx, as links to the repo's own bench Pong (and
+#                                        .home/films/raea-play, a link to it, for older raea-feed)
 # The runner copies OUT into each case's world and dates the files by times.txt. conformance runs this itself (once
 # per version of this folder, cached under $TMPDIR/conformance/fixture-<hash>).
 set -euo pipefail
@@ -35,8 +36,11 @@ cp "$here/board.md" "$out/storyboard/board.md"
 ff -f lavfi -i "testsrc2=s=160x90:r=1:d=1" -frames:v 1 "$out/library/still-01.png"
 for i in $(seq -w 2 40); do cp "$out/library/still-01.png" "$out/library/still-$i.png"; done
 repo=$(cd "$here/../../../.." && pwd)
-pong=$out/.home/films/raea-play/pong
-mkdir -p "$pong"
+# the play item's source is ~/Studio/internal/projects/raea-play/pong (raea-feed from 40a27b4) or, in older
+# raea-feed, ~/films/raea-play/pong: the fixture's home has both
+pong=$out/.home/Studio/internal/projects/raea-play/pong
+mkdir -p "$pong" "$out/.home/films"
 for f in "$repo"/sdk/react/bench/games/pong/*; do ln -s "$f" "$pong/$(basename "$f")"; done
 ln -s "$repo/sdk/react/bench/games/pong/edit.tsx" "$pong/pong.tsx"
+ln -s ../Studio/internal/projects/raea-play "$out/.home/films/raea-play"
 du -sh "$out" | awk '{print "fixture: " $1 " in " $2}'

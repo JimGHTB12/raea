@@ -30,6 +30,7 @@ pub fn headers(resp: &ureq::Response) -> Vec<(String, String)> {
 /// The page's net.fetch, made on the calling thread.
 pub fn fetch(args: &Value) -> Result<Value, String> {
     let url = args["url"].as_str().ok_or("no url")?;
+    raea_io_home::offline(&format!("fetch {url}"))?;
     let method = args["method"].as_str().unwrap_or("GET");
     let follow = args["redirect"].as_str().unwrap_or("follow") == "follow";
     let agent = ureq::AgentBuilder::new().redirects(if follow { 20 } else { 0 }).timeout(Duration::from_secs(300)).build();

@@ -5,6 +5,9 @@
 
 use blitz_traits::net::{Bytes, NetHandler, NetProvider, Request};
 
+mod host;
+pub use host::fetch;
+
 /// Files and data URLs; a path that isn't on disk is looked for under each of `roots` in turn (a server's root: WPT's
 /// `/css/...`).
 #[derive(Default)]
@@ -28,6 +31,12 @@ impl NetProvider for FileNet {
                 })
             }),
             "data" => raea_io_net::data_url(url.as_str()).map(|(_, b)| b),
+            // the page's own origin (http://localhost/, as page_fetch has it): the file under the roots, confined, so an
+            // @font-face, image or stylesheet the app names by its URL loads as in Chrome (Excalidraw's fonts did not)
+            "http" if url.host_str() == Some("localhost") && url.port().is_none() && !self.roots.is_empty() => {
+                let path = url::Url::parse(&format!("file://{}", url.path())).ok().and_then(|u| u.to_file_path().ok());
+                path.and_then(|p| FrameNet { roots: self.roots.clone() }.confined(&p)).filter(|p| p.is_file()).and_then(|p| std::fs::read(p).ok())
+            }
             "http" | "https" => match raea_io_net::cache::read(url.as_str()) {
                 Ok(b) => Some(b),
                 Err(e) => {
@@ -38,7 +47,7 @@ impl NetProvider for FileNet {
             _ => None,
         };
         // a load that fails still answers (empty), so the document doesn't wait for it
-        if bytes.is_none() && !matches!(url.scheme(), "http" | "https") {
+        if bytes.is_none() && (!matches!(url.scheme(), "http" | "https") || url.host_str() == Some("localhost")) {
             bevy::log::warn!("raea-page: {url} isn't a file, a data URL or a URL that reads");
         }
         handler.bytes(url.to_string(), Bytes::from(bytes.unwrap_or_default()));
@@ -121,7 +130,14 @@ pub fn page_fetch(args: &serde_json::Value) -> Option<serde_json::Value> {
     }
     // its path decoded, as a file URL's
     let path = url::Url::parse(&format!("file://{}", u.path())).ok()?.to_file_path().ok()?;
-    let found = if matches!(args["method"].as_str(), None | Some("GET" | "HEAD")) { FrameNet { roots }.confined(&path).filter(|p| p.is_file()) } else { None };
+    // /media/x from the root's media/, then its assets/ (Bevy's assets folder: docs/sdk.feature S5a), confined either way
+    let assets = path.strip_prefix("/media").ok().map(|rest| std::path::Path::new("/assets").join(rest));
+    let net = FrameNet { roots };
+    let found = if matches!(args["method"].as_str(), None | Some("GET" | "HEAD")) {
+        net.confined(&path).filter(|p| p.is_file()).or_else(|| assets.and_then(|a| net.confined(&a)).filter(|p| p.is_file()))
+    } else {
+        None
+    };
     Some(match found.and_then(|p| std::fs::read(&p).ok().map(|b| (p, b))) {
         Some((p, bytes)) => serde_json::json!({
             "status": 200, "statusText": "OK", "url": url, "redirected": false,

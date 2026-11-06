@@ -5,13 +5,13 @@ use super::*;
 fn rewrite_into_points_imports_and_re_exports_at_the_copies() {
     // the SDK's names resolve through the tree's sdk/tsconfig.base.json
     let m = &raea_io_home::home().join("sdk/raea/src");
-    let src = "import { a } from \"raea\";\nimport { useCurrentFrame } from \"raea/clock\";\nimport { Clock } from \"@raea/app/clock\";\nexport { sao, fish } from \"raea/asset\";\nexport * from \"raea/video\";\nexport type { T } from \"raea/native-calls\";\nexport default 1\nimport b from \"raea\";\nexport function f() { return \"from\"; }\n";
+    let src = "import { a } from \"raea\";\nimport { useCurrentFrame } from \"raea/clock\";\nimport { Clock } from \"@raea/app/clock\";\nexport { sao, lyria } from \"raea/asset\";\nexport * from \"raea/video\";\nexport type { T } from \"raea/native-calls\";\nexport default 1\nimport b from \"raea\";\nexport function f() { return \"from\"; }\n";
     let out = rewrite_into(src, Path::new("/nowhere/app"), m, "../motion", None).unwrap();
     assert!(out.contains("import { a } from \"../motion/prelude\""));
     // a module whose code moved into a package is that package's copy, beside motion/
     assert!(out.contains("import { useCurrentFrame } from \"../app/clock\""));
     assert!(out.contains("import { Clock } from \"../app/clock\""));
-    assert!(out.contains("export { sao, fish } from \"../motion/asset\""));
+    assert!(out.contains("export { sao, lyria } from \"../motion/asset\""));
     assert!(out.contains("export * from \"../motion/video\""));
     assert!(out.contains("export type { T } from \"../motion/native-calls\""));
     // an `export default` with no semicolon isn't swallowed into the import after it

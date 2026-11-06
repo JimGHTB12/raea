@@ -3,6 +3,7 @@ import type { Vec3 } from "raea/3d";
 import { bodyScale, qinv, qmul, qnorm, qrot, qyaw, type Pose } from "raea/character";
 import { framePose, type Clip } from "../clip";
 import { type PlantLog } from "../feet";
+import { type LockLog } from "../lock";
 import { qexp, qlog, type RigEffect } from "../effects";
 import { MotionLibrary, MotionState, TagSpec, labelOf, rounded } from "./all";
 
@@ -78,6 +79,14 @@ export interface PerformanceSpec {
 }
 
 export interface PerformOptions {
+  /** how the guide pulls the body: true (Holden's velocity-limited adjustment and clamp, docs/locomotion.md; the
+   * default) or the flat pull (false; RAEA_ADJUST=0) */
+  adjust?: boolean | "1";
+  /** passes of the five-frame smoothing over the matched joints (2 by default; 0 leaves them as matched) */
+  smooth?: number;
+  /** how the feet are held while they stand: "lock" (lockFeet, the default: contacts baked from the soles, heel then
+   * ball locked, released on a spring) or "plant" (plantFeet, the older pinning; RAEA_FEET=plant) */
+  feet?: "plant" | "lock";
   /** how often it searches the library, frames */
   every?: number;
   /** a switch's blend, seconds */
@@ -157,7 +166,7 @@ export interface Performance {
   step(frame: number): { index: number; kind: "walk" | "wait" | "sit" | "act"; since: number; left: number } | null;
   /** with `trace`: the pose at each stage (the clip's frame as chosen, blended in, the feet planted, the elbows relaxed,
    * the gaze), the frames a switch began, the rate (library frames a frame) and what planting did, for motionLint */
-  trace?: { stages: Record<"clip" | "blend" | "plant" | "elbows" | "gaze", Pose[]>; switches: number[]; rate: number[]; plant?: PlantLog };
+  trace?: { stages: Record<"clip" | "blend" | "plant" | "elbows" | "gaze", Pose[]>; switches: number[]; rate: number[]; plant?: PlantLog; lock?: LockLog };
 }
 
 export const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -219,7 +228,10 @@ export function guide(spec: PerformanceSpec, fps: number, lib: MotionLibrary): P
       continue;
     }
     // a walk's own corners (a route's are rounded already) rounded a little: no one walks to a corner and pivots
-    const pts = rounded(st.walk, [], 0);
+    // (from where the body is: a walk whose first point is elsewhere goes there first; taken as its start, the guide
+    // jumped 3 m and the body was pulled across at 11 m/s with its feet down)
+    const w0 = st.walk[0], far = !w0 || Math.hypot(w0[0] - x, w0[1] - z) > 0.05;
+    const pts = rounded(far ? [[x, z] as [number, number], ...st.walk] : st.walk, [], 0);
     const segs: { a: [number, number]; b: [number, number]; l: number }[] = [];
     for (let k = 1; k < pts.length; k++) segs.push({ a: pts[k - 1], b: pts[k], l: Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]) });
     const total = segs.reduce((a, s) => a + s.l, 0);

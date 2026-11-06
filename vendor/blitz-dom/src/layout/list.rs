@@ -78,9 +78,15 @@ fn node_list_item_child(
     let position = match list_style_position {
         ListStylePosition::Inside => ListItemLayoutPosition::Inside,
         ListStylePosition::Outside => {
-            let mut parley_style = stylo_to_parley::style(child_id, &styles);
+            // raea: in the item's ::marker style, its white space kept as Chrome's UA sheet has it (white-space: pre;
+            // "1. " lost its space at the line's end and sat against the item's text)
+            let marker_styles = doc.marker_style(child_id);
+            let mut parley_style = stylo_to_parley::style(child_id, marker_styles.as_deref().unwrap_or(&**styles));
+            parley_style.white_space_collapse = parley::WhiteSpaceCollapse::Preserve;
 
-            if let Some(font_family) = font_for_bullet_style(list_style_type) {
+            // raea: a disc in the item's own font, as Chrome's "• " (in the Bullet font with an 8px pad it sat 3px above
+            // Chrome's); the other bullets (◦ ▪ ▾ ▸) keep the Bullet font, which every text font may not have
+            if !matches!(marker, Marker::Char('•')) && let Some(font_family) = font_for_bullet_style(list_style_type) {
                 parley_style.font_family = font_family;
             }
 
@@ -94,10 +100,7 @@ fn node_list_item_child(
             );
 
             match &marker {
-                Marker::Char(char) => {
-                    let mut buf = [0u8; 4];
-                    builder.push_text(char.encode_utf8(&mut buf));
-                }
+                Marker::Char(char) => builder.push_text(&format!("{char} ")),
                 Marker::String(str) => builder.push_text(str),
             };
 

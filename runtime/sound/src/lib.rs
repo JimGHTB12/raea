@@ -298,8 +298,8 @@ static MAKING: std::sync::Mutex<Option<HashMap<String, Option<PathBuf>>>> = std:
 /// A generated sound for live play: the file a worker made, once it has; the worker started the first time it's asked
 /// for. Only local models: a paid one (lyria, speech) is made by a render, which counts it against the run's cap.
 /// A generated <Audio>'s params as the asset store takes them, and its seed (as a Sampler's spec gives them, above):
-/// its seconds and the generator's own settings (data-options: a TokenSynth note's midi, velocity, seed and precision; a
-/// Fish voice and speed), the seed from them (1 without one). Every one of them is in the made sound's key.
+/// its seconds and the generator's own settings (data-options: a TokenSynth note's midi, velocity, seed and
+/// precision), the seed from them (1 without one). Every one of them is in the made sound's key.
 pub fn generated_params(seconds: f64, options: Option<&str>) -> (Value, u64) {
     let mut params = serde_json::Map::new();
     if let Some(Value::Object(o)) = options.and_then(|s| serde_json::from_str::<Value>(s).ok()) {

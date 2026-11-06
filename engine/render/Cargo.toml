@@ -55,6 +55,9 @@ bytemuck = "1"
 # the media plane: clips decode through a MediaBackend (soft everywhere, apple on Apple)
 raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio", "apple"], optional = true }
 
+# Bevy's Solari and MetalFX's denoiser on it (the raytracing feature)
+raea-render-raytrace = { path = "raytrace", optional = true }
+
 [features]
 # native: everything that only exists to render on the machine itself (clips' decoders, the GPU frame path and its
 # traces, the direct views); without it raea-render is the program format and the 3D engine, which is what a browser build needs (docs/web-export.md, milestone 1)
@@ -64,6 +67,9 @@ web = ["bevy/webgpu"]
 # AV1 (dav1d decode, rav1e encode) as a media backend: on by default; an exported game's player goes without it
 # (lightspeed R7: about 1 MB of code no game uses)
 default = ["native", "h264", "av1", "scripts", "network"]
+# Bevy's Solari, ray-traced lighting and its reference path tracer (docs/raytracing.feature RT3), and MetalFX's
+# denoiser on it on the Mac (RT4)
+raytracing = ["native", "dep:raea-render-raytrace"]
 # the soft backend's H.264 (openh264): mezzanines, raea-render export's GOPs, portable video decode; an exported game's
 # player goes without it and decodes video on the platform (lightspeed R7)
 h264 = ["native", "raea-io-media/h264"]

@@ -1,6 +1,6 @@
 // interact's passes over the frames, a way clear of things, and a throw's keys and flight.
 import type { Vec3 } from "raea/3d";
-import { add, qinv, joint, len, palmAt, pose, qnorm, qrot, qyaw, reach, rest, scale3, sub, type HandShape, type Pose, type Quat, type Side, type Skeleton } from "raea/character";
+import { B, add, qinv, joint, len, palmAt, pose, qnorm, qrot, qyaw, reach, rest, scale3, sub, type HandShape, type Pose, type Quat, type Side, type Skeleton } from "raea/character";
 import { surfacesOf, toLocal, type Handling, type Thing } from "../things";
 import { Beat, G, ItemPlan, LAUNCH, ThrowStyle, Track, W, graspThing, mix, smooth, thingSdf } from "./all";
 
@@ -22,7 +22,7 @@ export function eased(v: number[], R = 10) {
 export function smoothCarries(skel: Skeleton, poses: Pose[], work: { attach: { w: number; hands: Side[] }[]; goals: { hands: Partial<Record<Side, { at: Vec3 }>> } }[]) {
   const carries = (f: number, s: Side) => work[f].attach.some((a) => a.w >= 1 && a.hands.includes(s));
   for (const s of ["L", "R"] as Side[]) {
-    const js = ["Arm", "ForeArm", "Hand"].map((x) => joint(skel, (s === "L" ? "Left" : "Right") + x));
+    const js = B.arm(s).map((x) => joint(skel, x));
     for (let pass = 0; pass < 2; pass++) {
       const was = poses.map((q) => js.map((j) => q.turns[j]));
       for (let f = 1; f + 1 < poses.length; f++) {

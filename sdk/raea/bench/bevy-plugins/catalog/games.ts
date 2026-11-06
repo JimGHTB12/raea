@@ -1,6 +1,7 @@
-// The game plugins' drives (docs/plugins.feature PL0a), spread into proof.ts's: easings, navigator, northstar
+// The game plugins' drives (docs/plugins.feature PL0a) and save's (PL16), spread into proof.ts's
 import { at, with as w } from "raea/bevy";
 import { easings } from "raea/plugins/easings";
+import { native } from "raea/native";
 import { Drive, Transform, check, part } from "./drive";
 
 // within a frame (1/60 s) of the curve
@@ -53,5 +54,25 @@ export const games: Record<string, Drive> = {
     app.call("northstar/grid", { size: [10, 10], walls: [...walls, [5, 9], [8, 0], [8, 1], [9, 1]], chunk: 5, grid });
     check(app.call<Path>("northstar/path", { grid, from: [0, 0], to: [9, 0], mode: "astar" }) === null, "a walled-in goal has no way");
     return { cost: way!.cost, steps: way!.points.length };
+  },
+  save(app) {
+    // two of three entities marked Save, saved, one of them moved, then loaded: the file's two come back as new
+    // entities where they were saved (the old ones despawned, the move with them) and the unmarked one stays put; the
+    // loaded ones are marked again, so a second save takes them
+    const xs = [1, 2, 3].map((x) => app.spawn(at(x, 0, 0)));
+    app.call("save/mark", { entities: xs.slice(0, 2) });
+    const path = `${native("host.env", { name: "TMPDIR" }) ?? "/tmp"}/raea-proof-save.ron`;
+    const saved = app.call<{ saved: number[] }>("save/save", { path }).saved;
+    check(JSON.stringify([...saved].sort()) === JSON.stringify(xs.slice(0, 2).sort()), `saved ${saved}, not ${xs.slice(0, 2)}`);
+    app.insert(xs[0], w(Transform, part({ translation: [10, 0, 0] })));
+    const loaded = app.call<{ loaded: number[] }>("save/load", { path }).loaded;
+    const x = (e: number) => app.get(e, Transform)?.translation?.[0];
+    const back = loaded.map(x).sort();
+    check(JSON.stringify(back) === "[1,2]", `loaded at ${back}, not 1 and 2`);
+    check(!loaded.includes(xs[0]) && app.query({ data: [Transform] }).every((q) => x(q.entity) !== 10), "the moved entity should be gone");
+    check(x(xs[2]) === 3, `the unmarked entity moved to ${x(xs[2])}`);
+    const again = app.call<{ saved: number[] }>("save/save", { path }).saved;
+    check(JSON.stringify([...again].sort()) === JSON.stringify([...loaded].sort()), `the second save took ${again}, not ${loaded}`);
+    return { saved, loaded, back };
   },
 };

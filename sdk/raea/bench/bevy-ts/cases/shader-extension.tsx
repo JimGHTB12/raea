@@ -5,7 +5,7 @@
 // probe: 22 32 r>110 g<60 b>150
 // probe: 43 32 r<70 g<60 b>150
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { ToneMapping, Canvas3D, Sphere } from "raea/3d";
+import { ToneMapping, Sphere } from "raea/3d";
 import { Mesh3d } from "raea/mesh";
 import { AmbientLight, DirectionalLight } from "raea/light";
 import { Transform } from "raea/transform";
@@ -23,7 +23,7 @@ fn lit(in: VertexOutput, pbr: PbrInput, color: vec4<f32>) -> vec4<f32> {
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 4).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 1.0471975511966 } }} />
         <ToneMapping mode="none" />
         <AmbientLight brightness={0} />
@@ -32,7 +32,7 @@ function Shot() {
           <Sphere radius={1.2} />
           <ExtendedMaterial base={<StandardMaterial base_color="#ffffff" perceptual_roughness={0.9} />} extension={<ShaderExtension {...({ wesl, uniforms: { blue: 1 } })} />} />
         </Mesh3d>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

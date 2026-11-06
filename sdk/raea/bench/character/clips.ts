@@ -71,7 +71,7 @@ function quality(sc: Scene, perf: ReturnType<typeof perform>, L: { contact: Uint
   const nr = rangeOf(L as any), frames = perf.played.map((p) => nr.get(p.clip)!.start + p.f), tagged = !!L.db;
   const rest = skel.joints[0].head[1];
   let midMin = Infinity;
-  const feet = ["LeftFoot", "RightFoot"].map((n) => joint(skel, n));
+  const feet = ["foot_l", "foot_r"].map((n) => joint(skel, n));
   let maxWalkY = -Infinity, walkN = 0, fast = 0, crouchedN = 0, carryN = 0, carryWalkN = 0, standY: number[] = [], minWalkY = Infinity, skateSum = 0, skateMax = 0;
   let prev: Vec3[] | null = null, prevK = -1;
   for (let f = 0; f < perf.frames; f++) {

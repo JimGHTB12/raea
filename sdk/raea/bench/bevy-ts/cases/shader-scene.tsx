@@ -7,7 +7,7 @@
 // probe: 32 46 g>100 r<40 b<40
 // probe: 32 12 r>180 g>180 b>180
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { ToneMapping, Canvas3D, Model, SurfaceShader } from "raea/3d";
+import { ToneMapping, Model, SurfaceShader } from "raea/3d";
 import { StandardMaterial } from "raea/pbr";
 import { Cuboid, Mesh3d } from "raea/mesh";
 import { AmbientLight, DirectionalLight } from "raea/light";
@@ -22,7 +22,7 @@ fn lit(in: VertexOutput, pbr: PbrInput, color: vec4<f32>) -> vec4<f32> {
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 0, 6).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.872664625997165 } }} />
         <ToneMapping mode="none" />
         <AmbientLight brightness={120} />
@@ -32,7 +32,7 @@ function Shot() {
         <Mesh3d transform={Transform.fromXyz(1.6, 0.9, 0)}><Cuboid half_size={[0.5, 0.5, 0.5]} /><StandardMaterial base_color="#ffffff" /></Mesh3d>
         <Mesh3d transform={Transform.fromXyz(0, 1.6, 0)}><Cuboid half_size={[0.3, 0.3, 0.3]} /><StandardMaterial base_color="#ffffff" unlit /></Mesh3d>
         <Model src="lit-card.gltf" position={[0, -1.2, 0]} scale={0.6} />
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

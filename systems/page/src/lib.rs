@@ -145,10 +145,11 @@ pub fn resolve(mut docs: NonSendMut<Docs>, pages: Query<(Entity, &Page)>, time: 
     for (e, page) in &pages {
         let Some(doc) = docs.0.get_mut(&e) else { continue };
         let at = clock.0.unwrap_or_else(|| time.elapsed_secs_f64());
-        // a page resized: its document's viewport follows (a window's page: the host sets the size)
-        if doc.viewport().window_size != (page.size.x, page.size.y) {
+        // a page resized or rescaled (the iPad sets its scale late): its viewport follows, or text lays out off its box
+        if doc.viewport().window_size != (page.size.x, page.size.y) || doc.viewport().hidpi_scale != page.scale {
             let mut v = doc.viewport().clone();
             v.window_size = (page.size.x, page.size.y);
+            v.hidpi_scale = page.scale;
             doc.set_viewport(v);
         }
         let t0 = std::time::Instant::now();

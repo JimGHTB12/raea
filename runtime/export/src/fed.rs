@@ -20,6 +20,27 @@ pub(crate) struct FrameLog {
     pub(crate) rows: Vec<(i64, f64, [f64; 5])>,
 }
 
+/// Whether any of `frames` shows 3D: each rendered on its own in one runtime (frames are pure, so a frame stepped
+/// alone is the frame a whole pass would have stepped), stopping at the first that does.
+pub(crate) fn frames_hold_3d(js: &Path, dir: &Path, frames: &[i64]) -> R<bool> {
+    edit_dir(dir);
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins).add_plugins(ReactPlugin::new(js.to_path_buf()));
+    app.insert_resource(raea_runtime_react::OneBatch::default());
+    settle(&mut app, Some(-1), 20.0)?.ok_or("the composition's settings didn't arrive")?;
+    let mut held = false;
+    for &f in frames {
+        raea_runtime_bake::step_frames(&mut app, f, f + 1, |app, _| {
+            held |= !scene_of(app.world_mut()).is_empty();
+            Ok(())
+        })?;
+        if held {
+            break;
+        }
+    }
+    Ok(held)
+}
+
 /// The frames `scene_program_to` reads its rows from, with the composition's size and rate.
 ///
 /// Stepped as a bake steps (bake.rs, lightspeed T3): React renders a range of frames back to back (raea-frames) and

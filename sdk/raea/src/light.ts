@@ -5,3 +5,5 @@
 export { AmbientLight, GlobalAmbientLight, DirectionalLight, PointLight, SpotLight, RectLight, type AmbientLightProps, type DirectionalLightProps, type PointLightProps, type SpotLightProps, type RectLightProps } from "@raea/render/bevy3d";
 export { Atmosphere, Environment, Shadows, type AtmosphereProps, type EnvironmentProps, type ShadowsProps } from "./3d";
 export * from "@raea/render/daylight";
+// ray-traced lighting (Bevy's Solari, docs/raytracing.feature RT3)
+export { SolariLighting, Pathtracer, type SolariLightingProps, type PathtracerProps } from "@raea/render/bevy3d";

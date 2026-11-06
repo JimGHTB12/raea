@@ -1,7 +1,7 @@
 // golden case 05: case 04's sign, made as a native solid (manifold.roundedBox(...).minus(manifold.text3d(...))) and
 // drawn from an ECS world whose system turns it each frame; the same frames as the rrl edit
 import { AbsoluteFill } from "../../../src";
-import { Canvas3D, Scene, manifold } from "../../../src/3d";
+import { Scene, manifold } from "../../../src/3d";
 import { createWorld } from "raea/ecs";
 
 const sign = manifold.roundedBox(2.4, 1.1, 0.25, 0.08).minus(manifold.text3d("SALE", 0.62, 0.6));
@@ -16,9 +16,9 @@ world.system((w, f) => w.set(m, { rot_y: -0.5 + (f + 1) / 59 }));
 export default function WorldSign() {
   return (
     <AbsoluteFill style={{ background: "#101418" }}>
-      <Canvas3D>
+      <>
         <Scene world={world} />
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

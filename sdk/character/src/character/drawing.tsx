@@ -1,10 +1,12 @@
 // Placement in the scene, and drawing a body: <Character>.
 import type { ReactNode } from "react";
-import { Model, type Vec3 } from "@raea/render/3d";
+import { MeshPhysicalMaterial, MeshStandardMaterial, Model, type Vec3 } from "@raea/render/3d";
+import { HAIR_LOOK, HAIR_WESL, type HairLook } from "./hair";
+import { SKIN_LOOK, SKIN_SURFACE, SKIN_WESL, type SkinLook, type SkinSurface } from "./skin";
 import { LinearRgba, Srgba, StandardMaterial } from "@raea/render/bevy3d";
 import type { Glitch } from "@raea/physics/physics";
 import { staticFile } from "@raea/video/media";
-import { Goals, Pose, Side, Skeleton, add, eulerXYZ, pose, qmul, qrot, qyaw, rest, scale3, skinJoints, solve, sub } from "./all";
+import { Goals, Pose, Side, Skeleton, add, eulerXYZ, faceWeights, pose, qmul, qrot, qyaw, rest, scale3, skinJoints, solve, sub, type Face } from "./all";
 
 // ---------------------------------------------------------------- placement
 
@@ -65,7 +67,7 @@ export interface CharacterProps extends Placement {
   pose?: Pose;
   /** goals met on top of the pose, in the scene's coordinates */
   goals?: Goals;
-  /** its ink outline (the inverted hull; true by default, false for a ghost): looks with their own outlines leave it out */
+  /** its ink outline (the inverted hull): off unless asked for (true), as a look that wants an ink line does */
   outline?: boolean;
   /** the skin's own triangles broken up by the frame's values (physics.tsx's Glitch: explode, scramble, jitter, snap,
    * smear, seed) while it keeps following the pose; the hull, if drawn, glitched the same */
@@ -75,8 +77,42 @@ export interface CharacterProps extends Placement {
   ghost?: CharacterGhost;
   /** the composition pass its skin (and hull) draws in (Mesh's `pass`; "scene" by default) */
   pass?: string;
+  /** the face (a psx body's morph targets): any of MakeHuman's 34 expression units by name (FACE_UNITS:
+   * "mouth-open", "eyebrows-left-up" ...) and presets mixed from them (FACE_PRESETS: blink, smile, frown, surprise,
+   * sad, and the lips' open, pucker and wide), 0 to 1; they add */
+  face?: Face;
+  /** the hair drawn as hair (character/hair.ts: strand highlights on the body's "hair" material, after lighting): on by
+   * default, false for the plain surface, or settings over HAIR_LOOK; `coverage: true` softens the cards' cut edges
+   * (alphaMode "coverage", for a scene with <AntiAliasing mode="msaa">: without MSAA the cards draw solid); `color`
+   * tints the hair's texture (a hex colour: a creator's hair colour) */
+  hair?: boolean | (Partial<HairLook> & { coverage?: boolean; color?: string });
+  /** the skin drawn as skin (character/skin.ts, on the body's "skin" material): the fine relief of real skin (fading out with distance), the photo's own surface detail,
+   * a second, tighter shine (clearcoat) and light scattered under the skin (a soft, reddened falloff at shadow edges).
+   * Off by default; true, or settings over SKIN_LOOK and SKIN_SURFACE. `mask` is the fine relief's strength by region (the
+   * body's skin_mask.png, which projects/psx bodies have; false for even relief everywhere); `detailMap` the photo's surface
+   * detail (the body's skin_detail.png, psx bodies since 11-05; false for none); `microMap` the fine relief tile (the
+   * body's skin_micro.png, from a photograph of real skin; false for none) */
+  skin?: boolean | (Partial<SkinLook> & Partial<SkinSurface> & { mask?: string | false; detailMap?: string | false; microMap?: string | false });
+  /** more of the body's morph targets by name, beside the face's: a character kit's face-*, weight-*, age-* and tuck-*
+   * (corpo's people/kit.py). Name the same set every frame: the engine fixes a model's morph names when it makes it */
+  morphs?: Record<string, number>;
+  /** more skinned models on the same joints, drawn with the body: a kit's garments and hair (parts/*.glb), each with
+   * its own morph weights and materials. A part named "hair" in its src is shaded as hair, as the body's own is */
+  parts?: CharacterPart[];
   /** the skin's materials, as a <Model>'s: <MeshStandardMaterial> re-covering its glTF materials (all, or the one
    * `material` names), with or without a `shader` over them (docs/shaders.feature SH3); the joints and hull keep theirs */
+  children?: ReactNode;
+}
+
+/** A model worn on the body's joints (a garment, hair): its glTF's joints named as the body's. */
+export interface CharacterPart {
+  /** its .glb */
+  src: string;
+  /** its morph targets' weights by name (a kit part carries the body's weight-*, age-* and, for hair, face-*) */
+  morphs?: Record<string, number>;
+  /** its cloth: a baked simulation of its vertices in its bind pose and the frame drawn (<Model cloth>, docs/cloth.md) */
+  cloth?: { src: string; frame: number };
+  /** <MeshStandardMaterial> re-covering its materials, as the body's children do */
   children?: ReactNode;
 }
 
@@ -97,6 +133,32 @@ export interface CharacterGhost {
 /** An Anny body posed. Each joint is a hidden model where the pose puts it, and the skin follows them (Model's
  * `bones`). Groups are flattened before the engine sees them while a skin's joints are placed in the skin's own frame,
  * so a Character is placed by its own position, yaw and scale, never inside a <Group>. */
+/** the body's "hair" material shaded as hair (character/hair.ts) */
+function hairMaterial(h: CharacterProps["hair"]) {
+  const { coverage, color, ...look } = typeof h === "object" ? h : ({} as { coverage?: boolean; color?: string });
+  return <MeshStandardMaterial material="hair" roughness={1} reflectance={0.04} {...(color ? { color } : {})} {...(coverage ? { alphaMode: "coverage" as const } : {})} shader={{ wesl: HAIR_WESL, uniforms: { ...HAIR_LOOK, ...look } as Record<string, number | number[]> }} />;
+}
+
+/** the body's "skin" material shaded as skin (character/skin.ts) */
+function skinMaterial(sk: CharacterProps["skin"], src: string) {
+  const { mask, detailMap, microMap, clearcoat, clearcoatRoughness, reflectance, ...look } = typeof sk === "object" ? sk : ({} as Exclude<CharacterProps["skin"], boolean | undefined>);
+  const dir = src.replace(/^\//, "");  // (an asset path: no leading slash)
+  const m = mask === false ? undefined : (mask ?? `${dir}/skin_mask.png`);
+  const dm = detailMap === false ? undefined : (detailMap ?? `${dir}/skin_detail.png`);
+  const mm = microMap === false ? undefined : (microMap ?? `${dir}/skin_micro.png`);
+  const textures = { ...(m ? { mask: m } : {}), ...(dm ? { detail: dm } : {}), ...(mm ? { micro: mm } : {}) };
+  const defs = { ...(m ? { SKIN_MASK: true } : {}), ...(dm ? { SKIN_DETAIL: true } : {}), ...(mm ? { SKIN_MICRO: true } : {}) };
+  const surface = { ...SKIN_SURFACE, ...(clearcoat !== undefined ? { clearcoat } : {}), ...(clearcoatRoughness !== undefined ? { clearcoatRoughness } : {}), ...(reflectance !== undefined ? { reflectance } : {}) };
+  return (
+    <MeshPhysicalMaterial
+      material="skin"
+      {...surface}
+      diffuseTransmission={0}
+      shader={{ wesl: SKIN_WESL, uniforms: { ...SKIN_LOOK, ...look } as Record<string, number | number[]>, ...(m || dm || mm ? { textures, defs } : {}) }}
+    />
+  );
+}
+
 export function Character(props: CharacterProps) {
   const reg = typeof props.body === "string" ? bodies.get(props.body) : undefined;
   if (typeof props.body === "string" && !reg) throw new Error(`Character: no body ${props.body} (registerBody its skeleton.json first; registered: ${[...bodies.keys()].join(", ") || "none"})`);
@@ -115,17 +177,31 @@ export function Character(props: CharacterProps) {
   const bones = Object.fromEntries(sj.map((j) => [j.name, `${name}-${j.name}`]));
   const g = props.glitch, ghost = props.ghost;
   const pass = props.pass !== undefined ? { pass: props.pass } : {};
+  // (all 34 units always named, so the model's morph names never change: the engine fixes them when it makes the model)
+  const named = { ...(props.face ? faceWeights(props.face) : {}), ...(props.morphs ?? {}) };
+  const morphs = Object.keys(named).length ? { morphs: named } : {};
   const glitch = g ? { explode: g.explode ?? 0, scramble: g.scramble ?? 0, jitter: g.jitter ?? 0, snap: g.snap ?? 0, smear: g.smear ?? [0, 0, 0], seed: g.seed ?? 0 } : undefined;
   return (
     <>
       {sj.map((j) => (
         <Model key={j.name} name={`${name}-${j.name}`} src={`${src}/joint.glb`} position={scale3(toScene(at, j.pos), 1 / k)} rotation={eulerXYZ(qmul(turn, j.rot))} scale={0.001} />
       ))}
-      <Model name={`${name}-body`} src={`${src}/body.glb`} bones={bones} scale={k} allowOverlap={ghost ? true : undefined} flat={ghost ? ghost.unlit !== false : undefined} {...(glitch ? { glitch } : {})} {...pass}>
+      <Model name={`${name}-body`} src={`${src}/body.glb`} bones={bones} scale={k} allowOverlap={ghost ? true : undefined} flat={ghost ? ghost.unlit !== false : undefined} {...(glitch ? { glitch } : {})} {...pass} {...morphs}>
         {props.children}
+        {!ghost && props.hair !== false && hairMaterial(props.hair)}
+        {!ghost && props.skin && skinMaterial(props.skin, src)}
         {ghost && <StandardMaterial base_color_texture={null} base_color={ghost.opacity !== undefined ? Srgba.hex(ghost.color).with_alpha(ghost.opacity) : ghost.color} {...(ghost.opacity !== undefined && ghost.opacity < 1 ? { alpha_mode: "Blend" as const } : {})} {...(ghost.emissive ? { emissive: LinearRgba.from(Srgba.hex(ghost.emissive)).mul(ghost.emissiveIntensity ?? 1) } : {})} />}
       </Model>
-      {(props.outline ?? !ghost) && <Model name={`${name}-hull`} src={`${src}/body.hull.glb`} bones={bones} scale={k} flat {...(glitch ? { glitch } : {})} {...pass} />}
+      {(props.parts ?? []).map((part) => {
+        const id = part.src.split("/").pop()!.replace(/\.glb$/, "");
+        return (
+          <Model key={id} name={`${name}-${id}`} src={part.src} bones={bones} scale={k} {...(glitch ? { glitch } : {})} {...pass} {...(part.morphs && Object.keys(part.morphs).length ? { morphs: part.morphs } : {})} {...(part.cloth ? { cloth: part.cloth } : {})}>
+            {part.children}
+            {id.includes("hair") && props.hair !== false && hairMaterial(props.hair)}
+          </Model>
+        );
+      })}
+      {props.outline === true && !ghost && <Model name={`${name}-hull`} src={`${src}/body.hull.glb`} bones={bones} scale={k} flat {...(glitch ? { glitch } : {})} {...pass} />}
     </>
   );
 }

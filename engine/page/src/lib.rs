@@ -20,6 +20,7 @@ pub struct PagePlugin;
 impl Plugin for PagePlugin {
     fn build(&self, app: &mut App) {
         raea_runtime_dom::computed::register();
+        raea_runtime_edit::register();
         app.add_plugins((
             raea_sys_page::PaintPlugin,
             raea_runtime_twins::bridge::BridgePlugin::<raea_runtime_dom::host::Roots>::default(),

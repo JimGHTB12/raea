@@ -7,4 +7,6 @@ publish = false
 description = "`raea check`: the floor's measurable lines on an export, ranked P0-P3"
 
 [dependencies]
+# taste.ts rules, as the raea CLI evaluates them (docs/projects.feature PJ0)
+raea-core-brief = { path = "../../core/brief" }
 serde_json = "1"

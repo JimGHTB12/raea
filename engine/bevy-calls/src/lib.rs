@@ -32,6 +32,8 @@ pub mod noisy;
 pub mod northstar;
 #[cfg(feature = "quinnet")]
 pub mod quinnet;
+#[cfg(feature = "save")]
+pub mod save;
 #[cfg(feature = "simple_tilemap")]
 pub mod simple_tilemap;
 #[cfg(feature = "sprite3d")]

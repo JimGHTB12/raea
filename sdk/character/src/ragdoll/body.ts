@@ -1,15 +1,16 @@
 // The body: its parts from the skeleton, the sim, and ragdoll().
 import { add, blend, captured, cross, dot, joint, len, norm, pose as forward, qbasis, qfromTo, qinv, qmul, qnorm, qrot, scale3, sub, surface, type Pose, type Skeleton } from "../character";
 import { Air, Body, Box, ID, Joint, Q, RagdollOptions, Skin, Sphere, V3, World, angles, clamp, frameFrom, irot, qlog, relative, skinAt, step, swingPose } from "./all";
+import { B } from "../character/bones";
 
 // ---------------------------------------------------------------- the body
 
 /** the parts: name, lead joint, share of the body's mass (de Leva's segments; the hand with the forearm) */
 const PARTS: [string, string, number][] = [
-  ["pelvis", "Hips", 0.112], ["abdomen", "LowerBack", 0.163], ["chest", "Spine1", 0.16], ["head", "Neck", 0.069],
-  ["upperarm.L", "LeftArm", 0.027], ["lowerarm.L", "LeftForeArm", 0.022], ["upperarm.R", "RightArm", 0.027], ["lowerarm.R", "RightForeArm", 0.022],
-  ["thigh.L", "LeftUpLeg", 0.142], ["shin.L", "LeftLeg", 0.043], ["foot.L", "LeftFoot", 0.014],
-  ["thigh.R", "RightUpLeg", 0.142], ["shin.R", "RightLeg", 0.043], ["foot.R", "RightFoot", 0.014],
+  ["pelvis", B.pelvis, 0.112], ["abdomen", B.spine[0], 0.163], ["chest", B.chest, 0.16], ["head", B.neck, 0.069],
+  ["upperarm.L", B.upperarm("L"), 0.027], ["lowerarm.L", B.lowerarm("L"), 0.022], ["upperarm.R", B.upperarm("R"), 0.027], ["lowerarm.R", B.lowerarm("R"), 0.022],
+  ["thigh.L", B.thigh("L"), 0.142], ["shin.L", B.calf("L"), 0.043], ["foot.L", B.foot("L"), 0.014],
+  ["thigh.R", B.thigh("R"), 0.142], ["shin.R", B.calf("R"), 0.043], ["foot.R", B.foot("R"), 0.014],
 ];
 
 /** each joint's limits (radians), heros-journey's: swing about x (flexion), about z (abduction, + outwards on the left),
@@ -101,20 +102,19 @@ function buildParts(skel: Skeleton, p: Pose) {
   const samples: { p: V3; n: V3 }[][] = PARTS.map(() => []);
   // the contact samples: where (world, at the pose), their normal, and their parts' weights
   const touch: { p: V3; n: V3; parts: [number, number][] }[] = [];
-  if (skel.surface && skel.skin) {
-    // each sample to the part whose bones it is nearest (by its skin joint, the pelvis had four: the hips' skin rides
-    // the thighs and the lower back)
+  if (skel.surface) {
+    // each sample to the part whose bones it is nearest (by its joint)
     const bones: { pi: number; a: V3; b: V3 }[] = [];
     for (let i = 0; i < nc; i++) if (partOf[i] >= 0) bones.push({ pi: partOf[i], a: w.pos[i], b: add(w.pos[i], qrot(w.rot[i], sub(J[i].tail, J[i].head))) });
     const toSeg = (x: V3, a: V3, b: V3) => { const ab = sub(b, a), l2 = dot(ab, ab), t = l2 > 1e-12 ? clamp(dot(sub(x, a), ab) / l2, 0, 1) : 0; return len(sub(x, add(a, scale3(ab, t)))); };
-    const S = skel.surface, sk = skel.skin;
+    const S = skel.surface;
     surface(skel, w).forEach((s, i) => {
       let best = -1, bd = Infinity;
       for (const bn of bones) { const d = toSeg(s.at, bn.a, bn.b); if (d < bd) { bd = d; best = bn.pi; } }
       samples[best].push({ p: local(best, s.at), n: irot(w.rot[lead[best]], s.normal) });
-      // its weights by part (the skin joints' drives'), the least dropped, the main part first
+      // its weights by part (its joints'), the least dropped, the main part first
       const by = new Map<number, number>();
-      S[i].j.forEach((j, k) => { const pi = partOf[sk[j].drive]; if (pi >= 0) by.set(pi, (by.get(pi) ?? 0) + S[i].w[k]); });
+      S[i].j.forEach((j, k) => { const pi = partOf[j]; if (pi >= 0) by.set(pi, (by.get(pi) ?? 0) + S[i].w[k]); });
       const tot = [...by.values()].reduce((a, b) => a + b, 0);
       const parts = [...by].filter(([, x]) => x > 0.05 * tot).sort((a, b) => b[1] - a[1]);
       const kept = parts.reduce((a, [, x]) => a + x, 0);
@@ -193,7 +193,7 @@ function makeSim(skel: Skeleton, motion: (f: number) => Pose, from: number, o: R
   const ref = parts.map((pt) => {
     const kind = pt.name.split(".")[0];
     if (kind !== "upperarm" && kind !== "lowerarm") return ID;
-    const side = pt.name.endsWith(".L") ? "L" : "R", j = J[joint(skel, side === "L" ? "LeftArm" : "RightArm")];
+    const side = pt.name.endsWith(".L") ? "L" : "R", j = J[joint(skel, B.upperarm(side))];
     return qfromTo(sub(j.tail, j.head), [(side === "L" ? 1 : -1) * Math.sin(HANG), -Math.cos(HANG), 0]);
   });
   // an elbow's hinge, in the arm's own frame at rest: the way the motion bends it (the capture's elbow is a hinge, but

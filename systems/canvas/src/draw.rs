@@ -56,6 +56,12 @@ impl Ctx<'_> {
                 let Some(img) = a.get(1).and_then(Value::as_str).and_then(|src| self.decode(src)) else { return };
                 self.image(pm, a, &img)
             }
+            // ["canvas", {key, w, h, ops}, sx, sy, sw, sh, dx, dy, dw, dh, state]: another canvas drawn on this one, its
+            // list as it was then, replayed here (Excalidraw draws each element on a canvas of its own, then those)
+            Some("canvas") => {
+                let Some(img) = a.get(1).and_then(|l| self.nested(l)) else { return };
+                self.image(pm, a, &img)
+            }
             // ["video", src, sx, sy, sw, sh, dx, dy, dw, dh, state, t]: the frame showing at t
             Some("video") => {
                 let Some(img) = a.get(1).and_then(Value::as_str).and_then(|src| video_frame(src, a.get(11).and_then(Value::as_f64).unwrap_or(0.0))) else { return };
@@ -120,15 +126,27 @@ impl Ctx<'_> {
             Some("ideographic") => "ideographic",
             _ => "alphabetic",
         };
-        let mut esc = String::new();
-        for c in text.chars() {
-            match c {
-                '&' => esc.push_str("&amp;"),
-                '<' => esc.push_str("&lt;"),
-                _ => esc.push(c),
+        let escape = |s: &str| {
+            let mut e = String::new();
+            for c in s.chars() {
+                match c {
+                    '&' => e.push_str("&amp;"),
+                    '<' => e.push_str("&lt;"),
+                    _ => e.push(c),
+                }
             }
-        }
+            e
+        };
         let fam = font["family"].as_str().unwrap_or("sans-serif").replace('"', "'");
+        // a family split across files by unicode-range: each run names the file that has its glyphs (subsets.rs)
+        let split = crate::split_families(&self.opt.fontdb).and_then(|s| crate::subsets::runs(&self.opt.fontdb, &s, &fam, text));
+        let esc = match split {
+            Some(runs) => runs.iter().map(|(f, s)| match f {
+                Some(f) => format!("<tspan font-family=\"'{}', {fam}\">{}</tspan>", f.replace('\'', ""), escape(s)),
+                None => format!("<tspan>{}</tspan>", escape(s)),
+            }).collect(),
+            None => escape(text),
+        };
         let paint_attr = if kind == "fill" {
             "fill=\"#fff\"".to_string()
         } else {
@@ -190,6 +208,32 @@ impl Ctx<'_> {
         Some(pm)
     }
 
+    /// A canvas's list drawn on a bitmap of its own size: kept by its key (the page gives one per canvas, list
+    /// generation and length), as the same element canvas is drawn on the board frame after frame.
+    fn nested(&mut self, list: &Value) -> Option<sk::Pixmap> {
+        static DRAWN: std::sync::Mutex<Vec<(String, sk::Pixmap)>> = std::sync::Mutex::new(Vec::new());
+        let key = list["key"].as_str().map(str::to_string);
+        if let Some(k) = &key
+            && let Some((_, pm)) = DRAWN.lock().unwrap().iter().find(|(x, _)| x == k)
+        {
+            return Some(pm.clone());
+        }
+        let n = |k: &str| list[k].as_u64().filter(|v| *v > 0 && *v <= 16384).map(|v| v as u32);
+        let mut out = sk::Pixmap::new(n("w")?, n("h")?)?;
+        for op in list["ops"].as_array().into_iter().flatten() {
+            self.op(&mut out, op);
+        }
+        if let Some(k) = key {
+            let mut drawn = DRAWN.lock().unwrap();
+            drawn.push((k, out.clone()));
+            // the newest kept, up to 256 MB
+            while drawn.iter().map(|(_, p)| p.data().len()).sum::<usize>() > 256 << 20 && drawn.len() > 1 {
+                drawn.remove(0);
+            }
+        }
+        Some(out)
+    }
+
     pub(crate) fn image(&mut self, pm: &mut sk::Pixmap, a: &[Value], img: &sk::Pixmap) {
         // ["image", src, sx, sy, sw, sh, dx, dy, dw, dh, state]
         let n = |i: usize| a.get(i).and_then(Value::as_f64).map(|v| v as f32);
@@ -205,7 +249,17 @@ impl Ctx<'_> {
         let alpha = st["alpha"].as_f64().unwrap_or(1.0) as f32;
         let smooth = st["smooth"].as_bool().unwrap_or(true);
         // the source rect mapped onto the destination, in the call's space
-        let place = ts.pre_translate(dx, dy).pre_scale(dw / sw, dh / sh).pre_translate(-sx, -sy);
+        // in the call's own space: fill_rect below applies `ts` to the shader too (placed with ts here as well, an
+        // image under a scale drew from the wrong spot, its transparent padding, and Excalidraw's boards came out blank)
+        // drawn under half size, smoothed: sampled from a mip level (halved), as Chrome does
+        let shrink = ((ts.sx * ts.sx + ts.ky * ts.ky).sqrt() * dw / sw).abs().min(((ts.kx * ts.kx + ts.sy * ts.sy).sqrt() * dh / sh).abs());
+        let levels = if smooth && shrink > 0.0 && shrink < 0.5 { ((1.0 / shrink).log2().floor() as u32).min(8) } else { 0 };
+        let mip = (levels > 0).then(|| halved(img, levels)).flatten();
+        let (img, k) = match &mip {
+            Some(m) => (m, iw / m.width() as f32),
+            None => (img, 1.0),
+        };
+        let place = sk::Transform::from_translate(dx, dy).pre_scale(dw / sw * k, dh / sh * k).pre_translate(-sx / k, -sy / k);
         let quality = if smooth { sk::FilterQuality::Bilinear } else { sk::FilterQuality::Nearest };
         let pattern = sk::Pattern::new(img.as_ref(), sk::SpreadMode::Pad, quality, alpha, place);
         let Some(inv) = ts.invert() else { return };
@@ -217,5 +271,53 @@ impl Ctx<'_> {
                 layer.fill_rect(r, &paint, ts, None);
             }
         });
+    }
+}
+
+/// `img` halved `levels` times, each pixel the mean of the 2x2 block under it (premultiplied, so a mean is right): the
+/// mip level Chrome samples an image drawn small from. Bilinear on the full image aliases, and a poster's stars
+/// sparkled on a board at 50%.
+fn halved(img: &sk::Pixmap, levels: u32) -> Option<sk::Pixmap> {
+    let mut cur: std::borrow::Cow<sk::Pixmap> = std::borrow::Cow::Borrowed(img);
+    for _ in 0..levels {
+        let (w, h) = (cur.width(), cur.height());
+        if w < 2 || h < 2 {
+            break;
+        }
+        let (nw, nh) = (w / 2, h / 2);
+        let mut out = sk::Pixmap::new(nw, nh)?;
+        let src = cur.data();
+        let dst = out.data_mut();
+        for y in 0..nh as usize {
+            for x in 0..nw as usize {
+                for c in 0..4 {
+                    let at = |yy: usize, xx: usize| u16::from(src[(yy * w as usize + xx) * 4 + c]);
+                    let sum = at(2 * y, 2 * x) + at(2 * y, 2 * x + 1) + at(2 * y + 1, 2 * x) + at(2 * y + 1, 2 * x + 1);
+                    dst[(y * nw as usize + x) * 4 + c] = ((sum + 2) / 4) as u8;
+                }
+            }
+        }
+        cur = std::borrow::Cow::Owned(out);
+    }
+    match cur {
+        std::borrow::Cow::Owned(p) => Some(p),
+        std::borrow::Cow::Borrowed(_) => None,
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn a_checkerboard_halved_is_its_mean() {
+        let mut pm = tiny_skia::Pixmap::new(4, 4).unwrap();
+        for (i, px) in pm.data_mut().chunks_mut(4).enumerate() {
+            let on = (i % 4 + i / 4) % 2 == 0;
+            px.copy_from_slice(if on { &[255, 255, 255, 255] } else { &[0, 0, 0, 255] });
+        }
+        let h = super::halved(&pm, 1).unwrap();
+        assert_eq!((h.width(), h.height()), (2, 2));
+        assert!(h.data().chunks(4).all(|p| p == [128, 128, 128, 255]), "{:?}", h.data());
+        assert!(super::halved(&pm, 0).is_none());
     }
 }

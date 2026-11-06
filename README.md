@@ -111,8 +111,11 @@ cargo build --release -p raea-cli --no-default-features
 target/release/raea render sdk/react/bench/games/pong/edit.tsx -o pong.mp4
 ```
 
-`--no-default-features` builds the public engine. The default features add raea's hosted services, which aren't
-part of this repository. [docs/settings.md](docs/settings.md) lists the settings raea reads.
+`--no-default-features` builds the public engine, as the releases are. The default features add one hosted service,
+Content Credentials signed by raea's signing server, which isn't part of this repository. raea sends nothing on its
+own: no telemetry, crash reports or update checks. What reaches the network is what you ask for (a remote URL in a
+composition, a model downloaded on first use, a `raea gen` step on a provider you hold a key for), and `RAEA_OFFLINE=1`
+refuses all of it. [docs/settings.md](docs/settings.md) lists the settings raea reads.
 
 ## What's in here
 

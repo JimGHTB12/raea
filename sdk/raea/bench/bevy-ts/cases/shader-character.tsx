@@ -5,14 +5,14 @@
 // probe: 32 32 g>100 r<40 b<40
 // probe: 4 32 g<20
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { ToneMapping, Canvas3D } from "raea/3d";
+import { ToneMapping } from "raea/3d";
 import { Character, type Skeleton } from "raea/character";
 import { AmbientLight, DirectionalLight } from "raea/light";
 import { Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
 import { ExtendedMaterial, ShaderExtension, StandardMaterial } from "raea/pbr";
 // card-body/skeleton.json, inline
-const skeleton: Skeleton = { name: "card", height: 2, joints: [{ name: "Hips", parent: -1, head: [0, 1, 0], tail: [0, 2, 0] }], landmarks: { eyes: [0, 1.7, 0] } };
+const skeleton: Skeleton = { name: "card", height: 2, joints: [{ name: "pelvis", parent: -1, head: [0, 1, 0], tail: [0, 2, 0] }], landmarks: { eyes: [0, 1.7, 0] } };
 
 const wesl = `
 fn lit(in: VertexOutput, pbr: PbrInput, color: vec4<f32>) -> vec4<f32> {
@@ -22,7 +22,7 @@ fn lit(in: VertexOutput, pbr: PbrInput, color: vec4<f32>) -> vec4<f32> {
 function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <Canvas3D>
+      <>
         <Camera3d transform={Transform.fromXyz(0, 1, 4).lookingAt([0, 1, 0])} projection={{ Perspective: { fov: 0.698131700797732 } }} />
         <ToneMapping mode="none" />
         <AmbientLight brightness={120} />
@@ -30,7 +30,7 @@ function Shot() {
         <Character skeleton={skeleton} src="card-body" outline={false}>
           <ExtendedMaterial base={<StandardMaterial base_color="#cccccc" />} extension={<ShaderExtension {...({ wesl })} />} />
         </Character>
-      </Canvas3D>
+      </>
     </AbsoluteFill>
   );
 }

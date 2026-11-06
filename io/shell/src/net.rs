@@ -125,6 +125,7 @@ fn fetch(v: &Value) -> R<Value> {
         None => None,
     };
     let given: Vec<(String, String)> = v.get("headers").and_then(Value::as_object).map(|h| h.iter().filter_map(|(k, v)| v.as_str().map(|v| (k.to_ascii_lowercase(), v.to_string()))).collect()).unwrap_or_default();
+    raea_io_home::offline("the shell's network request")?;
     let agent = raea_io_net::ureq::AgentBuilder::new().redirects(0).timeout(std::time::Duration::from_millis(timeout)).build();
     let mut chain = Vec::new();
     loop {

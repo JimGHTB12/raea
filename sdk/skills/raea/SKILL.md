@@ -5,217 +5,150 @@ description: Make video, motion graphics, games and 3D scenes with raea, the Ren
 
 # raea
 
-raea renders compositions written in TypeScript and React (`raea`) with a GPU engine built on Bevy. A
-composition is a function of the frame: give it frame N and it draws frame N. The same file renders to video, plays
-live as a game, or renders single frames for checking.
+raea renders compositions written in TypeScript and React with a GPU engine built on Bevy. A composition is a function
+of the frame: give it frame N and it draws frame N. The same file renders to video, plays live as a game, or renders
+single frames to check.
 
-## Set up (once)
+Each step below says where it runs. **HEADLESS**: the `raea` CLI alone, in any shell. **HOST**: needs the raea app
+running on this machine (its host answers). **PAGE**: needs the person's feed open in the app. **PERSON**: only the
+person can do it. Every PAGE step says what a headless agent does instead.
 
-1. macOS on Apple Silicon. Install (or update) raea: `curl -fsSL https://raea.io/install | sh`. It puts `raea`
-   in `~/.raea/bin`, links it from `~/.local/bin` (make sure that's on `PATH`, ahead of any older `raea`), and adds this
-   skill and raea-bevy to `~/.claude/skills`. Check it with `raea help` (it prints its usage).
-2. From a checkout of the repository instead: `cargo build --release -p raea-cli` at its root (Rust stable); the
-   binary is `target/release/raea`.
-3. Optional settings live in `~/.raea/env` (see `docs/settings.md`). Rendering needs none of them.
+## 1. Install (once) — HEADLESS
+<!-- sources: tools/release.sh apps/site/public/install engine/cli/src/skill.rs -->
 
-## Before working on a project
+- macOS (Apple Silicon) or Linux (x86_64): `curl -fsSL https://raea.io/install | sh`. Windows 10 or 11, in
+  PowerShell: `irm https://raea.io/install.ps1 | iex`. Either puts `raea` under `~/.raea`, puts it on your PATH, and
+  adds this skill and raea-bevy to `~/.claude/skills`. Run it again to update. `raea help` lists every verb.
+- Another agent: `raea skills install --agent claude|codex|kimi|gemini` puts the skills where that agent reads them.
+  `--pin quieter` (any move) adds a `/quieter` that loads one move. For Claude it also adds a hook that runs
+  `raea check --quick` after a composition is saved and hands you what it finds.
+- This file's front matter names the raea it shipped with (`version:`). If `raea --version` prints another, read
+  `raea skill` instead: it is this skill as your raea ships it.
+- From a checkout of the repository: `cargo build --release -p raea-cli`; the binary is `target/release/raea`.
+- Optional settings live in `~/.raea/env` (`docs/settings.md`). Rendering needs none of them.
 
-Run `raea context PROJECT` (a project folder with `brief.brief`, or a `.brief` file) and read all of it first. It
-prints the person's taste (`~/.raea/taste/`; a line there beats any guide's default), the brief, the look, the craft
-floor and the guide for each of the brief's modes. If it says the brief isn't shaped (no `believe`, no `mode`), shape
-it before making anything: ask who it's for and the one thing they should believe, or write your best guess with
-`(assumed)` after it and go on.
+## Reference
 
-For a pitch, an explain or a story, plan before you make: write the deliverable's storyboard as `name.board` beside
-the brief (a table: scene · on screen · narration · payoff), name it on the deliverable's line, and add a
-`- [ ] … storyboard approved #gate` task. Render nothing until the person approves it.
+Generated from the code by `tools/skills.sh gen`, so they're current. Read the one you need instead of guessing a flag:
+- [reference/cli.md](reference/cli.md): every `raea` verb, its flags and where it runs (`raea help` prints the same).
+- [reference/feed.md](reference/feed.md): the raea app's tools for an agent it launches, and which need its page.
+- [reference/files.md](reference/files.md): a workspace's and a project's files, what lives in `~/.raea`, and each
+  spec's fields (brief.ts, NAME.script.ts, taste.ts, plan.ts, controllers/ID.ts).
+- [reference/sdk.md](reference/sdk.md): what each `raea` import gives a composition.
+- [reference/app.md](reference/app.md): driving the raea app's window over MCP, as a person would (HOST).
 
-When the person leaves a note, read it as one move (quieter, bolder, distill, clarify, retime, recut, regrade, remix,
-harden, polish, critique) on the part or moment it names, and read that move's playbook first: `raea guide quieter`.
-Answer in their words; never name the move to them.
+## 2. The workspace and its projects — HEADLESS
+<!-- sources: apps/workspace/src -->
 
-Right before any edit to a composition, even a one-line change, read the floor again: `raea guide craft`. For the
-order of work (shape, storyboard, direction, floor, evidence) and how to read the person's notes, read
-`raea guide router` once.
+Work lives in a workspace: a git repo under raea.root (`~/Studio` unless `git config --global raea.root` says
+otherwise), one per studio or client, holding projects and controllers. In the raea app a project shows as a channel.
+- `raea workspace init NAME` makes one; `raea workspace adopt DIR` makes an existing folder one. `raea workspace`
+  shows it (`--json` for the projects and their paths).
+- `raea project new NAME` adds a project: its folder with `brief.ts`, `media/`, `out/` and `brand/`. A project can
+  live inline or as its own repo (`raea project split NAME`, `raea project join NAME`); both keep its history.
+- Work in the project's folder. Footage and other media go in `media/`, renders in `out/`.
 
-## Write a composition
+## 3. Read before you make — HEADLESS
+<!-- sources: engine/cli/src/guide.rs apps/workspace/src core/brief/src -->
 
-One `.tsx` file whose root registers compositions (for a footage edit, `raea init` in its folder writes the files it
-starts from: edit.tsx over cuts.ts, components/, styles.gen.ts and AGENTS.md):
+- `raea context .` in the project prints everything to read first, in order: the person's taste
+  (`~/.raea/taste/taste.ts`; a line there beats any guide's default), the workspace's taste, the brief, the look, the
+  workspace's controllers, the craft floor and each of the brief's modes' guides. Read all of it.
+- Run it once a session. If it refuses, say so in one line ("raea context failed: its message; reading the brief and
+  controllers directly") and read `brief.ts`, any `*.script.ts`, `~/.raea/taste/taste.ts` and `raea controller ls`
+  yourself. A `CONTEXT_STALE` line means `raea doctor` finds files from another version: run `raea doctor --fix`.
+- With no request in hand, `raea next` lists the two or three useful next steps from the brief, the compositions,
+  the renders and their checks. Offer them; never run one unasked.
+- The controllers (`raea controller ls`, `raea controller get PATH`) are the workspace's settings and workflows:
+  delivery specs, who reviews what, the tools every agent gets. Work to them. Change one only when the person asks:
+  `raea controller set PATH VALUE` (each change is a commit).
+- If the brief isn't shaped (no `believe`, no `mode`), shape it before making anything: ask who it's for and the one
+  thing they should believe, or write your best guess and add its field to the brief's `assumed` list.
+- For a pitch, an explain or a story, plan first: write the deliverable's storyboard as `NAME.script.ts` beside the
+  brief (`export default script({...})` from "raea/brief": scenes of beats, what's on screen and what each scene must
+  land; its fields are in reference/files.md), name it on the deliverable, and add a task "storyboard approved" tagged `gate`. `raea spec NAME.script.ts`
+  checks it. Render nothing until the person approves it (PERSON).
+- The person's footage and files: `raea library search "WORDS"` finds them by meaning across the libraries they've
+  indexed (HEADLESS once indexed; adding a folder waits for the person's yes, PERSON).
+- Right before any edit to a composition, even a one-line change, read the floor: `raea guide craft`. Read
+  `raea guide router` once for the order of work.
+
+## 4. Make an item — HEADLESS
+<!-- sources: sdk/raea/src/index.tsx sdk/raea/src/3d.tsx -->
+
+One `.tsx` file whose root registers compositions (`raea init` in a footage project writes the files to start from):
 
 ```tsx
 import { AbsoluteFill, Composition, Sequence, interpolate, registerRoot, useCurrentFrame } from "raea";
 
 function Card({ text }: { text: string }) {
   const f = useCurrentFrame();
-  return (
-    <AbsoluteFill style={{ background: "#000", color: "#fff", justifyContent: "center", alignItems: "center", fontSize: 96 }}>
-      <span style={{ opacity: interpolate(f, [0, 12], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) }}>{text}</span>
-    </AbsoluteFill>
-  );
+  const opacity = interpolate(f, [0, 12], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return <AbsoluteFill style={{ background: "#000", color: "#fff", justifyContent: "center", alignItems: "center", fontSize: 96 }}><span style={{ opacity }}>{text}</span></AbsoluteFill>;
 }
 
-function Piece() {
-  return (
-    <>
-      <Sequence from={0} durationInFrames={45}><Card text="One" /></Sequence>
-      <Sequence from={45} durationInFrames={45}><Card text="Two" /></Sequence>
-    </>
-  );
-}
-
-registerRoot(() => <Composition id="piece" component={Piece} width={1080} height={1920} fps={30} durationInFrames={90} />);
+registerRoot(() => (
+  <Composition id="piece" width={1080} height={1920} fps={30} durationInFrames={90} component={() => (
+    <><Sequence from={0} durationInFrames={45}><Card text="One" /></Sequence><Sequence from={45} durationInFrames={45}><Card text="Two" /></Sequence></>
+  )} />
+));
 ```
 
-Rules that keep renders right (`raea guide motion` has all ten, under "The core rules"; these are the ones every
-file needs):
+Rules that keep renders right (`raea guide motion` has all ten, under "The core rules"; every file needs these):
 - **Frame-pure.** Everything that moves reads `useCurrentFrame()`; `useState`, `useEffect` and timers don't animate a
-  render. `Math.random()` is seeded for each frame (new numbers every frame, the same on every render), so seed what
-  should hold still from an index; `Date` is the frame's time.
-- **Clamp every interpolate.** Pass `{extrapolateLeft: "clamp", extrapolateRight: "clamp"}` unless you mean the line
-  to run on past its ends.
-- **Cue on words, not on guessed frames.** `word("phrase")` returns the frame where the phrase is said (`raea render`
-  passes the cut's words.json), so cues follow the words if the cut moves.
-- Footage: `<Video src=...>` and `<Audio src=...>`.
-- Games: keep state in `useGameState(initial, step)`, where `step(state, input, frame)` is pure; read keys with
-  `useInput()`. The game plays live and renders from a logged play to the same pixels.
-- Brand and Tailwind: put the kit's `--brand-*` variables in `brand/brand.css`, `import { css } from "./styles.gen"`
-  and render `<style>{css}</style>` once. `raea render` (and `play`, `bundle`) writes `styles.gen.ts` beside
-  the composition from brand.css and the Tailwind classes your files use (`bg-brand-bg`, `text-brand-accent`,
-  `font-brand`, plus all of Tailwind's own).
-- Fonts: a face this Mac doesn't have goes in `media/fonts/`, declared with `@font-face { font-family: "Sohne";
-  font-weight: 600; src: url("/media/fonts/Sohne-600.woff2"); }` (in brand.css or a `<style>`; `staticFile("fonts/...")`
-  gives the same path). woff2, woff, ttf and otf load; a `data:` URL works too. Google Fonts families load by name.
-- Counters: `<Animate enter={tick({ to: 9130, separator: true, prefix: "$", suffix: "\u00a0pts" })} at={30} />` is
-  hidden until its `at`. In JSX, `\u` escapes work only inside braces: `unit={"\u00a0pts"}`, never `unit="\u00a0pts"`.
-- 3D: Bevy's names (Camera3d, Mesh3d, StandardMaterial, the lights) from `raea/camera`, `raea/mesh`, `raea/pbr`, `raea/light`, or `raea/prelude`. Read the raea-bevy skill (`sdk/skills/raea-bevy/SKILL.md`) first;
-  its "modules, in the order a frame is made" maps every Bevy-named module (sources, evaluate, compose, render, output).
-- 3D in footage (matchmove): `raea track clip.mp4 --subject X,Y,W,H` solves the clip's camera once (COLMAP,
-  kept in the asset store; check the APPLIED line's registered frames and error, and its notes for a rotation-only
-  fallback). Then `<Matchmove src={staticFile("clip.mp4")} subject={[x, y, w, h]} crop={0.4}>` with 3D children draws
-  the footage, follows its camera and keeps the subject in front. Its world is metres, ground at y = 0, frame 0 looking
-  down -Z; `crop` places a 9:16 window on 16:9 footage.
-- Sound: music in Tone.js (`import * as Tone from "raea/tone"`): instruments in a `Tone.Sampler` playing a
-  `Part` or `Sequence`, their notes from `Tone.tokensynth("a warm upright bass", ["C2", "C3", "C4"])` (TokenSynth, on
-  this Mac) or from an open sample library (`raea sounds`); foley with `sao("prompt", { seconds })` in an
-  `<Audio>` (Stable Audio Open, on this Mac); narration with `fish("words")`. One `<Mix lufs={-14} />` masters it.
-  Both local models install themselves on first use. No generated images or video.
-- Music-led pieces: before cutting anything to a song, run `raea song FILE --plot FILE.song.png` and look at
-  the plot. Time every cut, slam and move from the map's beats, downbeats and events (`useSong`, `song(map).cutsAt()`),
-  never from a constant BPM: a tempo times bar count drifts off the real beats within a minute, and it can't see a
-  build, a stop or a drop.
-- Music SOP: a library instrument first; a TokenSynth instrument is curated, not trusted (several seeds a root, roots
-  3-4 semitones apart, `tools/tokensynth/curate.py` picks the clean takes); under a voice, write a sparse drone score,
-  not genre pastiche. Read `raea guide music` ("Instruments from TokenSynth", "Writing music for picture")
-  before scoring anything. A drum kit from `raea sounds kick` / `hihat` / `rimshot` goes on `Tone.buses.music`
-  (what `sounds get` prints for drums); `Tone.buses.sfx` is for hits on the picture.
+  render. `Math.random()` is seeded per frame, so seed what should hold still from an index.
+- **Clamp every interpolate.** Do it unless you mean the line to run on past its ends.
+- **Cue on words, not on guessed frames.** `word("phrase")` is the frame where it's said, so cues follow the cut.
+- Footage: `<Video>` and `<Audio>`. Games: `useGameState(initial, step)` with a pure `step`, keys from `useInput()`.
+- Brand: the kit's `--brand-*` variables in `brand/brand.css` (`raea brand DOMAIN` reads them from a site), then
+  `import { css } from "./styles.gen"` and Tailwind classes like `bg-brand-bg`.
+- 3D: read the raea-bevy skill first; an asset to fix first (scale, pivot, FBX to .glb) goes through Blender
+  (`raea setup blender`, then `raea guide bevy/blender`).
+- Sound: `raea guide sound` and `raea guide music`; to cut to a song, run `raea song FILE --plot FILE.song.png` and
+  time cuts from its map, never a constant BPM. npm packages and React apps: `raea guide apps`.
+- Generated media: `raea guide gen` before the first `raea gen`.
 
-## npm packages and React libraries
-
-What works today. The "not yet" list is the gaps: when one is built, delete its line here.
-
-- Packages: `raea add @assistant-ui/react` (also `add PKG@RANGE`, `--dev`, `remove NAME`, `install`,
-  `install --offline`, `--in DIR`) writes `package.json` and `raea.lock` and lays out `node_modules`. raea's own package
-  manager does it; no Node, npm or bun is needed, and install scripts never run.
-- A React library that needs a real DOM (assistant-ui, Radix, shadcn) runs as an app: a module whose default export is
-  a component taking `{ width, height }`, running on real react-dom in a document of its own. Place it:
-  - on a screen in 3D: `<Screen name="chat" app="chat.tsx" resolution={[480, 640]} crt={false} />` (beside the 3D, or
-    as a Model's `screens` entry). The path is relative to the composition's folder;
-  - as an app panel or tool: `export const surface = "dom"` in the panel's file.
-- Input in live play: the pointer reaches an app screen through the 3D (where it lands on the picture). Pressing on the
-  screen gives it the keys, and the game gets none until a press elsewhere or Escape.
-- Renders: an app runs on the frame clock (timers, `Date`, `performance.now`, `requestAnimationFrame` follow the frame),
-  so a render repeats frame for frame.
-- Exported games: `export-game` bundles each app with its packages. The player must be built with them:
-  `cargo build --profile game -p raea-app-game --bin raea-game --features player,surfaces` (+6.7 MB); export refuses
-  an app screen with a player built without.
-
-Not yet:
-- An app as a flat 2D layer of a composition. It can be a 3D `<Screen>` or an app panel only; for a flat look, put a
-  `crt={false}` screen square to the camera.
-- A composition itself importing a DOM library. Only an app (above) can; the composition's own React is raea's lite
-  runtime.
-- Input to an app in a render: `render --input` replays the page's input, but an app screen gets none. Script what it
-  should show inside the app, on its own timers.
-- Anything in front of a screen blocking its clicks: the ray hits the nearest screen, through other objects. It also
-  assumes the 3D fills the stage.
-- Network calls in an app during a render: nothing records and replays them, so a render that calls a model doesn't
-  repeat. Keep renders offline.
-- Packages that need Node (`fs`, `child_process`, native addons, postinstall steps), and `git:`, `file:` and `link:`
-  dependencies. Browser-only packages work.
-- A package's own `.css` imports and Tailwind inside an app are untested; style with style objects until they are.
-
-## Render and check
+`raea check --quick piece.tsx` checks three stills' text (clipped, cramped, safe areas) in about a second: run it
+after each save when no hook does. Then render, and look before you call it done:
 
 ```sh
-raea render piece.tsx -o piece.mp4                 # the whole composition
-raea render piece.tsx --frame 60 -o frame60.png    # one frame, to look at
-raea render piece.tsx --at 0,45,89 -o frames/      # a few frames
-raea render piece.tsx --quality master -o piece.mp4  # a final export: constant quality
-raea play game.tsx --input                          # play a game live
+raea render piece.tsx --at 0,45,89 -o frames/                 # stills to look at: text fits, nothing overlaps
+raea render piece.tsx --alpha -o frames/                     # transparent PNGs, for an overlay in another editor
+raea render piece.tsx -o out/piece.mp4 --manifest out/render.json
+raea check out/piece.mp4 --manifest out/render.json --taste ~/.raea/taste/taste.ts -o out/piece.check.json   # P0-P3; exits 1 on a P0 or P1
 ```
 
-A video's bitrate follows its size and frame rate (about 20 Mbit/s at 1080p30, 80 at 4K30; VideoToolbox spends less on
-flat pictures), and `--kbps N` sets it. `--quality draft|high|master` (or 0..1: 0.6, 0.85, 0.95) asks for constant
-quality instead, each frame getting the bits it needs: `master` keeps thin type and hard vector edges clean at 4K
-(about 31 Mbit/s on flat motion graphics), so a final motion-graphics export needs no PNG folder through x264.
+`raea guide rendering` covers stills, the check, bitrate and quality; `raea guide rubric` covers judging the rest.
 
-Sound from the command line, through the same cache the composition's render uses (run them in the composition's
-folder, or pass `--dir`):
+## 5. Show it and read the notes — PAGE, PERSON
+<!-- sources: sdk/skills/raea/reference/feed.md -->
 
-```sh
-raea sao "deep punchy impact hit, tight" --seconds 1.2 -o hit.wav     # foley (Stable Audio Open)
-raea tokensynth "a soft wooden marimba" --notes C3,C4,C5 -o marimba/   # an instrument's notes (TokenSynth)
-raea sounds piano                                                       # open sample libraries
-raea sounds get salamander/piano --notes C3,C4,C5                       # into media/sounds/, with its Sampler
-raea setup-audio                                                        # install both local models now
-raea song song.wav --plot song.song.png                                 # the song's energy map (song.song.json)
-```
+- In the raea app, post the render to the project's feed with `feed_post` (a watch, look, listen or play item); the
+  person watches, plays and leaves notes on it there (PERSON). `feed_items` reads the items and their notes.
+- Headless instead: leave the file in the project's `out/`, give the person its path, and take their notes as text.
+- Every note, from the feed or as text, gets a move before any edit: pick the one it asks for (quieter, bolder,
+  distill, clarify, retime, recut, regrade, remix, harden, layout, typeset, animate, delight, adapt, optimize, extract,
+  generate, polish, critique) on the part or moment it names, and run `raea guide MOVE` before you touch the
+  composition. Answer in their words, and never name the move to them.
 
-`song` runs `raea-perceive` (installed beside raea in `~/.raea/bin`; from a checkout, `cargo build --release
--p raea-perceive`, or set `RAEA_PERCEIVE`) and its beat model, which the install ships.
+## 6. The next version — HEADLESS, then PAGE
+<!-- sources: sdk/skills/raea/reference/feed.md -->
 
-To cut to a song, map it first: `raea song` finds beats, bars, sections (the file's `[Section]` lyrics markers
-when it has them), builds, drops, stops (the beat dropping out, with its hits), hits and dips, and a cut rate per
-section. Look at the plot, then pace with it: `import map from "./song.song.json"`, `useSong(map)` for the frame's
-beat, energy, section, `inBuild`/`buildProgress` and `untilDrop`, and `song(map, { fps }).cutsAt()` for the frames to
-cut on. Hold through low sections, cut faster through a build, smash-cut on the drop, cut on a stop's hits.
+- Change the composition under the person's hand edits (the `edit` segments and `<Nudge>` props the app writes; see
+  `raea guide rendering`), render again and check again.
+- Render each version to a new file beside the old (`piece-v2.mp4`), never over it: the earlier version stays
+  watchable. In the app, post it with `feed_post` naming the item it `replaces`, so the feed keeps both as versions.
 
-Look at the frames you rendered before you call the work done: check text fits, nothing overlaps, and cues land
-where the transcript says. Then measure the export against the floor:
+## 7. Deliver — HEADLESS
+<!-- sources: runtime/export/src -->
 
-```sh
-raea render piece.tsx -o piece.mp4 --manifest render.json
-raea check piece.mp4 --manifest render.json --words words.json [--platform tiktok|reels|shorts] [--taste ~/.raea/taste] [-o check.json]
-```
-
-It ranks what it finds P0 to P3 (clipped text, text under a platform's buttons, captions too brief to read, caption
-contrast, frozen stretches, cues off their words, loudness, blotching in the darks) and exits 1 while a P0 or P1
-stands. `--taste` adds the person's own mechanical rules, the `## Checks` lines of their taste briefs (`- text-above
-54%: Text sits well clear of the bottom of the frame.`), each a P1 when broken. Fix those before anyone sees it. To judge the rest (the open, the point, the pacing, the sound), read
-`raea guide rubric`: it lists the questions a critique asks for each mode and how answers become ranks. Blotching in
-dark areas is the encoder, not the composition: export dark material as PNG frames (`RAEA_READBACK=rgba raea render
-piece.tsx -o frames/`) and encode them with more bits for the darks.
-
-A person's hand edit in the raea app comes back as props, so keep them when you revise: `<Composition ... edit={{ segments:
-[[0, 412], [430, 3285]] }}>` plays those frame ranges of the composition one after another (a trim, a split, a cut
-word), and `<Nudge x={0} y={-156}>` around an element moves it by those px. Edit the composition under them; change
-the segments only when the cut itself should change.
-
-## Deliver
-
-- Name exported files with lowercase letters, digits and hyphens only (`tag-adnanna.mp4`): no `@`, `#`, spaces or
-  other sigils. Messages, mail and some uploaders refuse or mangle names with them.
-- A render is already a standard file (H.264 High, yuv420p, AAC). It is large, though (its bitrate: see Render and
-  check), so hand over a share copy as well, small enough to text:
-  `ffmpeg -i film.mp4 -c:v libx264 -preset slow -crf 23 -maxrate 2600k -bufsize 5200k -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart film-share.mp4`
-  (about 1 MB for every 4 seconds).
+- Final exports: `--quality master` for motion graphics and type; name files with lowercase letters, digits and
+  hyphens only (`spring-launch-9x16.mp4`).
+- A render is a standard file (H.264 High, yuv420p, AAC) but large; hand over a share copy too:
+  `ffmpeg -i film.mp4 -c:v libx264 -preset slow -crf 23 -maxrate 2600k -bufsize 5200k -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart film-share.mp4`.
+- Deliver to the controllers' specs (sizes, platforms, loudness) when the workspace sets them.
 
 ## Go further
 
-Paths here are relative to the root of the raea repository.
-
-- Writing guides (pacing, captions, layout, sound, games, 3D): `raea guide` lists them and
-  `raea guide NAME` prints one (`motion` first, then `animating`, `layout`, `brand`, `music`, `sound` and the
-  rest; `bevy` and `bevy/NAME` for 3D). They ship with the install; in the repository they're under `sdk/guides/craft`.
-- The SDK's behaviour: `sdk/raea/spec/motion.feature`; what 3D reaches: `sdk/raea/docs/bevy-coverage.md`.
+- The guides: `raea guide` lists them; `raea guide NAME` prints one (`motion` first; `bevy` and `bevy/NAME` for 3D).
+- The SDK's behaviour: `sdk/raea/spec/motion.feature`; what 3D reaches: `raea guide coverage`.
