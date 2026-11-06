@@ -27,6 +27,10 @@ regex = "1"
 # (f60e0b7: every JSON map an IndexMap, every number its text, pong's apply 87 -> 159 allocations)
 libloading = "0.8"
 
+# the work folder's node_modules link on Windows (fresh.rs link_node_modules), as raea-io-npm makes its links
+[target.'cfg(windows)'.dependencies]
+junction = "1"
+
 [dev-dependencies]
 # tests/mezz.rs writes its long-GOP clip with the soft backend's H.264
 raea-io-media = { path = "../../io/media", default-features = false, features = ["apple", "soft"] }

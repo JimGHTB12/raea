@@ -14111,6 +14111,7 @@ name = "raea-runtime-bundle"
 version = "0.1.0"
 dependencies = [
  "dunce",
+ "junction",
  "libloading",
  "raea-core-scene",
  "raea-io-home",

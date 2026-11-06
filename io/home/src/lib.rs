@@ -13,7 +13,7 @@ pub fn home() -> std::path::PathBuf {
         if let Some(h) = std::env::var_os("RAEA_HOME").filter(|v| !v.is_empty()) {
             return std::path::PathBuf::from(h);
         }
-        let installed = std::env::current_exe().ok().and_then(|e| e.canonicalize().ok()).and_then(|e| e.parent()?.parent().map(|p| p.join("share/raea")));
+        let installed = std::env::current_exe().ok().and_then(|e| e.canonicalize().ok()).map(plain).and_then(|e| e.parent()?.parent().map(|p| p.join("share/raea")));
         if let Some(d) = installed.filter(|d| d.join("sdk/raea/src").is_dir()) {
             return d;
         }
@@ -22,9 +22,19 @@ pub fn home() -> std::path::PathBuf {
             return std::path::PathBuf::from("/nonexistent/raea");
         }
         let tree = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        tree.canonicalize().unwrap_or(tree)
+        tree.canonicalize().map(plain).unwrap_or(tree)
     })
     .clone()
+}
+
+/// A path without the verbatim `\\?\` prefix Windows' canonicalize() puts before a drive path: Rolldown's resolver
+/// can't open an import that starts with it, so `raea play` couldn't bundle a game (the lite entry imports bevy-react's
+/// bridge.ts by its path under home()). Any other path, a `\\?\UNC\` one included, is kept as it is.
+fn plain(p: std::path::PathBuf) -> std::path::PathBuf {
+    match p.to_str().and_then(|s| s.strip_prefix(r"\\?\")).filter(|r| r.as_bytes().get(1) == Some(&b':')) {
+        Some(r) => r.into(),
+        None => p,
+    }
 }
 
 /// raea's per-user cache folder: ~/Library/Caches/raea on macOS, $XDG_CACHE_HOME/raea (~/.cache/raea by default)
@@ -98,6 +108,19 @@ mod tests {
         assert_eq!(super::src_on(r"C:\Users\a\assets/m.png", true), "file:///C:/Users/a/assets/m.png");
         assert_eq!(super::src_on(r"\\?\C:\a\m.png", true), "file:///C:/a/m.png");
         assert_eq!(super::src_on("assets/m.png", true), "assets/m.png");
+    }
+
+    #[test]
+    fn home_is_no_verbatim_path() {
+        use std::path::PathBuf;
+        assert_eq!(super::plain(PathBuf::from(r"\\?\C:\github\raea")), PathBuf::from(r"C:\github\raea"));
+        assert_eq!(super::plain(PathBuf::from(r"\\?\UNC\server\share")), PathBuf::from(r"\\?\UNC\server\share"));
+        assert_eq!(super::plain(PathBuf::from("/Users/a/raea")), PathBuf::from("/Users/a/raea"));
+        // the tree a test build came from, canonicalized: on Windows that added \\?\ before
+        if std::env::var_os("RAEA_HOME").is_none() {
+            let home = super::home().display().to_string();
+            assert!(!home.starts_with(r"\\?\"), "{home}");
+        }
     }
 
     #[test]

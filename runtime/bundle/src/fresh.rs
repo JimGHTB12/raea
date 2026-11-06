@@ -180,7 +180,7 @@ pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&P
     static ONE: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let _one = ONE.lock().unwrap_or_else(|e| e.into_inner());
     let work = std::env::temp_dir().join(format!("raea-cli-b{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&work);
+    remove_work(&work);
     copy_dir(&dir, &work.join("src"), 0)?;
     let motion_src = raea_io_home::home().join("sdk/raea/src").canonicalize().map_err(|e| format!("raea/motion/src: {e}"))?;
     copy_dir(&motion_src, &work.join("motion"), 0)?;
@@ -243,8 +243,7 @@ pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&P
         }
     }
     let js = raea_io_home::home().join("sdk/react/js");
-    #[cfg(unix)]
-    std::os::unix::fs::symlink(js.join("node_modules"), work.join("node_modules")).map_err(|e| format!("node_modules: {e}"))?;
+    link_node_modules(&js, &work)?;
     if o.lite {
         // the game's code and the SDK's resolve "react" to the live view runtime (tsconfig paths cover the files under
         // the work folder; packages in node_modules keep their own React)
@@ -267,6 +266,45 @@ pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&P
         eprintln!("raea bundle: {} in {:.1} ms: the work folder {:.1} ms, Rolldown {:.1} ms", tsx.display(), t0.elapsed().as_secs_f64() * 1e3, t_work.as_secs_f64() * 1e3, (t0.elapsed() - t_work).as_secs_f64() * 1e3);
     }
     std::fs::write(out_js, code).map_err(|e| format!("{}: {e}", out_js.display()))?;
-    let _ = std::fs::remove_dir_all(&work);
+    remove_work(&work);
     Ok(())
+}
+
+/// The work folder's node_modules: the engine's (sdk/react/js's), linked. On Windows a junction, which needs none of the
+/// rights a symlink does (Developer Mode or an admin), as raea-io-npm links packages. Windows had no link at all, so the
+/// live runtime's `../../node_modules/bevy-react/src/bridge` resolved nothing and `raea play` couldn't bundle a game.
+fn link_node_modules(js: &Path, work: &Path) -> R<()> {
+    let (to, at) = (js.join("node_modules"), work.join("node_modules"));
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&to, &at).map_err(|e| format!("node_modules: {e}"))?;
+    #[cfg(windows)]
+    junction::create(&to, &at).map_err(|e| format!("node_modules: {e}"))?;
+    Ok(())
+}
+
+/// The work folder removed: on Windows its node_modules junction first, by remove_dir, which takes the link and never
+/// the engine's packages it points at
+fn remove_work(work: &Path) {
+    #[cfg(windows)]
+    let _ = std::fs::remove_dir(work.join("node_modules"));
+    let _ = std::fs::remove_dir_all(work);
+}
+
+#[cfg(test)]
+mod link_tests {
+    #[test]
+    fn the_work_folder_reads_the_engines_packages_and_its_removal_keeps_them() {
+        let base = std::env::temp_dir().join(format!("raea-link-test-{}", std::process::id()));
+        let (js, work) = (base.join("js"), base.join("work"));
+        std::fs::create_dir_all(js.join("node_modules/bevy-react/src")).unwrap();
+        std::fs::write(js.join("node_modules/bevy-react/src/bridge.ts"), "export {};").unwrap();
+        std::fs::create_dir_all(work.join("lite/parts")).unwrap();
+        super::link_node_modules(&js, &work).unwrap();
+        // what lite/parts/root.ts imports, read through the link
+        assert_eq!(std::fs::read_to_string(work.join("lite/parts/../../node_modules/bevy-react/src/bridge.ts")).unwrap(), "export {};");
+        super::remove_work(&work);
+        assert!(!work.exists(), "the work folder is gone");
+        assert!(js.join("node_modules/bevy-react/src/bridge.ts").exists(), "the engine's packages are kept");
+        let _ = std::fs::remove_dir_all(&base);
+    }
 }
