@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { AngularColorStop, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { AngularColorStop, UiRect as GradRect, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { Canvas3D } from "raea/3d";
 import { renderFrame } from "../src/test";
@@ -222,6 +222,15 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     const hinted = html(<Node background_gradient={[LinearGradient.new(0, [{ color: red, point: px(0), hint: 0.25 }, ColorStop.new(clear, px(100))], "Srgba")]} />);
     expect(hinted).toContain("linear-gradient(0rad in srgb, rgba(255, 0, 0, 1) 0px, calc(0px + (100px - 0px) * 0.25), rgba(255, 0, 0, 0) 100px)");
     expect(() => html(<Node background_gradient={[RadialGradient.new(UiPosition.CENTER, { Circle: percent(10) }, [ColorStop.auto(red)])]} />)).toThrow(/Circle's radius in percent/);
+  });
+  test("BorderGradient is the bottom layer over the border box, the node's gradients over it clipped to the padding box, none without a border", () => {
+    const g = [LinearGradient.to_right([ColorStop.auto(new Srgba(1, 1, 0)), ColorStop.auto(new Srgba(1, 0.5, 0))])];
+    const own = [LinearGradient.to_top([ColorStop.auto(new Srgba(1, 0, 0)), ColorStop.auto(new Srgba(0, 0, 1))])];
+    const out = html(<Node border={GradRect.all(px(4))} background_gradient={own} border_gradient={g} />);
+    expect(out).toContain("background-image:linear-gradient(0rad in oklab, rgba(255, 0, 0, 1), rgba(0, 0, 255, 1)), linear-gradient(1.5707963267948966rad in oklab, rgba(255, 255, 0, 1), rgba(255, 128, 0, 1))");
+    expect(out).toContain("background-clip:padding-box, border-box");
+    expect(html(<Node border={GradRect.all(px(0))} background_gradient={own} border_gradient={g} />)).not.toContain("background-clip");
+    expect(() => html(<Node border={GradRect.all(px(4))} background_gradient={[LinearGradient.to_top([ColorStop.auto(new Srgba(1, 0, 0, 0.5))])]} border_gradient={g} />)).toThrow(/translucent background_gradient/);
   });
   test("BorderColor takes a colour per side", () => {
     const out = html(<Node border={UiRect.all(px(2))} border_color={{ top: new Srgba(1, 0, 0), right: new Srgba(0, 0, 1), bottom: new Srgba(1, 1, 0), left: new Srgba(0, 1, 0) }} />);

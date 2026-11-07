@@ -142,3 +142,12 @@ export function gradientsCss(who: string, gs: Gradient[]): string {
   if (!Array.isArray(gs)) throw new TypeError(`${who}: background_gradient is a list of gradients, got ${JSON.stringify(gs)}`);
   return gs.map((g) => gradientCss(who, g)).reverse().join(", ");
 }
+
+/** Whether every stop of these gradients is opaque (a colour's alpha 1). */
+export function gradientsOpaque(who: string, gs: Gradient[]): boolean {
+  return gs.every((g) => g.stops.every((s) => {
+    const css = colorCss(who, "stop", s.color);
+    const a = /^rgba\(.*,\s*([\d.e+-]+)\)$/.exec(css);
+    return a ? Number(a[1]) >= 1 : !/^(transparent|#[0-9a-f]{4}$|#[0-9a-f]{8}$|hsla|rgba|.*\/)/i.test(css);
+  }));
+}

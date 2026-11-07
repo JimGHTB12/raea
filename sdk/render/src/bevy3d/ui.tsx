@@ -10,7 +10,7 @@ import {
   checkVal, keyword, over, radiusCss, rectCss, type Backdrop, type BorderRadius, type Overflow, type OverflowClipMargin, type UiRect, type Val,
 } from "./ui-val";
 import { LinearRgba, type Srgba } from "./colors";
-import { gradientsCss, type Gradient } from "./ui-gradient";
+import { gradientsCss, gradientsOpaque, type Gradient } from "./ui-gradient";
 import type { TransformValue } from "./core";
 import { eulerOf } from "../3d/model";
 import { useVideoConfig } from "@raea/app/clock";
@@ -44,6 +44,8 @@ export interface NodeProps {
   background_color?: Color;
   /** BackgroundGradient: gradients over the background colour, the first at the bottom, over the whole node */
   background_gradient?: Gradient[];
+  /** BorderGradient: gradients over the border, laid out over the whole node */
+  border_gradient?: Gradient[];
   /** BorderColor: every side one colour, or each its own ({ top, right, bottom, left }) */
   border_color?: Color | { top: Color; right: Color; bottom: Color; left: Color };
   /** Outline: a line outside the border box, `offset` from it (0 by default), white by default */
@@ -120,6 +122,19 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
     s.backgroundImage = gradientsCss(who, p.background_gradient);
     s.backgroundOrigin = "border-box";
     back = undefined;
+  }
+  // (Bevy draws a BorderGradient over the border alone, and CSS clips no layer to the border's area: it is the bottom
+  // layer over the border box and the node's own gradients sit over it clipped to the padding box, the background
+  // colour under both, which is Bevy's picture while those gradients are opaque)
+  // (no border, nothing to draw: its layer would show at the background's antialiased edge)
+  const bordered = p.border !== undefined && [p.border.left, p.border.right, p.border.top, p.border.bottom].some((v) => parseFloat(String(v)) !== 0);
+  if (p.border_gradient !== undefined && bordered) {
+    if (p.border_color !== undefined) throw new TypeError(`${who}: border_color with border_gradient is to do; give one`);
+    const own = p.background_gradient ?? [];
+    if (!gradientsOpaque(who, own)) throw new TypeError(`${who}: border_gradient under a translucent background_gradient is to do`);
+    s.backgroundImage = [...(own.length ? [s.backgroundImage] : []), gradientsCss(who, p.border_gradient)].join(", ");
+    s.backgroundOrigin = "border-box";
+    s.backgroundClip = [...own.map(() => "padding-box"), ...p.border_gradient.map(() => "border-box")].join(", ");
   }
   // (the border over its own background, as Bevy draws it)
   const bc = p.border_color;

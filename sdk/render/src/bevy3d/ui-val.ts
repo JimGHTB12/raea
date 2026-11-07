@@ -143,9 +143,9 @@ export function colorCss(who: string, k: string, c: unknown): string {
 }
 
 /** What lies under a part of the UI, in linear light, when it's known: an opaque Node colour, or translucent ones over
- *  one. Bevy draws its UI onto an sRGB target, so a translucent colour blends in linear light; the page blends in sRGB.
- *  Over a known backdrop the colour is sent as the opaque colour Bevy's blend makes (white at 0.2 over srgb 0.1 green
- *  is 126, not the page's 72); over the 3D (unknown) it's sent as it is. */
+ *  one. Bevy draws its UI onto an sRGB target, so a translucent colour blends in linear light, as a page with bevy_ui in it
+ *  now does too (data-raea-blend). Over a known backdrop the colour is sent as the opaque colour Bevy's blend makes (white
+ *  at 0.2 over srgb 0.1 green is 126; sRGB blending made 72); over the 3D (unknown) it's sent as it is. */
 export type Backdrop = [number, number, number] | undefined;
 
 const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
