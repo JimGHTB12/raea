@@ -29,7 +29,12 @@ mods=$(cd "$src" && ls ./*.ts ./*.tsx | grep -vE '/(native-calls|test|pure)\.tsx
 grep -E '^[A-Z][a-z]' "$tmp/all" > "$tmp/pascal" || true
 
 # Bevy's names: its crates' and glam's public types, the generated modules' type paths, and @bevy tags
-reg=$(ls -d "${CARGO_HOME:-$HOME/.cargo}"/registry/src/index.crates.io-*/ | head -1)
+reg=$(ls -d "${CARGO_HOME:-$HOME/.cargo}"/registry/src/index.crates.io-*/ 2>/dev/null | head -1)
+# a fresh checkout (CI) hasn't unpacked Bevy's sources: fetch the locked ones first
+if [ -z "$reg" ] || [ ! -d "$reg/bevy_app-0.20.0" ]; then
+  cargo fetch --locked -q --manifest-path "$ROOT/Cargo.toml" >&2
+  reg=$(ls -d "${CARGO_HOME:-$HOME/.cargo}"/registry/src/index.crates.io-*/ | head -1)
+fi
 glam=$(grep -A1 '^name = "glam"$' "$ROOT/Cargo.lock" | awk -F'"' '/version/ {print $2}' | sort -V | tail -1)
 {
   grep -rhoE '^\s*pub (struct|enum|trait|type) [A-Z][A-Za-z0-9_]*' "$reg"/bevy_*-0.20.0/src "$reg/glam-$glam/src" | awk '{print $NF}'
