@@ -12,6 +12,7 @@ mod cache;
 mod entry;
 mod fresh;
 mod outside;
+mod pid;
 mod rewrite;
 pub mod styles;
 pub use cache::*;

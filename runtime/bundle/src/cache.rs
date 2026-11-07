@@ -234,7 +234,11 @@ impl Drop for Gone {
 /// render's pictures run to 14 GB; four killed in eight minutes filled the disk, 10-24), else when nothing has touched
 /// them for two hours.
 pub fn sweep_stale_work() {
-    let Ok(rd) = std::fs::read_dir(std::env::temp_dir()) else { return };
+    sweep_stale_work_in(&std::env::temp_dir());
+}
+
+pub(crate) fn sweep_stale_work_in(dir: &Path) {
+    let Ok(rd) = std::fs::read_dir(dir) else { return };
     let now = std::time::SystemTime::now();
     for e in rd.flatten() {
         let name = e.file_name().to_string_lossy().into_owned();
@@ -242,11 +246,9 @@ pub fn sweep_stale_work() {
             continue;
         }
         let old = e.metadata().and_then(|m| m.modified()).ok().and_then(|t| now.duration_since(t).ok()).is_some_and(|d| d.as_secs() > 2 * 3600);
-        // raea-cli-r{pid}-ThreadId(n), raea-cli-b{pid}: `kill -0` (which sends nothing) fails when no such process is left
+        // raea-cli-r{pid}-ThreadId(n), raea-cli-b{pid}: gone only when the system says no such process is left
         let pid = name.get(10..).and_then(|s| s.split('-').next()).and_then(|p| p.parse::<u32>().ok());
-        let gone = pid.is_some_and(|p| {
-            p != std::process::id() && std::process::Command::new("kill").args(["-0", &p.to_string()]).stderr(std::process::Stdio::null()).status().is_ok_and(|s| !s.success())
-        });
+        let gone = pid.is_some_and(|p| p != std::process::id() && crate::pid::running(p) == Some(false));
         if old || gone {
             let _ = std::fs::remove_dir_all(e.path());
         }

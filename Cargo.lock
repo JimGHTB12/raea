@@ -14632,6 +14632,7 @@ version = "0.1.0"
 dependencies = [
  "dunce",
  "junction",
+ "libc",
  "raea-core-scene",
  "raea-io-home",
  "raea-io-media",
@@ -14639,6 +14640,7 @@ dependencies = [
  "raea-runtime-bundle-lib",
  "regex",
  "serde_json",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
