@@ -3,6 +3,7 @@
 //! its key. RAEA_OFFLINE refuses what isn't cached.
 
 use std::path::PathBuf;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
 const CHROME_UA: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -37,6 +38,10 @@ pub fn fetch(url: &str) -> Result<PathBuf, String> {
         return Ok(named(path));
     }
     raea_io_home::offline(&format!("{url} (not in raea's cache)"))?;
+    #[cfg(target_arch = "wasm32")]
+    return Err(format!("{url}: no HTTP in a browser build (the page fetches it)"));
+    #[cfg(not(target_arch = "wasm32"))]
+    {
     let agent = ureq::AgentBuilder::new().redirects(10).timeout(Duration::from_secs(300)).build();
     let r = agent.get(url).set("User-Agent", if google { CHROME_UA } else { PLAIN_UA }).call().map_err(|e| format!("{url}: {e}"))?;
     let mut bytes = Vec::new();
@@ -49,6 +54,7 @@ pub fn fetch(url: &str) -> Result<PathBuf, String> {
     std::fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
     std::fs::rename(&tmp, &path).map_err(|e| e.to_string())?;
     Ok(named(path))
+    }
 }
 
 /// fetch, read.

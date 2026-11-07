@@ -245,6 +245,11 @@ pub fn num(v: &BTreeMap<String, V>, k: &str, d: f32) -> f32 {
     v.get(k).map(|x| x.num() as f32).unwrap_or(d)
 }
 
+/// A number from a JSON spec (a row's JSON column: grass, volumes), else `d`.
+pub fn json_f32(j: &serde_json::Value, k: &str, d: f32) -> f32 {
+    j.get(k).and_then(serde_json::Value::as_f64).map_or(d, |x| x as f32)
+}
+
 pub fn flag(vals: &BTreeMap<String, V>, k: &str, d: bool) -> bool {
     vals.get(k).map(V::truthy).unwrap_or(d)
 }

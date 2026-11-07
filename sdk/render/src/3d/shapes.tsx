@@ -190,7 +190,21 @@ export interface BufferMeshProps {
   colors?: number[] | string[];
 }
 
+/** Each mesh's shape text, checked and written once: React draws a <BufferMesh> every frame with the same arrays, and
+ * a terrain's are tens of thousands of numbers (checking and writing them took half a live frame in a browser). Kept by
+ * its positions array, and remade when any of its other arrays is a new one. */
+const shaped = new WeakMap<object, { of: unknown[]; text: string }>();
+
 function bufferShape(p: BufferMeshProps): string {
+  const of = [p.indices, p.normals, p.uvs, p.colors];
+  const had = Array.isArray(p.positions) ? shaped.get(p.positions) : undefined;
+  if (had && had.of.every((a, i) => a === of[i])) return had.text;
+  const text = writeBufferShape(p);
+  shaped.set(p.positions, { of, text });
+  return text;
+}
+
+function writeBufferShape(p: BufferMeshProps): string {
   const nums = (k: keyof BufferMeshProps, per: number) => {
     const a = p[k];
     if (a === undefined) return;
@@ -272,8 +286,9 @@ export interface MeshProps extends PointerHandlers3d {
   /** false: it casts no shadow (a window's glass, which a blended surface otherwise does; a sky card; a UI floating in
    * the scene). True by default. "only": it casts its shadow but isn't drawn (a roof or wall out of frame whose shadow
    * falls into it, a blind's slats cutting the sun's shafts in the fog, a stand-in shape for something drawn another
-   * way); its surface is ignored */
-  shadow?: boolean | "only";
+   * way); its surface is ignored. "catch": it shows only the shadows falling on it, in its material's colour at its
+   * material's opacity, and is clear elsewhere (three.js's ShadowMaterial: a floor under a product over a picture) */
+  shadow?: boolean | "only" | "catch";
   /** three.js's name for `shadow`'s true and false (`shadow` wins when both are given) */
   castShadow?: boolean;
   /** a page drawn on it over its UVs: the screen spec <Mesh3d> makes for a page element with layer="surface"
@@ -336,15 +351,9 @@ function boundsFromChildren(children: ReactNode): LocalBounds | undefined {
 
 /** A drawn object: a geometry child (or `shape`) and a material child, placed by position, rotation and scale. Its
  * on* props (onClick, onPointerDown, onPointerOver ...) are called as a page element's (events3d.tsx).
- * @bevy bevy_mesh::components::Mesh3d
- * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::pbr_material::StandardMaterial>
- * @bevy bevy_transform::components::transform::Transform
- * @bevy bevy_mesh::mesh::Mesh
- * castShadow={false} and receiveShadow={false} put Bevy's markers on it: @bevy bevy_light::NotShadowCaster
- * @bevy bevy_light::NotShadowReceiver
- * `layers` is its RenderLayers (a light's and a camera's too): @bevy bevy_camera::visibility::render_layers::RenderLayers
+ * castShadow={false} and receiveShadow={false} put Bevy's markers on it
+ * `layers` is its RenderLayers (a light's and a camera's too)
  * shadow="only" draws it with the shadow-only material (engine/render shadow_only.rs):
- * @bevy bevy_pbr::mesh_material::MeshMaterial3d<raea_render::engine::shadow_only::ShadowOnlyMaterial>
  * @deprecated <Mesh3d>, raea/mesh (2D: <Mesh2d>, raea/sprite)
  */
 export function Mesh(props: MeshProps) {
@@ -355,7 +364,7 @@ export function Mesh(props: MeshProps) {
   if (typeof scale === "number") {
     if (!(scale > 0) || !Number.isFinite(scale)) throw new RangeError(`Mesh: scale must be a positive number, got ${scale}`);
   } else checkVec("Mesh", "scale", scale);
-  if (props.shadow !== undefined && typeof props.shadow !== "boolean" && props.shadow !== "only") throw new TypeError(`Mesh: shadow is true, false or "only", got ${JSON.stringify(props.shadow)}`);
+  if (props.shadow !== undefined && typeof props.shadow !== "boolean" && props.shadow !== "only" && props.shadow !== "catch") throw new TypeError(`Mesh: shadow is true, false, "only" or "catch", got ${JSON.stringify(props.shadow)}`);
   checkPass("Mesh", props.pass);
   const manifold = shape instanceof Solid ? shape.expr : shape ?? shapeFromChildren(props.children);
   const extra: Record<string, string> = {};

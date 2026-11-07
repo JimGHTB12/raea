@@ -6,6 +6,5 @@ export * from "./3d";
 export * from "@raea/render/bevy3d";
 // both export a Group (the 3D element; animate.tsx's plan type): the element wins, as a re-export (a const would keep
 // 3D code in a 2D bundle, and live play opens a 3D engine for any bundle holding data-3d: runtime/live/src/lib.rs)
-export { Group } from "./3d";
 // /3d and Bevy's both name the lights: the prelude's are Bevy's, in Bevy's units (lux, lumens, cd/m²), as /light's
 export { AmbientLight, DirectionalLight, PointLight, SpotLight, type AmbientLightProps, type DirectionalLightProps, type PointLightProps, type SpotLightProps } from "@raea/render/bevy3d";

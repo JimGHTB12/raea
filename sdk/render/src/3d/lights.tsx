@@ -14,7 +14,7 @@ export interface AmbientLightProps {
 }
 
 /** Light from everywhere at once.
- * @bevy bevy_light::ambient_light::AmbientLight */
+ */
 export function AmbientLight({ intensity = 1, color = "#ffffff", ...rest }: AmbientLightProps & Pick<BevyUnits, "nits">) {
   return node3d("AmbientLight", { ...rest, intensity, color: toHex("AmbientLight", "color", color) });
 }
@@ -59,7 +59,7 @@ function checkLight(owner: string, p: { position?: Vec3; target?: Vec3; intensit
 }
 
 /** Parallel light (the sun) shining from `position` towards `target`.
- * @bevy bevy_light::directional_light::DirectionalLight */
+ */
 export function DirectionalLight({ intensity = 1, color = "#ffffff", children, ...rest }: DirectionalLightProps & BevyParts & Pick<BevyUnits, "lux">) {
   checkLight("DirectionalLight", { ...rest, intensity, color });
   return node3d("DirectionalLight", { ...rest, intensity, color: toHex("DirectionalLight", "color", color) }, children);
@@ -96,7 +96,7 @@ export interface PointLightProps {
 }
 
 /** A bulb: light from a point, every way.
- * @bevy bevy_light::point_light::PointLight */
+ */
 export function PointLight({ intensity = 1, color = "#ffffff", children, ...rest }: PointLightProps & BevyParts & Pick<BevyUnits, "lumens">) {
   checkLight("PointLight", { ...rest, intensity, color });
   return node3d("PointLight", { ...rest, intensity, color: toHex("PointLight", "color", color) }, children);
@@ -112,7 +112,7 @@ export interface SpotLightProps extends PointLightProps {
 }
 
 /** A cone of light from `position` towards `target`: a stage spot, a product hero light.
- * @bevy bevy_light::spot_light::SpotLight */
+ */
 export function SpotLight({ intensity = 1, color = "#ffffff", children, ...rest }: SpotLightProps & BevyParts & Pick<BevyUnits, "lumens">) {
   checkLight("SpotLight", { ...rest, intensity, color });
   if (rest.angle !== undefined && !(rest.angle > 0 && rest.angle <= Math.PI / 2)) throw new RangeError(`SpotLight: angle is a half-angle in radians, in (0, π/2], got ${rest.angle}`);
@@ -137,7 +137,6 @@ export interface RectAreaLightProps {
 
 /** A rectangle of light (Bevy's RectLight): a softbox, a window's glow, a TV's face, a light panel. Its light falls
  * soft and wide from the whole face, not a point; it casts no shadows (Bevy 0.20 doesn't shadow area lights).
- * @bevy bevy_light::rect_light::RectLight
  * @deprecated <RectLight> (lumens, width, height), raea/light */
 export function RectAreaLight({ intensity = 1, color = "#ffffff", width = 1, height = 1, ...rest }: RectAreaLightProps & Pick<BevyUnits, "lumens">) {
   checkLight("RectAreaLight", { ...rest, intensity, color });
@@ -179,9 +178,6 @@ export interface PerspectiveCameraProps {
 }
 
 /** The viewpoint the scene is drawn from.
- * @bevy bevy_camera::components::Camera3d
- * @bevy bevy_camera::camera::Camera
- * @bevy bevy_camera::projection::Projection
  * @deprecated <Camera3d> with `projection={{ Perspective: { fov } }}` (fov in radians), raea/camera */
 export function PerspectiveCamera({ fov = 50, children, ...rest }: PerspectiveCameraProps & BevyParts) {
   if (rest.position !== undefined) checkVec("PerspectiveCamera", "position", rest.position);

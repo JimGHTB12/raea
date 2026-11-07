@@ -95,6 +95,8 @@
       "@raea/ui/plugin": ["./ui/src/plugin.ts"],
       "@raea/physics": ["./physics/src/index.ts"],
       "@raea/physics/*": ["./physics/src/*"],
+      "@raea/web": ["./web/src/index.tsx"],
+      "@raea/web/*": ["./web/src/*"],
       "@raea/room": ["./room/src/index.ts"],
       "@raea/room/*": ["./room/src/*"],
       "@raea/rune": ["./rune/src/index.ts"],

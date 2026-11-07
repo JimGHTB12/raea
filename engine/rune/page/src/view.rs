@@ -53,6 +53,8 @@ pub struct Ctx<'a> {
     pub edits: &'a HashMap<u64, TextEdit>,
     /// each element's padding and border widths as mapped (l t r b, l t r b): the layout snapshot's
     pub boxes: &'a mut HashMap<u64, [f32; 8]>,
+    /// each element's mapped style and text colour (Page::looks)
+    pub looks: &'a mut HashMap<u64, (Css, Color)>,
     /// unrounded text widths (measure.rs)
     pub measure: &'a crate::measure::Measure,
     /// elements built so far that asked for Rune motion (runeprops.rs): a subtree that adds none lands at once
@@ -139,6 +141,7 @@ fn node(tree: &Tree, id: u64, n: &Node, inh: &Inherit, path: &str, cx: &mut Ctx)
     }
     raea_rune_media::view::check_family(c.font_family.as_deref(), path, cx.report);
     let mut inh = inherit(inh, &c);
+    cx.looks.insert(id, (c.clone(), inh.color));
     // a new strut where a block (or a flex item, or a button or field: inline-blocks) holds the lines; inline elements
     // keep their block's
     if display != Display::Inline || inh.flex_parent || matches!(n.kind.as_str(), "button" | "editableText" | "img" | "video") {
@@ -202,6 +205,10 @@ fn node(tree: &Tree, id: u64, n: &Node, inh: &Inherit, path: &str, cx: &mut Ctx)
     }
     let (pad, bw) = padding(&c);
     cx.boxes.insert(id, [pad[3], pad[0], pad[1], pad[2], bw[3], bw[0], bw[1], bw[2]]);
+    // its outline (T3e): its own, or Chrome's focus-visible ring on the page's focus
+    if let Some((w, off, col)) = crate::outline::drawn(&c.outline, inh.color, cx.live.focus == Some(id) && cx.live.focus_visible) {
+        e = e.outline(w, off, col);
+    }
     Some(boxed(e, &c, &inh, display == Display::Flex, path, cx.report))
 }
 
@@ -229,13 +236,15 @@ fn field(id: u64, n: &Node, inh: &Inherit, cx: &mut Ctx) -> El {
     row().items_center().child(input)
 }
 
-/// The element's own line height in points (0: Rune's default, for `normal`).
+/// The element's own line height in points (0: Rune's default, for `normal`), in Chrome's 1/64 px layout units: a
+/// ratio's float error (Tailwind's text-xs, 12 × calc(1 / 0.75)) stays 16, where Rune would round 16.000001 up to 17.
 fn line_px(inh: &Inherit) -> f32 {
-    match inh.line {
+    let l = match inh.line {
         Len::Px(p) => p,
         Len::Pct(p) => inh.size * p / 100.0,
         Len::Auto => 0.0,
-    }
+    };
+    (l * 64.0).round() / 64.0
 }
 
 fn text_style(inh: &Inherit) -> TextStyle {

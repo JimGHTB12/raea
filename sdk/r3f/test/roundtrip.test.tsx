@@ -4,9 +4,12 @@
 import { describe, expect, test } from "bun:test";
 import * as THREE from "three";
 import {
-  AmbientLight, BufferMesh, Cuboid, DirectionalLight, Fog, Group, Mesh, MeshBasicMaterial, MeshPhysicalMaterial,
-  MeshStandardMaterial, PerspectiveCamera, PointLight, RectAreaLight, Sphere, SpotLight, ToneMapping, Torus,
+  BufferMesh, Cuboid, Fog, Sphere, ToneMapping, Torus,
 } from "raea/3d";
+import {
+  AmbientLight, DirectionalLight, Group, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial,
+  PerspectiveCamera, PointLight, RectAreaLight, SpotLight,
+} from "@raea/render/three";
 import { Scene3d } from "../src/three/scene";
 import { convert } from "../src/input/scene";
 import { stepTo, end, standInRenderer } from "../src/input/session";

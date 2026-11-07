@@ -48,12 +48,12 @@ pub fn attach(mut e: El, id: u64, n: &Node, root: bool) -> El {
     let listens = hears(Ev::PointerEnter) || hears(Ev::PointerLeave);
     if listens || styled {
         e = e.on_hover_change(move |p: &mut Page, inside: bool, _: &mut Tx| {
-            if styled {
-                if inside {
-                    p.hovered.insert(id);
-                } else {
-                    p.hovered.remove(&id);
-                }
+            // a leave clears hover whatever the classes are now: one that lost its `hover:` while the pointer was on it
+            // (the row a press opened) mustn't keep it for when it gets one back
+            if !inside {
+                p.hovered.remove(&id);
+            } else if styled {
+                p.hovered.insert(id);
             }
             if !listens {
                 return;
@@ -100,8 +100,28 @@ pub fn field(id: u64, edit: &rune::TextEdit, style: rune::TextStyle, color: rune
 /// A pointer payload for element `id` at `(lx, ly)` in its own points.
 /// A pointer event at a point local to the element, sent as `ev` with `button` and `detail`
 fn at(p: &mut Page, id: u64, ev: Ev, m: &PointerEvent, button: u8, detail: u32) {
-    let payload = pointer(p, id, m.x, m.y, button, detail, Mods::default());
+    let mut payload = pointer(p, id, m.x, m.y, button, detail, Mods::default());
+    if ev == Ev::PointerMove {
+        targeted(p, id, &mut payload);
+    }
     p.send(id, ev, payload);
+}
+
+/// A press's or a move's deepest wire element under the pointer as its `target`, as the other host sends it
+/// (runtime/dom/src/host/bridge.rs): sdk/ui's own hit test reads only classes without their variants (a `hidden md:flex`
+/// sidebar is hidden to it), so without one a release over it found no element and no click came. It's the topmost
+/// element at the point inside `within` (or `within` itself), the element Rune's hit test, which clips, handed the
+/// gesture to: the page's own boxes don't clip, and a list's rows scrolled out under its header are still there.
+fn targeted(p: &Page, within: u64, payload: &mut Value) {
+    let (x, y) = (payload["clientX"].as_f64().unwrap_or(0.0) as f32, payload["clientY"].as_f64().unwrap_or(0.0) as f32);
+    let inside = |t: u64| std::iter::successors(Some(t), |i| p.tree.get(*i).and_then(|n| n.parent)).any(|i| i == within);
+    let hit = |t: &u64| {
+        let r = p.rect(*t);
+        x >= r[0] && y >= r[1] && x < r[0] + r[2] && y < r[1] + r[3] && inside(*t)
+    };
+    if let Some(t) = p.order.iter().rev().copied().find(hit) {
+        payload["target"] = json!(t);
+    }
 }
 
 fn pointer(p: &Page, id: u64, lx: f32, ly: f32, button: u8, detail: u32, m: Mods) -> Value {
@@ -140,7 +160,8 @@ impl Page {
     fn send_up(&mut self, id: u64, ev: Ev, x: f32, y: f32, clicks: u32, m: Mods) {
         if let Some(t) = self.up(Some(id), |n| n.on.contains(&ev)) {
             let r = self.rect(t);
-            let payload = pointer(self, t, x - r[0], y - r[1], 0, clicks, m);
+            let mut payload = pointer(self, t, x - r[0], y - r[1], 0, clicks, m);
+            targeted(self, id, &mut payload);
             self.send(t, ev, payload);
         }
     }

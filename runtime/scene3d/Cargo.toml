@@ -20,5 +20,10 @@ raea-sys-compose = { path = "../../systems/compose" }
 raea-sys-look = { path = "../../systems/look" }
 raea-runtime-plugins = { path = "../plugins" }
 raea-core-program = { path = "../../core/program" }
-bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "experimental_pbr_pcss", "area_light_luts", "bevy_gilrs"] }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "area_light_luts", "bevy_gilrs"] }
 serde_json = "1"
+
+[features]
+# soft shadows (PCSS: a light's softShadow in raea/3d), native only: Bevy 0.20's PCSS samples depth maps with a
+# filtering sampler, which WebGPU refuses, so a browser build (raea-web) goes without and its shadows are filtered (PCF)
+pcss = ["bevy/experimental_pbr_pcss"]

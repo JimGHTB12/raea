@@ -2,7 +2,8 @@
 // (cylinder) as its child, turned by a system each frame; the gun's Transform is in the ship's space. The reference
 // (edit.rrl) is lowered from reference.tsx, which places the same meshes by hand with <Mesh>.
 import { AbsoluteFill, useCurrentFrame } from "../../../src";
-import { AmbientLight, DirectionalLight, Entities, PerspectiveCamera } from "../../../src/3d";
+import { Entities } from "../../../src/3d";
+import { AmbientLight, DirectionalLight, PerspectiveCamera } from "@raea/render/three";
 import { createWorld } from "raea/ecs";
 
 const game = createWorld();

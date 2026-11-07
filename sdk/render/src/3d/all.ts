@@ -13,3 +13,4 @@ export * from "./text";
 export * from "./shapes";
 export * from "./sprite";
 export * from "./instances";
+export * from "./grass";

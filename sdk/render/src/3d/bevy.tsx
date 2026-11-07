@@ -95,7 +95,6 @@ export interface ShaderMeshProps {
 /** A mesh drawn by a material written here in WESL or WGSL (docs/bevy-ts.feature G20): one generic Bevy material
  * (rdb's ShaderMaterial, an AsBindGroup of 16 uniform slots and 4 textures) whose fragment shader is this source, so
  * a dissolve, a toon ramp, a hologram or a procedural pattern needs no Rust. Uniforms are set at load.
- * @bevy bevy_mesh::components::Mesh3d
  * @bevy bevy_pbr::mesh_material::MeshMaterial3d<raea_sys_material::shader_material::ShaderMaterial> */
 export function ShaderMesh({ shape, wesl, wgsl, uniforms = {}, textures = {}, defs, alpha, doubleSided, ...place }: ShaderMeshProps) {
   if ((wesl === undefined) === (wgsl === undefined)) throw new TypeError("ShaderMesh: give its source as wesl (or wgsl), one of them");

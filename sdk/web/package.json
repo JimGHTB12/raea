@@ -1,0 +1,19 @@
+{
+  "name": "@raea/web",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "raea in a browser (docs/web-export.md M3): a composition played live in a page, its React in the browser and its 3D drawn by raea's own engine (raea-web, wasm32 and WebGPU) into a canvas under the page.",
+  "type": "module",
+  "main": "src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./collect": "./src/collect.ts"
+  },
+  "//": "React is the SDK's own copy (sdk/raea), linked, so an edit and the host share one React",
+  "dependencies": {
+    "react": "file:../raea/node_modules/react",
+    "react-dom": "file:../raea/node_modules/react-dom",
+    "scheduler": "file:../raea/node_modules/scheduler"
+  }
+}

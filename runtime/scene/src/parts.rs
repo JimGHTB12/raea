@@ -231,6 +231,10 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         if its[0].props.get("shadow").and_then(Value::as_str) == Some("only") {
             row.insert("shadow_only".into(), V::N(1.0));
         }
+        // `shadow: "catch"`: only the shadows falling on it are drawn (raea-render's shadow_catch.rs)
+        if its[0].props.get("shadow").and_then(Value::as_str) == Some("catch") {
+            row.insert("shadow_catch".into(), V::N(1.0));
+        }
         // `receiveShadow: false`: no shadow falls on it (NotShadowReceiver)
         if its[0].props.get("receiveShadow") == Some(&Value::Bool(false)) {
             row.insert("receive".into(), V::N(0.0));

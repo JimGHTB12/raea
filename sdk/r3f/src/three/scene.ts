@@ -316,9 +316,19 @@ export class Scene3d {
       // a material inside a Model re-covers it (read there)
       if (owner?.kind === "Model") return k;
       const mesh = owner?.obj instanceof THREE.Mesh ? owner.obj : undefined;
-      if (!k.material || k.material.type !== MATERIAL[kind]().type) {
+      // shadow="catch": only the shadows falling on it, in this material's colour and opacity (three's ShadowMaterial)
+      const catches = !!mesh && (JSON.parse(el.parentElement?.getAttribute("data-props") ?? "{}") as Props).shadow === "catch";
+      const make = catches ? () => new THREE.ShadowMaterial({ transparent: true }) : MATERIAL[kind];
+      if (!k.material || k.material.type !== (catches ? "ShadowMaterial" : MATERIAL[kind]().type)) {
         k.material?.dispose();
-        k.material = MATERIAL[kind]();
+        k.material = make();
+      }
+      if (catches) {
+        const s = k.material as THREE.ShadowMaterial;
+        s.color.set((p.color as string | undefined) ?? "#000000");
+        s.opacity = typeof p.opacity === "number" ? p.opacity : 1;
+        mesh.material = s;
+        return k;
       }
       if (mesh) {
         mesh.material = k.material;

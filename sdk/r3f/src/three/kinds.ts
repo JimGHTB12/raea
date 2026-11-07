@@ -6,14 +6,16 @@
 //   setting    a setting of the renderer or the scene, not an object (tone mapping, shadows, fog)
 //   effect     a frame effect, drawn by effects.ts with three's EffectComposer (<Raea> runs it; a three app calls
 //              Effects.set and render); `note` says where it differs from raea's engine
-//   engine     Bevy's own (a component, a resource, a WESL shader, a compute pass): it runs in raea's engine only
+//   engine     Bevy's own (a component, a resource, a WESL shader, a compute pass, raymarched fog): GPU code and ECS
+//              data that three.js has no counterpart for. On the web, raea-web (engine/web, @raea/web) runs raea's own
+//              engine in the page on WebGPU, the same rows and passes (docs/web-export.md says what stays native)
 export type Status = "drawn" | "near" | "setting" | "effect" | "engine";
 
 export const KINDS: Record<string, { status: Status; three: string; note?: string }> = {
   Canvas3D: { status: "drawn", three: "the Scene the parts hang from" },
   Group: { status: "drawn", three: "Group" },
   Entity: { status: "drawn", three: "Group (an ECS entity's transform); a Gizmo component in it is drawn as lines" },
-  Mesh: { status: "drawn", three: "Mesh, or InstancedMesh when it has `at`" },
+  Mesh: { status: "drawn", three: "Mesh, or InstancedMesh when it has `at`; shadow=\"catch\" a ShadowMaterial in its material's colour and opacity" },
   Box: { status: "drawn", three: "three's BoxGeometry with the same args (the same surface; three's own segment counts)" },
   Sphere: { status: "drawn", three: "three's SphereGeometry with the same args (the same surface; three's own segment counts)" },
   Plane: { status: "drawn", three: "three's PlaneGeometry with the same args (the same surface; three's own segment counts)" },

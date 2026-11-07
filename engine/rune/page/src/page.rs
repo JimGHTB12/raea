@@ -44,6 +44,8 @@ pub struct Page {
     pub last_layout: String,
     /// each element's padding and border widths (l t r b, l t r b) as the last view mapped them
     pub boxes: RefCell<HashMap<u64, [f32; 8]>>,
+    /// each element's style as the last view mapped it, and its text colour: what raea-rune-look reads (T3e)
+    pub looks: RefCell<HashMap<u64, (crate::css::Css, rune::Color)>>,
     /// the pointer in window points, as last seen
     pub pointer: (f32, f32),
     /// the page asked for a `frame` host event every frame (`__ui_emit("ticks", true)`)
@@ -116,10 +118,13 @@ impl Page {
 pub fn view(p: &Page, cx: &mut Cx<Page>) -> El {
     let mut report = p.report.borrow_mut();
     let mut boxes = p.boxes.borrow_mut();
+    let mut looks = p.looks.borrow_mut();
+    looks.clear();
+    crate::css::set_viewport(p.viewport);
     let live = p.live(cx.system_dark());
     p.images.unsee();
     p.videos.unsee();
-    crate::view::build(&p.tree, &mut Ctx { report: &mut report, images: &p.images, videos: &p.videos, edits: &p.edits, boxes: &mut boxes, measure: &p.measure, marks: 0, live })
+    crate::view::build(&p.tree, &mut Ctx { report: &mut report, images: &p.images, videos: &p.videos, edits: &p.edits, boxes: &mut boxes, looks: &mut looks, measure: &p.measure, marks: 0, live })
 }
 
 /// A headless Rune runtime for `page` at `viewport` points, with Rune's text (Inter, embedded) so text has its size,

@@ -71,6 +71,7 @@ function meshParts(mesh: THREE.Mesh, name: string, w: Walk, at: Props): Part[] {
     if (!surface.type) return;
     if (surface.normals) arrays = normalColours(arrays, mesh, w.camera);
     const props: Props = { name: ranges.length > 1 ? `${name}#${i}` : name, ...at, castShadow: w.shadows && mesh.castShadow, receiveShadow: mesh.receiveShadow };
+    if (surface.catchShadow) props.shadow = "catch";
     out.push({ type: "Mesh", props, children: [{ type: "BufferMesh", props: { ...arrays } }, surface] });
   });
   return out;

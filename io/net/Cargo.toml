@@ -14,5 +14,8 @@ ws = ["dep:tungstenite"]
 raea-io-home = { path = "../../io/home" }
 serde_json = "1"
 base64 = "0.22"
-ureq = "2"
 tungstenite = { version = "0.30", features = ["rustls-tls-webpki-roots"], optional = true }
+
+# HTTP(S) on the machine; a browser build (wasm32) fetches in the page, so it goes without (ring has no wasm32 randomness)
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ureq = "2"

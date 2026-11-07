@@ -48,14 +48,16 @@ var<uniform> paint: Paint;
 // The wind (Bevy 0.20's mesh vertex, and its prepass's, with one change): a cut-out blade or leaf near the ground is
 // bent downwind by how high it stands (by the square of its height over twice `foliage height`, so the root stays
 // put), in gusts that travel across the field with the wind and a quicker flutter of its own. The prepass (depth,
-// normals, shadows) bends it the same, so the outlines and cast shadows move with the grass.
-fn wind(p: vec3<f32>) -> vec3<f32> {
+// normals, shadows) bends it the same, so the outlines and cast shadows move with the grass. A mesh with a second UV
+// set gives each vertex's height above its own root there (`above`, m; raea-sys-grass's fields on a hill), measured
+// from the ground at `ground y` otherwise (-1).
+fn wind(p: vec3<f32>, above: f32) -> vec3<f32> {
     let strength = paint.k7.x;
     if strength <= 0.0 || paint.k6.z < 0.5 {
         return p;
     }
     let fh = max(paint.k4.x, 0.01);
-    let y = p.y - paint.k0.z;
+    let y = select(p.y - paint.k0.z, above, above >= 0.0);
     let h = clamp(y / (2.0 * fh), 0.0, 1.0);
     let bend = h * h * (1.0 - smoothstep(2.0 * fh, 3.5 * fh, y));
     if bend <= 0.0 {
@@ -108,7 +110,10 @@ fn vertex(vertex_no_morph: Vertex) -> VertexOutput {
     @else
     var world_from_local = mesh_world_from_local;
     out.world_position = mesh_functions::mesh_position_local_to_world(world_from_local, vec4<f32>(vertex.position, 1.0));
-    out.world_position = vec4<f32>(wind(out.world_position.xyz), 1.0);
+    var above = -1.0;
+    @if(VERTEX_UVS_B)
+    above = vertex.uv_b.x;
+    out.world_position = vec4<f32>(wind(out.world_position.xyz, above), 1.0);
     out.position = position_world_to_clip(out.world_position.xyz);
     @if(PREPASS_PIPELINE && UNCLIPPED_DEPTH_ORTHO_EMULATION) {
         out.unclipped_depth = out.position.z;

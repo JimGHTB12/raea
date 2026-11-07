@@ -23,8 +23,8 @@ Feature: React Three Fiber both ways: an R3F scene drawn by raea, a raea composi
     @done
     Scenario: R3F2. What is read from three.js
       Then input/kinds.ts has a row for every Object3D and Material class three exports (62 in three 0.180):
-        41 drawn, 12 near (a note says what differs), 9 with nothing to draw (a bone, a camera that isn't drawn with,
-        a sound, a base class, ShadowMaterial)
+        42 drawn, 12 near (a note says what differs), 8 with nothing to draw (a bone, a camera that isn't drawn with,
+        a sound, a base class)
       And meshes keep their triangles, normals, uvs (v flipped: Bevy counts from the top), vertex colours, geometry
         groups (a mesh a material); skinned and morphed meshes are posed on the CPU each frame; an InstancedMesh is
         Instances while its copies hold still; Points, Lines, Sprites and three's helpers are drawn
@@ -51,6 +51,10 @@ Feature: React Three Fiber both ways: an R3F scene drawn by raea, a raea composi
       And three/kinds.ts has a row for every kind raea's SDK renders (58): 26 drawn, 11 near, 4 settings, 9 effects
         and 8 that are Bevy's own (a WESL shader or frame pass, a compute pass, a Bevy component or resource, an ECS
         world read from the engine's tables, volumetric fog and fog volumes)
+      And the 8 that are Bevy's own aren't three.js's to draw: WESL and WGSL run on Bevy's renderer, components,
+        resources and ECS worlds are Bevy's data, and the fogs are raymarched through Bevy's shadow maps and depth. A
+        page that needs them uses raea-web, raea's engine itself in the browser on WebGPU (docs/web-export.md, which
+        says what stays native); Scene3d names each one it leaves out (a warning, and its row)
       And a Model with `at` is a copy of the model at each placement, as raea's engine draws it
       And raea's default tone mapping, TonyMcMapface, is drawn with Bevy's own LUT (sdk/playable's tony.bin) in a
         pass in place of three's output pass; ACES, AgX, Reinhard and none are three's own
@@ -78,8 +82,9 @@ Feature: React Three Fiber both ways: an R3F scene drawn by raea, a raea composi
         composer doesn't draw
       And it walks three's exports and fails on an Object3D or Material class missing from input/kinds.ts
       And `bun test` in sdk/r3f runs these with the input, round-trip and source-export tests (26 tests)
-      And the one class read with nothing drawn on purpose is ShadowMaterial: raea has no shadow-catching surface (a
-        surface that shows only the shadows on it) to read it into, which is the engine's gap, not the reader's
+      And a ShadowMaterial is raea's <Mesh shadow="catch">: a surface that shows only the shadows falling on it, in
+        its material's colour and opacity (systems/material shadow_catch.rs in the engine, three's ShadowMaterial in
+        Scene3d)
 
     @done
     Scenario: R3F8. Each way held to the other renderer
@@ -93,18 +98,21 @@ Feature: React Three Fiber both ways: an R3F scene drawn by raea, a raea composi
         | in-basic    | a spinning box (useFrame), PBR and clearcoat, shadows, a point light | 0.9911 |
         | in-lights   | spot, hemisphere and area lights, fog, Lambert and flat Phong        | 0.9792 |
         | in-things   | InstancedMesh, multi-material, edge lines, a sprite                  | 0.9908 |
+        | in-catch    | a ShadowMaterial floor: only the box's shadow over the background    | 0.9965 |
         | out-basic   | a raea scene, ACES, a moving box                                     | 0.9958 |
         | out-tony    | the same scene in raea's default tone mapping, TonyMcMapface         | 0.9960 |
         | out-lights  | spot and area lights, fog, Text3D (a solid)                          | 0.9627 |
         | out-bloom   | <Bloom intensity={2}>                                                | 0.9444 |
         | out-grade   | <Grade> saturation, contrast, vignette                               | 0.9748 |
         | out-lens    | <LensDistortion k1={0.15}>                                           | 0.9933 |
+        | out-catch   | <Mesh shadow="catch">, three's ShadowMaterial                        | 0.9972 |
         | src-basic   | out-basic exported as R3F source, drawn by a plain <Canvas>          | 0.9957 |
         | src-tony    | out-tony exported (Tony through raea-effects.ts)                     | 0.9960 |
         | src-lights  | out-lights exported as R3F source (Text3D as its triangles)          | 0.9628 |
         | src-bloom   | out-bloom exported (raea-effects.ts)                                 | 0.9444 |
         | src-grade   | out-grade exported                                                   | 0.9748 |
         | src-lens    | out-lens exported                                                    | 0.9933 |
+        | src-catch   | out-catch exported                                                   | 0.9972 |
       And three's ACES scales its input by 1/0.6 where Bevy's doesn't: the host's exposure takes 0.6 under ACES, and
         an R3F canvas's ACES reads as 0.74 stops more (measured: out-lights 0.927 to 0.963, in-lights 0.927 to 0.979)
 

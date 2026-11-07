@@ -9,6 +9,7 @@ use std::sync::OnceLock;
 
 use serde_json::{Map, Value, json};
 
+use crate::rings;
 use crate::variants::{self, State};
 
 const THEME: &str = include_str!("../assets/tailwind-theme.css");
@@ -67,6 +68,16 @@ fn spacing(s: &str) -> Option<Value> {
     Some(json!(n * px(var("spacing")?)?))
 }
 
+/// A size utility's value on an axis (`w` or `h`): spacing, full, auto, or the viewport's (`screen`, `dvh`, ...).
+fn size_on(axis: &str, s: &str) -> Option<Value> {
+    let unit = if axis == "w" { "vw" } else { "vh" };
+    match s {
+        "screen" => Some(json!(format!("100{unit}"))),
+        "dvh" | "svh" | "lvh" | "dvw" | "svw" | "lvw" if s.ends_with(&unit[1..]) => Some(json!(format!("100{unit}"))),
+        _ => size(s),
+    }
+}
+
 /// A size utility's value: spacing, or full/auto.
 fn size(s: &str) -> Option<Value> {
     match s {
@@ -116,6 +127,7 @@ pub fn style_in(class: &str, s: &State) -> (Map<String, Value>, Vec<String>) {
     for (k, v) in hits.into_iter().flat_map(|h| h.1) {
         out.insert(k.to_string(), v);
     }
+    crate::rings::compose(&mut out);
     (out, unknown)
 }
 
@@ -155,8 +167,11 @@ fn utility(u: &str) -> Option<Props> {
         "rounded" => return one("borderRadius", json!(px(var("radius")?)?)),
         "rounded-none" => return one("borderRadius", json!(0)),
         "rounded-full" => return one("borderRadius", json!(9999)),
-        "shadow" => return one("boxShadow", s(var("shadow")?)),
-        "shadow-none" => return one("boxShadow", s("none")),
+        "shadow" => return one(rings::SHADOW, s(var("shadow")?)),
+        "shadow-none" => return one(rings::SHADOW, s("none")),
+        "ring" => return rings::utility(None, colour),
+        "outline" => return Some(vec![("outlineStyle", s("solid")), ("outlineWidth", json!(1))]),
+        "outline-none" => return one("outlineStyle", s("none")),
         // transitions (T3c): the property list Tailwind 4.3.3 writes, its default duration and curve under any
         // duration-* or ease-* (motion.rs reads --tw-transition first)
         "transition" => return transition("color, background-color, border-color, outline-color, opacity, box-shadow, transform, translate, scale, rotate"),
@@ -201,8 +216,8 @@ fn utility(u: &str) -> Option<Props> {
             Some(("y", _)) => pad(&["rowGap"]),
             _ => one("gap", spacing(rest)?),
         },
-        "w" => one("width", size(rest)?),
-        "h" => one("height", size(rest)?),
+        "w" => one("width", size_on("w", rest)?),
+        "h" => one("height", size_on("h", rest)?),
         "size" => one_two("width", "height", size(rest)?),
         "min" | "max" => {
             let (axis, v) = rest.split_once('-')?;
@@ -215,7 +230,7 @@ fn utility(u: &str) -> Option<Props> {
             };
             let v = match var(&format!("container-{v}")) {
                 Some(c) if axis == "w" => json!(px(c)?),
-                _ => size(v)?,
+                _ => size_on(axis, v)?,
             };
             one(k, v)
         }
@@ -253,11 +268,16 @@ fn utility(u: &str) -> Option<Props> {
         },
         "leading" => one("lineHeight", match var(&format!("leading-{rest}")) {
             Some(l) => json!(l.parse::<f64>().ok()?),
-            None => spacing(rest)?,
+            // a spacing step is a length (leading-6 is 24px), never a bare number, which lineHeight reads as a ratio
+            None => match spacing(rest)? {
+                Value::Number(n) => json!(format!("{}px", n.as_f64()?)),
+                v => v,
+            },
         }),
         "rounded" => radius(rest),
         "border" => border(rest),
-        "shadow" => one("boxShadow", s(var(&format!("shadow-{rest}"))?)),
+        "shadow" => one(rings::SHADOW, s(var(&format!("shadow-{rest}"))?)),
+        "ring" => rings::utility(Some(rest), colour),
         "duration" => one("transitionDuration", s(&format!("{}ms", rest.parse::<f64>().ok()?))),
         "delay" => one("transitionDelay", s(&format!("{}ms", rest.parse::<f64>().ok()?))),
         "translate" => match rest.split_once('-') {

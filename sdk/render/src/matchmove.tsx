@@ -7,7 +7,8 @@
 // 0 looking down -Z. `<Text3D position={[0, 0, -4]}>` stands on the ground.
 import { createContext, useContext, type ReactNode } from "react";
 import { useCurrentFrame, useVideoConfig } from "@raea/app/clock";
-import { PerspectiveCamera, Plate, ToneMapping, type Vec3 } from "./3d";
+import { Plate, ToneMapping, type Vec3 } from "./3d";
+import { PerspectiveCamera } from "./three";
 import { hasNative, native } from "@raea/app/native";
 
 export interface MatchmoveCamera {

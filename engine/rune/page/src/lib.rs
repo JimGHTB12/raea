@@ -3,9 +3,8 @@
 //! events back to the app.
 
 pub use raea_rune_media::images;
-pub use raea_rune_style::{css, motion, report, runeprops, tailwind, variants};
+pub use raea_rune_style::{css, motion, outline, report, runeprops, tailwind, variants};
 
-pub mod dump;
 pub mod events;
 pub mod input;
 pub mod kit;

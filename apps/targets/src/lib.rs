@@ -7,6 +7,7 @@ pub mod config;
 pub mod literal;
 pub mod macapp;
 pub mod native;
+pub mod portable;
 pub mod sign;
 pub mod steps;
 pub mod verbs;

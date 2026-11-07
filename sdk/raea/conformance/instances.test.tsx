@@ -1,7 +1,8 @@
 // <Instances> and scatter(): placements packed 9 numbers a copy onto a Mesh or Model node, the errors, and scatter's
 // determinism, spacing, avoid, clearOf, ground height and density.
 import { describe, expect, test } from "bun:test";
-import { BufferMesh, Cuboid, Instances, MeshStandardMaterial, MeshToonMaterial, scatter } from "raea/3d";
+import { BufferMesh, Cuboid, Instances, scatter } from "raea/3d";
+import { MeshStandardMaterial, MeshToonMaterial } from "@raea/render/three";
 import { renderFrame } from "../src/test";
 
 const html = (el: React.ReactElement) => renderFrame(el, { frame: 0, width: 320, height: 240, fps: 30, durationInFrames: 30 });

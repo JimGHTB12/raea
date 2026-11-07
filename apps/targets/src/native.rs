@@ -42,8 +42,11 @@ pub fn args(a: &Ask) -> Vec<String> {
 
 pub fn run(a: &Ask) -> Result<String, String> {
     host(&args(a))?;
-    if a.verb != Verb::Bundle {
-        return Ok(String::new());
+    match a.verb {
+        Verb::Run => return Ok(String::new()),
+        // the portability report (T4a): anything the host didn't draw or answer fails the check
+        Verb::Check => return crate::portable::verdict(&crate::portable::report(&a.png)?, &a.png),
+        Verb::Bundle => {}
     }
     // the host makes the .app (signed ad hoc); raea signs it as the developer asks, as it does a web app (T1d)
     let out = a.out.clone().unwrap_or_else(|| PathBuf::from(format!("{}.app", crate::verbs::stem(&a.app))));

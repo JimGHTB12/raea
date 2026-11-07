@@ -1,6 +1,7 @@
 // Lights.
 import { type ReactNode } from "react";
-import { AmbientLight as AmbientLight3, DirectionalLight as DirectionalLight3, PointLight as PointLight3, RectAreaLight, SpotLight as SpotLight3, type Vec3 } from "../3d";
+import { type Vec3 } from "../3d";
+import { AmbientLight as AmbientLight3, DirectionalLight as DirectionalLight3, PointLight as PointLight3, RectAreaLight, SpotLight as SpotLight3 } from "../three";
 import { OLD_LIGHT_PROPS, Quat, TransformValue } from "./all";
 
 function refuseOld(owner: string, props: Record<string, unknown>, allowed: readonly string[] = []) {
@@ -44,7 +45,8 @@ export interface PointLightProps extends LightCommon {
 /** Shadows' size as 3d.tsx takes it: soft with the radius (or the default bulb) when soft_shadows_enabled. */
 const soft = (p: { radius?: number; soft_shadows_enabled?: boolean }) => (p.soft_shadows_enabled ? (p.radius !== undefined && p.radius > 0 ? p.radius : true) : undefined);
 
-/** Bevy's PointLight: a bulb at its transform's translation, in lumens. */
+/** Bevy's PointLight: a bulb at its transform's translation, in lumens.
+ * @bevy bevy_light::point_light::PointLight */
 export function PointLight(p: PointLightProps) {
   refuseOld("PointLight", p as Record<string, unknown>, ["intensity"]);
   const { transform, visibility, intensity = 1_000_000, range = 20, radius, shadow_maps_enabled = false, soft_shadows_enabled, ...rest } = p;
@@ -60,7 +62,8 @@ export interface SpotLightProps extends PointLightProps {
   inner_angle?: number;
 }
 
-/** Bevy's SpotLight: a cone along its transform's -Z, in lumens. */
+/** Bevy's SpotLight: a cone along its transform's -Z, in lumens.
+ * @bevy bevy_light::spot_light::SpotLight */
 export function SpotLight(p: SpotLightProps) {
   refuseOld("SpotLight", p as Record<string, unknown>, ["intensity"]);
   const { transform, visibility, intensity = 1_000_000, range = 20, radius, shadow_maps_enabled = false, soft_shadows_enabled, outer_angle = Math.PI / 4, inner_angle = 0, ...rest } = p;
@@ -80,7 +83,8 @@ export interface DirectionalLightProps extends Omit<LightCommon, "children"> {
   children?: ReactNode;
 }
 
-/** Bevy's DirectionalLight: parallel light shining along its transform's -Z, in lux. */
+/** Bevy's DirectionalLight: parallel light shining along its transform's -Z, in lux.
+ * @bevy bevy_light::directional_light::DirectionalLight */
 export function DirectionalLight(p: DirectionalLightProps) {
   refuseOld("DirectionalLight", p as Record<string, unknown>);
   const { transform, visibility, illuminance = 10_000, shadow_maps_enabled = false, soft_shadow_size, ...rest } = p;
@@ -97,7 +101,8 @@ export interface AmbientLightProps {
 }
 
 /** Bevy's AmbientLight (on the camera in 0.20; GlobalAmbientLight is the same light as a resource): light from
- *  everywhere, in cd/m². */
+ *  everywhere, in cd/m².
+ * @bevy bevy_light::ambient_light::AmbientLight */
 export function AmbientLight(p: AmbientLightProps) {
   return <AmbientLight3 {...ambientOf(p)} />;
 }
@@ -124,7 +129,8 @@ export interface RectLightProps extends Omit<LightCommon, "children" | "volumetr
   height?: number;
 }
 
-/** Bevy's RectLight: a rectangle of light facing its transform's -Z, in lumens (no shadows in Bevy 0.20). */
+/** Bevy's RectLight: a rectangle of light facing its transform's -Z, in lumens (no shadows in Bevy 0.20).
+ * @bevy bevy_light::rect_light::RectLight */
 export function RectLight(p: RectLightProps) {
   refuseOld("RectLight", p as Record<string, unknown>, ["intensity"]);
   const { transform, visibility, intensity = 1_000_000, range = 20, width = 1, height = 1, ...rest } = p;

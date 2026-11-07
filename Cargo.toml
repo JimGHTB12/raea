@@ -37,6 +37,7 @@ members = [
     "engine/rune",
     "engine/rune/page",
     "engine/rune/media",
+    "engine/rune/look",
     "engine/rune/style",
     "engine/page/stage",
     "engine/page/window",
@@ -96,6 +97,7 @@ members = [
     "systems/fog",
     "systems/fog-half",
     "systems/volume",
+    "systems/grass",
     "systems/fonts",
     "systems/image",
     "runtime/twins",
@@ -109,6 +111,7 @@ members = [
     "engine/render",
     "engine/render/raytrace",
     "engine/seedling",
+    "engine/web",
     "runtime/react",
     "bench/bridge",
     "bench/bevy-parity",
@@ -191,6 +194,21 @@ strip = "symbols"
 # the symbols the stripped player lacks, kept beside it as raea-game.dSYM (never shipped; export-game files it under
 # ~/Library/Caches/raea/dsym by UUID for atos against panic.txt and crash.txt)
 debug = "line-tables-only"
+# raea-web's wasm (engine/web, docs/web-export.md): what a browser downloads. opt-level s, fat LTO, one codegen unit,
+# no symbols (wasm32 has no unwinding: panics abort). Measured 11-06 on meadow-low in Chrome on the M5 Mac, brotli'd
+# after wasm-opt: z 7.2 MB but frames 6x slower than 3's (1326 ms against 219, the clouds then simulated: z gives up the
+# inlining the ECS's systems need); 3 9.0 MB; s 7.9 MB (with the Bevy features raea-render's `native` holds) at 17 ms a
+# frame, as 3, once the clouds are cards and the frame is the GPU's
+[profile.web]
+inherits = "release"
+incremental = false
+debug = false
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
 # crates the player only runs while it loads (image, SVG and audio decoders, the MP4 demuxer, CSG), built for size;
 # frame work keeps opt-level 3 (opt-level s for the whole player cost +20-22% frame work: lightspeed R7)
 [profile.game.package.zune-jpeg]

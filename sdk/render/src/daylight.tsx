@@ -7,7 +7,8 @@
 // so a shot's exposure comes from the light meter (`raea scene light`) and every window agrees with the sky.
 //
 //   const day = daylight({ sky: staticFile("sky.hdr"), lat: 51.5, lon: -0.1, time: "2026-10-21T08:30:00+01:00" });
-import { AmbientLight, DirectionalLight, Environment, SpotLight, type Vec3 } from "./3d";
+import { Environment, type Vec3 } from "./3d";
+import { AmbientLight, DirectionalLight, SpotLight } from "./three";
 import { hasNative, native } from "@raea/app/native";
 import { onWall, type Opening, type Room } from "@raea/room/room";
 

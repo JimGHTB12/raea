@@ -99,6 +99,20 @@ fn fragment(
     if texel > 0.0 {
         wp = (floor((fine + pbr_input.world_normal * texel * 0.25) / texel) + 0.5) * texel;
     }
+    // the texture's derivatives (below) taken here, before any branch: WGSL (and WebGPU's compiler, which refuses
+    // otherwise) wants them in uniform control flow, and the unlit return below depends on the material
+    var uv0 = vec2<f32>(0.0);
+    var px = vec3<f32>(0.0);
+    var py = vec3<f32>(0.0);
+    var ux = vec2<f32>(0.0);
+    var uy = vec2<f32>(0.0);
+@if(VERTEX_UVS_A) {
+    uv0 = (pbr_input.material.uv_transform * vec3<f32>(in.uv, 1.0)).xy;
+    px = dpdx(fine);
+    py = dpdy(fine);
+    ux = dpdx(uv0);
+    uy = dpdy(uv0);
+}
     // unlit (a MeshBasicMaterial, `unlit`): its own colour, as drawn
     if (pbr_input.material.flags & STANDARD_MATERIAL_FLAGS_UNLIT_BIT) != 0u {
         out.color = main_pass_post_lighting_processing(pbr_input, vec4<f32>(c.rgb + pbr_input.material.emissive.rgb * view_bindings::view.exposure, c.a));
@@ -106,12 +120,7 @@ fn fragment(
     }
 @if(VERTEX_UVS_A) {
     // the texture read at the cell's centre: the uv there found from how uv and the world move across the screen
-    // (derivatives taken before any branch, as WGSL needs)
-    let uv0 = (pbr_input.material.uv_transform * vec3<f32>(in.uv, 1.0)).xy;
-    let px = dpdx(fine);
-    let py = dpdy(fine);
-    let ux = dpdx(uv0);
-    let uy = dpdy(uv0);
+    // (the derivatives taken above, before any branch)
 @if(!BINDLESS) {
     if texel > 0.0 && (pbr_input.material.flags & STANDARD_MATERIAL_FLAGS_BASE_COLOR_TEXTURE_BIT) != 0u {
         let d = wp - fine;

@@ -34,8 +34,8 @@ fn variants_hold_per_state_in_tailwinds_order() {
 
 #[test]
 fn unmapped_variants_are_reported_in_any_state() {
-    let (_, unknown) = style_in("hover:bg-red-500 md:flex dark:hover:ring-2 group-hover:flex first:p-2 placeholder:text-sm -mt-2 p-4", &State::default());
-    assert_eq!(unknown, ["dark:hover:ring-2", "group-hover:flex", "first:p-2", "placeholder:text-sm", "-mt-2"]);
+    let (_, unknown) = style_in("hover:bg-red-500 md:flex dark:hover:skew-x-3 group-hover:flex first:p-2 placeholder:text-sm -mt-2 p-4", &State::default());
+    assert_eq!(unknown, ["dark:hover:skew-x-3", "group-hover:flex", "first:p-2", "placeholder:text-sm", "-mt-2"]);
 }
 
 /// A page of three: a box with `class` (id 1) after a focusable one (id 2) to Tab from, under an 800x600 viewport.

@@ -1,6 +1,6 @@
 // golden case 04: a Manifold shape in Bevy (a sign with SALE cut through it), turning, under a camera and two lights
 import { AbsoluteFill, interpolate, useCurrentFrame } from "../../../src";
-import { AmbientLight, DirectionalLight, Mesh, MeshStandardMaterial, PerspectiveCamera } from "../../../src/3d";
+import { AmbientLight, DirectionalLight, Mesh, MeshStandardMaterial, PerspectiveCamera } from "@raea/render/three";
 
 export default function Sign() {
   const frame = useCurrentFrame();

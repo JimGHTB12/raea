@@ -138,10 +138,15 @@ impl Js {
             ("__ui_flush", push(&asks, |a, x| a.flushed.push(x[0].clone()))),
             ("__ui_emit", push(&asks, |a, x| a.emits.push((x[0].clone(), x[1].clone())))),
             ("__ui_call", push(&asks, |a, x| a.calls.push((x[0].parse::<f64>().unwrap_or(0.0) as u64, x[1].clone(), x[2].clone())))),
-            // no synchronous host calls yet: each answers that it isn't there, as a host without it does
+            // synchronous host calls answer that they aren't there, as a host without them does; except sdk/ui's
+            // `selection.set(null)` (no selection, which a press sends): nothing is selected, so there's nothing to
+            // paint (T4a). A selection to paint is refused and listed: Rune's host doesn't draw the DOM's yet
             ("__ui_sync", {
                 let r = refused.clone();
-                Box::new(move |x| Ok(Ret::Str(json!({"err": refuse(&r, arg(x, 0))}).to_string())))
+                Box::new(move |x| {
+                    let none = arg(x, 0) == "selection.set" && arg(x, 1).trim() == "null";
+                    Ok(Ret::Str(if none { json!({"ok": null}) } else { json!({"err": refuse(&r, arg(x, 0))}) }.to_string()))
+                })
             }),
             ("__ui_log", {
                 let l = logs.clone();

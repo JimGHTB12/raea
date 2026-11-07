@@ -35,7 +35,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/camera` (sdk/raea/src/camera.ts)
 
-`Camera3d`, `Canvas3D`, `Matchmove`, `OrthographicCamera`, `PerspectiveCamera`, `TextureView`, `checkMatchmove`, `matchmoveIndex`, `matchmoveView`, `useMatchmove`
+`Camera3d`, `Canvas3D`, `Matchmove`, `TextureView`, `checkMatchmove`, `matchmoveIndex`, `matchmoveView`, `useMatchmove`
 
 ## `raea/color` (sdk/raea/src/color.ts)
 
@@ -63,11 +63,11 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/mesh` (sdk/raea/src/mesh.ts)
 
-`BufferMesh`, `Capsule`, `Capsule3d`, `Cone`, `ConicalFrustum`, `Cuboid`, `Cylinder`, `Instances`, `Mesh`, `Mesh2d`, `Mesh3d`, `MeshSequence`, `Plane3d`, `Sphere`, `Torus`, `scatter`
+`BufferMesh`, `Capsule`, `Capsule3d`, `Cone`, `ConicalFrustum`, `Cuboid`, `Cylinder`, `Instances`, `Mesh2d`, `Mesh3d`, `MeshSequence`, `Plane3d`, `Sphere`, `Torus`, `scatter`
 
 ## `raea/pbr` (sdk/raea/src/pbr.ts)
 
-`AmbientOcclusion`, `Decal`, `ExtendedMaterial`, `Fire`, `Fog`, `FogVolume`, `GridExtension`, `MeshBasicMaterial`, `MeshPhysicalMaterial`, `MeshStandardMaterial`, `MeshToonMaterial`, `PaintExtension`, `Refinish`, `ShaderExtension`, `ShaderMesh`, `StandardMaterial`, `SurfaceShader`, `ToonExtension`, `ToonMaterial`, `VolumetricFog`, `WearExtension`
+`AmbientOcclusion`, `Decal`, `ExtendedMaterial`, `Fire`, `Fog`, `FogVolume`, `GridExtension`, `PaintExtension`, `Refinish`, `ShaderExtension`, `ShaderMesh`, `StandardMaterial`, `SurfaceShader`, `ToonExtension`, `ToonMaterial`, `VolumetricFog`, `WearExtension`
 
 ## `raea/post_process` (sdk/raea/src/post_process.ts)
 
@@ -95,7 +95,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/transform` (sdk/raea/src/transform.ts)
 
-`Group`, `Quat`, `Transform`, `eulerOf`, `surfaceTurn`
+`Quat`, `Transform`, `eulerOf`, `surfaceTurn`
 
 ## `raea/ui` (sdk/raea/src/ui.ts)
 

@@ -1,7 +1,8 @@
 // Quat, Transform, Mesh3d and Camera3d.
 import { Children, isValidElement, useId, type ReactNode } from "react";
 import { meshLayers } from "../layers";
-import { AmbientLight as AmbientLight3, DepthOfField, Mesh, OrthographicCamera, PerspectiveCamera, dofOf, eulerOf, type DepthOfFieldProps, type MeshProps, type Vec3 } from "../3d";
+import { DepthOfField, dofOf, eulerOf, type DepthOfFieldProps, type Vec3 } from "../3d";
+import { AmbientLight as AmbientLight3, Mesh, OrthographicCamera, PerspectiveCamera, type MeshProps } from "../three";
 import { Transform as TransformComponent } from "@raea/app/bevy";
 import { AmbientLight, ambientOf, type AmbientLightProps } from "./all";
 
@@ -157,7 +158,14 @@ export interface Mesh3dProps extends Omit<MeshProps, "position" | "rotation" | "
 }
 
 /** Bevy's Mesh3d on an entity with its Transform: a shape (Cuboid, Sphere ...) and a material inside, and any page
- * element inside as a page layer in the world at it, or on it with layer="surface" (`meshLayers`). */
+ * element inside as a page layer in the world at it, or on it with layer="surface" (`meshLayers`).
+ * @bevy bevy_mesh::components::Mesh3d
+ * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::pbr_material::StandardMaterial>
+ * castShadow={false} and receiveShadow={false} put Bevy's markers on it: @bevy bevy_light::NotShadowCaster
+ * @bevy bevy_light::NotShadowReceiver
+ * `layers` is its RenderLayers (a light's and a camera's too): @bevy bevy_camera::visibility::render_layers::RenderLayers
+ * shadow="only" draws it with the shadow-only material (engine/render shadow_only.rs):
+ * @bevy bevy_pbr::mesh_material::MeshMaterial3d<raea_render::engine::shadow_only::ShadowOnlyMaterial> */
 export function Mesh3d({ transform, visibility, children, ...rest }: Mesh3dProps) {
   const id = useId();
   if (visibility === "Hidden") return null;
@@ -185,7 +193,10 @@ export interface Camera3dProps {
   children?: ReactNode;
 }
 
-/** Bevy's Camera3d with its Transform and Projection: it looks along its -Z, +Y up, as Bevy's cameras do. */
+/** Bevy's Camera3d with its Transform and Projection: it looks along its -Z, +Y up, as Bevy's cameras do.
+ * @bevy bevy_camera::components::Camera3d
+ * @bevy bevy_camera::camera::Camera
+ * @bevy bevy_camera::projection::Projection */
 export function Camera3d({ transform, projection = { Perspective: {} }, layers, children: kids }: Camera3dProps) {
   // Bevy's DepthOfField on the camera: its focal_distance is the camera's focus, the rest the scene's DepthOfField
   let dof: DepthOfFieldProps | undefined;

@@ -3,10 +3,12 @@
 // components.
 import type { ReactNode } from "react";
 import {
-  AmbientLight, BufferMesh, DirectionalLight, Environment, Fog, Gizmo, Group, Instances, Mesh, MeshBasicMaterial,
-  MeshPhysicalMaterial, MeshStandardMaterial, MeshToonMaterial, OrthographicCamera, PerspectiveCamera, PointLight,
-  RectAreaLight, SpotLight, ToneMapping,
+  BufferMesh, Environment, Fog, Gizmo, Instances, ToneMapping,
 } from "raea/3d";
+import {
+  AmbientLight, DirectionalLight, Group, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial,
+  MeshToonMaterial, OrthographicCamera, PerspectiveCamera, PointLight, RectAreaLight, SpotLight,
+} from "@raea/render/three";
 import type { Part } from "./input/material";
 
 export type { Part, Props } from "./input/material";

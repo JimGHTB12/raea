@@ -9,6 +9,8 @@ const SCRIPT: &str = r#"
   __ui_call(2, "files.open", "{}");
   __ui_call(3, "world.spawn_entity", "{}");
   console.log("sync " + __ui_sync("layout.now", "null"));
+  console.log("cleared " + __ui_sync("selection.set", "null"));
+  console.log("selected " + __ui_sync("selection.set", JSON.stringify({ anchor: [1, 0], focus: [1, 3], caret: false })));
 "#;
 
 #[test]
@@ -18,7 +20,10 @@ fn a_call_the_native_target_can_t_answer_says_so_and_is_listed() {
     assert!(logs.contains("answer 1 false world.spawn_entity: no world on the native target (targets.feature T6)"), "{logs}");
     assert!(logs.contains("answer 2 false the Rune host has no files.open"), "{logs}");
     assert!(logs.contains("the Rune host has no layout.now"), "{logs}");
+    // T4a: no selection is answered (nothing to paint); a selection to paint is still refused and listed
+    assert!(logs.contains(r#"cleared {"ok":null}"#), "{logs}");
+    assert!(logs.contains("selected {\"err\":\"the Rune host has no selection.set"), "{logs}");
     let refused = app.refused.borrow();
     let listed: Vec<(&str, u32)> = refused.iter().map(|(k, (_, n))| (k.as_str(), *n)).collect();
-    assert_eq!(listed, [("files.open", 1), ("layout.now", 1), ("world.spawn_entity", 2)]);
+    assert_eq!(listed, [("files.open", 1), ("layout.now", 1), ("selection.set", 1), ("world.spawn_entity", 2)]);
 }

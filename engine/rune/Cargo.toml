@@ -16,6 +16,7 @@ raea-io-os = { path = "../../io/os" }
 raea-runtime-jsengine = { path = "../../runtime/jsengine" }
 raea-rune-page = { path = "page" }
 raea-rune-media = { path = "media" }
+raea-rune-look = { path = "look" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 png = "0.18"

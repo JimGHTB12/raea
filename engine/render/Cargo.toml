@@ -13,8 +13,8 @@ raea-sys-frame = { path = "../../systems/frame" }
 raea-sys-splat = { path = "../../systems/splat" }
 raea-sys-sprite = { path = "../../systems/sprite" }
 raea-sys-rt = { path = "../../systems/rt" }
-# experimental_pbr_pcss: soft shadows (a light's softShadow in raea/3d; raea-runtime-scene3d's light)
-bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "experimental_pbr_pcss", "area_light_luts", "bevy_gilrs"] }
+# soft shadows (experimental_pbr_pcss) are under the native feature with raea-runtime-scene3d/pcss: WebGPU refuses their sampling
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "tonemapping_luts", "ktx2", "zstd_rust"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "hdr"] }
 # an edit as rows keyed per frame, and 3D shapes as values (docs/media.feature M2)
 raea-core-program = { path = "../../core/program" }
@@ -43,10 +43,12 @@ raea-sys-post = { path = "../../systems/post" }
 raea-sys-fog = { path = "../../systems/fog" }
 raea-sys-fog-half = { path = "../../systems/fog-half" }
 raea-sys-volume = { path = "../../systems/volume" }
+# a field of grass made in tiles by distance (<Grass>)
+raea-sys-grass = { path = "../../systems/grass" }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 # the direct render's views, the 2D rows, clips' masks and the paint device (runtime/view)
 raea-runtime-view = { path = "../../runtime/view", optional = true }
-raea-sys-page = { path = "../../systems/page" }
+raea-sys-page = { path = "../../systems/page", optional = true }
 # the shared device; its passes' errors, stalls and latency in the run's trace, as raea-render's
 raea-gpu-device = { path = "../../gpu/device", optional = true }
 raea-io-trace = { path = "../../io/trace", optional = true }
@@ -61,8 +63,9 @@ raea-render-raytrace = { path = "raytrace", optional = true }
 
 [features]
 # native: everything that only exists to render on the machine itself (clips' decoders, the GPU frame path and its
-# traces, the direct views); without it raea-render is the program format and the 3D engine, which is what a browser build needs (docs/web-export.md, milestone 1)
-native = ["dep:raea-runtime-gpuframe", "dep:raea-runtime-view", "raea-sys-matchmove/native", "raea-sys-frame/native", "raea-sys-splat/native", "raea-sys-material/native", "raea-sys-text3d/native", "dep:raea-io-media", "dep:raea-gpu-device", "dep:raea-io-trace"]
+# traces, the direct views, and Bevy's built-in font, JPEG, SMAA's and area lights' tables and gamepads, which a
+# page's download goes without); without it raea-render is the program format and the 3D engine, which is what a browser build needs (docs/web-export.md, milestone 1)
+native = ["bevy/default_font", "bevy/jpeg", "bevy/smaa_luts", "bevy/area_light_luts", "bevy/bevy_gilrs", "dep:raea-sys-page", "bevy/experimental_pbr_pcss", "raea-runtime-scene3d/pcss", "dep:raea-runtime-gpuframe", "dep:raea-runtime-view", "raea-sys-matchmove/native", "raea-sys-frame/native", "raea-sys-splat/native", "raea-sys-material/native", "raea-sys-text3d/native", "dep:raea-io-media", "dep:raea-gpu-device", "dep:raea-io-trace"]
 # web: the 3D engine on WebGPU in a browser (wasm32-unknown-unknown, without native)
 web = ["bevy/webgpu"]
 # AV1 (dav1d decode, rav1e encode) as a media backend: on by default; an exported game's player goes without it

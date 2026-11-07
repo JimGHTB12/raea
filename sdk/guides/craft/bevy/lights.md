@@ -25,8 +25,9 @@ with `.lookingAt(point)`.
 - Shadows: a light casts them with `shadow_maps_enabled` (Bevy's default is none, so write it on the sun). Point and
   spot lights cast them the same way. Every mesh casts and receives. A floor (a wide thin Cuboid) is what makes
   shadows read. A Mesh3d's `shadow={false}` casts none; `shadow="only"` casts its shadow (and blocks the sun's shafts
-  in fog) without being drawn: a roof or wall out of frame, a blind's slats. Clouds, smoke and contrails cast too
-  (post.md).
+  in fog) without being drawn: a roof or wall out of frame, a blind's slats. `shadow="catch"` is the reverse: only the
+  shadows falling on it are drawn, in its material's colour and opacity, and it's clear elsewhere (a floor under a
+  product over a picture or the page; three.js's ShadowMaterial). Clouds, smoke and contrails cast too (post.md).
 - Shadow quality: by default the maps are 4096 texels a side and the sun's four cascades cover 150 m from the camera,
   the first ending at 8 m, so shadows are sharp up close and still there down a long street. For a different scale
   put one `<Shadows>` beside the camera: `distance` (metres the sun's shadows reach; shorter is sharper),

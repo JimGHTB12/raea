@@ -27,7 +27,7 @@ pub(crate) fn relational(edit: Res<Edit>, clock: Res<Clock>, mut err: ResMut<Err
     if frame.live.is_some() {
         return;
     }
-    let t0 = std::time::Instant::now();
+    let t0 = bevy::platform::time::Instant::now();
     frame.cols = edit.timeline.cols(clock.0);
     frame.parse_looks();
     st.rules += t0.elapsed().as_nanos() as u64;
@@ -36,7 +36,7 @@ pub(crate) fn relational(edit: Res<Edit>, clock: Res<Clock>, mut err: ResMut<Err
 
 /// The kinds a row spawns as a thing in the 3D scene (spawn_3d).
 pub(crate) fn is_3d_spawn(kind: &str) -> bool {
-    matches!(kind, "light" | "model" | "cube" | "sphere" | "plane" | "mesh" | "panel" | "decal" | "fogvolume" | "fire" | "plate" | "splat" | "meshseq" | "entity" | "text" | "glyph" | "screenpage" | "sprite" | "shape2d")
+    matches!(kind, "light" | "model" | "cube" | "sphere" | "plane" | "mesh" | "panel" | "decal" | "fogvolume" | "fire" | "grass" | "plate" | "splat" | "meshseq" | "entity" | "text" | "glyph" | "screenpage" | "sprite" | "shape2d")
 }
 
 /// A 3D row's entity made what it draws (a light, a model, a mesh with its surface, a panel): what a load does for each
@@ -48,7 +48,9 @@ pub(crate) fn spawn_camera(world: &mut World, e: Entity, vals: &BTreeMap<String,
     let g = |k: &str, d: f32| num(vals, k, d);
                 world.entity_mut(e).insert((
                     Camera3d::default(),
-                    Camera { clear_color: ClearColorConfig::Custom(colour(vals.get("bg"), [0.05, 0.04, 0.1, 1.0])), ..default() },
+                    // the row's `bg` when it has one (a live scene's clear, a page export's), else Bevy's ClearColor resource, which
+                    // <BevyResource type="bevy_camera::clear_color::ClearColor"> sets (docs/control conventions C17)
+                    Camera { clear_color: vals.get("bg").map_or(ClearColorConfig::Default, |b| ClearColorConfig::Custom(colour(Some(b), [0.0, 0.0, 0.0, 1.0]))), ..default() },
                     target,
                     // ambient occlusion can't multisample, and SMAA or FXAA replace it (scene3d); composition passes read a
                     // single-sampled prepass (compose.rs)
@@ -187,6 +189,8 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
         "fogvolume" => scene3d::fog_volume(world, e, &t.id, vals),
         // a flame drawn as a volume (<Fire>): fire.rs
         "fire" => fire::spawn(world, e, vals),
+        // a field of grass (<Grass>): systems/grass
+        "grass" => raea_sys_grass::spawn(world, e, vals)?,
         // gaussian splats (<Splat>): splat.rs
         "splat" => splat::spawn(world, e, t, inserted, dir)?,
         // a bare Bevy entity (<Entity>): placed, and given Bevy's own components by its component rows (plugins.rs)
@@ -267,6 +271,9 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             if vals.get("shadow_only").is_some_and(V::truthy) {
                 // `shadow: "only"`: in the shadow maps, never drawn (shadow_only.rs)
                 grid::put(world, e, mesh, shadow_only::ShadowOnlyMaterial::default(), vals);
+            } else if vals.get("shadow_catch").is_some_and(V::truthy) {
+                // `shadow: "catch"`: only the shadows falling on it, in its colour and opacity (shadow_catch.rs)
+                grid::put(world, e, mesh, shadow_catch::ShadowCatchMaterial::of(&mat), vals);
             } else if vals.contains_key("toon") {
                 // a MeshToonMaterial: the surface lit in bands over the standard one, and its ink outline (toon.rs)
                 world.entity_mut(e).insert((Mesh3d(mesh.clone()), transform_of(vals)));
@@ -350,8 +357,9 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
                 base_color_texture: Some(tex),
                 unlit: true,
                 // premultiplied (mip_chain): interpolating straight colour and alpha apart and multiplying them
-                // after isn't linear in the sample position, so a moving edge's centroid wobbled (0.10 px)
-                alpha_mode: AlphaMode::Premultiplied,
+                // after isn't linear in the sample position, so a moving edge's centroid wobbled (0.10 px). A cut-out
+                // card (`cutout`) is no surface where its picture is clear, and shadows in its picture's shape
+                alpha_mode: if g("cutout", 0.0) > 0.0 { AlphaMode::Mask(0.5) } else { AlphaMode::Premultiplied },
                 cull_mode: None,
                 double_sided: true,
                 uv_transform: scene3d::sheet_uv(g("sheet_frame", 0.0), cols, rows),

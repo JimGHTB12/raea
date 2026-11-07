@@ -141,9 +141,7 @@ impl Default for Spec {
     }
 }
 
-fn f32_of(o: &J, k: &str, d: f32) -> f32 {
-    o.get(k).and_then(J::as_f64).map_or(d, |x| x as f32)
-}
+use raea_sys_frame::json_f32 as f32_of;
 
 fn v3_of(o: &J, k: &str) -> Option<[f32; 3]> {
     let a = o.get(k)?.as_array()?;

@@ -2,10 +2,43 @@
 
 use super::*;
 
+/// An Engine half made: its App's plugins added, the renderer not yet known to be up. Natively it always is; in a
+/// browser the GPU device comes asynchronously, so the page asks `ready` each animation frame before `finish`.
+pub struct Opening {
+    app: App,
+    prog: Program,
+    inserted: Vec<Tup>,
+    dir: PathBuf,
+    timeline: Option<std::sync::Arc<raea_core_program::timeline::Timeline>>,
+    live: bool,
+}
+
+impl Opening {
+    /// The App's plugins are ready to finish (the render device made).
+    pub fn ready(&mut self) -> bool {
+        self.app.plugins_state() == bevy::app::PluginsState::Ready
+    }
+
+    /// The App's World before it's finished (raea-web adds its canvas window here).
+    pub fn world_mut(&mut self) -> &mut World {
+        self.app.world_mut()
+    }
+
+    /// The rest of the Engine made: plugins finished, target, readback, the program loaded.
+    pub fn finish(self) -> Result<Engine, String> {
+        let Opening { app, prog, inserted, dir, timeline, live } = self;
+        Engine::finish_build(app, &prog, &inserted, &dir, timeline, live)
+    }
+}
+
 impl Engine {
     pub(crate) fn build(prog: &Program, inserted: &[Tup], dir: &Path, timeline: Option<std::sync::Arc<raea_core_program::timeline::Timeline>>, live: bool) -> Result<Engine, String> {
-        let ss = supersampling(live);
-        let (w, h) = (prog.width * ss, prog.height * ss);
+        Engine::begin(prog, inserted, dir, timeline, live)?.finish()
+    }
+
+    /// An Engine started, its plugins added: finished by `Opening::finish` once `ready` (a browser's GPU device comes
+    /// asynchronously). `live` as `new_live`'s (raea-web passes no timeline and true).
+    pub fn begin(prog: &Program, inserted: &[Tup], dir: &Path, timeline: Option<std::sync::Arc<raea_core_program::timeline::Timeline>>, live: bool) -> Result<Opening, String> {
         mem_mark("engine: new");
         let mut app = App::new();
         let group = DefaultPlugins
@@ -155,6 +188,12 @@ impl Engine {
                 app.insert_non_send(Media { backend, decoders: HashMap::new(), dir: dir.to_path_buf() });
         }
         mem_mark("engine: plugins built (DefaultPlugins, the render device)");
+        Ok(Opening { app, prog: prog.clone(), inserted: inserted.to_vec(), dir: dir.to_path_buf(), timeline, live })
+    }
+
+    fn finish_build(mut app: App, prog: &Program, inserted: &[Tup], dir: &Path, timeline: Option<std::sync::Arc<raea_core_program::timeline::Timeline>>, live: bool) -> Result<Engine, String> {
+        let ss = supersampling(live);
+        let (w, h) = (prog.width * ss, prog.height * ss);
         app.finish();
         mem_mark("engine: plugins finished");
         // RT4: MetalFX's denoiser goes in after Solari's lighting, which Solari's plugin adds as it finishes

@@ -14387,6 +14387,7 @@ dependencies = [
  "raea-sys-fog-half",
  "raea-sys-frame",
  "raea-sys-framepass",
+ "raea-sys-grass",
  "raea-sys-grid",
  "raea-sys-look",
  "raea-sys-matchmove",
@@ -14427,12 +14428,22 @@ dependencies = [
  "raea-core-wire",
  "raea-io-net-calls",
  "raea-io-os",
+ "raea-rune-look",
  "raea-rune-media",
  "raea-rune-page",
  "raea-runtime-bundle-lib",
  "raea-runtime-jsengine",
  "rune",
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-rune-look"
+version = "0.1.0"
+dependencies = [
+ "raea-rune-page",
+ "rune",
  "serde_json",
 ]
 
@@ -15061,6 +15072,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-sys-grass"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-core-program",
+ "raea-sys-frame",
+ "serde_json",
+]
+
+[[package]]
 name = "raea-sys-grid"
 version = "0.1.0"
 dependencies = [
@@ -15397,6 +15418,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-web"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "console_error_panic_hook",
+ "raea-core-scene",
+ "raea-render",
+ "raea-runtime-scene",
+ "raw-window-handle",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "rand"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -15652,6 +15688,9 @@ name = "raw-window-handle"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
+dependencies = [
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "raw-window-metal"

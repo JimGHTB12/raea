@@ -3,7 +3,8 @@
 // over the 3D", "Games: state from input, frame by frame").
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Audio, Region, lyria, proofBoxes, sao, useGameEvents, useGameState, useInput, useRegion } from "../src";
-import { Canvas3D, Cylinder, DirectionalLight, Fisheye, LensDistortion, Mesh, MeshStandardMaterial, MeshToonMaterial, Model, MotionBlur, PointLight, Sphere } from "../src/3d";
+import { Canvas3D, Cylinder, Fisheye, LensDistortion, Model, MotionBlur, Sphere } from "../src/3d";
+import { DirectionalLight, Mesh, MeshStandardMaterial, MeshToonMaterial, PointLight } from "@raea/render/three";
 // the retired three.js shapes, compared against (M5: no longer exported from raea)
 import { Box, Plane } from "@raea/render/3d/shapes";
 import { renderFrame } from "../src/test";

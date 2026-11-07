@@ -17,4 +17,5 @@ pub mod mesh;
 pub mod surface;
 pub mod toon;
 pub mod shadow_only;
+pub mod shadow_catch;
 pub mod shader_material;

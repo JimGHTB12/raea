@@ -111,10 +111,10 @@ pub struct Stages {
     /// the Blitz overlay: rows, style, layout, raster, unpremultiply and upload (only when its digest changed)
     pub overlay: u64,
     #[cfg(feature = "native")]
-    pub overlay_t0: Option<std::time::Instant>,
+    pub overlay_t0: Option<bevy::platform::time::Instant>,
     /// the main world's Update, first system to last
     pub main: u64,
-    pub main_t0: Option<std::time::Instant>,
+    pub main_t0: Option<bevy::platform::time::Instant>,
     /// whole app.update() (main world + render world: extract, prepare incl. texture uploads, queue, submit)
     pub update: u64,
     /// copying readbacks out of the padded rows
@@ -126,7 +126,7 @@ pub struct Stages {
 }
 
 pub fn mark_main_start(mut st: ResMut<Stages>) {
-    st.main_t0 = Some(std::time::Instant::now());
+    st.main_t0 = Some(bevy::platform::time::Instant::now());
 }
 
 pub fn mark_main_end(mut st: ResMut<Stages>) {
@@ -137,7 +137,7 @@ pub fn mark_main_end(mut st: ResMut<Stages>) {
 
 #[cfg(feature = "native")]
 pub fn mark_overlay_start(mut st: ResMut<Stages>) {
-    st.overlay_t0 = Some(std::time::Instant::now());
+    st.overlay_t0 = Some(bevy::platform::time::Instant::now());
 }
 
 #[cfg(feature = "native")]

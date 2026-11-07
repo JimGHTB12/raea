@@ -61,7 +61,9 @@ raea_plugin! {
     PassesPlugin: super::passes::install, "Render passes per view (passes.rs).";
     TracedAoPlugin: super::traced_ao::install, "Traced ambient occlusion (raea-sys-rt's traced_ao.rs).";
     VolumePlugin: super::volume::install, "Simulated smoke, clouds and contrails, raymarched (volume.rs).";
+    GrassPlugin: raea_sys_grass::install, "Fields of grass, made in tiles as detailed as the camera's distance asks (systems/grass).";
     ShadowOnlyPlugin: super::shadow_only::install, "Meshes in the shadow maps only (shadow_only.rs).";
+    ShadowCatchPlugin: super::shadow_catch::install, "Surfaces that show only the shadows falling on them (shadow_catch.rs).";
     ToonPlugin: super::toon::install, "The toon surface and its ink outline's materials (toon.rs).";
     ShaderExtPlugin: super::shader_ext::install, "Shaders written in TypeScript over the lit standard surface (raea-sys-shader).";
     FramePassPlugin: raea_sys_framepass::install, "Full-screen passes written in TypeScript (raea-sys-framepass).";

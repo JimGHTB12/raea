@@ -7,6 +7,7 @@ pub mod http;
 #[cfg(feature = "ws")]
 pub mod ws;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub use ureq;
 
 /// A `data:` URL's media type (lowercase, "" when it names none) and its bytes: base64 when a `;base64` parameter says

@@ -28,6 +28,7 @@ use raea_core_program::ir::{Program, V};
 use raea_runtime_gpuframe::{nv12::*, overlay::*, pool::*};
 mod spawn;
 pub use spawn::*;
+pub use open::Opening;
 // the 2D rows as the page reads them, and the paint device as Bevy's renderer (raea-runtime-view)
 #[cfg(feature = "native")]
 use raea_runtime_view::rows::*;
@@ -78,6 +79,7 @@ mod screens;
 use raea_sys_volume as volume;
 // meshes that cast shadows without being drawn (<Mesh shadow="only">)
 use raea_sys_material::shadow_only;
+use raea_sys_material::shadow_catch;
 // baked simulations played back by the frame (<MeshSequence>, <Goo>) and glitches on any part (physics.tsx)
 use raea_sys_meshseq as meshseq;
 // toon (cel) surfaces and their ink outlines (<MeshToonMaterial>)
@@ -128,11 +130,11 @@ pub struct Engine {
 /// <phase>", to line up with a memory timeline (the footprint is the process's, as the OS counts it).
 pub fn mem_mark(what: &str) {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    static T0: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+    static T0: std::sync::OnceLock<bevy::platform::time::Instant> = std::sync::OnceLock::new();
     if !*ON.get_or_init(|| std::env::var_os("RAEA_MEM_MARKS").is_some()) {
         return;
     }
-    let t = T0.get_or_init(std::time::Instant::now).elapsed().as_secs_f64() * 1e3;
+    let t = T0.get_or_init(bevy::platform::time::Instant::now).elapsed().as_secs_f64() * 1e3;
     let mb = phys_footprint().map(|b| format!("{:.1}", b as f64 / 1048576.0)).unwrap_or_else(|| "?".into());
     eprintln!("mem_mark {t:.1} {mb} {what}");
 }
@@ -140,7 +142,7 @@ pub fn mem_mark(what: &str) {
 /// The edit has 3D rows (a light or a mesh): its camera draws through the 3D pipeline, and the Apple encoder runs
 /// real-time for it.
 pub fn has_3d(rows: &[Tup]) -> bool {
-    rows.iter().any(|t| matches!(t.kind.as_str(), "light" | "cube" | "sphere" | "plane" | "panel" | "decal" | "mesh" | "model" | "fogvolume" | "fire" | "plate" | "splat" | "meshseq" | "entity" | "text" | "glyph"))
+    rows.iter().any(|t| matches!(t.kind.as_str(), "light" | "cube" | "sphere" | "plane" | "panel" | "decal" | "mesh" | "model" | "fogvolume" | "fire" | "grass" | "plate" | "splat" | "meshseq" | "entity" | "text" | "glyph"))
 }
 
 /// RAEA_MEM_MARKS_EVERY: frames between render marks (default 100).
@@ -172,6 +174,13 @@ pub fn phys_footprint() -> Option<u64> {
 /// retried by Bevy as before; only those being compiled are waited on.
 fn wait_pipelines(mut cache: ResMut<bevy::render::render_resource::PipelineCache>) {
     use bevy::render::render_resource::CachedPipelineState;
+    // a browser compiles them asynchronously, on its own event loop: a live frame there draws what's made
+    #[cfg(target_arch = "wasm32")]
+    {
+        cache.process_queue();
+        return;
+    }
+    #[cfg(not(target_arch = "wasm32"))]
     loop {
         cache.process_queue();
         if !cache.pipelines().any(|p| matches!(p.state, CachedPipelineState::Creating(_))) {
@@ -326,6 +335,16 @@ impl Engine {
     /// The App's World (for tools that read its TypeRegistry: bevy-plugins' generator).
     pub fn world(&self) -> &World {
         self.app.world()
+    }
+
+    /// The App's World, to change (raea-web: its canvas window and the camera that shows the target on it).
+    pub fn world_mut(&mut self) -> &mut World {
+        self.app.world_mut()
+    }
+
+    /// The image every frame is drawn into (w x h, and the tag row under it).
+    pub fn target_image(&self) -> Handle<Image> {
+        self.target.clone()
     }
 
     /// What went wrong drawing a live frame (a model that failed to load, a row that didn't spawn), taken: a live

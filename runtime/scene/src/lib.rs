@@ -31,6 +31,8 @@ mod sprite2d;
 /// <Instances>: a mesh or model row's placements (its `inst` column).
 /// Baked simulations' and glitches' rows (<MeshSequence>, <Goo>, glitch props).
 mod meshseq;
+/// Fields of grass' rows (<Grass>).
+mod grass;
 
 fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
     let item = |kind: &'static str, world: Mat4, material: Option<Node3>| Item { kind, props: n.props.clone(), shape: n.shape.clone(), material, world };
@@ -157,6 +159,8 @@ fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
         "Shadows" => out.push(item("shadows", parent, None)),
         "FogVolume" => out.push(item("fogvolume", parent * local(&n.props), None)),
         "Fire" => out.push(item("fire", parent * local(&n.props), None)),
+        // a field of grass made by the engine from its grids (<Grass>): grass.rs
+        "Grass" => out.push(item("grass", Mat4::IDENTITY, None)),
         "Splat" => out.push(item("splat", parent * local(&n.props), None)),
         // 2D over the 3D (<Sprite>, <Shape2D>): placed in composition px by their own props, not by groups
         "Sprite" => out.push(item("sprite", Mat4::IDENTITY, None)),
@@ -301,6 +305,7 @@ struct Tracks {
     decals: Vec<Track>,
     fogs: Vec<Track>,
     fires: Vec<Track>,
+    grasses: Vec<Track>,
     splats: Vec<Track>,
     sprites: Vec<Track>,
     shapes2d: Vec<Track>,
@@ -320,6 +325,7 @@ impl Tracks {
             decals: tracks_of(all, &["decal"]),
             fogs: tracks_of(all, &["fogvolume"]),
             fires: tracks_of(all, &["fire"]),
+            grasses: tracks_of(all, &["grass"]),
             splats: tracks_of(all, &["splat"]),
             sprites: tracks_of(all, &["sprite"]),
             shapes2d: tracks_of(all, &["shape2d"]),
@@ -347,6 +353,8 @@ fn rows_into_of(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
     plates_rows(tr, p);
     fogs_rows(tr, p);
     fires_rows(tr, p);
+    // fields of grass (<Grass>): grass.rs
+    grass::rows(&tr.grasses, p);
     // gaussian splats (<Splat>): splat.rs
     splat::rows(&tr.splats, p);
     // 2D over the 3D (<Sprite>, <Shape2D>): sprite2d.rs

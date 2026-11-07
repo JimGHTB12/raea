@@ -302,11 +302,8 @@ export function checkMaterial(owner: string, props: Record<string, unknown>): vo
 }
 
 /** A physically based surface for the Mesh it's inside.
- * @bevy bevy_pbr::pbr_material::StandardMaterial
  * `grid` draws graph paper over it (engine/render grid.rs):
- * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_render::engine::grid::Grid>>
  * `wear` chips, grimes and rusts it in the part's own space (systems/wear):
- * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_wear::Wear>>
  * @deprecated <StandardMaterial>, raea/pbr (Bevy's fields: base_color, perceptual_roughness, metallic)
  */
 export function MeshStandardMaterial(props: MeshStandardMaterialProps) {
@@ -332,7 +329,6 @@ export interface MeshPhysicalMaterialProps extends MeshStandardMaterialProps {
 }
 
 /** The standard surface plus a clearcoat layer and reflectance.
- * @bevy bevy_pbr::pbr_material::StandardMaterial
  * @deprecated <StandardMaterial>, raea/pbr (clearcoat and specular_transmission are its fields) */
 export function MeshPhysicalMaterial(props: MeshPhysicalMaterialProps) {
   const anim = useAnimation3d(props.animate);
@@ -353,7 +349,6 @@ export interface MeshBasicMaterialProps extends SurfaceDrawProps {
 }
 
 /** A flat colour no light changes (unlit): signs, screens, backdrops.
- * @bevy bevy_pbr::pbr_material::StandardMaterial
  * @deprecated <StandardMaterial unlit>, raea/pbr */
 export function MeshBasicMaterial(props: MeshBasicMaterialProps) {
   checkMaterial("MeshBasicMaterial", props as Record<string, unknown>);
@@ -426,8 +421,6 @@ export interface MeshToonMaterialProps {
 
 /** A cel-shaded surface (three.js's MeshToonMaterial): lit by the scene's lights in hard bands, with an optional rim,
  * highlight and ink outline. Inside a Mesh, or inside a Model to toon its glTF materials.
- * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_render::engine::toon::ToonExt>>
- * @bevy bevy_pbr::mesh_material::MeshMaterial3d<raea_render::engine::toon::OutlineMaterial>
  * @deprecated <ToonMaterial>, raea/pbr */
 export function MeshToonMaterial(props: MeshToonMaterialProps) {
   const owner = "MeshToonMaterial";

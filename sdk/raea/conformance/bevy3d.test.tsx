@@ -1,8 +1,9 @@
 // Bevy's names for 3D (docs/sdk.feature S2a): Transform and Quat as Bevy's, and Mesh3d, Camera3d, StandardMaterial and
 // the shape primitives drawing what the three.js-shaped names draw for the same scene.
 import { describe, expect, test } from "bun:test";
-import * as three from "../src/3d";
-import { Capsule, Cuboid, Capsule3d, Cylinder, DepthOfField, Entity, Group, Mesh, Model, MeshBasicMaterial, MeshStandardMaterial, MeshToonMaterial, PerspectiveCamera, Plane3d, Screen, Sphere, Torus } from "../src/3d";
+import * as three from "@raea/render/three";
+import { Capsule, Cuboid, Capsule3d, Cylinder, DepthOfField, Entity, Model, Plane3d, Screen, Sphere, Torus } from "../src/3d";
+import { Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, MeshToonMaterial, PerspectiveCamera } from "@raea/render/three";
 // the retired three.js shapes, compared against (M5: no longer exported from raea)
 import { Box, Plane } from "@raea/render/3d/shapes";
 import { Affine2, AmbientLight, Camera3d, DirectionalLight, ExtendedMaterial, GridExtension, LinearRgba, PaintExtension, ToonExtension, WearExtension, Mesh3d, PointLight, Quat, RectLight, SpotLight, Srgba, StandardMaterial, Transform, eulerOf, light_consts } from "@raea/render/bevy3d";

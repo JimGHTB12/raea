@@ -87,6 +87,7 @@ pub struct Css {
     pub border_color: Option<Color>,
     pub radius: [Option<f32>; 4],
     pub shadows: Vec<ShadowCss>,
+    pub outline: crate::outline::OutlineCss,
     pub opacity: Option<f32>,
     /// objectFit on an img or video (T3d): contain letterboxes, cover crops; `fill` (CSS's default) stretches
     pub fit: Option<Option<rune::SurfaceFit>>,
@@ -128,7 +129,7 @@ pub fn parse(style: &Map<String, Value>) -> (Css, Vec<Unmapped>) {
 }
 
 /// The props that set several others, applied before those others.
-const SHORTHANDS: [&str; 7] = ["padding", "margin", "gap", "borderWidth", "borderRadius", "overflow", "transition"];
+const SHORTHANDS: [&str; 8] = ["padding", "margin", "gap", "borderWidth", "borderRadius", "overflow", "transition", "outline"];
 
 fn show(v: &Value) -> String {
     match v {
@@ -230,6 +231,7 @@ fn prop(c: &mut Css, k: &str, v: &Value) -> Result<(), &'static str> {
         "borderBottomRightRadius" => edges4(&mut c.radius, Some(2))?,
         "borderBottomLeftRadius" => edges4(&mut c.radius, Some(3))?,
         "boxShadow" => c.shadows = shadows(text(v)?).ok_or(BAD_VALUE)?,
+        "outline" | "outlineStyle" | "outlineWidth" | "outlineColor" | "outlineOffset" => crate::outline::prop(&mut c.outline, k, v)?,
         "opacity" => c.opacity = Some(num(v)?),
         "objectFit" => c.fit = Some(match text(v)? { "contain" => Some(rune::SurfaceFit::Fit), "cover" => Some(rune::SurfaceFit::Fill), "fill" => None, _ => return Err(BAD_VALUE) }),
         "color" => c.color = Some(color(text(v)?).ok_or(BAD_VALUE)?),
@@ -270,7 +272,16 @@ fn num(v: &Value) -> Result<f32, &'static str> {
     }
 }
 
-/// A React style length: a number is px; a string is `Npx`, `N%`, `0` or `auto`.
+thread_local! {
+    static VIEWPORT: std::cell::Cell<(f32, f32)> = const { std::cell::Cell::new((800.0, 600.0)) };
+}
+
+/// The viewport `vw` and `vh` (and `dvh`, `svh`, `lvh`: one window has one height) are shares of, set before a build.
+pub fn set_viewport(size: (f32, f32)) {
+    VIEWPORT.set(size);
+}
+
+/// A React style length: a number is px; a string is `Npx`, `N%`, `Nvw`, `Nvh`, `0` or `auto`.
 pub fn length(v: &Value) -> Option<Len> {
     match v {
         Value::Number(n) => Some(Len::Px(n.as_f64()? as f32)),
@@ -280,6 +291,8 @@ pub fn length(v: &Value) -> Option<Len> {
                 Some(Len::Auto)
             } else if let Some(p) = s.strip_suffix('%') {
                 p.trim().parse().ok().map(Len::Pct)
+            } else if let Some((p, side)) = s.strip_suffix("vw").map(|p| (p, VIEWPORT.get().0)).or_else(|| ["dvh", "svh", "lvh", "vh"].iter().find_map(|u| s.strip_suffix(u)).map(|p| (p, VIEWPORT.get().1))) {
+                p.trim().parse::<f32>().ok().map(|v| Len::Px(v * side / 100.0))
             } else {
                 s.strip_suffix("px").unwrap_or(s).trim().parse().ok().map(Len::Px)
             }
@@ -336,7 +349,8 @@ pub fn color(s: &str) -> Option<Color> {
     if let Some(body) = s.strip_prefix("oklch(").and_then(|b| b.strip_suffix(')')) {
         // Tailwind v4's palette: `oklch(62.3% 0.214 259.815 [/ a])`
         let (lch, a) = body.split_once('/').map_or((body, None), |(l, a)| (l, Some(a)));
-        let p: Vec<&str> = lch.split_whitespace().collect();
+        // `none` is a missing component, which is 0 (CSS Color 4): the greys' hue
+        let p: Vec<&str> = lch.split_whitespace().map(|c| if c == "none" { "0" } else { c }).collect();
         let l = match p.first()?.strip_suffix('%') {
             Some(pct) => pct.parse::<f32>().ok()? / 100.0,
             None => p.first()?.parse().ok()?,

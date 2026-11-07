@@ -25,7 +25,16 @@ pub fn light(world: &mut World, e: Entity, vals: &BTreeMap<String, V>) {
     match kind {
         "point" => {
             world.entity_mut(e).insert((
-                PointLight { color, intensity: g("lumens", 1.0e6), range: g("range", 20.0), radius, shadow_maps_enabled: (flag(vals, "shadows", false) || volumetric) && !preview(), soft_shadows_enabled: soft > 0.0, ..default() },
+                PointLight {
+                    color,
+                    intensity: g("lumens", 1.0e6),
+                    range: g("range", 20.0),
+                    radius,
+                    shadow_maps_enabled: (flag(vals, "shadows", false) || volumetric) && !preview(),
+                    #[cfg(feature = "pcss")]
+                    soft_shadows_enabled: soft > 0.0,
+                    ..default()
+                },
                 Transform::from_translation(pos),
             ));
         }
@@ -40,7 +49,18 @@ pub fn light(world: &mut World, e: Entity, vals: &BTreeMap<String, V>) {
         "spot" => {
             let outer = g("outer", std::f32::consts::FRAC_PI_4);
             world.entity_mut(e).insert((
-                SpotLight { color, intensity: g("lumens", 1.0e6), range: g("range", 20.0), radius, soft_shadows_enabled: soft > 0.0, outer_angle: outer, inner_angle: g("inner", 0.0).min(outer), shadow_maps_enabled: (flag(vals, "shadows", false) || volumetric) && !preview(), ..default() },
+                SpotLight {
+                    color,
+                    intensity: g("lumens", 1.0e6),
+                    range: g("range", 20.0),
+                    radius,
+                    #[cfg(feature = "pcss")]
+                    soft_shadows_enabled: soft > 0.0,
+                    outer_angle: outer,
+                    inner_angle: g("inner", 0.0).min(outer),
+                    shadow_maps_enabled: (flag(vals, "shadows", false) || volumetric) && !preview(),
+                    ..default()
+                },
                 Transform::from_translation(pos).looking_to(dir, up_for(dir)),
             ));
         }
@@ -56,7 +76,14 @@ pub fn light(world: &mut World, e: Entity, vals: &BTreeMap<String, V>) {
             }
             .build();
             world.entity_mut(e).insert((
-                DirectionalLight { color, illuminance: g("lux", 8000.0), shadow_maps_enabled: (flag(vals, "shadows", true) || volumetric) && !preview(), soft_shadow_size: (soft > 0.0).then_some(soft), ..default() },
+                DirectionalLight {
+                    color,
+                    illuminance: g("lux", 8000.0),
+                    shadow_maps_enabled: (flag(vals, "shadows", true) || volumetric) && !preview(),
+                    #[cfg(feature = "pcss")]
+                    soft_shadow_size: (soft > 0.0).then_some(soft),
+                    ..default()
+                },
                 cascades,
                 Transform::default().looking_to(dir, up_for(dir)),
             ));
@@ -81,7 +108,10 @@ pub fn light(world: &mut World, e: Entity, vals: &BTreeMap<String, V>) {
         }
     }
     // soft shadows (PCSS): a sun's size as seen from the scene, or a point or spot light's radius; the shadow's
-    // penumbra widens with the distance from what casts it, as a real one's does
+    // penumbra widens with the distance from what casts it, as a real one's does. Native only (the pcss feature):
+    // Bevy 0.20's PCSS samples depth maps with a filtering sampler, which WebGPU refuses, so a browser's shadows are
+    // filtered (PCF) without the penumbra
+    #[cfg(feature = "pcss")]
     if let Some(soft) = vals.get("soft").map(|v| v.num() as f32).filter(|s| *s > 0.0 && !preview()) {
         let mut em = world.entity_mut(e);
         if let Some(mut l) = em.get_mut::<DirectionalLight>() {

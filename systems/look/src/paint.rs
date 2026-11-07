@@ -119,9 +119,9 @@ impl MaterialExtension for Paint {
 }
 
 /// a mesh's paint with its material's own part: whether it sways in the wind (a cut-out: masked, blended or to
-/// coverage)
+/// coverage; not an unlit picture, such as a baked cloud's card)
 fn for_material(mut p: PaintParams, m: &StandardMaterial) -> PaintParams {
-    p.k6.z = if matches!(m.alpha_mode, AlphaMode::Opaque) { 0.0 } else { 1.0 };
+    p.k6.z = if matches!(m.alpha_mode, AlphaMode::Opaque) || m.unlit { 0.0 } else { 1.0 };
     p
 }
 

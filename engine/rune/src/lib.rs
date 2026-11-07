@@ -2,7 +2,8 @@
 //! tree with Rune. docs/rune.feature in raea is the plan.
 
 // the page and its styles, from their crates (raea-rune-page, raea-rune-style), at the paths they had here
-pub use raea_rune_page::{css, dump, events, images, input, kit, layout, measure, motion, page, report, runeprops, session, state, tailwind, tree, variants, view};
+pub use raea_rune_look::{dump, look};
+pub use raea_rune_page::{css, events, images, input, kit, layout, measure, motion, page, report, runeprops, session, state, tailwind, tree, variants, view};
 
 pub mod js;
 pub mod macapp;

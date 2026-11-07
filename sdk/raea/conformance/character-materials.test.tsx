@@ -3,7 +3,8 @@
 // engine the nodes the old MeshStandardMaterial and MeshPhysicalMaterial with `shader` did.
 import { expect, test } from "bun:test";
 import { renderFrame } from "../src/test";
-import { MeshPhysicalMaterial, MeshStandardMaterial, Model } from "@raea/render/3d";
+import { Model } from "@raea/render/3d";
+import { MeshPhysicalMaterial, MeshStandardMaterial } from "@raea/render/three";
 import { ExtendedMaterial, ShaderExtension, StandardMaterial } from "@raea/render/bevy3d";
 import { HAIR_WESL } from "@raea/character/character/hair";
 import { SKIN_WESL } from "@raea/character/character/skin";

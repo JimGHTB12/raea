@@ -15,6 +15,8 @@ export interface Part {
   children?: Part[];
   /** a MeshNormalMaterial: the mesh's normals become its vertex colours */
   normals?: boolean;
+  /** a ShadowMaterial: the mesh shows only the shadows falling on it (raea's shadow="catch") */
+  catchShadow?: boolean;
 }
 
 const hex = (c: THREE.Color) => "#" + c.getHexString();
@@ -158,8 +160,7 @@ export function materialOf(m: THREE.Material, vertexColors: boolean): Part {
       return { type: "MeshBasicMaterial", props: { color: "#808080" } };
     case "ShadowMaterial": {
       const s = m as THREE.ShadowMaterial;
-      warnOnce(m.type, "only catches shadows, which raea has no surface for: it isn't drawn");
-      return { type: "", props: { color: hex(s.color), opacity: s.opacity } };
+      return { type: "MeshBasicMaterial", props: { color: hex(s.color), opacity: s.opacity, transparent: true }, catchShadow: true } as Part;
     }
     default: {
       // ShaderMaterial, RawShaderMaterial, a NodeMaterial, a library's own

@@ -58,8 +58,16 @@ impl Timeline {
     }
 }
 
-/// f(0..n) on every core, in order.
+/// f(0..n) on every core, in order. A browser build (wasm32) has one thread and can't spawn more: in turn there.
 fn parallel<T: Send>(n: usize, f: impl Fn(usize) -> Result<T, String> + Sync) -> Result<Vec<T>, String> {
+    #[cfg(target_arch = "wasm32")]
+    return (0..n).map(f).collect();
+    #[cfg(not(target_arch = "wasm32"))]
+    parallel_threads(n, f)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn parallel_threads<T: Send>(n: usize, f: impl Fn(usize) -> Result<T, String> + Sync) -> Result<Vec<T>, String> {
     let cores = std::thread::available_parallelism().map(|c| c.get()).unwrap_or(4).min(n.max(1));
     let chunk = n.div_ceil(cores.max(1)).max(1);
     let parts: Vec<Result<Vec<T>, String>> = std::thread::scope(|s| {

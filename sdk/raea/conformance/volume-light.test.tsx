@@ -4,7 +4,8 @@
 // shadow of their own); `shadow` scales or turns that off and goes to the row as a number; a Mesh's `shadow="only"`
 // casts without being drawn.
 import { describe, expect, test } from "bun:test";
-import { Canvas3D, Mesh, MeshStandardMaterial, Volume } from "../src/3d";
+import { Canvas3D, Volume } from "../src/3d";
+import { Mesh, MeshStandardMaterial } from "@raea/render/three";
 // the retired three.js shapes, compared against (M5: no longer exported from raea)
 import { Box } from "@raea/render/3d/shapes";
 import { renderFrame } from "../src/test";

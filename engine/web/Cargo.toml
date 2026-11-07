@@ -1,0 +1,21 @@
+[package]
+name = "raea-web"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea in a browser (docs/web-export.md M2): raea-render's 3D engine on WebGPU in a page's canvas, fed each frame's scene as live play feeds it"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+raea-render = { path = "../render", default-features = false, features = ["web"] }
+raea-runtime-scene = { path = "../../runtime/scene" }
+raea-core-scene = { path = "../../core/scene" }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render", "ui_bevy_render", "webgpu"] }
+serde_json = "1"
+wasm-bindgen = "0.2.129"
+web-sys = { version = "0.3.106", features = ["HtmlCanvasElement", "console"] }
+raw-window-handle = { version = "0.6.2", features = ["wasm-bindgen-0-2"] }
+console_error_panic_hook = "0.1.7"

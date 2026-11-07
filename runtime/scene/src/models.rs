@@ -175,6 +175,10 @@ pub(crate) fn panels_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         if first.get("shadow").and_then(Value::as_bool) == Some(false) {
             row.insert("shadow".into(), V::N(0.0));
         }
+        // cut out at half alpha instead of blended (a baked cloud's card): no surface where it's clear, its shadow its shape
+        if first.get("cutout").and_then(Value::as_bool) == Some(true) {
+            row.insert("cutout".into(), V::N(1.0));
+        }
         sheet(p, &mut row, &id, &its);
         placement(p, &mut row, &id, &its);
         visible(p, &mut row, &id, &track);

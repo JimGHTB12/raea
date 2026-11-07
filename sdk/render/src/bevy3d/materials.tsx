@@ -3,7 +3,8 @@ import { isValidElement, useContext, type ReactElement, type ReactNode } from "r
 import type { TrackSpec } from "@raea/math/animate";
 import { InModel } from "../3d/all";
 import { LinearRgba, MADE_FROM, baseOf, emissiveOf, type Affine2, type Srgba } from "./all";
-import { MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, MeshToonMaterial, samplerSpec, surfaceShader, type MeshStandardMaterialProps, type SamplerSpec, type SurfaceShaderSpec, type SurfaceDrawProps, type ToonBand, type ToonHighlight, type ToonOutline, type ToonRim } from "../3d";
+import { samplerSpec, surfaceShader, type SamplerSpec, type SurfaceShaderSpec, type SurfaceDrawProps, type ToonBand, type ToonHighlight, type ToonOutline, type ToonRim } from "../3d";
+import { MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, MeshToonMaterial, type MeshStandardMaterialProps } from "../three";
 
 /** A picture read with its own sampler: Bevy's load_with_settings, whose ImageLoaderSettings give the Image its
  *  ImageSamplerDescriptor ({ path: "checker.png", sampler: { filter: "nearest" } } for hard pixels). */
@@ -211,7 +212,8 @@ function uvOf(t: Affine2 | undefined): { repeat?: [number, number]; uvTransform?
 }
 
 /** Bevy's StandardMaterial for the Mesh3d it's inside. Unlit draws as MeshBasicMaterial; a clearcoat or transmission
- *  as MeshPhysicalMaterial; anything else as MeshStandardMaterial, all on Bevy's StandardMaterial in the engine. */
+ *  as MeshPhysicalMaterial; anything else as MeshStandardMaterial, all on Bevy's StandardMaterial in the engine.
+ * @bevy bevy_pbr::pbr_material::StandardMaterial */
 export function StandardMaterial<A>(p: StandardMaterialProps & { animate?: Only<A, StandardMaterialAnimate> }) {
   return standard(p, {});
 }
@@ -300,6 +302,8 @@ export interface GridExtensionProps {
   edge?: string;
 }
 
+/** raea's grid over a StandardMaterial, as an ExtendedMaterial's extension (engine/render grid.rs):
+ * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_render::engine::grid::Grid>> */
 export function GridExtension(_: GridExtensionProps): ReactNode {
   throw new TypeError("GridExtension goes in an ExtendedMaterial: <ExtendedMaterial base={<StandardMaterial />} extension={<GridExtension cell={0.5} />} />");
 }
@@ -336,6 +340,8 @@ export interface WearExtensionProps {
   rust_color?: string;
 }
 
+/** raea's chips, grime and rust over a StandardMaterial, as an ExtendedMaterial's extension (systems/wear):
+ * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_wear::Wear>> */
 export function WearExtension(_: WearExtensionProps): ReactNode {
   throw new TypeError("WearExtension goes in an ExtendedMaterial: <ExtendedMaterial base={<StandardMaterial />} extension={<WearExtension amount={0.6} />} />");
 }
@@ -423,7 +429,9 @@ function toon(p: StandardMaterialProps, t: ToonExtensionProps) {
 export type ToonMaterialProps = Pick<StandardMaterialProps, "base_color" | "base_color_texture" | "emissive" | "alpha_mode" | "material"> & ToonExtensionProps;
 
 /** raea's ToonMaterial: a StandardMaterial's colour, texture and emission drawn in bands, as
- *  `<ExtendedMaterial base={<StandardMaterial />} extension={<ToonExtension />} />` is (the old MeshToonMaterial). */
+ *  `<ExtendedMaterial base={<StandardMaterial />} extension={<ToonExtension />} />` is (the old MeshToonMaterial).
+ * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_render::engine::toon::ToonExt>>
+ * @bevy bevy_pbr::mesh_material::MeshMaterial3d<raea_render::engine::toon::OutlineMaterial> */
 export function ToonMaterial(p: ToonMaterialProps) {
   // the extension's fields to ToonExtension, the rest to the base (which refuses what a toon surface has no use for)
   const base: Record<string, unknown> = {}, t: Record<string, unknown> = {};

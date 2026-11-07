@@ -6,9 +6,12 @@ import { useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import { useCurrentFrame } from "raea";
 import {
-  AmbientLight, Bloom, Cuboid, Grade, LensDistortion, DirectionalLight, Fog, Group, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial,
-  PerspectiveCamera, PointLight, RectAreaLight, Sphere, SpotLight, Text3D, ToneMapping, Torus,
+  Bloom, Cuboid, Grade, LensDistortion, Fog, Sphere, Text3D, ToneMapping, Torus,
 } from "raea/3d";
+import {
+  AmbientLight, DirectionalLight, Group, Mesh, MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial,
+  PerspectiveCamera, PointLight, RectAreaLight, SpotLight,
+} from "@raea/render/three";
 import { AbsoluteFill } from "raea";
 
 export const SIZE = { width: 640, height: 360, fps: 24 };
@@ -122,6 +125,26 @@ export const INPUTS: Record<string, InputCase> = {
       </>
     ),
   },
+  // a ShadowMaterial floor: only the box's shadow is drawn, over the page's colour
+  catch: {
+    canvas: { camera: { position: [0, 2.5, 4.5], fov: 45 }, shadows: true },
+    frame: 0,
+    scene: () => (
+      <>
+        <color attach="background" args={["#d8c9a8"]} />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[2, 5, 1]} intensity={2.5} castShadow />
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[12, 12]} />
+          <shadowMaterial color="#1a1030" opacity={0.6} />
+        </mesh>
+        <mesh position={[0, 0.6, 0]} rotation={[0, 0.5, 0]} castShadow>
+          <boxGeometry args={[1, 1.2, 1]} />
+          <meshStandardMaterial color="#e05a2b" roughness={0.5} />
+        </mesh>
+      </>
+    ),
+  },
 };
 
 // ---- raea compositions ----
@@ -207,6 +230,25 @@ function OutEffects({ fx }: { fx: "bloom" | "grade" | "lens" }) {
   );
 }
 
+function OutCatch() {
+  return (
+    <AbsoluteFill style={{ background: "#d8c9a8" }}>
+      <PerspectiveCamera position={[0, 2.5, 4.5]} lookAt={[0, 0.3, 0]} fov={45} />
+      <ToneMapping mode="aces" />
+      <AmbientLight intensity={0.5} />
+      <DirectionalLight position={[2, 5, 1]} target={[0, 0, 0]} intensity={2.5} castShadow />
+      <Mesh name="floor" rotation={[-Math.PI / 2, 0, 0]} shadow="catch">
+        <Cuboid args={[12, 12, 0.001]} />
+        <MeshBasicMaterial color="#1a1030" opacity={0.6} />
+      </Mesh>
+      <Mesh name="box" position={[0, 0.6, 0]} rotation={[0, 0.5, 0]}>
+        <Cuboid args={[1, 1.2, 1]} />
+        <MeshStandardMaterial color="#e05a2b" roughness={0.5} />
+      </Mesh>
+    </AbsoluteFill>
+  );
+}
+
 export const OUTPUTS: Record<string, { component: () => ReactNode; frame: number }> = {
   basic: { component: () => <OutBasic />, frame: 24 },
   // raea's default tone mapping, TonyMcMapface
@@ -216,4 +258,6 @@ export const OUTPUTS: Record<string, { component: () => ReactNode; frame: number
   bloom: { component: () => <OutEffects fx="bloom" />, frame: 0 },
   grade: { component: () => <OutEffects fx="grade" />, frame: 0 },
   lens: { component: () => <OutEffects fx="lens" />, frame: 0 },
+  // shadow="catch" (three's ShadowMaterial): only the shadow on the floor
+  catch: { component: OutCatch, frame: 0 },
 };

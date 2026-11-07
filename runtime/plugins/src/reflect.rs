@@ -6,7 +6,15 @@ use super::*;
 /// Before the first frame: every asset a handle field loaded by path, loaded with its dependencies (a material's
 /// textures), or the load's error.
 pub fn await_loads(app: &mut App) -> Result<(), String> {
-    let t0 = std::time::Instant::now();
+    #[cfg(target_arch = "wasm32")]
+    return { let _ = app; Ok(()) };
+    #[cfg(not(target_arch = "wasm32"))]
+    await_loads_here(app)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn await_loads_here(app: &mut App) -> Result<(), String> {
+    let t0 = bevy::platform::time::Instant::now();
     loop {
         let world = app.world_mut();
         let Some(l) = world.get_resource::<Loading>() else { return Ok(()) };

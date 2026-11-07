@@ -1,7 +1,7 @@
 // the same picture as edit.tsx, placed by hand: the ship turned by 0.05 rad a frame, the gun 0.6 above its centre (a
 // point on the turning axis, so it stays put while it turns with the ship)
 import { AbsoluteFill, useCurrentFrame } from "../../../src";
-import { AmbientLight, DirectionalLight, Mesh, MeshStandardMaterial, PerspectiveCamera } from "../../../src/3d";
+import { AmbientLight, DirectionalLight, Mesh, MeshStandardMaterial, PerspectiveCamera } from "@raea/render/three";
 
 export default function Ships() {
   const f = useCurrentFrame();

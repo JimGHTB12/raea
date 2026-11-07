@@ -22,10 +22,10 @@ reaches it yet).
 | css | longhand | 241 | 0 | 0 | 51 | 13 | 0 | 1 | 0 | 306 |
 | css | shorthand | 59 | 0 | 0 | 12 | 0 | 0 | 0 | 0 | 71 |
 | element | html | 113 | 0 | 0 | 0 | 0 | 0 | 18 | 0 | 131 |
-| plugin | declared | 0 | 0 | 49 | 0 | 0 | 24 | 0 | 0 | 73 |
-| **all** | | **468** | **1027** | **49** | **63** | **13** | **24** | **22** | **0** | **1666** |
+| plugin | declared | 0 | 0 | 53 | 0 | 0 | 21 | 0 | 3 | 77 |
+| **all** | | **468** | **1027** | **53** | **63** | **13** | **21** | **22** | **3** | **1670** |
 
-Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in tools/agents/check) keeps it from dropping.
+Reached (tiers 1-3): **1548**. The ratchet (`tools/sdk-coverage --check`, in tools/agents/check) keeps it from dropping.
 
 ## Bevy types (the plugin build's TypeRegistry)
 
@@ -243,7 +243,7 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_audio::audio::PlaybackSettings` | component | 2 | bevy.PlaybackSettings (raea/plugins/bevy) |
 | `bevy_audio::audio::SpatialListener` | component | 2 | bevy.SpatialListener (raea/plugins/bevy) |
 | `bevy_audio::volume::GlobalVolume` | resource | 2 | bevy.GlobalVolume (raea/plugins/bevy) |
-| `bevy_camera::camera::Camera` | component | 1 | PerspectiveCamera (sdk/render/src/3d/lights.tsx) |
+| `bevy_camera::camera::Camera` | component | 1 | Camera3d (sdk/render/src/bevy3d/core.tsx) |
 | `bevy_camera::camera::CameraMainTextureUsages` | component | 2 | bevy.CameraMainTextureUsages (raea/plugins/bevy) |
 | `bevy_camera::camera::Exposure` | component | 1 | ToneMapping (sdk/render/src/3d/effects.tsx) |
 | `bevy_camera::camera::MainPassResolutionOverride` | component | 2 | bevy.MainPassResolutionOverride (raea/plugins/bevy) |
@@ -252,7 +252,7 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_camera::camera::ShadowLodOrigin` | component | 2 | bevy.ShadowLodOrigin (raea/plugins/bevy) |
 | `bevy_camera::clear_color::ClearColor` | resource | 2 | bevy.ClearColor (raea/plugins/bevy) |
 | `bevy_camera::components::Camera2d` | component | 2 | bevy.Camera2d (raea/plugins/bevy) |
-| `bevy_camera::components::Camera3d` | component | 1 | OrthographicCamera (sdk/render/src/3d/model.tsx), PerspectiveCamera (sdk/render/src/3d/lights.tsx) |
+| `bevy_camera::components::Camera3d` | component | 1 | Camera3d (sdk/render/src/bevy3d/core.tsx) |
 | `bevy_camera::components::CompositingSpace` | component | 2 | bevy.CompositingSpace (raea/plugins/bevy) |
 | `bevy_camera::components::Hdr` | component | 2 | bevy.Hdr (raea/plugins/bevy) |
 | `bevy_camera::primitives::Aabb` | component | 2 | bevy.Aabb (raea/plugins/bevy) |
@@ -260,7 +260,7 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_camera::primitives::CubemapFrusta` | component | 2 | bevy.CubemapFrusta (raea/plugins/bevy) |
 | `bevy_camera::primitives::Frustum` | component | 2 | bevy.Frustum (raea/plugins/bevy) |
 | `bevy_camera::primitives::Sphere` | component | 2 | bevy.Sphere (raea/plugins/bevy) |
-| `bevy_camera::projection::Projection` | component | 1 | OrthographicCamera (sdk/render/src/3d/model.tsx), PerspectiveCamera (sdk/render/src/3d/lights.tsx) |
+| `bevy_camera::projection::Projection` | component | 1 | Camera3d (sdk/render/src/bevy3d/core.tsx) |
 | `bevy_camera::visibility::CascadesVisibleEntities` | component | 2 | bevy.CascadesVisibleEntities (raea/plugins/bevy) |
 | `bevy_camera::visibility::CubemapVisibleEntities` | component | 2 | bevy.CubemapVisibleEntities (raea/plugins/bevy) |
 | `bevy_camera::visibility::DynamicSkinnedMeshBounds` | component | 2 | bevy.DynamicSkinnedMeshBounds (raea/plugins/bevy) |
@@ -272,7 +272,7 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_camera::visibility::VisibleEntities` | component | 2 | bevy.VisibleEntities (raea/plugins/bevy) |
 | `bevy_camera::visibility::VisibleMeshEntities` | component | 2 | bevy.VisibleMeshEntities (raea/plugins/bevy) |
 | `bevy_camera::visibility::range::VisibilityRange` | component | 2 | raea/bevy-own |
-| `bevy_camera::visibility::render_layers::RenderLayers` | component | 1 | Mesh (sdk/render/src/3d/shapes.tsx) |
+| `bevy_camera::visibility::render_layers::RenderLayers` | component | 1 | Mesh3d (sdk/render/src/bevy3d/core.tsx) |
 | `bevy_core_pipeline::prepass::DeferredPrepass` | component | 2 | bevy.DeferredPrepass (raea/plugins/bevy) |
 | `bevy_core_pipeline::prepass::DeferredPrepassDoubleBuffer` | component | 2 | bevy.DeferredPrepassDoubleBuffer (raea/plugins/bevy) |
 | `bevy_core_pipeline::prepass::DepthPrepass` | component | 2 | bevy.DepthPrepass (raea/plugins/bevy) |
@@ -568,21 +568,21 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_input_focus::gained_and_lost::FocusLost` | event | 2 | bevy.FocusLost (raea/plugins/bevy) |
 | `bevy_input_focus::tab_navigation::TabGroup` | component | 2 | bevy.TabGroup (raea/plugins/bevy) |
 | `bevy_input_focus::tab_navigation::TabIndex` | component | 2 | bevy.TabIndex (raea/plugins/bevy) |
-| `bevy_light::NotShadowCaster` | component | 1 | Mesh (sdk/render/src/3d/shapes.tsx) |
-| `bevy_light::NotShadowReceiver` | component | 1 | Mesh (sdk/render/src/3d/shapes.tsx) |
+| `bevy_light::NotShadowCaster` | component | 1 | Mesh3d (sdk/render/src/bevy3d/core.tsx) |
+| `bevy_light::NotShadowReceiver` | component | 1 | Mesh3d (sdk/render/src/bevy3d/core.tsx) |
 | `bevy_light::ShadowFilteringMethod` | component | 1 | Shadows (sdk/render/src/3d/effects.tsx) |
 | `bevy_light::TransmittedShadowReceiver` | component | 2 | raea/bevy-own |
-| `bevy_light::ambient_light::AmbientLight` | component | 1 | AmbientLight (sdk/render/src/3d/lights.tsx) |
+| `bevy_light::ambient_light::AmbientLight` | component | 1 | AmbientLight (sdk/render/src/bevy3d/lights.tsx) |
 | `bevy_light::ambient_light::GlobalAmbientLight` | resource | 2 | bevy.GlobalAmbientLight (raea/plugins/bevy) |
 | `bevy_light::cascade::CascadeShadowConfig` | component | 1 | Shadows (sdk/render/src/3d/effects.tsx) |
 | `bevy_light::cascade::Cascades` | component | 2 | bevy.Cascades (raea/plugins/bevy) |
 | `bevy_light::cluster::ClusterConfig` | component | 2 | raea/bevy-own |
 | `bevy_light::cluster::ClusteredDecal` | component | 2 | bevy.ClusteredDecal (raea/plugins/bevy) |
-| `bevy_light::directional_light::DirectionalLight` | component | 1 | DirectionalLight (sdk/render/src/3d/lights.tsx) |
+| `bevy_light::directional_light::DirectionalLight` | component | 1 | DirectionalLight (sdk/render/src/bevy3d/lights.tsx) |
 | `bevy_light::directional_light::DirectionalLightShadowMap` | resource | 1 | Shadows (sdk/render/src/3d/effects.tsx) |
 | `bevy_light::directional_light::DirectionalLightTexture` | component | 2 | bevy.DirectionalLightTexture (raea/plugins/bevy) |
 | `bevy_light::gizmos::ShowLightGizmo` | component | 2 | bevy.ShowLightGizmo (raea/plugins/bevy) |
-| `bevy_light::point_light::PointLight` | component | 1 | PointLight (sdk/render/src/3d/lights.tsx) |
+| `bevy_light::point_light::PointLight` | component | 1 | PointLight (sdk/render/src/bevy3d/lights.tsx) |
 | `bevy_light::point_light::PointLightShadowMap` | resource | 1 | Shadows (sdk/render/src/3d/effects.tsx) |
 | `bevy_light::point_light::PointLightTexture` | component | 2 | bevy.PointLightTexture (raea/plugins/bevy) |
 | `bevy_light::probe::EnvironmentMapLight` | component | 1 | Environment (sdk/render/src/3d/effects.tsx) |
@@ -591,8 +591,8 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_light::probe::LightProbe` | component | 2 | bevy.LightProbe (raea/plugins/bevy) |
 | `bevy_light::probe::ParallaxCorrection` | component | 2 | bevy.ParallaxCorrection (raea/plugins/bevy) |
 | `bevy_light::probe::Skybox` | component | 1 | Environment (sdk/render/src/3d/effects.tsx) |
-| `bevy_light::rect_light::RectLight` | component | 1 | RectAreaLight (sdk/render/src/3d/lights.tsx) |
-| `bevy_light::spot_light::SpotLight` | component | 1 | SpotLight (sdk/render/src/3d/lights.tsx) |
+| `bevy_light::rect_light::RectLight` | component | 1 | RectLight (sdk/render/src/bevy3d/lights.tsx) |
+| `bevy_light::spot_light::SpotLight` | component | 1 | SpotLight (sdk/render/src/bevy3d/lights.tsx) |
 | `bevy_light::spot_light::SpotLightTexture` | component | 2 | bevy.SpotLightTexture (raea/plugins/bevy) |
 | `bevy_light::volumetric::FogVolume` | component | 1 | FogVolume (sdk/render/src/3d/effects.tsx) |
 | `bevy_light::volumetric::VolumetricFog` | component | 1 | VolumetricFog (sdk/render/src/3d/effects.tsx) |
@@ -604,9 +604,9 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_materialize::generic_material::GenericMaterial3d` | component | 2 | trenchbroom.GenericMaterial3d (raea/plugins/trenchbroom) |
 | `bevy_materialize::generic_material::GenericMaterialApplied` | component | 2 | trenchbroom.GenericMaterialApplied (raea/plugins/trenchbroom) |
 | `bevy_mesh::components::Mesh2d` | component | 1 | Shape2D (sdk/render/src/3d/sprite.tsx) |
-| `bevy_mesh::components::Mesh3d` | component | 1 | Mesh (sdk/render/src/3d/shapes.tsx), ShaderMesh (sdk/render/src/3d/bevy.tsx) |
+| `bevy_mesh::components::Mesh3d` | component | 1 | Mesh3d (sdk/render/src/bevy3d/core.tsx) |
 | `bevy_mesh::components::MeshTag` | component | 2 | bevy.MeshTag (raea/plugins/bevy) |
-| `bevy_mesh::mesh::Mesh` | asset | 1 | BufferMesh (sdk/render/src/3d/shapes.tsx), Mesh (sdk/render/src/3d/shapes.tsx) |
+| `bevy_mesh::mesh::Mesh` | asset | 1 | BufferMesh (sdk/render/src/3d/shapes.tsx) |
 | `bevy_mesh::morph::MeshMorphWeights` | component | 2 | bevy.MeshMorphWeights (raea/plugins/bevy) |
 | `bevy_mesh::morph::MorphWeights` | component | 2 | bevy.MorphWeights (raea/plugins/bevy) |
 | `bevy_mesh::skinning::SkinnedMesh` | component | 2 | bevy.SkinnedMesh (raea/plugins/bevy) |
@@ -624,8 +624,8 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_look::paint::Paint>>` | component | 2 | bevy.MeshMaterial3dExtendedMaterialStandardMaterialPaint (raea/plugins/bevy) |
 | `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_material::toon::ToonExt>>` | component | 2 | bevy.MeshMaterial3dExtendedMaterialStandardMaterialToonExt (raea/plugins/bevy) |
 | `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_shader::ShaderExt>>` | component | 1 | SurfaceShader (sdk/render/src/3d/materials.tsx) |
-| `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_wear::Wear>>` | component | 1 | MeshStandardMaterial (sdk/render/src/3d/materials.tsx) |
-| `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::pbr_material::StandardMaterial>` | component | 1 | Mesh (sdk/render/src/3d/shapes.tsx) |
+| `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_wear::Wear>>` | component | 1 | WearExtension (sdk/render/src/bevy3d/materials.tsx) |
+| `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::pbr_material::StandardMaterial>` | component | 1 | Mesh3d (sdk/render/src/bevy3d/core.tsx) |
 | `bevy_pbr::mesh_material::MeshMaterial3d<bevy_trenchbroom::special_textures::QuakeSkyMaterial>` | component | 2 | bevy.MeshMaterial3dQuakeSkyMaterial (raea/plugins/bevy) |
 | `bevy_pbr::mesh_material::MeshMaterial3d<raea_sys_fog::fire::FireMaterial>` | component | 2 | bevy.MeshMaterial3dFireMaterial (raea/plugins/bevy) |
 | `bevy_pbr::mesh_material::MeshMaterial3d<raea_sys_look::look::LookMaterial>` | component | 2 | bevy.MeshMaterial3dLookMaterial (raea/plugins/bevy) |
@@ -637,7 +637,7 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_pbr::mesh_material::MeshMaterial3d<raea_sys_splat::SplatMaterial>` | component | 2 | bevy.MeshMaterial3dSplatMaterial (raea/plugins/bevy) |
 | `bevy_pbr::mesh_material::MeshMaterial3d<raea_sys_volume::VolumeMaterial>` | component | 2 | bevy.MeshMaterial3dVolumeMaterial (raea/plugins/bevy) |
 | `bevy_pbr::meshlet::MeshletMesh3d` | component | 2 | bevy.MeshletMesh3d (raea/plugins/bevy) |
-| `bevy_pbr::pbr_material::StandardMaterial` | asset | 1 | MeshBasicMaterial (sdk/render/src/3d/materials.tsx), MeshPhysicalMaterial (sdk/render/src/3d/materials.tsx), MeshStandardMaterial (sdk/render/src/3d/materials.tsx) |
+| `bevy_pbr::pbr_material::StandardMaterial` | asset | 1 | StandardMaterial (sdk/render/src/bevy3d/materials.tsx) |
 | `bevy_pbr::ssao::ScreenSpaceAmbientOcclusion` | component | 1 | AmbientOcclusion (sdk/render/src/3d/effects.tsx) |
 | `bevy_pbr::ssr::ScreenSpaceReflections` | component | 2 | raea/bevy-own |
 | `bevy_pbr::transmission::ScreenSpaceTransmission` | component | 2 | bevy.ScreenSpaceTransmission (raea/plugins/bevy) |
@@ -882,7 +882,7 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `bevy_time_runner::time_span::TimeSpan` | component | 2 | tween.TimeSpan (raea/plugins/tween) |
 | `bevy_time_runner::time_span::TimeSpanProgress` | component | 2 | tween.TimeSpanProgress (raea/plugins/tween) |
 | `bevy_transform::components::global_transform::GlobalTransform` | component | 2 | bevy.GlobalTransform (raea/plugins/bevy) |
-| `bevy_transform::components::transform::Transform` | component | 1 | Mesh (sdk/render/src/3d/shapes.tsx), Transform (sdk/app/src/bevy/systems.ts) |
+| `bevy_transform::components::transform::Transform` | component | 1 | Transform (sdk/app/src/bevy/systems.ts) |
 | `bevy_transform::components::transform::TransformTreeChanged` | component | 2 | bevy.TransformTreeChanged (raea/plugins/bevy) |
 | `bevy_transform_interpolation::NoRotationEasing` | component | 2 | avian.NoRotationEasing (raea/plugins/avian) |
 | `bevy_transform_interpolation::NoScaleEasing` | component | 2 | avian.NoScaleEasing (raea/plugins/avian) |
@@ -1143,6 +1143,9 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `common_assets` | declared | 3 | raea.plugins: "common_assets" (bevy_common_assets) |
 | `embedded_assets` | declared | blocked upstream | bevy_embedded_assets's latest release (0.16.0) is on bevy ^0.19. Exit: a release of bevy_embedded_assets on Bevy 0.20 |
 | `obj` | declared | 3 | raea.plugins: "obj" (bevy_obj) |
+| `asset_loader` | declared | 3 | raea.plugins: "asset_loader" (bevy_asset_loader): compiled in, no Plugin to register |
+| `progress` | declared | 3 | raea.plugins: "progress" (iyes_progress): compiled in, no Plugin to register |
+| `save` | declared | 3 | raea.plugins: "save" (moonshine-save): compiled in, no Plugin to register |
 | `svg` | declared | blocked upstream | bevy_svg's latest release (0.19.0) is on bevy ^0.19. Exit: a release of bevy_svg on Bevy 0.20 |
 | `vox` | declared | 3 | raea.plugins: "vox" (bevy_vox_scene) |
 | `aseprite` | declared | 3 | raea.plugins: "aseprite" (bevy_aseprite_ultra) |
@@ -1173,10 +1176,10 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `flair` | declared | 3 | raea.plugins: "flair" (bevy_flair) |
 | `text_input` | declared | blocked upstream | bevy_simple_text_input's latest release (0.15.0) is on bevy ^0.19.0. Exit: a release of bevy_simple_text_input on Bevy 0.20 |
 | `ui_anchor` | declared | blocked upstream | bevy_ui_anchor's latest release (0.12.0) is on bevy ^0.19.0. Exit: a release of bevy_ui_anchor on Bevy 0.20 |
-| `navigator` | declared | blocked upstream | vleue_navigator's latest release (0.16.0) is on bevy ^0.19.1. Exit: a release of vleue_navigator on Bevy 0.20 |
-| `northstar` | declared | blocked upstream | bevy_northstar's latest release (0.7.0) is on bevy ^0.19. Exit: a release of bevy_northstar on Bevy 0.20 |
+| `navigator` | declared | unmapped | vleue_navigator: declared for 0.20, not registered in the plugin build |
+| `northstar` | declared | unmapped | bevy_northstar: declared for 0.20, not registered in the plugin build |
 | `tween` | declared | 3 | raea.plugins: "tween" (bevy_tween) |
-| `easings` | declared | blocked upstream | bevy_easings's latest release (0.19.0) is on bevy ^0.19.0. Exit: a release of bevy_easings on Bevy 0.20 |
+| `easings` | declared | unmapped | bevy_easings: declared for 0.20, not registered in the plugin build |
 | `animation_graph` | declared | blocked upstream | bevy_animation_graph's latest release (0.11.0) is on bevy ^0.19. Exit: a release of bevy_animation_graph on Bevy 0.20 |
 | `lookup_curve` | declared | 3 | raea.plugins: "lookup_curve" (bevy_lookup_curve) |
 | `ik` | declared | blocked upstream | bevy_mod_inverse_kinematics's latest release (0.12.0) is on bevy ^0.19. Exit: a release of bevy_mod_inverse_kinematics on Bevy 0.20 |
@@ -1194,6 +1197,7 @@ Reached (tiers 1-3): **1544**. The ratchet (`tools/sdk-coverage --check`, in too
 | `yarn` | declared | blocked upstream | bevy_yarnspinner's latest release (0.9.0) is on bevy ^0.19. Exit: a release of bevy_yarnspinner on Bevy 0.20 |
 | `yoleck` | declared | 3 | raea.plugins: "yoleck" (bevy-yoleck) |
 | `trenchbroom` | declared | 3 | raea.plugins: "trenchbroom" (bevy_trenchbroom) |
+| `swatch` | declared | 3 | raea.plugins: "swatch" (raea-bench-swatch): compiled in, no Plugin to register |
 
 ## CSS properties (stylo, servo)
 

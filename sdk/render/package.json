@@ -17,6 +17,7 @@
     "./pick": "./src/pick.ts",
     "./splat": "./src/splat.tsx",
     "./3d": "./src/3d.tsx",
+    "./three": "./src/three.tsx",
     "./plugin": "./src/plugin.ts",
     "./screen": "./src/screen.tsx",
     "./bevy-own": "./src/bevy-own.gen.tsx"

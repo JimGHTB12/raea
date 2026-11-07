@@ -53,7 +53,7 @@ export const CLASSES: Record<string, { status: InputStatus; raea: string; note?:
   MeshMatcapMaterial: { status: "near", raea: "MeshBasicMaterial in its colour", note: "the matcap's lighting is left out" },
   MeshDepthMaterial: { status: "near", raea: "MeshBasicMaterial grey", note: "three's depth pass, not a surface" },
   MeshDistanceMaterial: { status: "near", raea: "MeshBasicMaterial grey", note: "three's shadow pass, not a surface" },
-  ShadowMaterial: { status: "none", raea: "not drawn", note: "raea has no surface that only catches shadows" },
+  ShadowMaterial: { status: "drawn", raea: "Mesh shadow=\"catch\": only the shadows falling on it, in its colour and opacity" },
   SpriteMaterial: { status: "drawn", raea: "MeshBasicMaterial on the sprite's quad" },
   PointsMaterial: { status: "drawn", raea: "MeshBasicMaterial on the points' quads" },
   LineBasicMaterial: { status: "drawn", raea: "the Gizmo's colours" },

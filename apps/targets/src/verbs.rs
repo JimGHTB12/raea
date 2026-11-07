@@ -3,7 +3,8 @@
 //!
 //!   run      a window of its own: Blitz on Bevy for web (raea-page-host's window build), Rune for native
 //!   check    headless (R4b): the mount and each step of `--script` written as PNGs to `--png DIR`, with tree.json (each
-//!            frame's elements by data-testid) and unmapped.json (what the target didn't draw)
+//!            frame's elements by data-testid), and the portability report (portable.rs, T4a): on native it fails on any
+//!            unmapped prop or unanswered call, naming each; on web it says what native wouldn't draw
 //!   bundle   a Mac app, `-o App.app` (the file's name when left out)
 //!
 //! `raea rune ARGS` is `raea app ARGS --target native`, and its older spellings (`rune --headless APP`) still reach
@@ -16,7 +17,7 @@ use crate::{AppConfig, Target};
 pub const USAGE: &str = "usage: raea app run APP.tsx [--target web|native] [--size WxH]\n       raea app check APP.tsx [--target web|native] [--script steps.json] [--png DIR] [--size WxH] [--settle N]\n       raea app bundle APP.tsx [--target web|native] [-o App.app] [--size WxH] [--identity NAME] [--notarize PROFILE]\n       raea rune ...   (raea app ... --target native)";
 
 /// What a verb was asked for, after the target is known
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Ask {
     pub verb: Verb,
     pub app: PathBuf,

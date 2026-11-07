@@ -23,8 +23,6 @@ export interface OrthographicCameraProps extends Omit<PerspectiveCameraProps, "f
 
 /** A camera without perspective: parallel lines stay parallel and size doesn't fall off with distance (isometric and
  * top-down games, technical views, flat-shaded product shots). Placed and aimed as a PerspectiveCamera is.
- * @bevy bevy_camera::components::Camera3d
- * @bevy bevy_camera::projection::Projection
  * @deprecated <Camera3d> with `projection={{ Orthographic: {} }}`, raea/camera */
 export function OrthographicCamera({ height = 10, children, ...rest }: OrthographicCameraProps & BevyParts) {
   if (rest.position !== undefined) checkVec("OrthographicCamera", "position", rest.position);
@@ -349,8 +347,13 @@ export interface ImagePlaneProps {
   /** radians */
   rotation?: Vec3;
   scale?: number | Vec3;
+  /** a turn as a quaternion [x, y, z, w], instead of `rotation` (a card turned to face a point) */
+  quaternion?: [number, number, number, number];
   /** false: the card casts no shadow (a cursor or a UI floating in the scene); true by default */
   shadow?: boolean;
+  /** the picture cut out at half alpha instead of blended: its clear parts are no surface at all (no fog on them, no
+   * sorting) and its shadow is the picture's shape, not the card's. For hard-edged pictures: a baked cloud, a sprite */
+  cutout?: boolean;
   /** a sprite sheet: the picture is `[columns, rows]` frames of equal size, read left to right, top to bottom, and the
    * card shows one cell (its height follows one cell's shape). A texture atlas of a regular grid */
   grid?: [number, number];

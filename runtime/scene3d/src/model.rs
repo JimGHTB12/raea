@@ -322,12 +322,19 @@ pub fn toon_models(world: &mut World) {
     super::shade_scene(world);
 }
 
+/// A browser loads models on its own event loop, between frames: a live frame there draws the models that are ready.
+#[cfg(target_arch = "wasm32")]
+pub fn await_models(_app: &mut App) -> Result<(), String> {
+    Ok(())
+}
+
 /// Every model ready (loaded, spawned, its clip set up, its toon surfaces on) before the first frame is drawn: a frame
 /// never shows a model half-loaded. It gives up when no model has moved a stage (loaded, spawned, ready, surfaces on) for
 /// 60 s, not after 60 s in all: prechorus's 477 models load for about a minute and then turn ready together, so at load
 /// 13-20 a count of ready models alone refused it half the time (10-26).
+#[cfg(not(target_arch = "wasm32"))]
 pub fn await_models(app: &mut App) -> Result<(), String> {
-    let mut t0 = std::time::Instant::now();
+    let mut t0 = bevy::platform::time::Instant::now();
     let mut most = 0usize;
     loop {
         let world = app.world_mut();
@@ -356,7 +363,7 @@ pub fn await_models(app: &mut App) -> Result<(), String> {
         }
         if done > most {
             most = done;
-            t0 = std::time::Instant::now();
+            t0 = bevy::platform::time::Instant::now();
         }
         if t0.elapsed().as_secs_f64() > 60.0 {
             let [l, s, r] = stages;

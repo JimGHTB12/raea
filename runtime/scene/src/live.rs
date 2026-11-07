@@ -77,7 +77,11 @@ impl LiveScene {
         let mut p = Program::default();
         let mut cam = BTreeMap::new();
         cam.insert("id".into(), V::S("cam".into()));
-        cam.insert("bg".into(), V::S(f.clear.and_then(hex_of).unwrap_or("#000000".into())));
+        // the holder's background as the clear colour; with none, Bevy's ClearColor resource (srgb 43, 44, 47 unless a
+        // <BevyResource type="bevy_camera::clear_color::ClearColor"> sets it), not black (docs/control conventions C17)
+        if let Some(bg) = f.clear.and_then(hex_of) {
+            cam.insert("bg".into(), V::S(bg));
+        }
         camera(&all, &mut p, &mut cam);
         if !all[0].iter().any(|i| i.kind == "camera") {
             // no camera this frame: a render holds the one before (filled)

@@ -3,13 +3,20 @@
 //!   {url, method, headers: [[k, v]], body: base64 | null, redirect: "follow" | "error" | "manual"}
 //!   -> {status, statusText, headers: [[k, v]], body: base64, url, redirected}; a network failure is an Err
 
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::Read;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
+#[cfg(not(target_arch = "wasm32"))]
 use base64::Engine as _;
+#[cfg(not(target_arch = "wasm32"))]
 use base64::engine::general_purpose::STANDARD as B64;
-use serde_json::{Value, json};
+#[cfg(not(target_arch = "wasm32"))]
+use serde_json::json;
+use serde_json::Value;
 
+#[cfg(not(target_arch = "wasm32"))]
 /// One request, sent: any status is an answer; Err only when none came (the connection, TLS, a timeout).
 pub fn send(req: ureq::Request, body: Option<&[u8]>) -> Result<ureq::Response, ureq::Transport> {
     let r = match body {
@@ -22,11 +29,19 @@ pub fn send(req: ureq::Request, body: Option<&[u8]>) -> Result<ureq::Response, u
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 /// An answer's headers, names lowercase, a repeated header once a value.
 pub fn headers(resp: &ureq::Response) -> Vec<(String, String)> {
     resp.headers_names().iter().flat_map(|n| resp.all(n).into_iter().map(|v| (n.to_ascii_lowercase(), v.to_string()))).collect()
 }
 
+#[cfg(target_arch = "wasm32")]
+/// A browser build has no HTTP of its own: the page fetches.
+pub fn fetch(args: &Value) -> Result<Value, String> {
+    Err(format!("{}: no HTTP in a browser build (the page fetches it)", args["url"].as_str().unwrap_or("?")))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 /// The page's net.fetch, made on the calling thread.
 pub fn fetch(args: &Value) -> Result<Value, String> {
     let url = args["url"].as_str().ok_or("no url")?;
