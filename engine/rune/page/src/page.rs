@@ -68,7 +68,14 @@ impl Page {
     /// A batch from the JS, applied to the tree; each text field's edit follows its `value` (a controlled input: what
     /// React decides the value is wins over what was typed).
     pub fn apply(&mut self, json: &str) -> Result<(), String> {
-        self.tree.apply_json(json)?;
+        self.apply_ops(&raea_core_wire::decode(json)?)
+    }
+
+    /// Ops already decoded (a Rune layer's, which raea-rune-slots routed out of a Blitz page's batch), as `apply`.
+    pub fn apply_ops(&mut self, ops: &[raea_core_wire::Op]) -> Result<(), String> {
+        for op in ops {
+            self.tree.apply(op)?;
+        }
         let fields: Vec<(u64, String)> = self.tree.ids().filter_map(|id| {
             let n = self.tree.get(id)?;
             (n.kind == "editableText").then(|| (id, n.props.get("value").and_then(Value::as_str).unwrap_or("").to_string()))

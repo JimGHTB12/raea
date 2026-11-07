@@ -14386,6 +14386,7 @@ dependencies = [
  "raea-page",
  "raea-page-stage",
  "raea-page-window",
+ "raea-rune-slots",
  "raea-runtime-dom",
  "raea-runtime-input",
  "raea-runtime-js",
@@ -14547,6 +14548,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-rune-layer"
+version = "0.1.0"
+dependencies = [
+ "raea-core-wire",
+ "serde_json",
+]
+
+[[package]]
 name = "raea-rune-look"
 version = "0.1.0"
 dependencies = [
@@ -14576,6 +14585,24 @@ dependencies = [
  "raea-rune-style",
  "rune",
  "rune-kit",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-rune-slots"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "blitz-dom",
+ "raea-core-wire",
+ "raea-rune-bevy",
+ "raea-rune-layer",
+ "raea-rune-media",
+ "raea-rune-page",
+ "raea-runtime-dom",
+ "raea-runtime-twins",
+ "raea-sys-page",
+ "rune",
  "serde_json",
 ]
 
@@ -17059,7 +17086,6 @@ dependencies = [
 [[package]]
 name = "rune-taffy"
 version = "0.0.1"
-source = "git+https://github.com/anomalyco/rune?rev=7ead7d63fcf6f9dd9669385a8b90e2ae80015d7b#7ead7d63fcf6f9dd9669385a8b90e2ae80015d7b"
 dependencies = [
  "taffy",
 ]

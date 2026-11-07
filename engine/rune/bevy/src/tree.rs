@@ -33,6 +33,8 @@ pub struct Tree<S: 'static> {
     pub rt: Runtime<S>,
     scale: f32,
     renderer: Option<Renderer>,
+    /// run before each frame with the runtime (a host handing it what changed since: a page's ops)
+    pub before_frame: Option<Box<dyn FnMut(&mut Runtime<S>)>>,
     /// run after each frame with the runtime (a host reading the frame's layout, a video's encoder)
     pub after_frame: Option<Box<dyn FnMut(&mut Runtime<S>)>>,
 }
@@ -42,12 +44,15 @@ impl<S: 'static> Tree<S> {
     pub fn new(mut rt: Runtime<S>, scale: f32) -> Tree<S> {
         let viewport = rt.viewport;
         rt.set_viewport(viewport, scale);
-        Tree { rt, scale, renderer: None, after_frame: None }
+        Tree { rt, scale, renderer: None, before_frame: None, after_frame: None }
     }
 }
 
 impl<S: 'static> AnyTree for Tree<S> {
     fn step(&mut self, dt: f64) {
+        if let Some(f) = self.before_frame.as_mut() {
+            f(&mut self.rt);
+        }
         self.rt.frame(dt);
         if let Some(f) = self.after_frame.as_mut() {
             f(&mut self.rt);

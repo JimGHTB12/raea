@@ -150,3 +150,10 @@ upstream = "crates.io:0.11.0"
 kind = "patch"
 reason = "linear-light blending in fine.wgsl (Config.blend_linear, set by vello_encoding's set_blend_linear): every colour, ramp and texel decoded from sRGB, blended, and encoded once, the blend stack kept sRGB-encoded, so raea-page blends a bevy_ui page as Bevy's UI does on an sRGB target"
 exit = "a Vello release that blends in linear light on request"
+
+[rune-taffy]
+path = "vendor/rune-taffy"
+upstream = "git:github.com/anomalyco/rune@7ead7d63fcf6f9dd9669385a8b90e2ae80015d7b:crates/rune-taffy"
+kind = "patch"
+reason = "taffy's flexbox_balance is on (Blitz turns it on and features unify in one build), so encode_wrap maps FlexWrap::Balance and BalanceReverse; upstream's match isn't exhaustive with that feature"
+exit = "a Rune release whose rune-taffy handles taffy's flexbox_balance"

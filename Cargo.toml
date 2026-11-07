@@ -48,6 +48,8 @@ members = [
     "engine/rune/style",
     "engine/rune/bevy",
     "engine/rune/js",
+    "engine/rune/layer",
+    "engine/rune/slots",
     "engine/page/stage",
     "engine/page/window",
     "io/trace",
@@ -308,3 +310,9 @@ firewheel-core = { path = "vendor/firewheel-core" }
 firewheel-graph = { path = "vendor/firewheel-graph" }
 firewheel-macros = { path = "vendor/firewheel-macros" }
 firewheel-nodes = { path = "vendor/firewheel-nodes" }
+
+[patch."https://github.com/anomalyco/rune"]
+# rune-taffy at the rev above with encode_wrap covering taffy's flexbox_balance modes, which Blitz turns on: a crate
+# with Rune and Blitz in one build (raea-rune-slots) doesn't compile without it (changes marked "raea:"). Back to
+# upstream once Rune has it.
+rune-taffy = { path = "vendor/rune-taffy" }

@@ -351,7 +351,6 @@ LICENSES/<crate>-<version>/.
   rune-kit 0.0.1: MIT
   rune-motion 0.1.0: MIT
   rune-staging 0.0.1: MIT
-  rune-taffy 0.0.1: MIT
   rune 0.0.1: MIT
   rusticata-macros 4.1.0: MIT/Apache-2.0
   rustls-native-certs 0.8.5: Apache-2.0 OR ISC OR MIT

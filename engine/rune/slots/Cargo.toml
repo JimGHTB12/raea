@@ -1,0 +1,24 @@
+[package]
+name = "raea-rune-slots"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Rune layers in a Blitz page: what's under a data-raea-renderer=\"rune\" element drawn by Rune on Bevy's device and shown in it"
+
+[dependencies]
+raea-rune-layer = { path = "../layer" }
+raea-rune-bevy = { path = "../bevy" }
+raea-rune-page = { path = "../page" }
+raea-rune-media = { path = "../media" }
+raea-runtime-dom = { path = "../../../runtime/dom" }
+raea-runtime-twins = { path = "../../../runtime/twins" }
+raea-sys-page = { path = "../../../systems/page" }
+raea-core-wire = { path = "../../../core/wire" }
+rune.workspace = true
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_asset", "bevy_image", "bevy_log", "bevy_window", "bevy_picking"] }
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false }
+serde_json = "1"
+
+[dev-dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "async_executor", "bevy_window", "bevy_asset", "bevy_image", "bevy_render", "bevy_core_pipeline", "bevy_picking"] }

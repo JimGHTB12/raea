@@ -184,6 +184,11 @@ game stays a composition; an app is an application's interface.
   `instant`, `blur`, `backdropBlur` and `glass`, and its `Badge`, `Spinner`, `Progress`, `RollingText` and
   `Switch`. On web, a preset motion becomes a CSS transition and an entrance a keyframe, blur and glass become filters,
   and the rest is ignored and listed by the check. Without these props an element lands at once, as in a browser.
+- Part of a web page can be Rune's: `<RuneLayer className="w-80 h-48">...</RuneLayer>` from `@raea/rune` draws its
+  children with Rune, on the GPU, in its box, and the rest of the page stays Blitz's. Give it a size: the layer is
+  its content box. Clicks and wheel reach its elements, and their handlers run as anywhere else. A
+  `getBoundingClientRect` inside one is zero, and keys don't reach a field in one yet. In a browser it's a plain
+  div. `RAEA_RUNE_LAYERS=0` draws it with Blitz.
 - Host calls (`call` and `callSync` from `@raea/ui/wire`), answered on both targets: `net.fetch`, `net.ws.*`,
   `net.storage.*`, `net.clipboard.*`, `os.open` (http, https, mailto), `fs.pick`, `fs.save`, `fs.read`, `fs.write`
   and `dialog.message`. Headless, a step answers a dialog: `{ pick: ["a.txt"] }`, `{ save: "out.txt" }`,

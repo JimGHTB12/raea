@@ -17,11 +17,21 @@ pub(crate) fn timers(js: &mut dyn JsEngine) {
     }
 }
 
-/// A root's op batches applied to its document.
-pub(crate) fn commit(doc: &mut BaseDocument, nodes: &mut Nodes, batches: Vec<String>) {
+/// What takes a page's ops before its document does, and hands back the document's: raea-rune-slots', whose Rune
+/// layers draw what's under their slots (T6c). None: every op is the document's.
+pub type Split = Box<dyn FnMut(Entity, Vec<wire::Op>) -> Vec<wire::Op>>;
+thread_local!(static SPLIT: std::cell::RefCell<Option<Split>> = const { std::cell::RefCell::new(None) });
+
+/// `f` as every root's [`Split`] on this thread (the page host's).
+pub fn set_split(f: Split) {
+    SPLIT.with_borrow_mut(|s| *s = Some(f));
+}
+
+/// Page `page`'s op batches applied to its document.
+pub(crate) fn commit(page: Entity, doc: &mut BaseDocument, nodes: &mut Nodes, batches: Vec<String>) {
     for b in batches {
         match wire::decode(&b) {
-            Ok(o) => ops::apply(doc, nodes, o),
+            Ok(o) => ops::apply(doc, nodes, SPLIT.with_borrow_mut(|s| match s.as_mut() { Some(f) => f(page, o), None => o })),
             Err(e) => eprintln!("raea-page: {e}"),
         }
     }
@@ -29,9 +39,9 @@ pub(crate) fn commit(doc: &mut BaseDocument, nodes: &mut Nodes, batches: Vec<Str
 
 /// `batches` committed to `doc`; a focus the commit moved (an autofocus) is told to the root (`queue`), as a focus
 /// event its element hears.
-pub(crate) fn commit_focus(doc: &mut BaseDocument, nodes: &mut Nodes, batches: Vec<String>, queue: Option<&mut Vec<Value>>) {
+pub(crate) fn commit_focus(page: Entity, doc: &mut BaseDocument, nodes: &mut Nodes, batches: Vec<String>, queue: Option<&mut Vec<Value>>) {
     let before = doc.get_focussed_node_id();
-    commit(doc, nodes, batches);
+    commit(page, doc, nodes, batches);
     if let Some(q) = queue
         && let Some(n) = doc.get_focussed_node_id().filter(|n| Some(*n) != before)
         && let Some(id) = nodes.id_of(n).filter(|id| nodes.hears(*id, Ev::Focus))
@@ -51,7 +61,7 @@ pub(crate) fn drain(world: &mut World, r: &mut Root) -> bool {
     if !batches.is_empty()
         && let Some(doc) = world.non_send_mut::<Docs>().0.get_mut(&r.page)
     {
-        commit_focus(doc, &mut r.nodes, batches, Some(&mut r.queue));
+        commit_focus(r.page, doc, &mut r.nodes, batches, Some(&mut r.queue));
     }
     // a scroller a commit moved (its scrollTop set, here or in an event's delivery): its scroll event, as Chrome
     // sends one after
@@ -215,7 +225,12 @@ pub fn post(world: &mut World, name: &str, value: Value) {
 
 /// A host event for one root at its next step.
 pub fn post_to(world: &mut World, page: Entity, name: &str, value: Value) {
+    deliver_to(world, page, wire::named(name, value));
+}
+
+/// A message for one root's `__ui_deliver` at its next step (an element's event a Rune layer heard).
+pub fn deliver_to(world: &mut World, page: Entity, msg: Value) {
     if let Some(r) = world.get_non_send_mut::<Roots>().as_mut().and_then(|r| r.get_mut(page)) {
-        r.queue.push(wire::named(name, value));
+        r.queue.push(msg);
     }
 }

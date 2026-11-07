@@ -65,7 +65,7 @@ impl Bridge<'_> {
             eprintln!("raea-page: js: an event threw: {e}");
         }
         let batches = std::mem::take(&mut self.out.borrow_mut().flushed);
-        commit(d, self.nodes, batches);
+        commit(self.page, d, self.nodes, batches);
         true
     }
 
@@ -261,7 +261,7 @@ impl EventHandler for Bridge<'_> {
             o.emits.retain(|(n, _)| n != "prevented");
             (std::mem::take(&mut o.flushed), prevented)
         };
-        commit(&mut d, self.nodes, batches);
+        commit(self.page, &mut d, self.nodes, batches);
         // a right press: its contextmenu, to the nearest element up that hears it (before the press's focus default: a
         // menu it opens has the focus)
         if let DomEventData::PointerDown(p) = &event.data
@@ -274,7 +274,7 @@ impl EventHandler for Bridge<'_> {
                 eprintln!("raea-page: js: an event threw: {e}");
             }
             let batches = std::mem::take(&mut self.out.borrow_mut().flushed);
-            commit(&mut d, self.nodes, batches);
+            commit(self.page, &mut d, self.nodes, batches);
             // (Chrome's contextmenu comes after the press's focus: a focus it moves stays, on any page)
             prevented |= d.get_focussed_node_id() != before;
         }

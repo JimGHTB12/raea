@@ -29,6 +29,10 @@ upstream_dir() {
   local name=$1 up=$2 ver dir reg
   case $up in
     crates.io:*) ver=${up#crates.io:} ;;
+    # git:<repo>@<rev>:<dir>, from cargo's checkout of that rev (the lock pins it, so cargo has fetched it)
+    git:*) local rev=${up#*@}; local sub=${rev#*:}; rev=${rev%%:*}
+      for reg in "$HOME"/.cargo/git/checkouts/*/"${rev:0:7}"/"$sub"; do [ -d "$reg" ] && { echo "$reg"; return; }; done
+      echo "vendor: $name: no cargo checkout of $up" >&2; return 1 ;;
     *) echo "vendor: $name: only crates.io upstreams are fetched ($up)" >&2; return 1 ;;
   esac
   for reg in "$HOME"/.cargo/registry/src/index.crates.io-*/"$name-$ver"; do [ -d "$reg" ] && { echo "$reg"; return; }; done

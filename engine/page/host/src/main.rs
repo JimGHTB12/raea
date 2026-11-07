@@ -104,6 +104,11 @@ fn main() {
         // the clipboard, links, notifications, the dock badge, raea:// links and the chrome (raea-page-window)
         .add_plugins(raea_page_window::DesktopPlugin { chrome: a.chrome, live: a.window });
     raea_page_host::page_plugins(&mut app, picking);
+    // Rune layers (docs/targets.feature T6c): what's under a data-raea-renderer="rune" element is drawn by Rune on this
+    // device and shown in it; a page without one isn't touched. RAEA_RUNE_LAYERS=0: Blitz draws it all
+    if std::env::var("RAEA_RUNE_LAYERS").as_deref() != Ok("0") {
+        app.add_plugins(raea_rune_slots::RuneSlotsPlugin);
+    }
     let (css, size) = (a.css, a.size);
     let preamble = vec![a.chrome.preamble()];
     let mount = move |world: &mut World| {

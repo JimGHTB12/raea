@@ -1,0 +1,11 @@
+[package]
+name = "raea-rune-layer"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Rune layers in a Blitz page (docs/targets.feature T6, per layer): an element marked data-raea-renderer=\"rune\" has its subtree drawn by Rune, the page's op wire split between Blitz and each layer"
+
+[dependencies]
+raea-core-wire = { path = "../../../core/wire" }
+serde_json = "1"

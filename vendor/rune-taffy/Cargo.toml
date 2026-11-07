@@ -1,0 +1,16 @@
+[package]
+name = "rune-taffy"
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+# raea: vendored from anomalyco/rune 7ead7d6 (crates/rune-taffy) with taffy's flexbox_balance on, so its
+# two wrap modes always exist and encode_wrap names them (src/style/mod.rs)
+
+[features]
+default = []
+# Use upstream `taffy::TaffyTree` instead of `LayoutStore` for A/B benchmarks and parity checks.
+baseline-taffy = []
+
+[dependencies]
+taffy = { version = "0.15", default-features = false, features = ["std", "taffy_tree", "flexbox", "grid", "block_layout", "content_size", "flexbox_balance"] }
+

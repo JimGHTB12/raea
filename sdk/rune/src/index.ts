@@ -12,6 +12,7 @@ import "./web.css";
 import { web } from "./web.ts";
 
 export * from "./kit.tsx";
+export * from "./layer.tsx";
 export { web } from "./web.ts";
 
 /** A spring as Rune has it: how long it takes to settle, in seconds, and how much it overshoots (0 none, 1 a lot). */

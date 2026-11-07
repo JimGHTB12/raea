@@ -46,6 +46,8 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 serde_json = "1"
 # the live stage: <img data-raea-stage> (raea-page-stage)
 raea-page-stage = { path = "../stage" }
+# Rune layers in the page: what's under a data-raea-renderer="rune" element drawn by Rune on this device (T6c)
+raea-rune-slots = { path = "../../rune/slots" }
 # the window build turns bevy_winit on for every Bevy app in the process; the stage's engine is told to leave it out (main.rs)
 raea-runtime-plugins = { path = "../../../runtime/plugins", optional = true }
 raea-runtime-view = { path = "../../../runtime/view" }

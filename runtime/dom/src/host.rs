@@ -115,9 +115,9 @@ impl PageSync {
         if batches.is_empty() {
             return;
         }
-        let (nodes, queue) = (self.nodes, self.queue);
+        let (nodes, queue, page) = (self.nodes, self.queue, self.page);
         let Some(doc) = self.doc() else { return };
-        commit_focus(doc, unsafe { &mut *nodes }, batches, queue.map(|q| unsafe { &mut *q }));
+        commit_focus(page, doc, unsafe { &mut *nodes }, batches, queue.map(|q| unsafe { &mut *q }));
         if let Some(c) = self.synced {
             unsafe { *c = true };
         }
