@@ -186,6 +186,12 @@ export function Node({ children, fixed, ...p }: NodeProps) {
   return boxOf(n.css, n.back, children, fixed ? "fixed" : ui === null, undefined, n.attrs);
 }
 
+/** bevy_ui's GhostNode: no box of its own, its children laid out as its parent's (CSS display: contents), each one a
+ *  root when it is at the top. @bevy bevy_ui::experimental::GhostNode */
+export function GhostNode({ children }: { children?: ReactNode }) {
+  return useContext(InUi) === null ? <>{children}</> : <div style={{ display: "contents" }}>{children}</div>;
+}
+
 /** bevy_text's TextFont, TextColor, TextLayout and LineHeight, on a Text or a TextSpan. */
 export interface TextStyleProps {
   /** FontSource: a font file (staticFile("fonts/FiraSans-Bold.ttf")), FontSource.family(name) or a generic family

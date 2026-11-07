@@ -70,3 +70,4 @@ ui/layout/z_index	-	10
 ui/styling/stacked_gradients	-	10
 ui/styling/gradients	-	10
 ui/text/generic_font_families	-	10
+ui/layout/ghost_nodes	-	10

@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { AngularColorStop, UiRect as GradRect, FontSource, GridPlacement, GridTrack, RepeatedGridTrack, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { AngularColorStop, GhostNode, UiRect as GradRect, FontSource, GridPlacement, GridTrack, RepeatedGridTrack, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { Canvas3D } from "raea/3d";
 import { renderFrame } from "../src/test";
@@ -246,6 +246,13 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     expect(html(<Text font={FontSource.family("Times")}>a</Text>)).toContain("font-family:&quot;Times&quot;");
     expect(html(<Text font={FontSource.ui_rounded()}>a</Text>)).toContain("font-family:&quot;raea-bevy ui-rounded&quot;, ui-rounded");
     expect(() => html(<Text font={{ Generic: "Gothic" } as never}>a</Text>)).toThrow(/FontSource/);
+  });
+  test("a GhostNode has no box: inside a Node its children are the Node's (display: contents), at the top each is a root", () => {
+    const inside = html(<Node><GhostNode><Node width={px(7)} /></GhostNode></Node>);
+    expect(inside).toMatch(/<div style=\"display:contents\"><div style=\"display:flex[^\"]*width:7px/);
+    const top = html(<GhostNode><Node width={px(7)} /><Node width={px(8)} /></GhostNode>);
+    expect(top.match(/data-raea-blend=\"linear\"/g)?.length).toBe(2);
+    expect(top).not.toContain("display:contents");
   });
   test("BorderColor takes a colour per side", () => {
     const out = html(<Node border={UiRect.all(px(2))} border_color={{ top: new Srgba(1, 0, 0), right: new Srgba(0, 0, 1), bottom: new Srgba(1, 1, 0), left: new Srgba(0, 1, 0) }} />);

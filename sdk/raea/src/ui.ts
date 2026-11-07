@@ -6,6 +6,6 @@ export * from "@raea/video/region";
 // InputRegion (input-region.tsx) joins when it is committed
 export * from "@raea/video/panel";
 // bevy_ui's Node and Text, and bevy_text's TextSpan, with their values (Val, UiRect, BorderRadius, Overflow)
-export { Node, Text, TextSpan, TextShadow, Text2d, UiScale, ImageNode, InlineImage, type TextureSlicer, type SliceScaleMode, ImagePlugin, FontVariationTag, TextureAtlasLayout, type ImageNodeProps, px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadius, Overflow, OverflowClipMargin, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type Text2dProps, type Val } from "@raea/render/bevy3d";
+export { Node, GhostNode, Text, TextSpan, TextShadow, Text2d, UiScale, ImageNode, InlineImage, type TextureSlicer, type SliceScaleMode, ImagePlugin, FontVariationTag, TextureAtlasLayout, type ImageNodeProps, px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadius, Overflow, OverflowClipMargin, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type Text2dProps, type Val } from "@raea/render/bevy3d";
 export { LinearGradient, RadialGradient, ConicGradient, ColorStop, AngularColorStop, UiPosition, type Gradient, type RadialGradientShape, type InterpolationColorSpace } from "@raea/render/bevy3d";
 export { GridTrack, RepeatedGridTrack, GridPlacement, type GridTrackRepetition, type GridAutoFlow, type MinTrackSizingFunction, type MaxTrackSizingFunction, FontSource, type GenericFontFamily } from "@raea/render/bevy3d";
