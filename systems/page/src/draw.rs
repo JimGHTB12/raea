@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 
 use super::*;
+use raea_sys_filters::{Premul, straight_target};
 
 /// The render world's copy of this frame's scenes.
 #[derive(Resource, Default)]
@@ -56,105 +57,11 @@ pub fn view_at(app: &mut App, image: vello::peniko::ImageData, placed: Option<Pl
     }
 }
 
-/// Vello stores straight alpha in an `Rgba8Unorm` storage texture (sRGB-encoded values); a page's image is
-/// `Rgba8UnormSrgb` and premultiplied. One fullscreen triangle reads the one and writes the other.
-pub struct Premul {
-    pub pipeline: wgpu::RenderPipeline,
-    /// the same pass for a StraightAlpha page: the colour decoded, its alpha kept apart
-    pub straight: wgpu::RenderPipeline,
-    /// a premultiplied picture (a camera's) made straight for Vello, which takes an element's picture so
-    pub unpremul: wgpu::RenderPipeline,
-    pub layout: wgpu::BindGroupLayout,
-}
-
-pub const PREMUL_WGSL: &str = r"
-@group(0) @binding(0) var src: texture_2d<f32>;
-@vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
-    let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u));
-    return vec4f(p * 2.0 - 1.0, 0.0, 1.0);
-}
-fn linear(c: vec3f) -> vec3f {
-    return select(pow((c + 0.055) / 1.055, vec3f(2.4)), c / 12.92, c <= vec3f(0.04045));
-}
-// premultiplied in the encoded values (as bevy_ui's page holds them); the target's sRGB view encodes what's written
-@fragment fn fs(@builtin(position) p: vec4f) -> @location(0) vec4f {
-    let c = textureLoad(src, vec2i(p.xy), 0);
-    return vec4f(linear(c.rgb * c.a), c.a);
-}
-@fragment fn fs_straight(@builtin(position) p: vec4f) -> @location(0) vec4f {
-    let c = textureLoad(src, vec2i(p.xy), 0);
-    return vec4f(linear(c.rgb), c.a);
-}
-fn encoded(c: vec3f) -> vec3f {
-    return select(1.055 * pow(c, vec3f(1.0 / 2.4)) - 0.055, c * 12.92, c <= vec3f(0.0031308));
-}
-// a camera's picture (premultiplied in its stored, sRGB-encoded values) made straight as raea's render makes its
-// layered 3D (sdk/react motion.rs scene_straight): its alpha the largest of its four values, so light left in the
-// clear (a sky, a glow) keeps; read decoded through an sRGB view, written through one
-@fragment fn fs_unpremul(@builtin(position) p: vec4f) -> @location(0) vec4f {
-    let c = textureLoad(src, vec2i(p.xy), 0);
-    let e = round(encoded(c.rgb) * 255.0);
-    let a = max(max(e.r, e.g), max(e.b, round(c.a * 255.0)));
-    if c.a >= 1.0 || a == 0.0 {
-        return c;
-    }
-    return vec4f(linear(min(floor((e * 255.0 + floor(a / 2.0)) / a), vec3f(255.0)) / 255.0), a / 255.0);
-}
-";
-
-impl Premul {
-    pub fn new(device: &wgpu::Device) -> Premul {
-        let module = device.create_shader_module(wgpu::ShaderModuleDescriptor { label: Some("raea-page premul"), source: wgpu::ShaderSource::Wgsl(PREMUL_WGSL.into()) });
-        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("raea-page premul"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: false }, view_dimension: wgpu::TextureViewDimension::D2, multisampled: false },
-                count: None,
-            }],
-        });
-        let pl = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor { label: Some("raea-page premul"), bind_group_layouts: &[Some(&layout)], immediate_size: 0 });
-        let make = |entry: &str| device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("raea-page premul"),
-            layout: Some(&pl),
-            vertex: wgpu::VertexState { module: &module, entry_point: Some("vs"), compilation_options: default(), buffers: &[] },
-            fragment: Some(wgpu::FragmentState {
-                module: &module,
-                entry_point: Some(entry),
-                compilation_options: default(),
-                targets: &[Some(wgpu::ColorTargetState { format: TextureFormat::Rgba8UnormSrgb, blend: None, write_mask: wgpu::ColorWrites::ALL })],
-            }),
-            primitive: default(),
-            depth_stencil: None,
-            multisample: default(),
-            multiview_mask: None,
-            cache: None,
-        });
-        let (pipeline, straight, unpremul) = (make("fs"), make("fs_straight"), make("fs_unpremul"));
-        Premul { pipeline, straight, unpremul, layout }
-    }
-}
-
 pub fn extract(painted: Extract<Option<Res<Painted>>>, image_views: Extract<Option<Res<view3d::ImageViews>>>, mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>) {
     if let Some(p) = painted.as_ref() {
         scenes.todo = std::mem::take(&mut *p.0.lock().unwrap());
     }
     vello.image_views = image_views.as_ref().map(|v| v.0.clone()).unwrap_or_default();
-}
-
-/// A straight copy's texture: sRGB-encoded, as Vello's atlas takes a picture's texels.
-pub fn straight_target(device: &wgpu::Device, size: wgpu::Extent3d) -> wgpu::Texture {
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("raea-page view made straight"),
-        size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: TextureDimension::D2,
-        format: TextureFormat::Rgba8UnormSrgb,
-        usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_SRC,
-        view_formats: &[],
-    })
 }
 
 /// Each scene drawn by Vello into its page's storage texture on Bevy's device, then premultiplied into the page's

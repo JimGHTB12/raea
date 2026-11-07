@@ -99,7 +99,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/ui` (sdk/raea/src/ui.ts)
 
-`AbsoluteFill`, `BorderRadius`, `CornerRadius`, `FontVariationTag`, `ImageNode`, `ImagePlugin`, `InlineImage`, `Node`, `Overflow`, `OverflowClipMargin`, `Text`, `Text2d`, `TextShadow`, `TextSpan`, `TextureAtlasLayout`, `UiRect`, `UiScale`, `auto`, `percent`, `px`, `vh`, `vmax`, `vmin`, `vw`
+`AbsoluteFill`, `AngularColorStop`, `BorderRadius`, `ColorStop`, `ConicGradient`, `CornerRadius`, `FontVariationTag`, `ImageNode`, `ImagePlugin`, `InlineImage`, `LinearGradient`, `Node`, `Overflow`, `OverflowClipMargin`, `RadialGradient`, `Text`, `Text2d`, `TextShadow`, `TextSpan`, `TextureAtlasLayout`, `UiPosition`, `UiRect`, `UiScale`, `auto`, `percent`, `px`, `vh`, `vmax`, `vmin`, `vw`
 
 ## `raea/video` (sdk/raea/src/video.ts)
 

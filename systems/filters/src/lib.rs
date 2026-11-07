@@ -9,10 +9,12 @@
 
 mod painter;
 mod passes;
+mod premul;
 mod primitives;
 
 pub use painter::Painter;
 pub use passes::Passes;
+pub use premul::{PREMUL_WGSL, Premul, straight_target};
 
 use std::sync::Arc;
 
