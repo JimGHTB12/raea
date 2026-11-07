@@ -52,7 +52,7 @@ pub use binning::BinHeader;
 pub use clip::{Clip, ClipBbox, ClipBic, ClipElement};
 pub use config::{
     BufferSize, BufferSizes, BumpAllocationSizes, BumpAllocatorMemory, BumpAllocators, ConfigUniform, IndirectCount,
-    PTCL_INITIAL_ALLOC, RenderConfig, WorkgroupCounts, WorkgroupSize, bump_sizes_for, set_bump_allocation_sizes, set_bump_full,
+    PTCL_INITIAL_ALLOC, RenderConfig, WorkgroupCounts, WorkgroupSize, bump_sizes_for, set_bump_allocation_sizes, set_bump_full, set_blend_linear,
 };
 pub use draw::{
     DRAW_INFO_FLAGS_FILL_RULE_BIT, DrawBbox, DrawBeginClip, DrawBlurRoundedRect, DrawColor,

@@ -10,6 +10,7 @@ import {
   checkVal, keyword, over, radiusCss, rectCss, type Backdrop, type BorderRadius, type Overflow, type OverflowClipMargin, type UiRect, type Val,
 } from "./ui-val";
 import { LinearRgba, type Srgba } from "./colors";
+import { gradientsCss, type Gradient } from "./ui-gradient";
 import type { TransformValue } from "./core";
 import { eulerOf } from "../3d/model";
 import { useVideoConfig } from "@raea/app/clock";
@@ -41,6 +42,8 @@ export interface NodeProps {
   overflow_clip_margin?: OverflowClipMargin;
   row_gap?: Val; column_gap?: Val;
   background_color?: Color;
+  /** BackgroundGradient: gradients over the background colour, the first at the bottom, over the whole node */
+  background_gradient?: Gradient[];
   /** BorderColor: every side one colour, or each its own ({ top, right, bottom, left }) */
   border_color?: Color | { top: Color; right: Color; bottom: Color; left: Color };
   /** Outline: a line outside the border box, `offset` from it (0 by default), white by default */
@@ -113,6 +116,11 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
     if (p.outline.offset !== undefined) s.outlineOffset = checkVal(who, "outline.offset", p.outline.offset);
   }
   if (p.background_color !== undefined) ({ css: s.backgroundColor, back } = over(who, "background_color", p.background_color, back));
+  if (p.background_gradient !== undefined) {
+    s.backgroundImage = gradientsCss(who, p.background_gradient);
+    s.backgroundOrigin = "border-box";
+    back = undefined;
+  }
   // (the border over its own background, as Bevy draws it)
   const bc = p.border_color;
   if (bc !== undefined && typeof bc === "object" && "top" in bc) {
@@ -143,7 +151,8 @@ export function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, r
       <InUi.Provider value={{ back }}>{children}</InUi.Provider>
     </div>
   );
-  return root ? <div style={root === "fixed" ? { ...VIEWPORT, position: "fixed" } : VIEWPORT}>{font}{inner}</div> : <>{font}{inner}</>;
+  // data-raea-blend: a page with bevy_ui in it blends in linear light, as Bevy's UI does (raea-page's paint)
+  return root ? <div style={root === "fixed" ? { ...VIEWPORT, position: "fixed" } : VIEWPORT} data-raea-blend="linear">{font}{inner}</div> : <>{font}{inner}</>;
 }
 
 /** A box of Bevy's UI, laid out as bevy_ui lays it (taffy, with Bevy's defaults). Put it over the 3D in an

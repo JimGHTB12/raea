@@ -298,6 +298,10 @@ anyrender_svg = { path = "vendor/anyrender_svg" }
 # BumpAllocationSizes; changes marked "raea:"): raea-page sizes them for its pages, not Vello's 165 MiB of defaults.
 # Back to upstream once #1861 lands.
 vello_encoding = { path = "vendor/vello_encoding" }
+# vello_shaders 0.11.0 with linear-light blending in the fine stage, switched by vello_encoding's set_blend_linear
+# (changes marked "raea:"): raea-page blends a bevy_ui page as Bevy does (bevy_ui on Blitz). No upstream
+# equivalent yet (linebender/vello blends the encoded values).
+vello_shaders = { path = "vendor/vello_shaders" }
 # Firewheel 0.12 on Bevy 0.20: bevy_reflect 0.20 and a glam-33 feature (BillyDM/Firewheel#144; changes marked "raea:")
 firewheel = { path = "vendor/firewheel" }
 firewheel-core = { path = "vendor/firewheel-core" }

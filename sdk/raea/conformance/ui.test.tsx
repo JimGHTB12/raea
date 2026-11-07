@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { AngularColorStop, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { Canvas3D } from "raea/3d";
 import { renderFrame } from "../src/test";
@@ -207,6 +207,21 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
   test("a layered Canvas3D cleared to a colour lies under the whole page, as a Bevy camera's output under all its UI", () => {
     expect(html(<Canvas3D layered clearColor="rgb(0, 0, 0)" />)).toContain("z-index:-2147483648");
     expect(html(<Canvas3D layered />)).not.toContain("z-index");
+  });
+  test("BackgroundGradient is CSS gradients in Oklab, the first at the bottom, Bevy's shapes and positions as CSS's", () => {
+    const red = new Srgba(1, 0, 0), clear = new Srgba(1, 0, 0, 0);
+    const out = html(<Node background_color={new Srgba(0, 0, 0)} background_gradient={[
+      LinearGradient.to_right([ColorStop.auto(red), ColorStop.new(clear, percent(80))]),
+      RadialGradient.new(UiPosition.TOP.at_x(percent(5)), "ClosestCorner", [ColorStop.auto(red), ColorStop.auto(clear)]),
+      ConicGradient.new(UiPosition.BOTTOM_RIGHT.at(px(10), px(20)), [AngularColorStop.auto(red), AngularColorStop.new(clear, Math.PI)], 0.5),
+    ]} />);
+    expect(out).toContain("background-image:conic-gradient(from 0.5rad at calc(100% - 10px) calc(100% - 20px) in oklab, rgba(255, 0, 0, 1), rgba(255, 0, 0, 0) 3.141592653589793rad), radial-gradient(ellipse closest-side at calc(50% + 5%) calc(0% + 0px) in oklab, rgba(255, 0, 0, 1), rgba(255, 0, 0, 0)), linear-gradient(1.5707963267948966rad in oklab, rgba(255, 0, 0, 1), rgba(255, 0, 0, 0) 80%)");
+    expect(out).toContain("background-origin:border-box");
+    // a page with bevy_ui in it blends in linear light (raea-page's paint; vendor/vello_shaders fine.wgsl)
+    expect(out).toContain('data-raea-blend="linear"');
+    const hinted = html(<Node background_gradient={[LinearGradient.new(0, [{ color: red, point: px(0), hint: 0.25 }, ColorStop.new(clear, px(100))], "Srgba")]} />);
+    expect(hinted).toContain("linear-gradient(0rad in srgb, rgba(255, 0, 0, 1) 0px, calc(0px + (100px - 0px) * 0.25), rgba(255, 0, 0, 0) 100px)");
+    expect(() => html(<Node background_gradient={[RadialGradient.new(UiPosition.CENTER, { Circle: percent(10) }, [ColorStop.auto(red)])]} />)).toThrow(/Circle's radius in percent/);
   });
   test("BorderColor takes a colour per side", () => {
     const out = html(<Node border={UiRect.all(px(2))} border_color={{ top: new Srgba(1, 0, 0), right: new Srgba(0, 0, 1), bottom: new Srgba(1, 1, 0), left: new Srgba(0, 1, 0) }} />);

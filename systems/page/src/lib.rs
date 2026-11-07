@@ -137,8 +137,9 @@ impl Times {
 pub struct Painted(pub Arc<Mutex<Vec<Drawn>>>);
 
 /// A page's paint: its image, its size in device px, its scene, its filtered layers (inner ones first), its print
-/// (`raea_sys_filters::Painter::print`: the same as last frame's, the same picture) and whether its image is straight alpha.
-pub type Drawn = (Handle<Image>, UVec2, vello::Scene, Vec<raea_sys_filters::Filtered>, u64, bool);
+/// (`raea_sys_filters::Painter::print`: the same as last frame's, the same picture), whether its image is straight alpha,
+/// and whether it blends in linear light (a bevy_ui page, `data-raea-blend="linear"`: Vello's set_blend_linear).
+pub type Drawn = (Handle<Image>, UVec2, vello::Scene, Vec<raea_sys_filters::Filtered>, u64, bool, bool);
 
 /// Each page restyled and laid out (what changed).
 pub fn resolve(mut docs: NonSendMut<Docs>, pages: Query<(Entity, &Page)>, time: Res<Time>, clock: Res<PageClock>, mut scanned: Local<HashMap<Entity, usize>>) {
@@ -188,7 +189,10 @@ pub fn paint(mut docs: NonSendMut<Docs>, pages: Query<(Entity, &Page, &PageImage
         blitz_paint::paint_scene(&mut painter, doc, page.scale as f64, px.x, px.y, 0, 0);
         let (layers, print) = (std::mem::take(&mut painter.layers), painter.print());
         TIMES.add_encode(t1.elapsed());
-        out.push((image.0.clone(), px, scene, layers, print, straight));
+        // a page with a bevy_ui node (sdk/render bevy3d/ui.tsx marks each root Node) blends in linear light, as
+        // Bevy's UI does on its sRGB target; the rest blend the encoded values, as Chrome does
+        let linear = doc.query_selector("[data-raea-blend=linear]").ok().flatten().is_some();
+        out.push((image.0.clone(), px, scene, layers, print ^ ((linear as u64) << 63), straight, linear));
     }
     *painted.0.lock().unwrap() = out;
     commands.insert_resource(painted.clone());

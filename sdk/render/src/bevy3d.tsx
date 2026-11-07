@@ -31,3 +31,4 @@ export { Lightmap, type LightmapProps } from "./bevy3d/lightmap";
 export { Node, Text, TextSpan, TextShadow, Text2d, UiScale, FontVariationTag, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type Text2dProps } from "./bevy3d/ui";
 export { ImageNode, InlineImage, ImagePlugin, TextureAtlasLayout, type TextureSlicer, type SliceScaleMode, type ImageNodeProps } from "./bevy3d/ui-image";
 export { px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadius, Overflow, OverflowClipMargin, type Val } from "./bevy3d/ui-val";
+export { LinearGradient, RadialGradient, ConicGradient, ColorStop, AngularColorStop, UiPosition, type Gradient, type RadialGradientShape, type InterpolationColorSpace } from "./bevy3d/ui-gradient";

@@ -253,12 +253,14 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>, device: Re
     }
     let passes = passes.get_or_insert_with(|| raea_sys_filters::Passes::new(device));
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("raea-page premul") });
-    for &(ref handle, px, ref scene, ref layers, print, straight) in &todo {
+    for &(ref handle, px, ref scene, ref layers, print, straight, linear) in &todo {
         let Some(gpu) = images.get(handle) else { continue };
         if !views && !REDRAW_FULL.load(std::sync::atomic::Ordering::Relaxed) && prints.get(&handle.id()) == Some(&print) {
             continue;
         }
         prints.insert(handle.id(), print);
+        // a bevy_ui page's renders (its layers' and its own) blend in linear light (vendor/vello_shaders fine.wgsl)
+        vello::low_level::vello_encoding::set_blend_linear(linear);
         // each filtered layer drawn by Vello, filtered, and handed to Vello as its placeholder's pixels, an inner
         // layer before the one that holds it (its own render then copies it in)
         for (i, layer) in layers.iter().enumerate() {
@@ -347,6 +349,7 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>, device: Re
         pass.draw(0..3, 0..1);
     }
     queue.submit([encoder.finish()]);
+    vello::low_level::vello_encoding::set_blend_linear(false);
     passes.recycle();
     // the scenes given back for paint to reuse (ZeroHeap)
     let mut spare = SPARE.lock().unwrap();

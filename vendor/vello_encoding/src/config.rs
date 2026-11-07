@@ -151,6 +151,8 @@ pub struct ConfigUniform {
     pub blend_size: u32,
     /// Size of per-tile command list buffer allocation (in `u32`s).
     pub ptcl_size: u32,
+    /// raea: 1 when the fine stage blends in linear light (set_blend_linear), 0 to blend the sRGB-encoded values
+    pub blend_linear: u32,
 }
 
 /// CPU side setup and configuration.
@@ -188,6 +190,7 @@ impl RenderConfig {
                 segments_size: buffer_sizes.segments.len(),
                 blend_size: buffer_sizes.blend_spill.len(),
                 ptcl_size: buffer_sizes.ptcl.len(),
+                blend_linear: BLEND_LINEAR.load(std::sync::atomic::Ordering::Relaxed) as u32,
                 layout: *layout,
             },
             workgroup_counts,
@@ -547,4 +550,12 @@ mod tests {
         // 3840x2160: 2,073,600 initial words, which is 99% of the fixed 2M this replaces
         assert_eq!(grown(PAGE, tiles(3840, 2160)).ptcl, 2_073_600 + (2_097_152.0f64 * 32400.0 / 8160.0).ceil() as u32);
     }
+}
+
+static BLEND_LINEAR: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// raea: the renders from now on blend in linear light (true), as bevy_ui does on an sRGB target, or the sRGB-encoded
+/// values (false, Vello's own and Chrome's way); vendor/vello_shaders fine.wgsl reads it as `config.blend_linear`.
+pub fn set_blend_linear(on: bool) {
+    BLEND_LINEAR.store(on, std::sync::atomic::Ordering::Relaxed);
 }

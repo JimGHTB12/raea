@@ -143,3 +143,10 @@ upstream = "crates.io:0.12.2"
 kind = "bump"
 reason = "bevy_reflect 0.20 (Firewheel#144)"
 exit = "a Firewheel release with #144"
+
+[vello_shaders]
+path = "vendor/vello_shaders"
+upstream = "crates.io:0.11.0"
+kind = "patch"
+reason = "linear-light blending in fine.wgsl (Config.blend_linear, set by vello_encoding's set_blend_linear): every colour, ramp and texel decoded from sRGB, blended, and encoded once, the blend stack kept sRGB-encoded, so raea-page blends a bevy_ui page as Bevy's UI does on an sRGB target"
+exit = "a Vello release that blends in linear light on request"
