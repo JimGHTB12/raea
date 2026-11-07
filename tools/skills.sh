@@ -224,7 +224,8 @@ check() {
     fi
   done
   # 2. retired words (docs/skills.glossary.md), whole words where they start with a letter
-  local words; words=$(sed -n '/<!-- retired -->/,/<!-- \/retired -->/p' docs/skills.glossary.md | sed '1d;$d')
+  local words g=${RAEA_GLOSSARY:-docs/skills.glossary.md}  # the glossary is the maintainers' (private); without it, no retired words
+  words=$( [ -f "$g" ] && sed -n '/<!-- retired -->/,/<!-- \/retired -->/p' "$g" | sed '1d;$d' || true )
   # 3. flags: each `raea VERB ... --flag` in a code span or block, against the verb's flags in raea help --json
   touch "$tmp/flags"
   [ $stale_help = 1 ] || "$R" help --json | jq -r '.verbs[] | select(.own_parser | not) | "\(.verb)\t\([.flags[].flag] | join(" "))"' > "$tmp/flags"
@@ -271,7 +272,7 @@ check() {
   # 5. a section's sources exist
   local f a b head src x
   while IFS=$'\t' read -r f a b head src; do
-    for x in $src; do [ -e "$x" ] || { echo "FAIL skills: $f:$a: \"$head\" names source $x, which doesn't exist; fix: name the file that replaced it"; fail=1; }; done
+    for x in $src; do [ -e "$x" ] || { [ -n "${RAEA_LIVE:-}" ] && [ -e "$RAEA_LIVE/$x" ]; } || { echo "FAIL skills: $f:$a: \"$head\" names source $x, which doesn't exist; fix: name the file that replaced it"; fail=1; }; done
   done < <(sections)
   cochange
   [ $fail -eq 0 ] && echo "skills: ok"
