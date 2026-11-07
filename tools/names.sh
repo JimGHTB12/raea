@@ -16,7 +16,7 @@ SKIP=(':!docs/overhaul.md' ':!docs/overhaul/*' ':!docs/names.md' ':!docs/handoff
   ':!bench/p26-baseline/manifest.jsonl' ':!*.png' ':!*.jpg' ':!*.mp4' ':!*.woff2' ':!*.glb' ':!*.wasm')
 
 counts() {
-  git grep --untracked -c -I -E "$RETIRED" -- . "${SKIP[@]}" | awk -F: '{print $2, $1}'
+  git grep --untracked -c -I -P "$RETIRED" -- . "${SKIP[@]}" | awk -F: '{print $2, $1}'
   git ls-files --cached --others --exclude-standard -- . "${SKIP[@]}" | grep -E "$RETIRED|/motion\.rs$|/motion/" | grep -E "$RETIRED|sdk/react/src/motion" |
     while read -r f; do [ -e "$f" ] && echo "$f"; done | awk '{print 1, "path:" $0}'
 }

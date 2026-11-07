@@ -1,2 +1,21 @@
 # retired names left per file, and paths with one (tools/names.sh): only shrinks; phase 3 empties it
-
+1 bench/p26-baseline/binary.json
+1 bench/p26-baseline/capture.sh
+3 bench/p26-baseline/recapture.sh
+1 core/k/kernels/p010buf.k
+1 docs/vite-in-raea.md
+1 engine/bundle/src/lib.rs
+1 engine/cli/template/styles.gen.ts
+1 engine/render/src/engine/load.rs
+6 gpu/device/src/telemetry.rs
+1 io/trace/src/lib.rs
+1 runtime/gpuframe/src/pool.rs
+2 runtime/view/src/cpuview.rs
+1 runtime/view/src/gpuview.rs
+1 runtime/view/src/masks.rs
+1 sdk/react/bench/playtest/load.ts
+1 sdk/render/src/screen.tsx
+2 sdk/shell/conformance/shell.test.ts
+1 sdk/shell/shell.feature
+1 systems/compose/src/passes.rs
+10 systems/k/src/lib.rs
