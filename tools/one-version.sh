@@ -11,7 +11,10 @@ cd "$ROOT" || exit 2
 CRATES='stylo taffy parley fontique wgpu vello anyrender'
 bad=0
 for lock in $(git ls-files '*Cargo.lock' | grep -vE '(^|/)vendor/'); do
-  if ! cargo metadata --format-version 1 --offline --locked --manifest-path "$(dirname "$lock")/Cargo.toml" >/dev/null 2>&1; then
+  # offline first (fast, no network); a fresh checkout (CI) has no registry cache yet, so it retries online, still --locked
+  m="$(dirname "$lock")/Cargo.toml"
+  if ! cargo metadata --format-version 1 --offline --locked --manifest-path "$m" >/dev/null 2>&1 &&
+     ! cargo metadata --format-version 1 --locked --manifest-path "$m" >/dev/null 2>&1; then
     echo "one-version: $lock doesn't resolve as locked (a path dependency gone, or the lock out of date)"
     bad=1
     continue
