@@ -49,8 +49,7 @@ that moves each (when there is one) and the files that name them.
 | `~/.raea/library/granted.json` | `RAEA_LIBRARY_GRANTS` | apps/app/host/library/service.ts |
 | `~/.raea/library/hashes.json` | `RAEA_LIBRARY_STATE` | apps/app/host/library/scan.ts |
 | `~/.raea/library/requests.json` | `RAEA_LIBRARY_REQUESTS` | apps/app/host/library/service.ts |
-| `~/.raea/models` | `RAEA_MODELS` | apps/app/host/library/embed.ts, apps/app/host/library/words.ts, io/provenance/src/mark.rs |
-| `~/.raea/models/trustmark` |  | io/provenance/src/mark.rs |
+| `~/.raea/models` | `RAEA_MODELS` | apps/app/host/library/embed.ts, apps/app/host/library/words.ts |
 | `~/.raea/node.json` | `RAEA_NODE_FILE` | apps/app/host/link.ts, apps/app/host/reach.ts |
 | `~/.raea/npm` | `RAEA_NPM_HOME` | io/npm/src/store.rs |
 | `~/.raea/npm/store` |  | io/npm/src/lib.rs, io/npm/src/store.rs |
@@ -58,7 +57,6 @@ that moves each (when there is one) and the files that name them.
 | `~/.raea/onboarding.json` | `RAEA_ONBOARDING_FILE` | apps/app/host/onboard-account.ts, apps/app/host/onboard.ts |
 | `~/.raea/publish/drive.json` | `RAEA_DRIVE_PICKS` | apps/app/host/publish-source.ts |
 | `~/.raea/publish/ready.json` | `RAEA_PUBLISH_READY` | apps/app/host/publish-ready.ts |
-| `~/.raea/sign-token` |  | io/provenance/src/lib.rs, io/provenance/src/main.rs |
 | `~/.raea/taste` | `RAEA_TASTE` | apps/app/host/taste.ts, engine/cli/src/guide.rs, engine/cli/src/spec.rs |
 | `~/.raea/taste/corrections.jsonl` |  | apps/app/host/taste.ts |
 | `~/.raea/taste/taste.ts` |  | engine/cli/src/guide.rs |
