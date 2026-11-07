@@ -7,3 +7,5 @@ export { Mesh3d, ConicalFrustum, type Mesh3dProps, type ConicalFrustumProps } fr
 export { Cuboid, Capsule3d, Plane3d, type CuboidProps, type Capsule3dProps, type Plane3dProps } from "./3d";
 export { MeshSequence, type MeshSequenceProps } from "@raea/physics/physics";
 export { Mesh2d, type Mesh2dProps } from "@raea/render/bevy3d";
+// one mesh or glTF drawn at many placements, batched by the GPU, and the seeded placements for it
+export { Instances, scatter, type Instance, type InstancesProps, type PlanBox, type ScatterOptions } from "./3d";

@@ -1,0 +1,31 @@
+[package]
+name = "raea-rune-host"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The native target's host (docs/targets.feature): raea's op wire drawn by Rune, in a native window, headless for the check, or as a Mac app"
+
+[dependencies]
+rune.workspace = true
+raea-core-wire = { path = "../../core/wire" }
+# the net.* host calls, answered as the web target answers them (docs/targets.feature T2a)
+raea-io-net-calls = { path = "../../io/net/calls" }
+# os.open, the clipboard, files and dialogs, answered as the web target answers them (docs/targets.feature T2d)
+raea-io-os = { path = "../../io/os" }
+raea-runtime-jsengine = { path = "../../runtime/jsengine" }
+raea-rune-page = { path = "page" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+png = "0.18"
+
+[features]
+# QuickJS beside JavaScriptCore on a Mac (BEVY_TSX_ENGINE=quickjs picks it): the portable engine tested here
+portable = ["raea-runtime-jsengine/portable"]
+
+[dev-dependencies]
+# the tests bundle their apps as raea does (runtime/bundle/lib app.rs), with nothing of Bevy in their tree
+raea-runtime-bundle-lib = { path = "../../runtime/bundle/lib" }
+# T2b and T2d: the recorded net and system calls (tests/net.rs)
+raea-io-net-calls = { path = "../../io/net/calls", features = ["serve"] }
+raea-io-os = { path = "../../io/os", features = ["recorded"] }

@@ -1,0 +1,70 @@
+[
+  {
+    "call": "os.open",
+    "ok": true,
+    "value": null
+  },
+  {
+    "call": "os.open",
+    "ok": false,
+    "value": "os.open: the \"file\" scheme isn't opened (http, https or mailto only)"
+  },
+  {
+    "call": "net.clipboard.write",
+    "ok": true,
+    "value": null
+  },
+  {
+    "call": "net.clipboard.read",
+    "ok": true,
+    "value": "copied"
+  },
+  {
+    "call": "fs.pick",
+    "ok": true,
+    "value": [
+      {
+        "id": 1,
+        "name": "a.txt",
+        "size": 3
+      }
+    ]
+  },
+  {
+    "call": "fs.read",
+    "ok": true,
+    "value": "abc"
+  },
+  {
+    "call": "fs.save",
+    "ok": true,
+    "value": {
+      "id": 2
+    }
+  },
+  {
+    "call": "fs.write",
+    "ok": true,
+    "value": null
+  },
+  {
+    "call": "fs.read",
+    "ok": true,
+    "value": "xyz"
+  },
+  {
+    "call": "fs.read",
+    "ok": false,
+    "value": "no file 99 (pick or save one first)"
+  },
+  {
+    "call": "dialog.message",
+    "ok": true,
+    "value": 1
+  },
+  {
+    "call": "dialog.message",
+    "ok": false,
+    "value": "dialog.message: headless, and no dialog step answers it"
+  }
+]

@@ -31,6 +31,8 @@ raea-page = { path = ".." }
 # the desktop window: --chrome and the native calls (clipboard, links, notifications, the dock badge, raea:// links)
 raea-page-window = { path = "../window" }
 raea-sys-page = { path = "../../../systems/page" }
+# headless, the system calls are scripted (docs/targets.feature T2d)
+raea-io-os = { path = "../../../io/os" }
 raea-sys-fonts = { path = "../../../systems/fonts" }
 raea-runtime-dom = { path = "../../../runtime/dom" }
 raea-runtime-input = { path = "../../../runtime/input" }
@@ -53,3 +55,8 @@ base64 = "0.22"
 # raea-io-media is here for its feature (the platform decoders raea-page and raea-runtime-js use), not called directly
 [package.metadata.cargo-shear]
 ignored = ["raea-io-media"]
+
+[dev-dependencies]
+# T2b and T2d: the recorded net and system calls (tests/net_calls.rs)
+raea-io-net-calls = { path = "../../../io/net/calls", features = ["serve"] }
+raea-io-os = { path = "../../../io/os", features = ["recorded"] }

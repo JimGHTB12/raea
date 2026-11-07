@@ -265,16 +265,22 @@ export function usePointer2d(id: string, flat: Flat, props: Record<string, unkno
 }
 
 function usePart(id: string, part: ((handlers: Record<string, Handler>) => Part) | undefined, props: Record<string, unknown>) {
-  const frame = useCurrentFrame();
-  const input = useInput();
-  const { width, height } = useVideoConfig();
   const handlers: Record<string, Handler> = {};
   for (const [type, prop] of Object.entries(POINTER_PROPS)) if (typeof props[prop] === "function") handlers[type] = props[prop] as Handler;
   const any = Object.keys(handlers).length > 0 && part !== undefined;
-  begin(frame);
-  if (any) scene.parts.set(id, part(handlers));
+  // only a part with handlers follows the clock: reading it re-renders the part every frame, and every part reading
+  // it made 10 000 still cubes re-render every frame (docs/control.feature FC1b). The three are context reads only,
+  // which hold no hook slot in React (readContext) or in the live runtime (lite's useContext logs the read), so a
+  // part whose handlers come and go keeps its hook order
+  const frame = any ? useCurrentFrame() : -1;
+  const input = any ? useInput() : undefined;
+  const { width, height } = any ? useVideoConfig() : { width: 0, height: 0 };
+  if (any) {
+    begin(frame);
+    scene.parts.set(id, part(handlers));
+  }
   useEffect(() => {
-    if (!any) return;
+    if (!any || !input) return;
     if (scene.done !== frame) {
       scene.done = frame;
       const p = input.pointer;

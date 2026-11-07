@@ -12,6 +12,7 @@
 //!   raea media proxy FILE [--height 720] -o OUT.mp4         a smaller copy
 //!   raea media trim FILE --from S --to S -o OUT.mp4         a stretch, frame-exact (re-encoded)
 //!   raea media concat A B ... -o OUT.mp4                    one after another (same aspect)
+//!   raea media encode --size WxH [--fps 60] [--quality Q] [--audio FILE] -o OUT.mp4   raw RGBA frames on stdin, signed
 //!
 //! `raea ffmpeg ...` and `raea ffprobe ...` read the command lines models write by reflex and run them as these verbs; what
 //! they can't read is refused with the verb or edit that does it. No ffmpeg binary is involved.
@@ -39,6 +40,7 @@ mod encode;
 use encode::*;
 mod ff;
 use ff::*;
+mod frames;
 
 type R<T> = Result<T, String>;
 
@@ -84,11 +86,11 @@ fn num(fl: &BTreeMap<String, String>, k: &str) -> R<Option<f64>> {
 }
 
 /// The verbs `raea media` answers here.
-pub const VERBS: &[&str] = &["probe", "still", "sheet", "audio", "loudness", "motion", "cuts", "freezes", "proxy", "trim", "concat", "help"];
+pub const VERBS: &[&str] = &["probe", "still", "sheet", "audio", "loudness", "motion", "cuts", "freezes", "proxy", "trim", "concat", "encode", "help"];
 
 pub fn cli(args: &[String]) -> i32 {
     let Some(verb) = args.first() else {
-        println!("usage: raea media <probe|still|sheet|audio|loudness|motion|cuts|proxy|trim|concat> FILE ... (raea media help)");
+        println!("usage: raea media <probe|still|sheet|audio|loudness|motion|cuts|proxy|trim|concat|encode> FILE ... (raea media help)");
         return 2;
     };
     let (pos, fl) = parse(&args[1..]);
@@ -174,10 +176,15 @@ fn run(verb: &str, pos: &[String], fl: &BTreeMap<String, String>) -> R<Option<Va
             let srcs: Vec<_> = pos.iter().map(|p| (PathBuf::from(p), None, None)).collect();
             encode(&srcs, None, &out()?, fl.get("kbps").and_then(|k| k.parse().ok())).map(Some)
         }
+        "encode" => {
+            let size = fl.get("size").and_then(|s| s.split_once('x')).and_then(|(w, h)| Some((w.parse().ok()?, h.parse().ok()?))).ok_or("raea media encode --size WxH -o OUT.mp4 (raw RGBA frames on stdin)")?;
+            let quality = fl.get("quality").map(|q| raea_io_media::parse_quality(q)).transpose()?;
+            frames::frames(&out()?, size, num(fl, "fps")?.unwrap_or(60.0), quality, fl.get("audio").map(Path::new)).map(Some)
+        }
         "help" => {
             println!("{}", include_str!("lib.rs").lines().take_while(|l| l.starts_with("//!")).map(|l| l.trim_start_matches("//!").strip_prefix(' ').unwrap_or("")).collect::<Vec<_>>().join("\n"));
             Ok(None)
         }
-        v => Err(format!("no media verb {v:?}: probe, still, sheet, audio, loudness, motion, cuts, freezes, proxy, trim, concat")),
+        v => Err(format!("no media verb {v:?}: probe, still, sheet, audio, loudness, motion, cuts, freezes, proxy, trim, concat, encode")),
     }
 }

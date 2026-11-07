@@ -4,10 +4,15 @@ pub fn entry(file: &str, o: &CompOpts) -> String {
     let (comp, w, h, fps, frames) = (o.composition.as_deref(), o.w, o.h, o.fps, o.frames);
     let js = |v: &Option<Value>| v.as_ref().map(Value::to_string).unwrap_or("null".into());
     let (words, perception, input) = (js(&o.words), js(&o.perception), js(&o.input));
+    // the composition's element made once, so a frame re-renders only what reads the frame (its clock, through
+    // useCurrentFrame), not every part (docs/control.feature FC1b). A frame is already pure (a still renders any
+    // frame alone), so a part drawing Math.random or Date in render without reading the frame breaks either way.
+    // RAEA_STILL_TREE=0 makes it each frame, as before. In the entry's text, so the bundle cache tells the two apart
+    let still = std::env::var("RAEA_STILL_TREE").map_or(true, |v| v != "0");
     format!(
         r#"import {{ pureAgain, pureFrame, pureSession, seedOf }} from "./motion/pure";
 import {{ mount, addEventListener }} from "bevy-react";
-import {{ Component, useEffect, useState }} from "react";
+import {{ Component, useEffect, useMemo, useState }} from "react";
 import * as M from "./src/{file}";
 import {{ Clock, getCompositions }} from "./motion";
 const want = {comp};
@@ -83,9 +88,6 @@ function Root() {{
   // the stage's size, for a composition that lays out from useVideoConfig (raea-size)
   const [size, setSize] = useState<{{ w: number; h: number }} | null>(null);
   useEffect(() => addEventListener("raea-size", (v: any) => setSize(v)), []);
-  // the frame is done when its commit and the effects it set off have run: a timer queued after them marks it, and
-  // Rust takes the frame the moment that mark lands (settle), with no waiting for quiet
-  const [done, setDone] = useState(-1);
   useEffect(() => addEventListener("raea-frame", (v: any) => {{
     if (typeof v === "number") return setF(v);
     live = true;
@@ -95,16 +97,13 @@ function Root() {{
     if (v.input) {{ LIVE[v.frame] = {{ ...v.input, live: true }}; delete LIVE[v.frame - 4096]; }}
     setF(v.frame);
   }}), []);
-  useEffect(() => {{
-    if (f >= 0) setDone(f);
-  }}, [f]);
   // a range of frames rendered back to back (raea-frames: the 3D's rows stepped as a bake steps, scene_frames_to):
   // each frame's commit and its done mark as one raea-frame event makes them, the next frame set off by the mark
   const [to, setTo] = useState(-1);
   useEffect(() => addEventListener("raea-frames", (v: any) => {{ setTo(v.to); setF(v.from); }}), []);
-  useEffect(() => {{
-    if (f >= 0 && done === f && f + 1 < to) setF(f + 1);
-  }}, [done]);
+  // the composition, made again only when what Root passes it changes (by default never, RAEA_STILL_TREE=0 each frame; its parts re-render
+  // when what they read changes, the frame through the Clock's context)
+  const body = useMemo(() => <Catch><C {{...cfg.defaultProps}} />{{(() => {{ const T = (globalThis as any).__raeaToneOut; return T ? <T /> : null; }})()}}</Catch>, {still} ? [] : [f, size, to]);
   // the frame's Math.random and Date (motion/pure.ts): reseeded as the frame starts rendering, so every component
   // under it draws the same numbers each time this frame is drawn
   if (f >= 0) pureFrame(f, cfg.fps);
@@ -113,11 +112,25 @@ function Root() {{
   return (
     <>
       <Clock frame={{f}} fps={{cfg.fps}} width={{size ? size.w : cfg.width}} height={{size ? size.h : cfg.height}} durationInFrames={{live || REPLAYS_LIVE ? 1000000000 : cfg.durationInFrames}} id={{cfg.id}} defaultProps={{cfg.defaultProps}} words={{WORDS}} perception={{percAt(f)}} input={{live ? LIVE : INPUT}}>
-        <Catch><C {{...cfg.defaultProps}} />{{(() => {{ const T = (globalThis as any).__raeaToneOut; return T ? <T /> : null; }})()}}</Catch>
+        {{body}}
       </Clock>
-      <div data-raea-frame={{f}} data-raea-done={{done}} data-raea-config={{conf}} />
+      <Marker f={{f}} to={{to}} conf={{conf}} next={{setF}} />
     </>
   );
+}}
+// the frame is done when its commit and the effects it set off have run: its own effect, after the composition's,
+// marks it, and Rust takes the frame the moment that mark lands (settle), with no waiting for quiet. The mark is this
+// component's state, not Root's: marking it in Root rendered the whole composition a second time each frame
+// (many_cubes' 10 000 parts, docs/control.feature FC1a)
+function Marker({{ f, to, conf, next }}: {{ f: number; to: number; conf: string; next: (f: number) => void }}) {{
+  const [done, setDone] = useState(-1);
+  useEffect(() => {{
+    if (f >= 0) setDone(f);
+  }}, [f]);
+  useEffect(() => {{
+    if (f >= 0 && done === f && f + 1 < to) next(f + 1);
+  }}, [done]);
+  return <div data-raea-frame={{f}} data-raea-done={{done}} data-raea-config={{conf}} />;
 }}
 mount(<surface id="motion" w={{1}} px={{cfg.width}} pxH={{cfg.height}}><Root /></surface>);
 "#,

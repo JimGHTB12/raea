@@ -93,7 +93,33 @@ export interface StandardMaterialAnimate {
   emissive?: TrackSpec<string> | TrackSpec<LinearRgba>;
   perceptual_roughness?: TrackSpec<number>;
   metallic?: TrackSpec<number>;
+  // the rest of the fields that interpolate, each set on the part's own material frame by frame (docs/control.feature FC1c)
+  emissive_exposure_weight?: TrackSpec<number>;
+  reflectance?: TrackSpec<number>;
+  specular_tint?: TrackSpec<string>;
+  diffuse_transmission?: TrackSpec<number>;
+  specular_transmission?: TrackSpec<number>;
+  thickness?: TrackSpec<number>;
+  ior?: TrackSpec<number>;
+  attenuation_distance?: TrackSpec<number>;
+  attenuation_color?: TrackSpec<string>;
+  clearcoat?: TrackSpec<number>;
+  clearcoat_perceptual_roughness?: TrackSpec<number>;
+  anisotropy_strength?: TrackSpec<number>;
+  anisotropy_rotation?: TrackSpec<number>;
+  depth_bias?: TrackSpec<number>;
+  parallax_depth_scale?: TrackSpec<number>;
+  max_parallax_layer_count?: TrackSpec<number>;
+  lightmap_exposure?: TrackSpec<number>;
 }
+
+// the StandardMaterialAnimate fields past the four columns, by kind: sampled as `field:<name>` and set by reflection
+const STANDARD_FIELDS: Record<string, "number" | "string"> = {
+  emissive_exposure_weight: "number", reflectance: "number", specular_tint: "string", diffuse_transmission: "number", specular_transmission: "number",
+  thickness: "number", ior: "number", attenuation_distance: "number", attenuation_color: "string", clearcoat: "number",
+  clearcoat_perceptual_roughness: "number", anisotropy_strength: "number", anisotropy_rotation: "number", depth_bias: "number",
+  parallax_depth_scale: "number", max_parallax_layer_count: "number", lightmap_exposure: "number",
+};
 
 // A fixes an `animate` to the fields T names: any other key is never, so a typo fails in tsc, not at render
 type Only<A, T> = { [K in keyof A]: K extends keyof T ? T[K] : never };
@@ -105,16 +131,21 @@ const COLOUR_FIELDS = new Set(["color", "emissive", "shadowColor"]);
 
 // an `animate` as the old material's: its keys renamed; an emissive's LinearRgba keys as their colour and an
 // emissiveIntensity track (a colour track's emissive is at strength 1, as Bevy's emissive is the whole colour)
-function animateOf(owner: string, a: object | undefined, names: Record<string, string>): { animate?: Record<string, TrackSpec>; emissive?: Record<string, unknown> } {
+function animateOf(owner: string, a: object | undefined, names: Record<string, string>, fields: Record<string, "number" | "string"> = {}): { animate?: Record<string, TrackSpec>; emissive?: Record<string, unknown> } {
   if (!a) return {};
   const animate: Record<string, TrackSpec> = {};
   let emissive: Record<string, unknown> | undefined;
   for (const [k, t] of Object.entries(a)) {
     if (t === undefined) continue;
     const name = names[k];
-    if (!name) throw new TypeError(`${owner}: animate takes ${Object.keys(names).join(", ")}, not ${k}`);
+    if (!name && !fields[k]) throw new TypeError(`${owner}: animate takes ${[...Object.keys(names), ...Object.keys(fields)].join(", ")}, not ${k}`);
     const spec = t as TrackSpec<unknown>;
     if (typeof spec !== "object" || spec === null || !Array.isArray(spec.keys)) throw new TypeError(`${owner}: animate's ${k} is a track(...)`);
+    if (!name) {
+      if (!spec.keys.every(([, v]) => typeof v === fields[k])) throw new TypeError(`${owner}: animate's ${k} keys are ${fields[k] === "string" ? "colours" : "numbers"}`);
+      animate[`field:${k}`] = spec as TrackSpec;
+      continue;
+    }
     if (name === "emissive" && spec.keys.every(([, v]) => v instanceof LinearRgba)) {
       const from = spec.keys.map(([, v]) => (v as LinearRgba)[MADE_FROM]);
       if (from.some((f) => !f || f.hex !== from[0]!.hex)) throw new TypeError(`${owner}: an emissive track's LinearRgba keys are one colour, LinearRgba.from(Srgba.hex(c)).mul(k) each`);
@@ -226,7 +257,9 @@ function standard(p: StandardMaterialProps, ext: Extended) {
   if (p.unlit) return <MeshBasicMaterial color={color} {...(m.maps.map ? { map: m.maps.map } : {})} {...(m.samplers?.map ? { sampler: m.samplers.map } : {})} {...draw(p)} />;
   // inside a Model only the fields given re-cover its material; on a Mesh3d the rest are Bevy's defaults
   const own = useContext(InModel);
-  const anim = animateOf("StandardMaterial", p.animate, STANDARD_ANIMATE);
+  const anim = animateOf("StandardMaterial", p.animate, STANDARD_ANIMATE, STANDARD_FIELDS);
+  const byField = Object.keys(anim.animate ?? {}).filter((k) => k.startsWith("field:")).map((k) => k.slice(6));
+  if (byField.length && (own || ext.grid || ext.paint || ext.wear || ext.shader)) throw new TypeError(`StandardMaterial: animate's ${byField.join(", ")} set a plain StandardMaterial on a Mesh3d; ${own ? "a Model's material" : "an ExtendedMaterial"} takes base_color, emissive, perceptual_roughness and metallic`);
   const common = {
     ...(own && p.base_color === undefined ? {} : { color }),
     ...(own && p.perceptual_roughness === undefined ? {} : { roughness: p.perceptual_roughness ?? 0.5 }),
@@ -441,14 +474,15 @@ export function ExtendedMaterial(p: ExtendedMaterialProps) {
   }
 }
 
-// The lights in Bevy's units. 3d.tsx's lights take a relative intensity, which the rows scale by these (LUX, LUMENS and
-// AMBIENT in runtime/scene; daylight.tsx's UNITS), so a Bevy light divides by them and the engine
-// gets back the lux, lumens or cd/m² it was written with.
-export const LUX = 8000;
-
-export const LUMENS = 9e5;
-
-export const AMBIENT_NITS = 400;
+/** Bevy's named light values (bevy_light light_consts), for a light's own units: `illuminance={light_consts.lux.DIRECT_SUNLIGHT}`,
+ *  `intensity={light_consts.lumens.VERY_LARGE_CINEMA_LIGHT}`. */
+export const light_consts = {
+  lumens: { LUMENS_PER_LED_WATTS: 90, LUMENS_PER_INCANDESCENT_WATTS: 13.8, LUMENS_PER_HALOGEN_WATTS: 19.8, VERY_LARGE_CINEMA_LIGHT: 1_000_000 },
+  lux: {
+    MOONLESS_NIGHT: 0.0001, FULL_MOON_NIGHT: 0.05, CIVIL_TWILIGHT: 3.4, LIVING_ROOM: 50, HALLWAY: 80, DARK_OVERCAST_DAY: 100, OFFICE: 320,
+    CLEAR_SUNRISE: 400, OVERCAST_DAY: 1000, AMBIENT_DAYLIGHT: 10_000, FULL_DAYLIGHT: 20_000, DIRECT_SUNLIGHT: 100_000, RAW_SUNLIGHT: 130_000,
+  },
+} as const;
 
 /** What a Bevy light's fields don't name: 3d.tsx's placement and shadow props, refused so a light is written one way. */
 export const OLD_LIGHT_PROPS = ["position", "target", "castShadow", "softShadow", "softness", "distance", "angle", "penumbra", "intensity"] as const;

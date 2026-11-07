@@ -8,5 +8,6 @@
     "types": ["bun-types", "react"]
   },
   "include": ["../*/src/**/*.ts", "../*/src/**/*.tsx", "../../content/**/*.ts", "../../content/**/*.tsx", "../../examples/**/*.ts", "../../examples/**/*.tsx"],
-  "exclude": ["../../content/**/target/**", "../../content/**/node_modules/**"]
+  "//r3f": "sdk/r3f types against its own three and @react-three/fiber (its own install, its own tsconfig and bun test)",
+  "exclude": ["../../content/**/target/**", "../../content/**/node_modules/**", "../r3f/**"]
 }

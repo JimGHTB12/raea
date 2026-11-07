@@ -5,8 +5,7 @@ import * as three from "../src/3d";
 import { Capsule, Cuboid, Capsule3d, Cylinder, DepthOfField, Entity, Group, Mesh, Model, MeshBasicMaterial, MeshStandardMaterial, MeshToonMaterial, PerspectiveCamera, Plane3d, Screen, Sphere, Torus } from "../src/3d";
 // the retired three.js shapes, compared against (M5: no longer exported from raea)
 import { Box, Plane } from "@raea/render/3d/shapes";
-import { Affine2, AmbientLight, Camera3d, DirectionalLight, ExtendedMaterial, GridExtension, LinearRgba, PaintExtension, ToonExtension, WearExtension, Mesh3d, PointLight, Quat, RectLight, SpotLight, Srgba, StandardMaterial, Transform, eulerOf } from "@raea/render/bevy3d";
-import { UNITS } from "raea/daylight";
+import { Affine2, AmbientLight, Camera3d, DirectionalLight, ExtendedMaterial, GridExtension, LinearRgba, PaintExtension, ToonExtension, WearExtension, Mesh3d, PointLight, Quat, RectLight, SpotLight, Srgba, StandardMaterial, Transform, eulerOf, light_consts } from "@raea/render/bevy3d";
 import { Circle, ColorMaterial, Ellipse, Mesh2d, Rectangle, RegularPolygon, Shape2D } from "raea/sprite";
 import { ToonMaterial } from "raea/pbr";
 import { ConicalFrustum } from "raea/mesh";
@@ -52,7 +51,8 @@ describe("Quat and Transform", () => {
     expect(close(f, want, 1e-9)).toBe(true);
     expect(Quat.mulVec3(t.rotation, [0, 1, 0])[1]).toBeGreaterThan(0.9);
     expect(Math.hypot(...t.rotation)).toBeCloseTo(1, 12);
-    expect(() => Transform.fromXyz(0, 0, 0).lookingAt([0, 0, 0])).toThrow(/at the eye/);
+    // Bevy's fallback, not a throw: a target at the eye looks down -Z (the identity)
+    expect(Transform.fromXyz(0, 0, 0).lookingAt([0, 0, 0]).rotation.map((v) => v + 0)).toEqual([0, 0, 0, 1]);
   });
 
   test("Transform is also the component's handle, so a program can `with(Transform, value)`", () => {
@@ -121,8 +121,14 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
 
   test("Mesh3d's transform is the Mesh's place; Hidden draws nothing", () => {
     const q = Quat.fromRotationY(0.5);
+    // the rotation stays Bevy's quaternion (docs/control.feature FC1d); one an `animate` turns keeps the Euler angles
+    // its tracks patch
     expect(html(<Mesh3d transform={Transform.fromXyz(1, 2, 3).withRotation(q)}><Sphere radius={0.5} /></Mesh3d>)).toBe(
-      html(<Mesh position={[1, 2, 3]} rotation={eulerOf(q)} scale={[1, 1, 1]}><Sphere args={[0.5]} /></Mesh>),
+      html(<Mesh position={[1, 2, 3]} quaternion={q} scale={[1, 1, 1]}><Sphere args={[0.5]} /></Mesh>),
+    );
+    const spin = { rotateY: track({ 0: 0, 10: 1 }) };
+    expect(html(<Mesh3d transform={Transform.fromXyz(1, 2, 3).withRotation(q)} animate={spin}><Sphere radius={0.5} /></Mesh3d>)).toBe(
+      html(<Mesh position={[1, 2, 3]} rotation={eulerOf(q)} scale={[1, 1, 1]} animate={spin}><Sphere args={[0.5]} /></Mesh>),
     );
     expect(html(<Mesh3d visibility="Hidden"><Sphere /></Mesh3d>)).toBe("");
   });
@@ -202,6 +208,20 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
     expect(() => html(<ExtendedMaterial base={<StandardMaterial animate={{ metallic: track({ 0: 0, 30: 1 }) }} />} extension={<ToonExtension />} />)).toThrow(/takes base_color, emissive/);
   });
 
+  test("animate: any other field that interpolates goes by its Bevy name, set on the part's own material (FC1c)", () => {
+    const coat = track({ 0: 0, 30: 1 });
+    const tint = track({ 0: "#ffffff", 30: "#ff0000" });
+    const h = html(<StandardMaterial animate={{ clearcoat: coat, specular_tint: tint, metallic: coat }} />);
+    const attr = (name: string) => JSON.parse(new RegExp(`${name}="([^"]*)"`).exec(h)![1].replace(/&quot;/g, '"'));
+    // the engine samples them (runtime/react animate.rs) onto the props, which start at frame 0's value
+    expect(attr("data-raea-anim").tracks.map((t: { prop: string }) => t.prop).sort()).toEqual(["field:clearcoat", "field:specular_tint", "metalness"]);
+    expect(attr("data-props")["field:clearcoat"]).toBe(0);
+    expect(() => html(<StandardMaterial animate={{ clearcoat: tint as never }} />)).toThrow(/clearcoat keys are numbers/);
+    expect(() => html(<StandardMaterial animate={{ attenuation_color: coat as never }} />)).toThrow(/attenuation_color keys are colours/);
+    expect(() => html(<StandardMaterial animate={{ unlit: coat } as never} />)).toThrow(/not unlit/);
+    expect(() => html(<ExtendedMaterial base={<StandardMaterial animate={{ clearcoat: coat }} />} extension={<GridExtension cell={1} />} />)).toThrow(/an ExtendedMaterial takes/);
+  });
+
   test("uv_transform: a scale is the old repeat, a turn or a move its uvTransform too", () => {
     expect(html(<StandardMaterial base_color_texture="a.jpg" uv_transform={Affine2.fromScale([2, 3])} />)).toBe(html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} map="a.jpg" repeat={[2, 3]} />));
     expect(html(<StandardMaterial uv_transform={Affine2.IDENTITY} />)).toBe(html(<StandardMaterial />));
@@ -267,10 +287,13 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
 describe("Bevy's lights, in Bevy's units", () => {
   const props = (h: string) => JSON.parse(h.match(/data-props="([^"]*)"/)![1].replace(/&quot;/g, '"'));
 
-  test("the units are the rows' (daylight.tsx's UNITS): lux, lumens and cd/m² come back as written", () => {
-    expect(UNITS.lux * props(html(<DirectionalLight illuminance={100_000} />)).intensity).toBeCloseTo(100_000, 6);
-    expect(UNITS.lumens * props(html(<PointLight intensity={800} />)).intensity).toBeCloseTo(800, 6);
-    expect(UNITS.ambientNits * props(html(<AmbientLight brightness={80} />)).intensity).toBeCloseTo(80, 6);
+  test("the units go to the rows as written (docs/control.feature FC1f): lux, lumens and cd/m², no hidden scale", () => {
+    expect(props(html(<DirectionalLight illuminance={light_consts.lux.DIRECT_SUNLIGHT} />)).lux).toBe(100_000);
+    expect(props(html(<PointLight intensity={800} />)).lumens).toBe(800);
+    expect(props(html(<SpotLight intensity={light_consts.lumens.VERY_LARGE_CINEMA_LIGHT} />)).lumens).toBe(1_000_000);
+    expect(props(html(<RectLight intensity={900} />)).lumens).toBe(900);
+    expect(props(html(<AmbientLight brightness={80} />)).nits).toBe(80);
+    expect(() => html(<three.PointLight lumens={-1} />)).toThrow(/lumens must be 0 or more/);
   });
 
   test("an AmbientLight on a Camera3d is the camera's own (Bevy 0.20), beside it and marked so the scene's others give way", () => {
@@ -278,15 +301,15 @@ describe("Bevy's lights, in Bevy's units", () => {
     const lights = [...h.matchAll(/data-3d="AmbientLight" data-props="([^"]*)"/g)].map((m) => JSON.parse(m[1].replace(/&quot;/g, '"')));
     expect(lights).toHaveLength(1);
     expect(lights[0].camera).toBe(true);
-    expect(UNITS.ambientNits * lights[0].intensity).toBeCloseTo(200, 6);
+    expect(lights[0].nits).toBe(200);
     expect(props(html(<AmbientLight />)).camera).toBeUndefined();
     expect(() => html(<Camera3d><AmbientLight {...({ intensity: 1 } as object)} /></Camera3d>)).toThrow(/`intensity` is 3d.tsx/);
   });
 
   test("PointLight sits at its translation, with Bevy's defaults (1e6 lm, range 20, no shadows)", () => {
-    expect(html(<PointLight transform={Transform.fromXyz(1, 3, 2)} />)).toBe(html(<three.PointLight position={[1, 3, 2]} intensity={1_000_000 / 9e5} distance={20} castShadow={false} />));
+    expect(html(<PointLight transform={Transform.fromXyz(1, 3, 2)} />)).toBe(html(<three.PointLight position={[1, 3, 2]} lumens={1_000_000} distance={20} castShadow={false} />));
     expect(html(<PointLight shadow_maps_enabled soft_shadows_enabled radius={0.1} color="#ffaa66" />)).toBe(
-      html(<three.PointLight position={[0, 0, 0]} intensity={1_000_000 / 9e5} distance={20} castShadow softShadow={0.1} color="#ffaa66" />),
+      html(<three.PointLight position={[0, 0, 0]} lumens={1_000_000} distance={20} castShadow softShadow={0.1} color="#ffaa66" />),
     );
   });
 
@@ -298,12 +321,12 @@ describe("Bevy's lights, in Bevy's units", () => {
     expect(spot.penumbra).toBeCloseTo(0.5, 12);
     const sun = props(html(<DirectionalLight transform={Transform.fromRotation(Quat.fromRotationX(-Math.PI / 2))} shadow_maps_enabled />));
     expect(close(sun.target.map((v: number, i: number) => v - sun.position[i]), [0, -1, 0], 1e-9)).toBe(true);
-    expect(sun.intensity).toBeCloseTo(10_000 / UNITS.lux, 12);
+    expect(sun.lux).toBe(10_000);
     expect(sun.castShadow).toBe(true);
   });
 
   test("RectLight faces its -Z in lumens; Hidden lights nothing; 3d.tsx's props are refused", () => {
-    expect(props(html(<RectLight intensity={9e5} width={2} />))).toMatchObject({ intensity: 1, width: 2, height: 1, distance: 20 });
+    expect(props(html(<RectLight intensity={9e5} width={2} />))).toMatchObject({ lumens: 9e5, width: 2, height: 1, distance: 20 });
     expect(html(<PointLight visibility="Hidden" />)).toBe("");
     expect(() => html(<PointLight {...({ position: [0, 1, 0] } as object)} />)).toThrow(/`position` is 3d.tsx's/);
     expect(() => html(<DirectionalLight {...({ intensity: 1 } as object)} />)).toThrow(/`intensity` is 3d.tsx's/);

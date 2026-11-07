@@ -22,10 +22,30 @@ pub struct Edit {
 pub struct EditResolve(Edit);
 
 impl EditResolve {
-    /// its folders as the resolver names modules: symlinks resolved (the Mac's temp folder is /var, a link to /private/var)
+    /// its folders as the resolver names modules: symlinks resolved (the Mac's temp folder is /var, a link to /private/var),
+    /// and on Windows without canonicalize()'s verbatim `\\?\` prefix, which the resolver never writes: with it no
+    /// importer was ever under the work folder, so a live game's own `import "react"` went to the engine's React instead of
+    /// the live runtime its tsconfig paths name, and `raea play` threw "not a function" before the first frame
     pub fn new(e: Edit) -> Self {
-        let real = |p: PathBuf| p.canonicalize().unwrap_or(p);
+        let real = |p: PathBuf| p.canonicalize().map(raea_io_home::plain).unwrap_or(p);
         EditResolve(Edit { dir: real(e.dir), js: real(e.js), work: real(e.work) })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn its_folders_are_named_as_the_resolver_names_modules() {
+        assert_eq!(raea_io_home::plain(PathBuf::from(r"\\?\C:\Temp\raea-cli-1")), PathBuf::from(r"C:\Temp\raea-cli-1"));
+        assert_eq!(raea_io_home::plain(PathBuf::from(r"\\?\UNC\server\share")), PathBuf::from(r"\\?\UNC\server\share"));
+        assert_eq!(raea_io_home::plain(PathBuf::from("/private/var/x")), PathBuf::from("/private/var/x"));
+        // a real folder: canonicalized on Windows that was \\?\C:\..., which no importer starts with
+        let dir = std::env::temp_dir();
+        let r = EditResolve::new(Edit { dir: dir.clone(), js: dir.clone(), work: dir.clone() });
+        assert!(!r.0.work.display().to_string().starts_with(r"\\?\"), "{}", r.0.work.display());
+        assert!(dir.join("entry.tsx").starts_with(&r.0.work) || cfg!(unix), "{} under {}", dir.display(), r.0.work.display());
     }
 }
 

@@ -77,6 +77,12 @@ pub(crate) fn apply_commits(
                         }
                     }
                     ents.by_id.insert(ROOT_ID, root);
+                    // the next scene reads everything again (scene/read.rs Kept3d)
+                    commands.queue(|world: &mut World| {
+                        if let Some(mut k) = world.get_resource_mut::<crate::scene::Kept3d>() {
+                            k.all = true;
+                        }
+                    });
                 }
                 "create" => {
                     let mut p = ReactProps::default();
@@ -96,6 +102,9 @@ pub(crate) fn apply_commits(
                 }
                 "append" => {
                     if let (Some(p), Some(c)) = (id("parent").and_then(|i| ents.by_id.get(&i)), id("child").and_then(|i| ents.by_id.get(&i))) {
+                        // a move: the parent it leaves is read again (scene/read.rs touch_parent)
+                        let moved = *c;
+                        commands.queue(move |world: &mut World| crate::scene::touch_parent(world, moved));
                         commands.entity(*p).add_child(*c);
                     }
                 }
@@ -106,6 +115,7 @@ pub(crate) fn apply_commits(
                         id("before").and_then(|i| ents.by_id.get(&i)),
                     ) {
                         commands.queue(move |world: &mut World| {
+                            crate::scene::touch_parent(world, c);
                             let kids: Vec<Entity> = world.get::<Children>(p).map(|ks| ks.iter().filter(|e| *e != c).collect()).unwrap_or_default();
                             let at = kids.iter().position(|e| *e == b).unwrap_or(kids.len());
                             world.entity_mut(p).insert_children(at, &[c]);
@@ -127,6 +137,7 @@ pub(crate) fn apply_commits(
                                     gone.push((n.0, e));
                                 }
                             }
+                            crate::scene::touch_parent(world, c);
                             let mut ents = world.resource_mut::<ReactEntities>();
                             for (i, e) in gone {
                                 if ents.by_id.get(&i) == Some(&e) {

@@ -108,6 +108,7 @@ Requirements: [Rust](https://rustup.rs) (stable) and [bun](https://bun.sh). On m
 ```sh
 git clone https://github.com/shinyobjectz/raea && cd raea
 cargo build --release -p raea-cli --no-default-features
+for d in sdk/raea sdk/react/js sdk/react/tw; do (cd $d && bun install); done
 target/release/raea render sdk/react/bench/games/pong/edit.tsx -o pong.mp4
 ```
 

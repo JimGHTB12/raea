@@ -1,0 +1,2819 @@
+{
+ "app": "cards",
+ "steps": [
+  {
+   "press": "tag-work"
+  },
+  {
+   "press": "tag-travel"
+  },
+  {
+   "press": "tag-all"
+  },
+  {
+   "press": "tag-sport"
+  }
+ ],
+ "frames": [
+  {
+   "step": -1,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"clear\"},{\"op\":\"listen\",\"id\":0,\"events\":[\"pointerdown\",\"pointerup\",\"pointermove\"]},{\"op\":\"create\",\"id\":1,\"kind\":\"text\",\"props\":{},\"text\":\"all\"},{\"op\":\"create\",\"id\":2,\"kind\":\"div\",\"props\":{\"data-testid\":\"tag-all\",\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#f3f4f6\",\"color\":\"#111\",\"fontSize\":13}}},{\"op\":\"listen\",\"id\":2,\"events\":[\"pointerdown\",\"pointerup\",\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":2,\"child\":1},{\"op\":\"create\",\"id\":3,\"kind\":\"text\",\"props\":{},\"text\":\"work\"},{\"op\":\"create\",\"id\":4,\"kind\":\"div\",\"props\":{\"data-testid\":\"tag-work\",\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#1f2128\",\"color\":\"#d1d5db\",\"fontSize\":13}}},{\"op\":\"listen\",\"id\":4,\"events\":[\"pointerdown\",\"pointerup\",\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":4,\"child\":3},{\"op\":\"create\",\"id\":5,\"kind\":\"text\",\"props\":{},\"text\":\"travel\"},{\"op\":\"create\",\"id\":6,\"kind\":\"div\",\"props\":{\"data-testid\":\"tag-travel\",\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#1f2128\",\"color\":\"#d1d5db\",\"fontSize\":13}}},{\"op\":\"listen\",\"id\":6,\"events\":[\"pointerdown\",\"pointerup\",\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":6,\"child\":5},{\"op\":\"create\",\"id\":7,\"kind\":\"text\",\"props\":{},\"text\":\"sport\"},{\"op\":\"create\",\"id\":8,\"kind\":\"div\",\"props\":{\"data-testid\":\"tag-sport\",\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#1f2128\",\"color\":\"#d1d5db\",\"fontSize\":13}}},{\"op\":\"listen\",\"id\":8,\"events\":[\"pointerdown\",\"pointerup\",\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":8,\"child\":7},{\"op\":\"create\",\"id\":9,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"row\",\"gap\":6}}},{\"op\":\"listen\",\"id\":9,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":9,\"child\":2},{\"op\":\"append\",\"parent\":9,\"child\":4},{\"op\":\"append\",\"parent\":9,\"child\":6},{\"op\":\"append\",\"parent\":9,\"child\":8},{\"op\":\"create\",\"id\":10,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #f97316, #16181d)\"}}},{\"op\":\"listen\",\"id\":10,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":11,\"kind\":\"text\",\"props\":{},\"text\":\"Morning run\"},{\"op\":\"create\",\"id\":12,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":12,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":12,\"child\":11},{\"op\":\"create\",\"id\":13,\"kind\":\"text\",\"props\":{},\"text\":\"sport\"},{\"op\":\"create\",\"id\":14,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":14,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":14,\"child\":13},{\"op\":\"create\",\"id\":15,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":15,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":15,\"child\":12},{\"op\":\"append\",\"parent\":15,\"child\":14},{\"op\":\"create\",\"id\":16,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-a\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":16,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":16,\"child\":10},{\"op\":\"append\",\"parent\":16,\"child\":15},{\"op\":\"create\",\"id\":17,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #22c55e, #16181d)\"}}},{\"op\":\"listen\",\"id\":17,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":18,\"kind\":\"text\",\"props\":{},\"text\":\"Studio tour\"},{\"op\":\"create\",\"id\":19,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":19,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":19,\"child\":18},{\"op\":\"create\",\"id\":20,\"kind\":\"text\",\"props\":{},\"text\":\"work\"},{\"op\":\"create\",\"id\":21,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":21,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":21,\"child\":20},{\"op\":\"create\",\"id\":22,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":22,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":22,\"child\":19},{\"op\":\"append\",\"parent\":22,\"child\":21},{\"op\":\"create\",\"id\":23,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-b\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":23,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":23,\"child\":17},{\"op\":\"append\",\"parent\":23,\"child\":22},{\"op\":\"create\",\"id\":24,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #6366f1, #16181d)\"}}},{\"op\":\"listen\",\"id\":24,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":25,\"kind\":\"text\",\"props\":{},\"text\":\"Night drive\"},{\"op\":\"create\",\"id\":26,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":26,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":26,\"child\":25},{\"op\":\"create\",\"id\":27,\"kind\":\"text\",\"props\":{},\"text\":\"travel\"},{\"op\":\"create\",\"id\":28,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":28,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":28,\"child\":27},{\"op\":\"create\",\"id\":29,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":29,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":29,\"child\":26},{\"op\":\"append\",\"parent\":29,\"child\":28},{\"op\":\"create\",\"id\":30,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-c\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":30,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":30,\"child\":24},{\"op\":\"append\",\"parent\":30,\"child\":29},{\"op\":\"create\",\"id\":31,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #06b6d4, #16181d)\"}}},{\"op\":\"listen\",\"id\":31,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":32,\"kind\":\"text\",\"props\":{},\"text\":\"Product demo\"},{\"op\":\"create\",\"id\":33,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":33,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":33,\"child\":32},{\"op\":\"create\",\"id\":34,\"kind\":\"text\",\"props\":{},\"text\":\"work\"},{\"op\":\"create\",\"id\":35,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":35,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":35,\"child\":34},{\"op\":\"create\",\"id\":36,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":36,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":36,\"child\":33},{\"op\":\"append\",\"parent\":36,\"child\":35},{\"op\":\"create\",\"id\":37,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-d\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":37,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":37,\"child\":31},{\"op\":\"append\",\"parent\":37,\"child\":36},{\"op\":\"create\",\"id\":38,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #eab308, #16181d)\"}}},{\"op\":\"listen\",\"id\":38,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":39,\"kind\":\"text\",\"props\":{},\"text\":\"Beach day\"},{\"op\":\"create\",\"id\":40,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":40,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":40,\"child\":39},{\"op\":\"create\",\"id\":41,\"kind\":\"text\",\"props\":{},\"text\":\"travel\"},{\"op\":\"create\",\"id\":42,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":42,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":42,\"child\":41},{\"op\":\"create\",\"id\":43,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":43,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":43,\"child\":40},{\"op\":\"append\",\"parent\":43,\"child\":42},{\"op\":\"create\",\"id\":44,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-e\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":44,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":44,\"child\":38},{\"op\":\"append\",\"parent\":44,\"child\":43},{\"op\":\"create\",\"id\":45,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #ef4444, #16181d)\"}}},{\"op\":\"listen\",\"id\":45,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":46,\"kind\":\"text\",\"props\":{},\"text\":\"Leg day\"},{\"op\":\"create\",\"id\":47,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":47,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":47,\"child\":46},{\"op\":\"create\",\"id\":48,\"kind\":\"text\",\"props\":{},\"text\":\"sport\"},{\"op\":\"create\",\"id\":49,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":49,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":49,\"child\":48},{\"op\":\"create\",\"id\":50,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":50,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":50,\"child\":47},{\"op\":\"append\",\"parent\":50,\"child\":49},{\"op\":\"create\",\"id\":51,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-f\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":51,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":51,\"child\":45},{\"op\":\"append\",\"parent\":51,\"child\":50},{\"op\":\"create\",\"id\":52,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"row\",\"flexWrap\":\"wrap\",\"gap\":12}}},{\"op\":\"listen\",\"id\":52,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":52,\"child\":16},{\"op\":\"append\",\"parent\":52,\"child\":23},{\"op\":\"append\",\"parent\":52,\"child\":30},{\"op\":\"append\",\"parent\":52,\"child\":37},{\"op\":\"append\",\"parent\":52,\"child\":44},{\"op\":\"append\",\"parent\":52,\"child\":51},{\"op\":\"create\",\"id\":53,\"kind\":\"div\",\"props\":{\"data-testid\":\"root\",\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"width\":640,\"padding\":16,\"gap\":12,\"backgroundColor\":\"#0b0c0f\"}}},{\"op\":\"listen\",\"id\":53,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":53,\"child\":9},{\"op\":\"append\",\"parent\":53,\"child\":52},{\"op\":\"append\",\"parent\":0,\"child\":53}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "width": 640,
+        "padding": 16,
+        "gap": 12,
+        "backgroundColor": "#0b0c0f"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 6
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "tag-all",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#f3f4f6",
+            "color": "#111",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "all",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-work",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "work",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-travel",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "travel",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-sport",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "sport",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 12
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "card-a",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #f97316, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Morning run",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "sport",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-b",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #22c55e, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Studio tour",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "work",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-c",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #6366f1, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Night drive",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "travel",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-d",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #06b6d4, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Product demo",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "work",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-e",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #eab308, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Beach day",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "travel",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-f",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #ef4444, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Leg day",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "sport",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "step": 0,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"update\",\"id\":2,\"set\":{\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#1f2128\",\"color\":\"#d1d5db\",\"fontSize\":13}}},{\"op\":\"update\",\"id\":4,\"set\":{\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#f3f4f6\",\"color\":\"#111\",\"fontSize\":13}}},{\"op\":\"remove\",\"id\":16},{\"op\":\"remove\",\"id\":30},{\"op\":\"remove\",\"id\":44},{\"op\":\"remove\",\"id\":51}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "width": 640,
+        "padding": 16,
+        "gap": 12,
+        "backgroundColor": "#0b0c0f"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 6
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "tag-all",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "all",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-work",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#f3f4f6",
+            "color": "#111",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "work",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-travel",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "travel",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-sport",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "sport",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 12
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "card-b",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #22c55e, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Studio tour",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "work",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-d",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #06b6d4, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Product demo",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "work",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "step": 1,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"create\",\"id\":54,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #6366f1, #16181d)\"}}},{\"op\":\"listen\",\"id\":54,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":55,\"kind\":\"text\",\"props\":{},\"text\":\"Night drive\"},{\"op\":\"create\",\"id\":56,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":56,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":56,\"child\":55},{\"op\":\"create\",\"id\":57,\"kind\":\"text\",\"props\":{},\"text\":\"travel\"},{\"op\":\"create\",\"id\":58,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":58,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":58,\"child\":57},{\"op\":\"create\",\"id\":59,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":59,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":59,\"child\":56},{\"op\":\"append\",\"parent\":59,\"child\":58},{\"op\":\"create\",\"id\":60,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-c\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":60,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":60,\"child\":54},{\"op\":\"append\",\"parent\":60,\"child\":59},{\"op\":\"create\",\"id\":61,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #eab308, #16181d)\"}}},{\"op\":\"listen\",\"id\":61,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":62,\"kind\":\"text\",\"props\":{},\"text\":\"Beach day\"},{\"op\":\"create\",\"id\":63,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":63,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":63,\"child\":62},{\"op\":\"create\",\"id\":64,\"kind\":\"text\",\"props\":{},\"text\":\"travel\"},{\"op\":\"create\",\"id\":65,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":65,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":65,\"child\":64},{\"op\":\"create\",\"id\":66,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":66,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":66,\"child\":63},{\"op\":\"append\",\"parent\":66,\"child\":65},{\"op\":\"create\",\"id\":67,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-e\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":67,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":67,\"child\":61},{\"op\":\"append\",\"parent\":67,\"child\":66},{\"op\":\"update\",\"id\":4,\"set\":{\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#1f2128\",\"color\":\"#d1d5db\",\"fontSize\":13}}},{\"op\":\"update\",\"id\":6,\"set\":{\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#f3f4f6\",\"color\":\"#111\",\"fontSize\":13}}},{\"op\":\"remove\",\"id\":23},{\"op\":\"remove\",\"id\":37},{\"op\":\"append\",\"parent\":52,\"child\":60},{\"op\":\"append\",\"parent\":52,\"child\":67}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "width": 640,
+        "padding": 16,
+        "gap": 12,
+        "backgroundColor": "#0b0c0f"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 6
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "tag-all",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "all",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-work",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "work",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-travel",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#f3f4f6",
+            "color": "#111",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "travel",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-sport",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "sport",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 12
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "card-c",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #6366f1, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Night drive",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "travel",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-e",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #eab308, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Beach day",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "travel",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "step": 2,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"create\",\"id\":68,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #f97316, #16181d)\"}}},{\"op\":\"listen\",\"id\":68,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":69,\"kind\":\"text\",\"props\":{},\"text\":\"Morning run\"},{\"op\":\"create\",\"id\":70,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":70,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":70,\"child\":69},{\"op\":\"create\",\"id\":71,\"kind\":\"text\",\"props\":{},\"text\":\"sport\"},{\"op\":\"create\",\"id\":72,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":72,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":72,\"child\":71},{\"op\":\"create\",\"id\":73,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":73,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":73,\"child\":70},{\"op\":\"append\",\"parent\":73,\"child\":72},{\"op\":\"create\",\"id\":74,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-a\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":74,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":74,\"child\":68},{\"op\":\"append\",\"parent\":74,\"child\":73},{\"op\":\"create\",\"id\":75,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #22c55e, #16181d)\"}}},{\"op\":\"listen\",\"id\":75,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":76,\"kind\":\"text\",\"props\":{},\"text\":\"Studio tour\"},{\"op\":\"create\",\"id\":77,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":77,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":77,\"child\":76},{\"op\":\"create\",\"id\":78,\"kind\":\"text\",\"props\":{},\"text\":\"work\"},{\"op\":\"create\",\"id\":79,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":79,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":79,\"child\":78},{\"op\":\"create\",\"id\":80,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":80,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":80,\"child\":77},{\"op\":\"append\",\"parent\":80,\"child\":79},{\"op\":\"create\",\"id\":81,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-b\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":81,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":81,\"child\":75},{\"op\":\"append\",\"parent\":81,\"child\":80},{\"op\":\"create\",\"id\":82,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #06b6d4, #16181d)\"}}},{\"op\":\"listen\",\"id\":82,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":83,\"kind\":\"text\",\"props\":{},\"text\":\"Product demo\"},{\"op\":\"create\",\"id\":84,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":84,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":84,\"child\":83},{\"op\":\"create\",\"id\":85,\"kind\":\"text\",\"props\":{},\"text\":\"work\"},{\"op\":\"create\",\"id\":86,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":86,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":86,\"child\":85},{\"op\":\"create\",\"id\":87,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":87,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":87,\"child\":84},{\"op\":\"append\",\"parent\":87,\"child\":86},{\"op\":\"create\",\"id\":88,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-d\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":88,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":88,\"child\":82},{\"op\":\"append\",\"parent\":88,\"child\":87},{\"op\":\"create\",\"id\":89,\"kind\":\"div\",\"props\":{\"style\":{\"height\":110,\"backgroundImage\":\"linear-gradient(180deg, #ef4444, #16181d)\"}}},{\"op\":\"listen\",\"id\":89,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"create\",\"id\":90,\"kind\":\"text\",\"props\":{},\"text\":\"Leg day\"},{\"op\":\"create\",\"id\":91,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":14,\"fontWeight\":600,\"color\":\"#fff\"}}},{\"op\":\"listen\",\"id\":91,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":91,\"child\":90},{\"op\":\"create\",\"id\":92,\"kind\":\"text\",\"props\":{},\"text\":\"sport\"},{\"op\":\"create\",\"id\":93,\"kind\":\"span\",\"props\":{\"style\":{\"fontSize\":12,\"color\":\"#9ca3af\"}}},{\"op\":\"listen\",\"id\":93,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":93,\"child\":92},{\"op\":\"create\",\"id\":94,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"padding\":10,\"gap\":4}}},{\"op\":\"listen\",\"id\":94,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":94,\"child\":91},{\"op\":\"append\",\"parent\":94,\"child\":93},{\"op\":\"create\",\"id\":95,\"kind\":\"div\",\"props\":{\"data-testid\":\"card-f\",\"style\":{\"width\":196,\"borderRadius\":12,\"overflow\":\"hidden\",\"backgroundColor\":\"#16181d\",\"boxShadow\":\"0 4px 12px rgba(0,0,0,0.5)\"}}},{\"op\":\"listen\",\"id\":95,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":95,\"child\":89},{\"op\":\"append\",\"parent\":95,\"child\":94},{\"op\":\"update\",\"id\":2,\"set\":{\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#f3f4f6\",\"color\":\"#111\",\"fontSize\":13}}},{\"op\":\"update\",\"id\":6,\"set\":{\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#1f2128\",\"color\":\"#d1d5db\",\"fontSize\":13}}},{\"op\":\"insert\",\"parent\":52,\"child\":74,\"before\":60},{\"op\":\"insert\",\"parent\":52,\"child\":81,\"before\":60},{\"op\":\"insert\",\"parent\":52,\"child\":88,\"before\":67},{\"op\":\"append\",\"parent\":52,\"child\":95}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "width": 640,
+        "padding": 16,
+        "gap": 12,
+        "backgroundColor": "#0b0c0f"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 6
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "tag-all",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#f3f4f6",
+            "color": "#111",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "all",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-work",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "work",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-travel",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "travel",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-sport",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "sport",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 12
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "card-a",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #f97316, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Morning run",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "sport",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-b",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #22c55e, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Studio tour",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "work",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-c",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #6366f1, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Night drive",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "travel",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-d",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #06b6d4, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Product demo",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "work",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-e",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #eab308, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Beach day",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "travel",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-f",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #ef4444, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Leg day",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "sport",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "step": 3,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"update\",\"id\":2,\"set\":{\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#1f2128\",\"color\":\"#d1d5db\",\"fontSize\":13}}},{\"op\":\"update\",\"id\":8,\"set\":{\"style\":{\"paddingLeft\":12,\"paddingRight\":12,\"paddingTop\":6,\"paddingBottom\":6,\"borderRadius\":999,\"backgroundColor\":\"#f3f4f6\",\"color\":\"#111\",\"fontSize\":13}}},{\"op\":\"remove\",\"id\":81},{\"op\":\"remove\",\"id\":60},{\"op\":\"remove\",\"id\":88},{\"op\":\"remove\",\"id\":67}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "width": 640,
+        "padding": 16,
+        "gap": 12,
+        "backgroundColor": "#0b0c0f"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 6
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "tag-all",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "all",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-work",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "work",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-travel",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#1f2128",
+            "color": "#d1d5db",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "travel",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "tag-sport",
+           "style": {
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "paddingTop": 6,
+            "paddingBottom": 6,
+            "borderRadius": 999,
+            "backgroundColor": "#f3f4f6",
+            "color": "#111",
+            "fontSize": 13
+           }
+          },
+          null,
+          [
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "sport",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 12
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "div",
+          {
+           "data-testid": "card-a",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #f97316, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Morning run",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "sport",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ],
+         [
+          "div",
+          {
+           "data-testid": "card-f",
+           "style": {
+            "width": 196,
+            "borderRadius": 12,
+            "overflow": "hidden",
+            "backgroundColor": "#16181d",
+            "boxShadow": "0 4px 12px rgba(0,0,0,0.5)"
+           }
+          },
+          null,
+          [
+           "pointerenter",
+           "pointerleave"
+          ],
+          [
+           [
+            "div",
+            {
+             "style": {
+              "height": 110,
+              "backgroundImage": "linear-gradient(180deg, #ef4444, #16181d)"
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            []
+           ],
+           [
+            "div",
+            {
+             "style": {
+              "display": "flex",
+              "flexDirection": "column",
+              "padding": 10,
+              "gap": 4
+             }
+            },
+            null,
+            [
+             "pointerenter",
+             "pointerleave"
+            ],
+            [
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 14,
+                "fontWeight": 600,
+                "color": "#fff"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "Leg day",
+                [],
+                []
+               ]
+              ]
+             ],
+             [
+              "span",
+              {
+               "style": {
+                "fontSize": 12,
+                "color": "#9ca3af"
+               }
+              },
+              null,
+              [
+               "pointerenter",
+               "pointerleave"
+              ],
+              [
+               [
+                "text",
+                {},
+                "sport",
+                [],
+                []
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  }
+ ]
+}

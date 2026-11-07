@@ -10,25 +10,16 @@ pub fn scene_of(world: &mut World) -> Vec<Node3> {
     });
     if now % 120 == 0 {
         PROPS3D.with(|c| c.borrow_mut().retain(|_, v| v.2 + 2 >= now));
+        if world.contains_resource::<Kept3d>() {
+            world.resource_scope(|w, mut k: Mut<Kept3d>| k.of.retain(|e, _| w.get_entity(*e).is_ok()));
+        }
     }
     let mut q = world.query::<(Entity, &ReactKind, Option<&ReactProps>)>();
     let Some(surf) = q.iter(world).find(|(_, k, p)| k.0 == "surface" && p.and_then(|p| p.0.get("id")).and_then(|v| v.as_str()) == Some("motion")).map(|(e, _, _)| e) else { return Vec::new() };
-    fn walk(world: &World, e: Entity, out: &mut Vec<Node3>) {
-        if world.get::<ReactProps>(e).is_some_and(|p| p.0.contains_key("data-3d")) {
-            if let Some(n) = read3d(world, e) {
-                out.push(n);
-            }
-            return;
-        }
-        if let Some(c) = world.get::<Children>(e) {
-            for k in c.iter() {
-                walk(world, k, out);
-            }
-        }
-    }
-    let mut out = Vec::new();
-    walk(world, surf, &mut out);
-    out
+    // the 3D roots under the surface (a data-3d element stops the walk; its 3D is read3d's), each subtree no commit
+    // touched since the last scene handed on as it was (read.rs Kept3d)
+    let dirty = dirty3d(world);
+    world.resource_scope(|world, mut kept: Mut<Kept3d>| contrib3d(world, surf, &mut kept, &dirty).to_vec())
 }
 
 /// The page elements holding the frame's 3D (each 3D root's ancestors up to the surface, nearest first) with their

@@ -1,18 +1,5 @@
 use super::*;
 
-/// a compiled-in Bevy plugin's resources (<BevyResource>), from the first frame
-pub(crate) fn resources_rows(all: &[Vec<Item>], p: &mut Program) {
-    if let Some(f0) = all.first() {
-        for (k, it) in f0.iter().filter(|it| it.kind == "resource").enumerate() {
-            let mut row = BTreeMap::new();
-            row.insert("id".into(), V::S(format!("res{k}")));
-            row.insert("type".into(), V::S(it.props.get("type").and_then(Value::as_str).unwrap_or("").to_string()));
-            row.insert("value".into(), V::S(it.props.get("value").cloned().unwrap_or(Value::Null).to_string()));
-            p.spawns.push(("resource".into(), vec![row]));
-        }
-    }
-}
-
 /// the scene's <SurfaceShader>, from the first frame: its spec as JSON (raea-runtime-scene3d's shaded.rs)
 pub(crate) fn surface_shader_rows(all: &[Vec<Item>], p: &mut Program) {
     let Some(f0) = all.first() else { return };
@@ -53,8 +40,7 @@ pub(crate) fn lights_rows(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
         }
         // a missing frame is a dark one
         let on: Vec<f64> = track.iter().map(|t| t.is_some() as u8 as f64).collect();
-        let k = if kind == "directional" { LUX } else { LUMENS };
-        let power: Vec<f64> = its.iter().zip(&on).map(|(i, o)| n(&i.props, "intensity", 1.0) * k * o).collect();
+        let power: Vec<f64> = its.iter().zip(&on).map(|(i, o)| light_power(kind, &i.props) * o).collect();
         column(p, &mut row, &id, if kind == "directional" { "lux" } else { "lumens" }, &power);
         let pos: Vec<[f64; 3]> = its.iter().map(|i| {
             let v = vec3(&i.props, "position", if kind == "directional" { [0.0, 1.0, 0.0] } else { [0.0; 3] });
@@ -250,9 +236,11 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
             row.insert("receive".into(), V::N(0.0));
         }
         layers_column(&mut row, &its[0].props);
+        instances_column(&mut row, &its);
         name_column(&mut row, &its[0].props);
         p.spawns.push(("mesh".into(), vec![row]));
         components(p, &id, &its);
+        material_fields(p, &id, &its);
     }
 }
 

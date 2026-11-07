@@ -254,7 +254,12 @@ pub fn scale_of(vals: &BTreeMap<String, V>) -> Vec3 {
     Vec3::new(num(vals, "scale_x", s), num(vals, "scale_y", s), num(vals, "scale_z", s))
 }
 
+/// A row's rotation: its quaternion (q_x q_y q_z q_w, what runtime/scene writes: docs/control.feature FC1d), or
+/// rot_x rot_y rot_z (radians, YXZ) where a row was written that way
 pub fn rot_of(vals: &BTreeMap<String, V>) -> Quat {
+    if vals.contains_key("q_w") {
+        return Quat::from_xyzw(num(vals, "q_x", 0.0), num(vals, "q_y", 0.0), num(vals, "q_z", 0.0), num(vals, "q_w", 1.0)).normalize();
+    }
     Quat::from_euler(EulerRot::YXZ, num(vals, "rot_y", 0.0), num(vals, "rot_x", 0.0), num(vals, "rot_z", 0.0))
 }
 

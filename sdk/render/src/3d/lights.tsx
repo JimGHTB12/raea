@@ -15,7 +15,7 @@ export interface AmbientLightProps {
 
 /** Light from everywhere at once.
  * @bevy bevy_light::ambient_light::AmbientLight */
-export function AmbientLight({ intensity = 1, color = "#ffffff", ...rest }: AmbientLightProps) {
+export function AmbientLight({ intensity = 1, color = "#ffffff", ...rest }: AmbientLightProps & Pick<BevyUnits, "nits">) {
   return node3d("AmbientLight", { ...rest, intensity, color: toHex("AmbientLight", "color", color) });
 }
 
@@ -39,7 +39,17 @@ export interface DirectionalLightProps {
   softness?: number;
 }
 
-function checkLight(owner: string, p: { position?: Vec3; target?: Vec3; intensity?: number; color?: string; softShadow?: unknown; softness?: number }) {
+/** A Bevy light's power in its own units, which the rows take as written over `intensity` (bevy3d lights.tsx sends
+ *  them; docs/control.feature FC1f): a directional light's lux, a point, spot or rect light's lumens, an ambient's nits
+ *  (cd/m²). */
+export interface BevyUnits {
+  lux?: number;
+  lumens?: number;
+  nits?: number;
+}
+
+function checkLight(owner: string, p: { position?: Vec3; target?: Vec3; intensity?: number; color?: string; softShadow?: unknown; softness?: number } & BevyUnits) {
+  for (const k of ["lux", "lumens", "nits"] as const) if (p[k] !== undefined && !(p[k]! >= 0 && Number.isFinite(p[k]))) throw new RangeError(`${owner}: ${k} must be 0 or more, got ${p[k]}`);
   if (p.softness !== undefined && !(p.softness >= 0 && Number.isFinite(p.softness))) throw new RangeError(`${owner}: softness must be 0 or more, got ${p.softness}`);
   if (p.softShadow !== undefined && !(typeof p.softShadow === "boolean" || (typeof p.softShadow === "number" && p.softShadow >= 0 && Number.isFinite(p.softShadow)))) throw new RangeError(`${owner}: softShadow is true, false or a size in metres (0 or more), got ${JSON.stringify(p.softShadow)}`);
   if (p.position !== undefined) checkVec(owner, "position", p.position);
@@ -50,7 +60,7 @@ function checkLight(owner: string, p: { position?: Vec3; target?: Vec3; intensit
 
 /** Parallel light (the sun) shining from `position` towards `target`.
  * @bevy bevy_light::directional_light::DirectionalLight */
-export function DirectionalLight({ intensity = 1, color = "#ffffff", children, ...rest }: DirectionalLightProps & BevyParts) {
+export function DirectionalLight({ intensity = 1, color = "#ffffff", children, ...rest }: DirectionalLightProps & BevyParts & Pick<BevyUnits, "lux">) {
   checkLight("DirectionalLight", { ...rest, intensity, color });
   return node3d("DirectionalLight", { ...rest, intensity, color: toHex("DirectionalLight", "color", color) }, children);
 }
@@ -87,7 +97,7 @@ export interface PointLightProps {
 
 /** A bulb: light from a point, every way.
  * @bevy bevy_light::point_light::PointLight */
-export function PointLight({ intensity = 1, color = "#ffffff", children, ...rest }: PointLightProps & BevyParts) {
+export function PointLight({ intensity = 1, color = "#ffffff", children, ...rest }: PointLightProps & BevyParts & Pick<BevyUnits, "lumens">) {
   checkLight("PointLight", { ...rest, intensity, color });
   return node3d("PointLight", { ...rest, intensity, color: toHex("PointLight", "color", color) }, children);
 }
@@ -103,7 +113,7 @@ export interface SpotLightProps extends PointLightProps {
 
 /** A cone of light from `position` towards `target`: a stage spot, a product hero light.
  * @bevy bevy_light::spot_light::SpotLight */
-export function SpotLight({ intensity = 1, color = "#ffffff", children, ...rest }: SpotLightProps & BevyParts) {
+export function SpotLight({ intensity = 1, color = "#ffffff", children, ...rest }: SpotLightProps & BevyParts & Pick<BevyUnits, "lumens">) {
   checkLight("SpotLight", { ...rest, intensity, color });
   if (rest.angle !== undefined && !(rest.angle > 0 && rest.angle <= Math.PI / 2)) throw new RangeError(`SpotLight: angle is a half-angle in radians, in (0, π/2], got ${rest.angle}`);
   if (rest.penumbra !== undefined && !(rest.penumbra >= 0 && rest.penumbra <= 1)) throw new RangeError(`SpotLight: penumbra must be in [0, 1], got ${rest.penumbra}`);
@@ -129,7 +139,7 @@ export interface RectAreaLightProps {
  * soft and wide from the whole face, not a point; it casts no shadows (Bevy 0.20 doesn't shadow area lights).
  * @bevy bevy_light::rect_light::RectLight
  * @deprecated <RectLight> (lumens, width, height), raea/light */
-export function RectAreaLight({ intensity = 1, color = "#ffffff", width = 1, height = 1, ...rest }: RectAreaLightProps) {
+export function RectAreaLight({ intensity = 1, color = "#ffffff", width = 1, height = 1, ...rest }: RectAreaLightProps & Pick<BevyUnits, "lumens">) {
   checkLight("RectAreaLight", { ...rest, intensity, color });
   for (const [k, v] of [["width", width], ["height", height]] as const) if (!(v > 0) || !Number.isFinite(v)) throw new RangeError(`RectAreaLight: ${k} must be a positive number of metres, got ${v}`);
   return node3d("RectAreaLight", { ...rest, intensity, width, height, color: toHex("RectAreaLight", "color", color) });

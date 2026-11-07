@@ -62,6 +62,10 @@ fn main() {
         eprintln!("raea-page-host: {e}");
         std::process::exit(2);
     });
+    // headless (the benches, raea app check): the system's clipboard, files, dialogs and browser stay untouched (T2d)
+    if !a.window {
+        raea_io_os::set_headless();
+    }
     let code = std::fs::read_to_string(&a.bundle).unwrap_or_else(|e| {
         eprintln!("raea-page-host: {}: {e}", a.bundle);
         std::process::exit(1);

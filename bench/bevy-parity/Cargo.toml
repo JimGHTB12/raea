@@ -1,0 +1,21 @@
+[package]
+name = "raea-bevy-parity"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Bevy's own examples, built against raea's Bevy with the parity probe in their App (docs/control.feature FC0a): one binary, RAEA_PARITY_EXAMPLE picks the example"
+
+[dependencies]
+# the feature list engine/render's bevy has, so the examples build against the Bevy raea already compiled, and winit: the
+# examples open a window (raea's renders don't), and bevy_scene: Bevy 0.20's examples write their scenes in BSN
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "experimental_pbr_pcss", "area_light_luts", "bevy_gilrs", "bevy_winit", "bevy_scene"] }
+raea-sys-parity = { path = "../../systems/parity" }
+# Bevy's examples' own dependencies (bevy v0.20.0's dev-dependencies)
+argh = "0.1.12"
+rand = "0.10.0"
+chacha20 = { version = "0.10.0", default-features = false, features = ["rng"] }
+
+# used by the ported examples, which build.rs copies in through include! where cargo-shear doesn't look
+[package.metadata.cargo-shear]
+ignored = ["argh", "rand", "chacha20"]

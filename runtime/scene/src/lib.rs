@@ -7,7 +7,7 @@
 
 use std::collections::BTreeMap;
 
-use bevy::math::{EulerRot, Mat4, Vec3};
+use bevy::math::{Mat4, Vec3};
 use raea_core_program::ir::{Program, V};
 use serde_json::{Map, Value};
 
@@ -28,6 +28,7 @@ mod fast;
 mod splat;
 /// 2D parts' rows (<Sprite>, <Shape2D>).
 mod sprite2d;
+/// <Instances>: a mesh or model row's placements (its `inst` column).
 /// Baked simulations' and glitches' rows (<MeshSequence>, <Goo>, glitch props).
 mod meshseq;
 
@@ -44,7 +45,7 @@ fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
                 out.push(it);
             }
             let start = out.len();
-            for k in &n.kids {
+            for k in n.kids.iter() {
                 walk(k, w, out);
             }
             // a group's composition pass (`pass`) is every part's inside it that doesn't name its own
@@ -58,7 +59,7 @@ fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
         // theirs more closely)
         "Refinish" => {
             let start = out.len();
-            for k in &n.kids {
+            for k in n.kids.iter() {
                 walk(k, parent, out);
             }
             let Some(Value::Array(given)) = n.props.get("materials") else { return };
@@ -81,7 +82,7 @@ fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
             bevy_parts(n, &mut it);
             out.push(it);
             // a mesh's children (three.js parents meshes to meshes) move with it
-            for k in &n.kids {
+            for k in n.kids.iter() {
                 walk(k, w, out);
             }
         }
@@ -174,7 +175,7 @@ fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
         // a compute shader run before the cameras draw (<Compute>, docs/shaders.feature SH10)
         "Compute" => out.push(item("compute", parent, None)),
         _ => {
-            for k in &n.kids {
+            for k in n.kids.iter() {
                 walk(k, parent, out);
             }
         }
@@ -231,20 +232,22 @@ fn pass_column(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[
     }
 }
 
-/// World position, rotation (raea-render's rot_y, rot_x, rot_z: YXZ) and scale of each frame.
+/// World position, rotation (Bevy's quaternion, q_x q_y q_z q_w: no Euler round trip, docs/control.feature FC1d) and
+/// scale of each frame; each frame's quaternion takes the sign nearer the frame before's, so keys turn the short way.
 fn placement(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item]) {
-    let per: Vec<[f64; 9]> = its.iter().map(|it| {
+    let mut prev = bevy::math::Quat::IDENTITY;
+    let per: Vec<[f64; 10]> = its.iter().map(|it| {
         let (s, q, t) = it.world.to_scale_rotation_translation();
-        let (ry, rx, rz) = q.to_euler(EulerRot::YXZ);
-        [t.x as f64, t.y as f64, t.z as f64, rx as f64, ry as f64, rz as f64, s.x as f64, s.y as f64, s.z as f64]
+        prev = if q.dot(prev) < 0.0 { -q } else { q };
+        [t.x as f64, t.y as f64, t.z as f64, prev.x as f64, prev.y as f64, prev.z as f64, prev.w as f64, s.x as f64, s.y as f64, s.z as f64]
     }).collect();
-    for (k, name) in ["x", "y", "z", "rot_x", "rot_y", "rot_z"].iter().enumerate() {
-        column(p, row, id, name, &per.iter().map(|t| t[k]).collect::<Vec<_>>());
+    for (k, name) in ["x", "y", "z", "q_x", "q_y", "q_z", "q_w"].iter().enumerate() {
+        exact(p, row, id, name, &per.iter().map(|t| t[k]).collect::<Vec<_>>());
     }
-    let sc: Vec<[f64; 3]> = per.iter().map(|t| [t[6], t[7], t[8]]).collect();
+    let sc: Vec<[f64; 3]> = per.iter().map(|t| [t[7], t[8], t[9]]).collect();
     if sc.iter().any(|s| s.iter().any(|v| (v - 1.0).abs() > 1e-9)) {
         for (k, name) in ["scale_x", "scale_y", "scale_z"].iter().enumerate() {
-            column(p, row, id, name, &sc.iter().map(|s| s[k]).collect::<Vec<_>>());
+            exact(p, row, id, name, &sc.iter().map(|s| s[k]).collect::<Vec<_>>());
         }
     }
 }
@@ -330,7 +333,7 @@ impl Tracks {
 
 fn rows_into_of(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
     let names = pass_names(all);
-    resources_rows(all, p);
+    resources(p, all);
     surface_shader_rows(all, p);
     ordered_shader_rows(all, p, "frame_pass");
     ordered_shader_rows(all, p, "compute");

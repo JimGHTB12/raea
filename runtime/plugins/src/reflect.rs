@@ -54,6 +54,9 @@ pub fn registration<'a>(reg: &'a TypeRegistry, path: &str) -> Result<&'a TypeReg
 
 /// One component from JSON onto an entity, through the TypeRegistry: the generic path every plugin component takes.
 pub fn insert_reflect(world: &mut World, e: Entity, path: &str, json: &Value) -> Result<(), String> {
+    if let Some(material) = path.strip_prefix("material:") {
+        return patch_material(world, e, material, json);
+    }
     let registry = world.resource::<AppTypeRegistry>().clone();
     let reg = registry.read();
     let r = registration(&reg, path)?;
@@ -208,4 +211,36 @@ pub fn schema(world: &World, keep: &dyn Fn(&str) -> bool) -> Value {
         types.insert(path, t);
     }
     json!({"roots": roots, "types": types})
+}
+
+/// A part whose material a `material:` row patched has a copy of its own (its handle may be one other parts share,
+/// runtime/scene3d share.rs).
+#[derive(Component)]
+pub struct OwnMaterial;
+
+/// The fields given (a partial StandardMaterial in reflect's JSON) set on the part's own material asset: a
+/// StandardMaterial's `animate` of a field the row columns don't carry (docs/control.feature FC1c), keyed like a
+/// component. The first patch makes the part's copy of its material.
+pub fn patch_material(world: &mut World, e: Entity, path: &str, json: &Value) -> Result<(), String> {
+    if registration(&world.resource::<AppTypeRegistry>().read(), path)?.type_id() != std::any::TypeId::of::<StandardMaterial>() {
+        return Err(format!("material:{path}: only a StandardMaterial's fields animate this way"));
+    }
+    let registry = world.resource::<AppTypeRegistry>().clone();
+    let reg = registry.read();
+    let v = value_of(world, &reg, registration(&reg, path)?, path, json)?;
+    let Some(h) = world.get::<MeshMaterial3d<StandardMaterial>>(e).map(|m| m.0.clone()) else {
+        return Err(format!("material:{path}: the part has no StandardMaterial"));
+    };
+    let h = if world.get::<OwnMaterial>(e).is_some() {
+        h
+    } else {
+        let mut mats = world.resource_mut::<Assets<StandardMaterial>>();
+        let own = mats.get(&h).cloned().ok_or_else(|| format!("material:{path}: its material isn't loaded"))?;
+        let nh = mats.add(own);
+        world.entity_mut(e).insert((MeshMaterial3d(nh.clone()), OwnMaterial));
+        nh
+    };
+    let mut mats = world.resource_mut::<Assets<StandardMaterial>>();
+    let Some(mut m) = mats.get_mut(&h) else { return Err(format!("material:{path}: its material isn't loaded")) };
+    PartialReflect::try_apply(&mut *m, v.as_partial_reflect()).map_err(|err| format!("material:{path}: {err}"))
 }

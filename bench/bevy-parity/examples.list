@@ -1,0 +1,4 @@
+# Bevy v0.20.0 examples the host builds, as their path under examples/ without .rs (docs/control.feature FC0a).
+# A port beside each is sdk/raea/bench/bevy-parity/<path>.tsx.
+stress_tests/many_cubes
+3d/3d_scene

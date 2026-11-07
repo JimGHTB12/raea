@@ -47,22 +47,24 @@ pub fn sync_meshes(
     frame: Res<FrameRows>,
     mut mats: ResMut<Assets<StandardMaterial>>,
     mut glasses: ResMut<Assets<super::froxel_glass::GlassMaterial>>,
+    mut commands: Commands,
     mut q: Query<
         (
             Entity,
             &mut Transform,
             &mut Visibility,
-            Option<&MeshMaterial3d<StandardMaterial>>,
-            Option<(&super::froxel_glass::Fogged, &MeshMaterial3d<super::froxel_glass::GlassMaterial>)>,
+            Option<&mut MeshMaterial3d<StandardMaterial>>,
+            Option<(&mut super::froxel_glass::Fogged, &MeshMaterial3d<super::froxel_glass::GlassMaterial>)>,
             Has<super::plugins::Driven>,
-            Option<&super::paint::Painted>,
+            Option<&mut super::paint::Painted>,
             Option<&super::decal::DecalStd>,
             Option<&raea_sys_shader::Shaded>,
+            Has<super::SharedMaterial>,
         ),
-        Or<(With<Mesh3d>, With<Model3d>)>,
+        Or<(With<Mesh3d>, With<Model3d>, With<Instanced>)>,
     >,
 ) {
-    for (e, mut t, mut vis, mat, fogged, driven, painted, decal, shaded) in &mut q {
+    for (e, mut t, mut vis, mut mat, mut fogged, driven, mut painted, decal, shaded, shared) in &mut q {
         let Some(v) = frame.vals(e) else { continue };
         let v = &v;
         // a mesh a Bevy plugin moves (a rigid body) keeps the plugin's transform (engine/plugins.rs)
@@ -79,7 +81,8 @@ pub fn sync_meshes(
         // a painted mesh's standard material is kept aside for this (paint.rs), and a see-through mesh drawn with its froxel
         // fog copy (froxel_glass.rs) follows its standard material
         // (and a decal's, decal.rs, and a shaded one's, raea-sys-shader)
-        let Some(h) = mat.map(|m| &m.0).or(painted.map(|p| &p.std)).or(fogged.map(|(f, _)| &f.std)).or(decal.map(|d| &d.0)).or(shaded.map(|s| &s.std)) else { continue };
+        let Some(h) = mat.as_ref().map(|m| m.0.clone()).or(painted.as_ref().map(|p| p.std.clone())).or(fogged.as_ref().map(|(f, _)| f.std.clone())).or(decal.map(|d| d.0.clone())).or(shaded.map(|s| s.std.clone())) else { continue };
+        let h = &h;
         // a sprite sheet's cell (an ImagePlane's `frame` of its `grid`)
         if let Some(fr) = v.get("sheet_frame") {
             let want = sheet_uv(fr.num() as f32, num(v, "sheet_cols", 1.0), num(v, "sheet_rows", 1.0));
@@ -115,6 +118,28 @@ pub fn sync_meshes(
         // as a render's, which knew from its load (material: an opacity column is a blended surface)
         let blend = v.contains_key("opacity") && cur.alpha_mode == AlphaMode::Opaque;
         if cur.base_color != base || cur.perceptual_roughness != rough || cur.metallic != metal || cur.emissive != emissive || blend {
+            // a material other parts hold too (share.rs): this part's change goes on a copy of its own, put where its
+            // handle is kept; a fog copy follows the new handle a frame later (froxel_glass.rs)
+            if shared {
+                let mut own = cur.clone();
+                own.base_color = base;
+                own.perceptual_roughness = rough;
+                own.metallic = metal;
+                own.emissive = emissive;
+                if blend {
+                    own.alpha_mode = AlphaMode::Blend;
+                }
+                let nh = mats.add(own);
+                if let Some(m) = mat.as_mut() {
+                    m.0 = nh;
+                } else if let Some(p) = painted.as_mut() {
+                    p.std = nh;
+                } else if let Some((f, _)) = fogged.as_mut() {
+                    f.std = nh;
+                }
+                commands.entity(e).remove::<super::SharedMaterial>();
+                continue;
+            }
             if let Some(mut m) = mats.get_mut(h) {
                 m.base_color = base;
                 m.perceptual_roughness = rough;
@@ -124,7 +149,7 @@ pub fn sync_meshes(
                     m.alpha_mode = AlphaMode::Blend;
                 }
                 // and its fog copy, this frame (froxel_glass.rs's own follow is a frame behind)
-                if let Some(mut g) = fogged.and_then(|(_, g)| glasses.get_mut(&g.0)) {
+                if let Some(mut g) = fogged.as_ref().and_then(|(_, g)| glasses.get_mut(&g.0)) {
                     g.base = m.clone();
                 }
             }

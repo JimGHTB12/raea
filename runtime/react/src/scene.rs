@@ -2,7 +2,6 @@
 //! frame (settle.rs), the 3D drawn in an App (ScenePlugin in plugin.rs), and the native calls a
 //! composition makes for its scene, physics and matchmove. raea-runtime-export renders the frames to files.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use bevy::prelude::*;
@@ -40,9 +39,9 @@ pub mod track;
 
 thread_local! {
     /// each part's data-props as last parsed: its text and the props, and the scene it was last read in
-    static PROPS3D: std::cell::RefCell<HashMap<Entity, (String, std::sync::Arc<Map<String, Value>>, u64)>> = std::cell::RefCell::new(HashMap::new());
+    static PROPS3D: std::cell::RefCell<bevy::ecs::entity::EntityHashMap<(String, std::sync::Arc<Map<String, Value>>, u64)>> = std::cell::RefCell::new(Default::default());
     /// each part's data-3d and data-shape as last read, shared
-    static NAMES3D: std::cell::RefCell<HashMap<Entity, (std::sync::Arc<str>, Option<std::sync::Arc<str>>)>> = std::cell::RefCell::new(HashMap::new());
+    static NAMES3D: std::cell::RefCell<bevy::ecs::entity::EntityHashMap<(std::sync::Arc<str>, Option<std::sync::Arc<str>>)>> = std::cell::RefCell::new(Default::default());
     /// scenes read (scene_of): what's in PROPS3D but not read in the last two is let go
     static SCENE3D: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
 }

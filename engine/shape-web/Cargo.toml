@@ -1,0 +1,14 @@
+[package]
+name = "raea-shape-web"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea's shapes in a browser (docs/r3f.feature R3F5): core/shape's CSG expressions meshed by the same code the native engine runs, for three.js and React Three Fiber"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+raea-core-shape = { path = "../../core/shape" }
+wasm-bindgen = "0.2.129"

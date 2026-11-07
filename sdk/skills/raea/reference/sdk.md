@@ -55,7 +55,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/light` (sdk/raea/src/light.ts)
 
-`AmbientLight`, `Atmosphere`, `DirectionalLight`, `Environment`, `GlobalAmbientLight`, `Pathtracer`, `PointLight`, `RectLight`, `Shadows`, `SolariLighting`, `SpotLight`
+`AmbientLight`, `Atmosphere`, `DirectionalLight`, `Environment`, `GlobalAmbientLight`, `Pathtracer`, `PointLight`, `RectLight`, `Shadows`, `SolariLighting`, `SpotLight`, `light_consts`
 
 ## `raea/math` (sdk/raea/src/math.ts)
 
@@ -63,7 +63,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/mesh` (sdk/raea/src/mesh.ts)
 
-`BufferMesh`, `Capsule`, `Capsule3d`, `Cone`, `ConicalFrustum`, `Cuboid`, `Cylinder`, `Mesh`, `Mesh2d`, `Mesh3d`, `MeshSequence`, `Plane3d`, `Sphere`, `Torus`
+`BufferMesh`, `Capsule`, `Capsule3d`, `Cone`, `ConicalFrustum`, `Cuboid`, `Cylinder`, `Instances`, `Mesh`, `Mesh2d`, `Mesh3d`, `MeshSequence`, `Plane3d`, `Sphere`, `Torus`, `scatter`
 
 ## `raea/pbr` (sdk/raea/src/pbr.ts)
 

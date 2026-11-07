@@ -1,0 +1,22 @@
+[package]
+name = "raea-io-os"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The system's host calls both app targets answer (docs/targets.feature T2d): os.open, the clipboard, files the user picks or saves, and message dialogs; Bevy-free, scripted when headless"
+
+[dependencies]
+serde_json = "1"
+base64 = "0.22"
+# a URL in the system's handler
+opener = "0.9"
+# the system clipboard (text)
+arboard = { version = "3.7", default-features = false }
+# the system's file and message dialogs; on Linux the xdg portal, never GTK
+rfd = { version = "0.17", default-features = false, features = ["xdg-portal"] }
+pollster = "0.4"
+
+[features]
+# recorded.rs: T2d's recorded system calls, headless, for each target's test
+recorded = []

@@ -10,7 +10,8 @@
     "./react-dom": "./src/react-dom.ts",
     "./platform": "./src/platform.ts",
     "./wire": "./src/wire.ts",
-    "./plugin": "./src/plugin.ts"
+    "./plugin": "./src/plugin.ts",
+    "./app": "./src/app.ts"
   },
   "scripts": {
     "test": "bun test test"

@@ -207,50 +207,60 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
         "plate" => matchmove::spawn_plate(world, e, t, inserted, dir)?,
         "cube" | "sphere" | "plane" => {
             let size = g("size", 1.0);
-            let mesh = match t.kind.as_str() {
-                "cube" => Mesh::from(Cuboid::from_length(size)),
-                "sphere" => Mesh::from(Sphere::new(size / 2.0).mesh().ico(5).unwrap()),
-                _ => Mesh::from(Plane3d::default().mesh().size(size, size)),
-            };
-            let mesh = world.resource_mut::<Assets<Mesh>>().add(mesh);
-            let mat = world.resource_mut::<Assets<StandardMaterial>>().add(StandardMaterial {
+            // shared as a mesh row's are (share.rs): one Mesh per kind and size, one material per value
+            let mesh = scene3d::shared_mesh(world, &format!("{}\0{size}", t.kind), || {
+                Ok(match t.kind.as_str() {
+                    "cube" => Mesh::from(Cuboid::from_length(size)),
+                    "sphere" => Mesh::from(Sphere::new(size / 2.0).mesh().ico(5).unwrap()),
+                    _ => Mesh::from(Plane3d::default().mesh().size(size, size)),
+                })
+            })?;
+            let (mat, shared) = scene3d::shared_material(world, StandardMaterial {
                 base_color: colour(vals.get("color"), [0.8, 0.8, 0.8, 1.0]),
                 perceptual_roughness: g("rough", 0.45),
                 metallic: g("metal", 0.0),
                 ..default()
             });
             world.entity_mut(e).insert((Mesh3d(mesh), MeshMaterial3d(mat), Transform::from_xyz(g("x", 0.0), g("y", 0.0), g("z", 0.0))));
+            if shared {
+                world.entity_mut(e).insert(scene3d::SharedMaterial);
+            }
         }
         "mesh" => {
             // a shape as a value (docs/media.feature M2): its `shape` column, a CSG expression, built by Manifold
             // once per expression (shape::cached), flat-shaded
             let expr = match vals.get("shape") { Some(V::S(s)) => s.clone(), _ => return Err(format!("mesh {}: needs shape, as box(1, 1, 1) or minus(rounded_box(2, 1, 0.2, 0.1), text3d(\"SALE\", 0.45, 0.3))", t.id)) };
-            // or its own vertex buffers (<BufferMesh>: "buffer:{positions, indices, normals, uvs}")
-            let (tris, own_uvs, own_colors) = match expr.strip_prefix("buffer:") {
-                Some(b) => {
-                    let c = scene3d::buffer_colors(b).map_err(|e| format!("mesh {}: {e}", t.id))?;
-                    let (t, u) = scene3d::buffer_tris(b).map_err(|e| format!("mesh {}: {e}", t.id))?;
-                    (std::sync::Arc::new(t), u, c)
-                }
-                None => (raea_core_shape::cached(&expr).map_err(|e| format!("mesh {}: {e}", t.id))?, None, None),
-            };
-            let mut m = Mesh::new(bevy::render::render_resource::PrimitiveTopology::TriangleList, bevy::asset::RenderAssetUsages::default());
-            m.insert_attribute(Mesh::ATTRIBUTE_POSITION, tris.positions.clone());
-            m.insert_attribute(Mesh::ATTRIBUTE_NORMAL, tris.normals.clone());
-            // a <BufferMesh colors>: per-vertex colours, which StandardMaterial multiplies its colour by
-            if let Some(c) = own_colors {
-                m.insert_attribute(Mesh::ATTRIBUTE_COLOR, c);
-            }
             // a picture map needs texture coordinates, which Manifold doesn't make (scene3d); a normal map needs
             // tangents too, made from them (mikktspace); so does a grid's outline (grid.rs)
             let grid = grid::grid_of(vals);
-            if own_uvs.is_some() || scene3d::has_maps(vals) || grid.is_some() {
-                m.insert_attribute(Mesh::ATTRIBUTE_UV_0, own_uvs.unwrap_or_else(|| scene3d::box_uvs(&tris.positions, &tris.normals)));
-                if vals.get("normal_map").is_some_and(V::truthy) {
-                    m.generate_tangents().map_err(|e| format!("mesh {}: normalMap: its tangents: {e}", t.id))?;
+            let uvs = scene3d::has_maps(vals) || grid.is_some();
+            let tangents = vals.get("normal_map").is_some_and(V::truthy);
+            // made once per shape and what it's given (share.rs): equal parts hold one Mesh, so Bevy batches them
+            let mesh = scene3d::shared_mesh(world, &format!("{expr}\0{uvs}\0{tangents}"), || {
+                // or its own vertex buffers (<BufferMesh>: "buffer:{positions, indices, normals, uvs}")
+                let (tris, own_uvs, own_colors) = match expr.strip_prefix("buffer:") {
+                    Some(b) => {
+                        let c = scene3d::buffer_colors(b).map_err(|e| format!("mesh {}: {e}", t.id))?;
+                        let (t, u) = scene3d::buffer_tris(b).map_err(|e| format!("mesh {}: {e}", t.id))?;
+                        (std::sync::Arc::new(t), u, c)
+                    }
+                    None => (raea_core_shape::cached(&expr).map_err(|e| format!("mesh {}: {e}", t.id))?, None, None),
+                };
+                let mut m = Mesh::new(bevy::render::render_resource::PrimitiveTopology::TriangleList, bevy::asset::RenderAssetUsages::default());
+                m.insert_attribute(Mesh::ATTRIBUTE_POSITION, tris.positions.clone());
+                m.insert_attribute(Mesh::ATTRIBUTE_NORMAL, tris.normals.clone());
+                // a <BufferMesh colors>: per-vertex colours, which StandardMaterial multiplies its colour by
+                if let Some(c) = own_colors {
+                    m.insert_attribute(Mesh::ATTRIBUTE_COLOR, c);
                 }
-            }
-            let mesh = world.resource_mut::<Assets<Mesh>>().add(m);
+                if own_uvs.is_some() || uvs {
+                    m.insert_attribute(Mesh::ATTRIBUTE_UV_0, own_uvs.unwrap_or_else(|| scene3d::box_uvs(&tris.positions, &tris.normals)));
+                    if tangents {
+                        m.generate_tangents().map_err(|e| format!("mesh {}: normalMap: its tangents: {e}", t.id))?;
+                    }
+                }
+                Ok(m)
+            })?;
             // the surface (emissive, opacity, unlit, clearcoat, a picture map...) and transform: scene3d
             let mat = scene3d::material(world, t, inserted, dir)?;
             // rot_x/y/z in radians and scale (or scale_x/y/z), as sync_meshes moves every mesh frame by frame
@@ -267,6 +277,14 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             } else if let Some(extension) = raea_sys_wear::of(vals) {
                 // worn paint (systems/wear): chipped edges, grime and rust, fixed in the part's own space
                 grid::put(world, e, mesh, raea_sys_wear::WearMaterial { base: mat, extension }, vals);
+            } else if vals.get("shader").is_none() && !vals.contains_key("opacity") {
+                // a plain surface: one material per value, shared by the parts that have it (share.rs; a see-through
+                // one keeps its own, as froxel_glass copies it per standard material)
+                let (mat, shared) = scene3d::shared_material(world, mat);
+                world.entity_mut(e).insert((Mesh3d(mesh), MeshMaterial3d(mat), transform_of(vals)));
+                if shared {
+                    world.entity_mut(e).insert(scene3d::SharedMaterial);
+                }
             } else {
                 grid::put(world, e, mesh, mat, vals);
                 // a shader over the lit surface (shader_ext.rs): put on once the rows are applied (scene3d's shade_rows)
@@ -284,6 +302,8 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
                 world.entity_mut(e).insert(bevy::light::NotShadowReceiver);
             }
             layers(world, e, vals);
+            // <Instances>: its mesh and material on one child a copy (scene3d's instance.rs)
+            scene3d::instance_mesh(world, e, t)?;
         }
         // 2D over the 3D (<Sprite>, <Shape2D>): raea-sys-sprite; a sprite's picture found and decoded as a panel's
         "sprite" => {

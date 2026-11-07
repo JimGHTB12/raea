@@ -231,27 +231,38 @@ pub(crate) fn loudness(video: &str, taste: Option<&Taste>, issues: &mut Vec<Issu
 }
 
 /// three seconds or more where the picture doesn't change (the floor: nothing stands still that long without a reason)
-pub(crate) fn freezes(video: &str, probe: &Probe, taste: Option<&Taste>, issues: &mut Vec<Issue>, passed: &mut Vec<String>) -> R<()> {
-    let most = taste.map_or(3.0, |t| t.value);
-    let err = ffmpeg_stderr(&["-hide_banner", "-nostats", "-i", video, "-an", "-vf", &format!("freezedetect=n=-60dB:d={most}"), "-f", "null", "-"])?;
+/// The stretches freezedetect logged, each (start, seconds). FFmpeg logs a freeze's duration when the picture moves
+/// again, so a freeze still running when the file ends has only its start, and lasts to the end of the file.
+pub(crate) fn frozen_stretches(log: &str, duration: f64) -> Vec<(f64, f64)> {
+    let mut stretches = Vec::new();
     let mut start = None;
-    let mut found = 0;
-    for l in err.lines() {
+    for l in log.lines() {
         if let Some(x) = l.split("freeze_start: ").nth(1) {
             start = x.trim().parse::<f64>().ok();
         }
         if let (Some(x), Some(s)) = (l.split("freeze_duration: ").nth(1), start) {
-            let d: f64 = x.trim().parse().unwrap_or(0.0);
-            found += 1;
-            let says = format!("nothing changes for {d:.1} s; give it a reason to hold, or cut it shorter");
-            issues.push(match taste {
-                Some(t) => Issue { rule: "taste", p: 1, at: Some(s), says: format!("{says} (\"{}\")", t.line) },
-                None => Issue { rule: "frozen", p: if d >= 6.0 || d >= probe.duration * 0.5 { 1 } else { 2 }, at: Some(s), says },
-            });
+            stretches.push((s, x.trim().parse().unwrap_or(0.0)));
             start = None;
         }
     }
-    if found == 0 {
+    if let Some(s) = start {
+        stretches.push((s, (duration - s).max(0.0)));
+    }
+    stretches
+}
+
+pub(crate) fn freezes(video: &str, probe: &Probe, taste: Option<&Taste>, issues: &mut Vec<Issue>, passed: &mut Vec<String>) -> R<()> {
+    let most = taste.map_or(3.0, |t| t.value);
+    let err = ffmpeg_stderr(&["-hide_banner", "-nostats", "-i", video, "-an", "-vf", &format!("freezedetect=n=-60dB:d={most}"), "-f", "null", "-"])?;
+    let stretches = frozen_stretches(&err, probe.picture);
+    for &(s, d) in &stretches {
+        let says = format!("nothing changes for {d:.1} s; give it a reason to hold, or cut it shorter");
+        issues.push(match taste {
+            Some(t) => Issue { rule: "taste", p: 1, at: Some(s), says: format!("{says} (\"{}\")", t.line) },
+            None => Issue { rule: "frozen", p: if d >= 6.0 || d >= probe.duration * 0.5 { 1 } else { 2 }, at: Some(s), says },
+        });
+    }
+    if stretches.is_empty() {
         passed.push(format!("frozen: nothing holds still for {most} s"));
     }
     Ok(())

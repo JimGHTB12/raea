@@ -49,6 +49,13 @@ pub(crate) fn frames_hold_3d(js: &Path, dir: &Path, frames: &[i64]) -> R<bool> {
 /// each waited on the JS thread and back, took the Rome film's 8,064 frames 6 s on a quiet machine and 38 s at load
 /// 50, before its engine could open. RAEA_BAKE_WORKERS sets how many runtimes (4; one for short timelines).
 pub(crate) fn scene_frames_to(js: &Path, dir: &Path, upto: i64) -> R<Option<(Vec<(i64, Frame)>, u32, u32, f64)>> {
+    scene_frames(js, dir, upto, true)
+}
+
+/// `whole`: the whole composition at least (scene_frames_to); else only frames 0..upto, as a still at frame f needs
+/// (a frame-0 still of 10 000 cubes over 121 frames stepped all 121, 69 s for 2 frames' 12 s; docs/control.feature
+/// FC1a)
+pub(crate) fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool) -> R<Option<(Vec<(i64, Frame)>, u32, u32, f64)>> {
     edit_dir(dir);
     let runtime = |js: &Path| {
         let mut app = App::new();
@@ -60,7 +67,8 @@ pub(crate) fn scene_frames_to(js: &Path, dir: &Path, upto: i64) -> R<Option<(Vec
     let conf = settle(&mut app, Some(-1), 20.0)?.ok_or("the composition's settings didn't arrive")?;
     let (w, h) = (num(&conf, "width").unwrap_or(1080.0) as u32, num(&conf, "height").unwrap_or(1920.0) as u32);
     let fps = num(&conf, "fps").unwrap_or(30.0);
-    let total = (num(&conf, "frames").unwrap_or(60.0) as i64).max(upto);
+    let length = num(&conf, "frames").unwrap_or(60.0) as i64;
+    let total = if whole || upto <= 0 { length.max(upto) } else { upto };
     type Scenes = Vec<(i64, Vec<Node3>, Option<String>)>;
     let step = |app: &mut App, a: i64, b: i64| -> R<Scenes> {
         let mut out: Scenes = Vec::with_capacity((b - a).max(0) as usize);

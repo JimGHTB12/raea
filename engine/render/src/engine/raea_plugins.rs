@@ -67,6 +67,7 @@ raea_plugin! {
     FramePassPlugin: raea_sys_framepass::install, "Full-screen passes written in TypeScript (raea-sys-framepass).";
     ComputePlugin: raea_sys_compute::install, "Compute shaders written in TypeScript, run before the cameras draw (raea-sys-compute).";
     LensPlugin: super::lens::install, "The camera's lens (Fisheye, LensDistortion), after tone mapping (lens.rs).";
+    ParityPlugin: raea_sys_parity::install, "The parity probe: a frame's cost and World, written when RAEA_PARITY is set (raea-sys-parity, docs/control.feature FC0a).";
     MotionBlurPlugin: super::motion_blur::install, "Motion blur's frame counter pinned to the frame (motion_blur.rs).";
 }
 
@@ -104,6 +105,8 @@ pub fn scene3d_systems() -> ScheduleConfigs<ScheduleSystem> {
         // 2D over the 3D: its camera once there's a part, then each part's place, cell and colour (raea-sys-sprite)
         (super::sprite2d::camera_2d, super::sprite2d::sync_2d).chain(),
         super::scene3d::model_setup,
+        super::scene3d::instance_models,
+        super::scene3d::model_shadow_markers,
         super::scene3d::toon_models,
         ((super::scene3d::sync_meshes, super::scene3d::sync_pictures, super::shader_ext::sync_shaded, raea_sys_sampler::arrays::sync_arrays, raea_sys_sampler::sync_samplers).chain(), super::toon::sync_toon, super::scene3d::sync_camera, super::motion_blur::sync_motion_blur, super::environment::sync_environment, super::scene3d::sync_lights, super::scene3d::sync_fog_volumes, super::scene3d::sync_fog_dither, super::scene3d::sync_models, super::scene3d::sync_morphs, super::scene3d::sync_attach, super::grid::grid_models, super::scene3d::sync_bones, super::look::sync_frame_look, super::look::sync_looks, super::compose::sync_passes, super::look::sync_flat, super::paint::sync_paint, super::decal::sync_decals, super::text3d::sync_texts).chain(),
     )

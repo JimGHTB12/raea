@@ -15,6 +15,7 @@ pub mod media_html;
 #[cfg(feature = "media")]
 pub mod webaudio;
 pub mod net;
+pub mod os;
 pub mod world;
 
 use bevy::prelude::*;

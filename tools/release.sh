@@ -10,7 +10,11 @@
 #   tools/release.sh VERSION BIN_DIR [REF]     BIN_DIR holds a release build's raea and its bundler
 #                                              (libraea_bundle.dylib, .so, or raea.exe and raea_bundle.dll), and on
 #                                              macOS raea-perceive (`raea song` runs it; it isn't ported, so Linux's
-#                                              and Windows's archives have no `raea song`)
+#                                              and Windows's archives have no `raea song`), and the app targets' two
+#                                              hosts (docs/targets.feature T1f): raea-rune-host (native) and
+#                                              raea-page-host's window build (web), each built in a cargo call of its
+#                                              own, as they ship: `cargo build --profile dist -p raea-rune-host` and
+#                                              `cargo build --profile dist -p raea-page-host --features window`
 #
 # The public engine is free and needs no raea account: its raea is built without raea's API (engine/cli's service
 # feature) and with the plugin catalog (raea/plugins' 56 Bevy plugins and raea/input's gamepad and picking):
@@ -62,28 +66,32 @@ since=${RAEA_SINCE:-$(git describe --tags --abbrev=0 --match 'v*' "$ref" 2>/dev/
 } > "$out/raea-$version-skills.md"
 case $platform in
   linux-x86_64)
-    cp "$bin/raea" "$bin/libraea_bundle.so" "$stage/bin/"
+    cp "$bin/raea" "$bin/libraea_bundle.so" "$bin/raea-rune-host" "$bin/raea-page-host" "$stage/bin/"
     # what a Linux machine needs beside it: the bundled Noto Sans JP is a Latin subset, so kanji and kana come from the
     # system, as on a Mac (raea warns once a character when no font has it)
     printf '%s\n' "raea $version for Linux x86_64 (glibc 2.39 or newer, Vulkan: a GPU driver or Mesa's llvmpipe).
 Install a CJK font for Japanese, Chinese and Korean text (Debian and Ubuntu: apt install fonts-noto-cjk).
+An app on the native target (raea app ... --target native, raea-rune-host) needs libxkbcommon-x11 and the Vulkan
+loader (Debian and Ubuntu: apt install libxkbcommon-x11-0 libvulkan1).
 Not in this build: raea song (its beat model's runner is macOS only so far)." > "$stage/README" ;;
   windows-x86_64)
-    cp "$bin/raea.exe" "$bin/raea_bundle.dll" "$stage/bin/"
+    cp "$bin/raea.exe" "$bin/raea_bundle.dll" "$bin/raea-rune-host.exe" "$bin/raea-page-host.exe" "$stage/bin/"
     # the C runtime isn't in the zip (ort's ONNX Runtime needs its DLLs, and they're Microsoft's to ship): the VC++
     # redistributable, which most Windows machines already have, provides it
     printf '%s\r\n' "raea $version for Windows x86_64 (Windows 10 or 11, a DirectX 12 or Vulkan GPU driver; with no GPU, Mesa's lavapipe and WGPU_BACKEND=vulkan)." \
       "It needs the Microsoft Visual C++ Redistributable (x64), which most machines already have:" \
       "https://aka.ms/vs/17/release/vc_redist.x64.exe" \
       "Not in this build: raea song (its beat model's runner is macOS only so far)." > "$stage/README.txt" ;;
-  *) cp "$bin/raea" "$bin/libraea_bundle.dylib" "$bin/raea-perceive" "$stage/bin/" ;;
+  *) cp "$bin/raea" "$bin/libraea_bundle.dylib" "$bin/raea-perceive" "$bin/raea-rune-host" "$bin/raea-page-host" "$stage/bin/" ;;
 esac
 # the packages sdk/tsconfig.base.json lists (@raea/<name>: its sources and package.json), which the bundlers resolve by it
 pkgs=()
 # and its bevy/ (a package's plugin handles, generated from the plugin build: its src/plugin.ts imports ../bevy/)
+# and its examples/ (@raea/rune's, docs/targets.feature T1b: what a release's check runs)
 for p in $(git show "$ref:sdk/tsconfig.base.json" | jq -r '.compilerOptions.paths | to_entries[] | select(.key | test("^@raea/[a-z_]+$")) | .value[0] | ltrimstr("./") | split("/")[0]' | tr -d '\r'); do
   pkgs+=("sdk/$p/src" "sdk/$p/package.json")
   git cat-file -e "$ref:sdk/$p/bevy" 2>/dev/null && pkgs+=("sdk/$p/bevy")
+  git cat-file -e "$ref:sdk/$p/examples" 2>/dev/null && pkgs+=("sdk/$p/examples")
 done
 [ ${#pkgs[@]} -gt 0 ] || { echo "release: no @raea packages in sdk/tsconfig.base.json at $ref" >&2; exit 1; }
 # the committed files raea reads at run time

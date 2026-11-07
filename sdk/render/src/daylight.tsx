@@ -11,10 +11,9 @@ import { AmbientLight, DirectionalLight, Environment, SpotLight, type Vec3 } fro
 import { hasNative, native } from "@raea/app/native";
 import { onWall, type Opening, type Room } from "@raea/room/room";
 
-/** The engine's light units (core/scene props.rs): a DirectionalLight of 1 is 8000 lux; a spot or point
- * light of 1 is 9e5 lumens, its candela a lumen over 4π; an Environment of 1 is its panorama times 1000 cd/m²; an
- * AmbientLight of 1 is 400 cd/m². */
-export const UNITS = { lux: 8000, lumens: 9e5, envNits: 1000, ambientNits: 400 };
+/** The engine's one relative unit left (core/scene props.rs ENV): an Environment of 1 is its panorama times 1000 cd/m².
+ *  Lights are given in Bevy's own units (lux, lumens, nits: docs/control.feature FC1f). */
+export const UNITS = { envNits: 1000 };
 
 const rad = Math.PI / 180;
 
@@ -140,9 +139,9 @@ export function Daylight({ day, indoor = 0.02, softShadow = 0.6 }: { day: Day; i
   const b = bounce(day, indoor);
   return (
     <>
-      {day.sunLux > 0 && <DirectionalLight name="sun" position={at} target={[0, 0, 0]} intensity={day.sunLux / UNITS.lux} color={kelvin(day.sunK)} castShadow softShadow={softShadow} />}
+      {day.sunLux > 0 && <DirectionalLight name="sun" position={at} target={[0, 0, 0]} lux={day.sunLux} color={kelvin(day.sunK)} castShadow softShadow={softShadow} />}
       <Environment src={day.sky} rotation={day.rotation} intensity={0} background backgroundIntensity={day.scale / UNITS.envNits} />
-      <AmbientLight name="bounce" intensity={b.nits / UNITS.ambientNits} color={kelvin(b.kelvin)} />
+      <AmbientLight name="bounce" nits={b.nits} color={kelvin(b.kelvin)} />
     </>
   );
 }
@@ -160,7 +159,7 @@ export function windowLight(day: Day, room: Room, o: Opening, { transmit = 0.75,
   return {
     position: onWall(f, o.at, o.kind === "bay" ? 0.05 : -0.02, y),
     target: onWall(f, o.at, 3, Math.max(0.3, y - 1.2)),
-    intensity: (candela * 4 * Math.PI) / UNITS.lumens,
+    lumens: candela * 4 * Math.PI,
     color: kelvin((day.skyK + day.sunK) / 2),
     candela,
   };
@@ -169,7 +168,7 @@ export function windowLight(day: Day, room: Room, o: Opening, { transmit = 0.75,
 /** A window's light as a lamp (windowLight), wide and soft, shadowed. */
 export function WindowLight({ day, room, opening, transmit, ground, name }: { day: Day; room: Room; opening: Opening; transmit?: number; ground?: number; name?: string }) {
   const w = windowLight(day, room, opening, { transmit, ground });
-  return <SpotLight name={name ?? `window-${opening.wall}-${opening.at.toFixed(2)}`} position={w.position} target={w.target} intensity={w.intensity} color={w.color} angle={Math.PI / 2} penumbra={1} castShadow />;
+  return <SpotLight name={name ?? `window-${opening.wall}-${opening.at.toFixed(2)}`} position={w.position} target={w.target} lumens={w.lumens} color={w.color} angle={Math.PI / 2} penumbra={1} castShadow />;
 }
 
 /** The exposure a camera sets for the room, as <ToneMapping exposure>: an incident meter's EV100 (log2 E·100/250, as

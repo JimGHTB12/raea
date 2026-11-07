@@ -9,6 +9,8 @@ use serde_json::{Map, Value};
 
 mod camera;
 pub use camera::*;
+mod instances;
+pub use instances::*;
 
 /// Bloom of intensity 1: Bevy's natural preset.
 pub const BLOOM: f64 = 0.15;
@@ -121,7 +123,12 @@ pub fn r6(x: f64) -> f64 {
 
 /// A row's numeric column: its first frame's value, keyed on every frame when it changes.
 pub fn column(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, name: &str, vals: &[f64]) {
-    let vals: Vec<f64> = vals.iter().map(|v| r6(*v)).collect();
+    exact(p, row, id, name, &vals.iter().map(|v| r6(*v)).collect::<Vec<_>>());
+}
+
+/// `column` unrounded, for values that are already the World's f32 (a Transform's, docs/control.feature FC1d): 1e-6 is
+/// coarser than f32 below 8, so rounding would move a quaternion by up to 5e-7.
+pub fn exact(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, name: &str, vals: &[f64]) {
     row.insert(name.into(), V::N(vals[0]));
     if !vals.iter().all(|v| (*v - vals[0]).abs() < 1e-9) {
         p.keys.insert((id.to_string(), name.to_string()), vals.iter().enumerate().map(|(f, v)| (f as i64, *v, "linear".to_string())).collect());
@@ -396,27 +403,60 @@ pub fn skip_list(props: &Map<String, Value>) -> Option<String> {
 /// A part's Bevy components (runtime/plugins/src/lib.rs): each type's value from the first frame it's there, and
 /// again from each frame its value changes (or from the frame its `from` names), as `component` rows on the part's row.
 pub fn components(p: &mut Program, id: &str, its: &[Item]) {
+    let each = its.iter().enumerate().flat_map(|(f, it)| it.props.get("components").and_then(Value::as_array).into_iter().flatten().map(move |c| (f, c)));
+    keyed(p, "component", Some(id), "c", each);
+}
+
+/// A StandardMaterial's fields its `animate` names beyond the row columns' four (docs/control.feature FC1c): sampled each
+/// frame onto the material's props as `field:<name>` (runtime/react animate.rs), sent as keyed `material:` rows that
+/// patch the part's own material (runtime/plugins patch_material). A colour arrives as #rrggbb and goes as Bevy's Srgba.
+pub fn material_fields(p: &mut Program, id: &str, its: &[Item]) {
+    let each: Vec<(usize, Value)> = its.iter().enumerate().filter_map(|(f, it)| {
+        let m = it.material.as_ref()?;
+        let o: Map<String, Value> = m.props.iter().filter_map(|(k, v)| Some((k.strip_prefix("field:")?.to_string(), bevy_value(v)))).collect();
+        (!o.is_empty()).then(|| (f, serde_json::json!({ "type": "material:bevy_pbr::pbr_material::StandardMaterial", "value": o })))
+    }).collect();
+    keyed(p, "component", Some(id), "m", each.iter().map(|(f, v)| (*f, v)));
+}
+
+/// A sampled value as reflect's JSON takes it: `#rrggbb` (or `#rrggbbaa`) as a Color's Srgba, the rest as it is
+fn bevy_value(v: &Value) -> Value {
+    let Some(h) = v.as_str().and_then(|s| s.strip_prefix('#')).filter(|h| (h.len() == 6 || h.len() == 8) && h.chars().all(|c| c.is_ascii_hexdigit())) else { return v.clone() };
+    let c = |i: usize| u8::from_str_radix(&h[i..i + 2], 16).unwrap_or(0) as f64 / 255.0;
+    serde_json::json!({ "Srgba": { "red": c(0), "green": c(2), "blue": c(4), "alpha": if h.len() == 8 { c(6) } else { 1.0 } } })
+}
+
+/// Bevy's reflected resources and a plugin's (<BevyResource>, items of kind "resource"), keyed as a component's are
+/// (docs/control.feature FC1c: only frame 0's was kept)
+pub fn resources(p: &mut Program, all: &[Vec<Item>]) {
+    let each = all.iter().enumerate().flat_map(|(f, items)| items.iter().filter(|it| it.kind == "resource").map(move |it| (f, Value::Object((*it.props).clone()))));
+    let each: Vec<(usize, Value)> = each.collect();
+    keyed(p, "resource", None, "c", each.iter().map(|(f, v)| (*f, v)));
+}
+
+/// `kind` rows of each type's value from the frame it's first seen, and again from each frame it changes
+fn keyed<'a>(p: &mut Program, kind: &str, target: Option<&str>, tag: &str, each: impl Iterator<Item = (usize, &'a Value)>) {
     let mut last: BTreeMap<String, String> = BTreeMap::new();
     let mut n = 0;
-    for (f, it) in its.iter().enumerate() {
-        for c in it.props.get("components").and_then(Value::as_array).into_iter().flatten() {
-            let Some(ty) = c.get("type").and_then(Value::as_str) else { continue };
-            let value = c.get("value").cloned().unwrap_or(Value::Null).to_string();
-            if last.get(ty) == Some(&value) {
-                continue;
-            }
-            last.insert(ty.to_string(), value.clone());
-            let from = c.get("from").and_then(Value::as_f64).unwrap_or(f as f64);
-            let mut row = BTreeMap::new();
-            row.insert("id".into(), V::S(format!("{id}-c{n}")));
-            row.insert("target".into(), V::S(id.to_string()));
-            row.insert("type".into(), V::S(ty.to_string()));
-            row.insert("value".into(), V::S(value));
-            if from > 0.0 {
-                row.insert("from".into(), V::N(from));
-            }
-            p.spawns.push(("component".into(), vec![row]));
-            n += 1;
+    for (f, c) in each {
+        let Some(ty) = c.get("type").and_then(Value::as_str) else { continue };
+        let value = c.get("value").cloned().unwrap_or(Value::Null).to_string();
+        if last.get(ty) == Some(&value) {
+            continue;
         }
+        last.insert(ty.to_string(), value.clone());
+        let from = c.get("from").and_then(Value::as_f64).unwrap_or(f as f64);
+        let mut row = BTreeMap::new();
+        row.insert("id".into(), V::S(match target { Some(id) => format!("{id}-{tag}{n}"), None => format!("res{n}") }));
+        if let Some(id) = target {
+            row.insert("target".into(), V::S(id.to_string()));
+        }
+        row.insert("type".into(), V::S(ty.to_string()));
+        row.insert("value".into(), V::S(value));
+        if from > 0.0 {
+            row.insert("from".into(), V::N(from));
+        }
+        p.spawns.push((kind.into(), vec![row]));
+        n += 1;
     }
 }

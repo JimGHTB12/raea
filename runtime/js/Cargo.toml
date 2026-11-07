@@ -22,6 +22,10 @@ bevy = { version = "=0.20.0", default-features = false, features = ["std", "defa
 # the op wire to and from a page's script
 raea-core-wire = { path = "../../core/wire" }
 raea-io-net = { path = "../../io/net", features = ["ws"] }
+# the net.* calls, answered as the native target answers them (docs/targets.feature T2a)
+raea-io-net-calls = { path = "../../io/net/calls" }
+# os.open, the clipboard, files and dialogs, answered as the native target answers them (docs/targets.feature T2d)
+raea-io-os = { path = "../../io/os" }
 # the world API: BRP's methods run in-process, watched reads (shared with every raea runtime)
 raea-bevy-world = { path = "../../engine/bevy-world" }
 serde = { version = "1", features = ["derive"] }

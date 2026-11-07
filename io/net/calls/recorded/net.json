@@ -1,0 +1,80 @@
+[
+  {
+    "call": "net.fetch",
+    "ok": true,
+    "value": {
+      "body": "aGVsbG8=",
+      "headers": [
+        [
+          "content-type",
+          "text/plain"
+        ],
+        [
+          "content-length",
+          "5"
+        ],
+        [
+          "connection",
+          "close"
+        ]
+      ],
+      "redirected": false,
+      "status": 200,
+      "statusText": "OK",
+      "url": "HTTP/hello"
+    }
+  },
+  {
+    "call": "net.storage.set",
+    "ok": true,
+    "value": null
+  },
+  {
+    "call": "net.storage.get",
+    "ok": true,
+    "value": {
+      "a": "1"
+    }
+  },
+  {
+    "call": "net.ws.open",
+    "ok": true,
+    "value": null
+  },
+  {
+    "event": "net.ws",
+    "value": {
+      "ev": "open",
+      "id": 1,
+      "protocol": ""
+    }
+  },
+  {
+    "call": "net.ws.send",
+    "ok": true,
+    "value": null
+  },
+  {
+    "event": "net.ws",
+    "value": {
+      "data": "hi",
+      "ev": "message",
+      "id": 1
+    }
+  },
+  {
+    "call": "net.ws.close",
+    "ok": true,
+    "value": null
+  },
+  {
+    "event": "net.ws",
+    "value": {
+      "clean": true,
+      "code": 1000,
+      "ev": "close",
+      "id": 1,
+      "reason": "bye"
+    }
+  }
+]

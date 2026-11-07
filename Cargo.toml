@@ -12,10 +12,13 @@ members = [
     "core/shape",
     "core/wire",
     "io/net",
+    "io/net/calls",
+    "io/os",
     "systems/animate",
     "systems/framepass",
     "systems/compute",
     "systems/sampler",
+    "systems/parity",
     "systems/shader",
     "engine/bevy-calls",
     "engine/bevy-adapters",
@@ -31,6 +34,9 @@ members = [
     "io/npm",
     "engine/page",
     "engine/page/host",
+    "engine/rune",
+    "engine/rune/page",
+    "engine/rune/style",
     "engine/page/stage",
     "engine/page/window",
     "io/trace",
@@ -104,10 +110,13 @@ members = [
     "engine/seedling",
     "runtime/react",
     "bench/bridge",
+    "bench/bevy-parity",
     "bench/bridge/swatch",
     "core/alloc",
     "runtime/bake",
     "runtime/bundle",
+    "runtime/bundle/lib",
+    "engine/shape-web",
     "runtime/calls",
     "runtime/export",
     "runtime/live",
@@ -121,6 +130,7 @@ members = [
     "apps/ci",
     "apps/tools",
     "apps/media",
+    "apps/targets",
     "apps/game",
     "apps/play",
     "tools/sdk-props",
@@ -132,6 +142,9 @@ exclude = [
 
 # io/npm's reqwest = { workspace = true }
 [workspace.dependencies]
+# Rune (MIT, the native target: engine/rune) by a pinned rev of `dev`, never rewritten upstream; bump on purpose, in a commit of its own
+rune = { git = "https://github.com/anomalyco/rune", rev = "7ead7d63fcf6f9dd9669385a8b90e2ae80015d7b" }
+rune-kit = { git = "https://github.com/anomalyco/rune", rev = "7ead7d63fcf6f9dd9669385a8b90e2ae80015d7b" }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
 
 [profile.release]

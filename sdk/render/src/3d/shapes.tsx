@@ -253,6 +253,8 @@ export interface MeshProps extends PointerHandlers3d {
    * <Outline skip>, <Bloom skip>, <Grade skip>) leaves its pixels as drawn, and <Look passes> gives one its own paint;
    * a piece names at most three passes besides "scene"; keyed per frame */
   pass?: string;
+  /** a rotation as a quaternion [x, y, z, w], Bevy's Transform.rotation, in place of `rotation` (<Mesh3d transform> sends it) */
+  quaternion?: [number, number, number, number];
   position?: Vec3;
   /** radians */
   rotation?: Vec3;
@@ -304,7 +306,7 @@ export function apply3d<T extends object>(props: T, v: Record<string, number | s
   return out as T;
 }
 
-function shapeFromChildren(children: ReactNode): string | undefined {
+export function shapeFromChildren(children: ReactNode): string | undefined {
   let found: string | undefined;
   Children.forEach(children, (child) => {
     if (found !== undefined || !isValidElement(child)) return;
@@ -360,7 +362,7 @@ export function Mesh(props: MeshProps) {
   if (manifold !== undefined) extra["data-shape"] = manifold as string;
   if (anim.attr) extra["data-raea-anim"] = anim.attr;
   const id = useId();
-  const m = usePlace3d(position, rotation, scale);
+  const m = usePlace3d(position, rotation, scale, props.quaternion);
   usePointer3d(props.name ?? id, m, shape === undefined ? boundsFromChildren(props.children) : undefined, props as Record<string, unknown>);
   return node3d("Mesh", { ...props, animate: undefined, shape: undefined, position, rotation, scale }, <Place3d.Provider value={m}>{props.children}</Place3d.Provider>, Object.keys(extra).length ? extra : undefined);
 }

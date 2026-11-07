@@ -40,9 +40,9 @@ that moves each (when there is one) and the files that name them.
 | `~/.raea/Library/Caches` |  | apps/app/host/acp/fence.ts |
 | `~/.raea/account.json` | `RAEA_ACCOUNT` | apps/app/host/auth.ts |
 | `~/.raea/actions.jsonl` |  | io/shell/src/fs/mod.rs |
-| `~/.raea/bin` |  | io/assets/src/lib.rs, runtime/bundle/src/fresh.rs, runtime/page/src/faces.rs |
+| `~/.raea/bin` |  | io/assets/src/lib.rs, runtime/bundle/lib/src/lib.rs, runtime/page/src/faces.rs |
 | `~/.raea/cache` |  | apps/app/host/take.ts |
-| `~/.raea/env` | `RAEA_ENV_FILE` | apps/app/host/director.ts, io/gen-core/src/fal.rs, io/gen-core/src/fish.rs, io/gen-core/src/made.rs, io/gen-core/src/modal.rs, io/gen-core/src/openrouter.rs, io/gen-core/src/replicate.rs, io/home/src/lib.rs |
+| `~/.raea/env` | `RAEA_ENV_FILE` | apps/app/host/director.ts, io/gen-core/src/fal.rs, io/gen-core/src/fish.rs, io/gen-core/src/made.rs, io/gen-core/src/modal.rs, io/gen-core/src/openrouter.rs, io/gen-core/src/replicate.rs, io/gen-core/src/tripo.rs, io/home/src/lib.rs |
 | `~/.raea/evals/skills` |  | apps/app/host/evals/skills.ts |
 | `~/.raea/feed/media` |  | apps/app/host/paths.ts |
 | `~/.raea/library` | `RAEA_LIBRARY_HOME` | apps/app/host/library/local.ts |

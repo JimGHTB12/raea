@@ -37,6 +37,7 @@ raea-sys-material = { path = "../../systems/material" }
 raea-sys-framepass = { path = "../../systems/framepass" }
 raea-sys-compute = { path = "../../systems/compute" }
 raea-sys-sampler = { path = "../../systems/sampler" }
+raea-sys-parity = { path = "../../systems/parity" }
 raea-sys-shader = { path = "../../systems/shader" }
 raea-sys-post = { path = "../../systems/post" }
 raea-sys-fog = { path = "../../systems/fog" }

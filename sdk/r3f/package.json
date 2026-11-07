@@ -1,0 +1,28 @@
+{
+  "name": "@raea/r3f",
+  "license": "FSL-1.1-ALv2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "React Three Fiber both ways (docs/r3f.feature): <R3F> draws an R3F scene with raea, <Raea> and the three.js host (src/three) draw raea's 3D in R3F or any three.js app, loadShapes meshes raea's solids for them (tools/shape-wasm.sh).",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./three": "./src/three/index.ts"
+  },
+  "//": "In a project, three and @react-three/fiber are its own (raea add three@0.180.0 @react-three/fiber@9.8.2): the bundler resolves them from the project, so a scene and raea share one copy. Here, for the package's tests and tsc, React is the SDK's own (sdk/raea), linked; sdk/playable's bundler resolves three to its own copy, so a playable carries one.",
+  "peerDependencies": {
+    "@react-three/fiber": ">=9.0.0",
+    "three": ">=0.170.0"
+  },
+  "devDependencies": {
+    "@react-three/fiber": "9.8.2",
+    "@types/bun": "1.4.3",
+    "@types/react-dom": "19.2.0",
+    "@types/three": "0.180.0",
+    "react": "file:../raea/node_modules/react",
+    "react-dom": "file:../raea/node_modules/react-dom",
+    "scheduler": "file:../raea/node_modules/scheduler",
+    "three": "0.180.0"
+  }
+}

@@ -203,6 +203,11 @@ export interface ModelProps {
   /** its surfaces without light: shape and colour alone, like a drawing (the site look keeps the light: its grain
    * is made of it) */
   flat?: boolean;
+  /** false: its meshes cast no shadow (true by default) */
+  shadow?: boolean;
+  /** false: no shadow falls on its meshes, its own included (true by default): a furry coat of many cards that would
+   * otherwise speckle itself in the shadow maps */
+  receiveShadow?: boolean;
   /** a cell's size in frame pixels for the pixel and site looks (6 by default) */
   pixelSize?: number;
   /** the pixel look's one-cell outline, a hex colour ("#000000" by default), or "none" */

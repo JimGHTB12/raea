@@ -54,7 +54,7 @@ pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>)
         }
     }
     // ambient: every AmbientLight's intensity summed, per frame; its colour the first one's
-    let amb: Vec<f64> = all.iter().map(|its| its.iter().filter(|i| i.kind == "ambient").map(|i| n(&i.props, "intensity", 1.0)).sum::<f64>() * AMBIENT).collect();
+    let amb: Vec<f64> = all.iter().map(|its| its.iter().filter(|i| i.kind == "ambient").map(|i| light_power("ambient", &i.props)).sum::<f64>()).collect();
     if amb.iter().any(|a| *a > 0.0) {
         column(p, row, id, "ambient", &amb);
         if let Some(c) = all.iter().flatten().find(|i| i.kind == "ambient").and_then(|i| hex(i.props.get("color"))) {

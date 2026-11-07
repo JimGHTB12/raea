@@ -4,6 +4,8 @@ use super::*;
 
 /// the most values a part keys in a frame: placement (9), animation (1, 8 mixed, 32 graph), morphs (64) and a few more
 const WANT: usize = 128;
+/// The placement columns, sent unrounded: they are already f32 (docs/control.feature FC1d).
+const PLACE: [&str; 10] = ["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z"];
 
 impl LiveScene {
     /// `diff(current(f))` for a frame whose parts are all known, without the rows: each known part's changing values worked out into a fixed array and held
@@ -82,7 +84,7 @@ impl LiveScene {
                 }
             }
         }
-        let amb = its.iter().filter(|i| i.kind == "ambient").map(|i| n(&i.props, "intensity", 1.0)).sum::<f64>() * AMBIENT;
+        let amb = its.iter().filter(|i| i.kind == "ambient").map(|i| light_power("ambient", &i.props)).sum::<f64>();
         cam[7].1 = if amb > 0.0 { Some(r6(amb)) } else { self.cam.contains_key("ambient").then_some(0.0) };
         let mut vals = BTreeMap::new();
         for (k, v) in cam {
@@ -117,14 +119,15 @@ impl LiveScene {
             let mut want: [(&str, Option<f64>); WANT] = [("", None); WANT];
             let mut nw = 0usize;
             let mut put = |k: &'static str, v: f64| {
-                want[nw] = (k, Some(r6(v)));
+                // a Transform's columns as the World's f32 holds them (FC1d), the rest to 6 decimals
+                want[nw] = (k, Some(if PLACE.contains(&k) { v } else { r6(v) }));
                 nw += 1;
             };
             let mut color: Option<std::borrow::Cow<str>> = None;
             let place = |put: &mut dyn FnMut(&'static str, f64)| {
                 let (s, q, t) = it.world.to_scale_rotation_translation();
-                let (ry, rx, rz) = q.to_euler(EulerRot::YXZ);
-                for (name, v) in [("x", t.x), ("y", t.y), ("z", t.z), ("rot_x", rx), ("rot_y", ry), ("rot_z", rz)] {
+                // Bevy's quaternion as it is (docs/control.feature FC1d)
+                for (name, v) in [("x", t.x), ("y", t.y), ("z", t.z), ("q_x", q.x), ("q_y", q.y), ("q_z", q.z), ("q_w", q.w)] {
                     put(name, v as f64);
                 }
                 let sc = [s.x as f64, s.y as f64, s.z as f64];
@@ -137,7 +140,7 @@ impl LiveScene {
             let kind: &'static str = match it.kind {
                 "directional" | "point" | "spot" | "rect" => {
                     let dir = it.kind == "directional";
-                    put(if dir { "lux" } else { "lumens" }, n(&it.props, "intensity", 1.0) * if dir { LUX } else { LUMENS } * 1.0);
+                    put(if dir { "lux" } else { "lumens" }, light_power(it.kind, &it.props));
                     let v = vec3(&it.props, "position", if dir { [0.0, 1.0, 0.0] } else { [0.0; 3] });
                     let w = it.world.transform_point3(Vec3::new(v[0] as f32, v[1] as f32, v[2] as f32));
                     let pos = [w.x as f64, w.y as f64, w.z as f64];

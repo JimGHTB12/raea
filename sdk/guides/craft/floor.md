@@ -18,6 +18,8 @@ Before you say a piece is done, every line here is true of the last render, not 
   right 84; Shorts: top 120, bottom 300, right 96). A 4:5 feed frame needs top 110, bottom 170, sides 60; a 1:1 frame
   top 70, bottom 120, sides 60; 16:9 top and bottom 120, sides 60. These zones are only where text can't go. Where it
   should go is a design choice.
+- **Nothing flashes past the limit.** No more than three flashes in any one second over a sizable part of the frame
+  (WCAG 2.3.1): past that, flashing can cause seizures. A strobe or a fast flicker needs slowing, shrinking or less contrast.
 - **Cues land on their words.** A cut, a move or a caption tied to speech starts on the word, timed from the
   transcript's word times. Never place one by eye or at a fixed tempo.
 - **Every name the voice says is on screen when it says it.** If the narration says "the brief", the brief is visible.

@@ -63,6 +63,19 @@ pub fn methods(r: RemotePlugin, prefix: &str) -> RemotePlugin {
         .with_method_main(format!("{prefix}.state"), state)
         .with_method_main(format!("{prefix}.actions"), actions)
         .with_watching_method_main(format!("{prefix}.action+watch"), action)
+        .with_method_main(format!("{prefix}.os"), os)
+}
+
+/// A check's step for the next pick, save or dialog (`{"pick": [file]}`, `{"save": file}`, `{"dialog": index}`,
+/// docs/targets.feature T2d), queued in raea-io-os; with no params, what os.open was asked for while headless.
+pub fn os(In(p): In<Option<Value>>) -> BrpResult {
+    match p {
+        Some(s) => {
+            raea_io_os::script(raea_io_os::step(&s).ok_or_else(|| internal(format!("{s} is none of pick, save, dialog")))?);
+            Ok(Value::Null)
+        }
+        None => Ok(serde_json::json!(raea_io_os::opened())),
+    }
 }
 
 /// The plugins on `port`, the host's methods under `page.` (an app adds its own to `r` first: `with`).

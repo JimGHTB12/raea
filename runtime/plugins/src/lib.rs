@@ -4,8 +4,9 @@
 //!
 //!   component  {target: a row's id, type: a reflected type path, value: JSON, from?: frame}
 //!              the value deserialized through Bevy's TypeRegistry (TypedReflectDeserializer) and inserted with
-//!              ReflectComponent::insert on the target's entity: at load, or once frame `from` is drawn
-//!   resource   {type, value}   the same for a reflected resource, at load
+//!              ReflectComponent::insert on the target's entity: at load, or once frame `from` is drawn (each frame
+//!              takes the last row from at or before it, in every build: docs/control.feature FC1c)
+//!   resource   {type, value, from?}   the same for a reflected resource
 //!   mesh ... driven            the mesh's Transform is the plugin's (a rigid body's), not the rows'
 //!
 //! Render equals play: with a plugin installed, Bevy's clock is the frame index. Every update that draws a new frame f
@@ -97,9 +98,14 @@ pub struct PluginClock {
 #[derive(Component)]
 pub struct Driven;
 
-/// Component rows that wait for a frame: (entity, type, value, from).
+/// The edit's component and resource rows keyed to frames (docs/control.feature FC1c): each one's target (None: a
+/// resource), type, value and first frame, and the frame of the row last applied for each target and type. A frame
+/// takes, for each, the last row from at or before it, so a seek (a still, live play's jump) lands on its value.
 #[derive(Resource, Default)]
-struct TimedRows(Vec<(Entity, String, Value, i64)>);
+struct Keyed {
+    rows: Vec<(Option<Entity>, String, Value, i64)>,
+    applied: std::collections::HashMap<(Option<Entity>, String), i64>,
+}
 
 /// Adds the registered plugins (all but the on-demand ones) and the frame clock, when there are any. An App without
 /// plugins is left as it was.
@@ -121,6 +127,7 @@ pub fn install(app: &mut App, fps: f64) {
     character::register(app);
     // materials written in TypeScript (<ShaderMaterial>, shader_material.rs): the render Engine only
     shader_material::install(app);
+    keyed(app);
     let list: Vec<fn(&mut App)> = PLUGINS.lock().unwrap().iter().filter(|r| !r.on_demand).map(|r| r.install).collect();
     install_list(app, fps, list);
 }
@@ -139,8 +146,15 @@ pub fn install_named(app: &mut App, fps: f64, names: &[&str]) -> Result<(), Stri
     }
     world_methods(app);
     character::register(app);
+    keyed(app);
     install_list(app, fps, list);
     Ok(())
+}
+
+/// Keyed component and resource rows, in every build: with a plugin or without one (docs/control.feature FC1c)
+fn keyed(app: &mut App) {
+    app.init_resource::<Keyed>();
+    app.add_systems(Update, keyed_rows);
 }
 
 /// A live game's component and resource rows (Engine::set_rows), each as its live values now stand: a component's
@@ -181,8 +195,6 @@ fn install_list(app: &mut App, fps: f64, list: Vec<fn(&mut App)>) {
     app.insert_resource(TimeUpdateStrategy::ManualDuration(Duration::ZERO));
     app.world_mut().resource_mut::<Time<Fixed>>().set_timestep(dt);
     app.insert_resource(PluginClock { stepped: 0, dt, advancing: false, steps: 0 });
-    app.init_resource::<TimedRows>();
-    app.add_systems(Update, timed_rows);
 }
 
 pub fn active(world: &World) -> bool {
@@ -208,20 +220,41 @@ pub fn arm(world: &mut World) {
     world.insert_resource(TimeUpdateStrategy::ManualDuration(dt));
 }
 
-/// Component rows whose frame has come, inserted on the update that draws it (so the steps after it see them).
-fn timed_rows(world: &mut World) {
-    let (advancing, f) = match world.get_resource::<PluginClock>() {
-        Some(c) => (c.advancing, c.stepped),
-        None => return,
-    };
-    if !advancing {
+/// Keyed rows whose frame has come, set on the update that draws it (so a plugin's steps after it see them): with a
+/// plugin, on the frame its clock steps to; without one, on the frame drawn, whichever way it was reached.
+fn keyed_rows(world: &mut World) {
+    // live play sets its rows from the game's state each frame (apply_live_rows), not from a timeline
+    if world.get_resource::<FrameRows>().is_some_and(|r| r.live.is_some()) {
         return;
     }
-    let due: Vec<(Entity, String, Value)> = world.resource::<TimedRows>().0.iter().filter(|r| r.3 == f).map(|r| (r.0, r.1.clone(), r.2.clone())).collect();
-    for (e, ty, v) in due {
-        if let Err(err) = insert_reflect(world, e, &ty, &v) {
-            world.resource_mut::<Error>().0 = Some(format!("component {ty}: {err}"));
+    let f = match world.get_resource::<PluginClock>() {
+        Some(c) if !c.advancing => return,
+        Some(c) => c.stepped,
+        None => match world.get_resource::<Clock>() {
+            Some(c) => c.0,
+            None => return,
+        },
+    };
+    let due: Vec<(Option<Entity>, String, Value, i64)> = {
+        let k = world.resource::<Keyed>();
+        let mut last: std::collections::HashMap<(Option<Entity>, &str), &(Option<Entity>, String, Value, i64)> = Default::default();
+        for r in k.rows.iter().filter(|r| r.3 <= f) {
+            let at = last.entry((r.0, r.1.as_str())).or_insert(r);
+            if r.3 >= at.3 {
+                *at = r;
+            }
         }
+        last.into_values().filter(|r| k.applied.get(&(r.0, r.1.clone())) != Some(&r.3)).cloned().collect()
+    };
+    for (e, ty, v, from) in due {
+        let done = match e {
+            Some(e) => insert_reflect(world, e, &ty, &v).map_err(|err| format!("component {ty}: {err}")),
+            None => insert_reflect_resource(world, &ty, &v).map_err(|err| format!("resource {ty}: {err}")),
+        };
+        if let Err(err) = done {
+            world.resource_mut::<Error>().0 = Some(err);
+        }
+        world.resource_mut::<Keyed>().applied.insert((e, ty), from);
     }
 }
 
@@ -250,64 +283,43 @@ pub fn apply_rows(world: &mut World, inserted: &[Tup], ents: &[Entity], dir: &Pa
     world.insert_resource(raea_bevy_world::EntityNames(row_names));
     world.insert_resource(Loading::default());
     world.insert_resource(RenderImages::default());
-    if !active(world) {
-        // no plugin, so no frame clock: Bevy's own reflected components and resources (a camera's Projection, a
-        // mesh's NotShadowReceiver) still apply at load, but one timed to a frame needs the clock
-        if inserted.iter().any(|t| t.kind == "component" && t.vals.get("from").is_some_and(|f| f.num() > 0.0)) {
-            return Err(format!("a <BevyComponent from> waits for its frame on a Bevy plugin's frame clock, and this build has no plugin compiled in (registered: {:?})", names()));
-        }
-        return apply_static(world, inserted, ents);
-    }
-    {
+    if active(world) {
         let mut c = world.resource_mut::<PluginClock>();
         c.stepped = 0;
         c.advancing = false;
     }
-    world.resource_mut::<TimedRows>().0.clear();
     let by_id: BTreeMap<&str, Entity> = inserted.iter().zip(ents).map(|(t, e)| (t.id.as_str(), *e)).collect();
     for (t, &e) in inserted.iter().zip(ents) {
         if t.kind == "mesh" && t.vals.get("driven").is_some_and(V::truthy) {
             world.entity_mut(e).insert(Driven);
         }
     }
-    for t in inserted {
-        let value = |t: &Tup| -> Result<Value, String> { serde_json::from_str(&s(&t.vals, "value").unwrap_or_else(|| "null".into())).map_err(|e| format!("{} {}: value isn't JSON: {e}", t.kind, t.id)) };
-        match t.kind.as_str() {
-            "component" => {
-                let ty = s(&t.vals, "type").ok_or_else(|| format!("component {}: needs type", t.id))?;
-                let target = s(&t.vals, "target").ok_or_else(|| format!("component {}: needs target (a row's id)", t.id))?;
-                let &e = by_id.get(target.as_str()).ok_or_else(|| format!("component {}: no row {target}", t.id))?;
-                let v = value(t)?;
-                let from = t.vals.get("from").map(V::num).unwrap_or(0.0) as i64;
-                if from > 0 {
-                    world.resource_mut::<TimedRows>().0.push((e, ty, v, from));
-                } else {
-                    insert_reflect(world, e, &ty, &v).map_err(|err| format!("component {} ({ty}): {err}", t.id))?;
-                }
-            }
-            "resource" => {
-                let ty = s(&t.vals, "type").ok_or_else(|| format!("resource {}: needs type", t.id))?;
-                insert_reflect_resource(world, &ty, &value(t)?).map_err(|err| format!("resource {} ({ty}): {err}", t.id))?;
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
-/// The component and resource rows of an edit in a build without plugins: each applied at load through the registry.
-fn apply_static(world: &mut World, inserted: &[Tup], ents: &[Entity]) -> Result<(), String> {
-    let by_id: BTreeMap<&str, Entity> = inserted.iter().zip(ents).map(|(t, e)| (t.id.as_str(), *e)).collect();
+    // Bevy's own reflected components and resources (a camera's Projection, a mesh's NotShadowReceiver) and a plugin's:
+    // those from frame 0 now, the rest kept for their frame (keyed_rows), in every build
+    let mut keyed = Keyed::default();
     for t in inserted.iter().filter(|t| t.kind == "component" || t.kind == "resource") {
         let ty = s(&t.vals, "type").ok_or_else(|| format!("{} {}: needs type", t.kind, t.id))?;
         let v: Value = serde_json::from_str(&s(&t.vals, "value").unwrap_or_else(|| "null".into())).map_err(|e| format!("{} {}: value isn't JSON: {e}", t.kind, t.id))?;
-        if t.kind == "resource" {
-            insert_reflect_resource(world, &ty, &v).map_err(|err| format!("resource {} ({ty}): {err}", t.id))?;
-            continue;
+        let target = if t.kind == "resource" {
+            None
+        } else {
+            let target = s(&t.vals, "target").ok_or_else(|| format!("component {}: needs target (a row's id)", t.id))?;
+            Some(*by_id.get(target.as_str()).ok_or_else(|| format!("component {}: no row {target}", t.id))?)
+        };
+        let from = t.vals.get("from").map(V::num).unwrap_or(0.0) as i64;
+        if from <= 0 {
+            match target {
+                Some(e) => insert_reflect(world, e, &ty, &v).map_err(|err| format!("component {} ({ty}): {err}", t.id))?,
+                None => insert_reflect_resource(world, &ty, &v).map_err(|err| format!("resource {} ({ty}): {err}", t.id))?,
+            }
+            keyed.applied.insert((target, ty.clone()), 0);
         }
-        let target = s(&t.vals, "target").ok_or_else(|| format!("component {}: needs target (a row's id)", t.id))?;
-        let &e = by_id.get(target.as_str()).ok_or_else(|| format!("component {}: no row {target}", t.id))?;
-        insert_reflect(world, e, &ty, &v).map_err(|err| format!("component {} ({ty}): {err}", t.id))?;
+        keyed.rows.push((target, ty, v, from.max(0)));
     }
+    // kept only when a row waits for a frame (a still edit's rows are all applied now)
+    if !keyed.rows.iter().any(|r| r.3 > 0) {
+        keyed = Keyed::default();
+    }
+    world.insert_resource(keyed);
     Ok(())
 }

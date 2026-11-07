@@ -1,0 +1,15 @@
+[package]
+name = "raea-app-targets"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+description = "An app's target, web (Blitz on Bevy) or native (Rune), read from its file, and raea app run|check|bundle on either (docs/targets.feature)"
+
+[dependencies]
+serde_json = "1"
+# the page host's frames over BRP
+base64 = "0.22"
+# raea's home: the SDK the web bundle resolves from, and the checkout's built hosts
+raea-io-home = { path = "../../io/home" }
+# the web bundle (raea-bundle's library, in process) and Tailwind's CSS for the app's classes
+raea-runtime-bundle = { path = "../../runtime/bundle", features = ["modules"] }

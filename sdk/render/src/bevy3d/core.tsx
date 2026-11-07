@@ -68,13 +68,19 @@ export const Affine2 = {
 function lookingAt(eye: Vec3, target: Vec3, up: Vec3): Quat {
   const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
   const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-  const norm = (a: Vec3): Vec3 => {
+  // Bevy's fallbacks (look_to): a target at the eye looks down -Z, a zero up is +Y, and an up along the view takes glam's
+  // any_orthonormal_vector of up
+  const norm = (a: Vec3, or: () => Vec3): Vec3 => {
     const n = Math.hypot(...a);
-    if (!(n > 1e-9)) throw new RangeError(`Transform.lookingAt: the target is at the eye, or up is along the view`);
-    return [a[0] / n, a[1] / n, a[2] / n];
+    return n > 0 && Number.isFinite(n) ? [a[0] / n, a[1] / n, a[2] / n] : or();
   };
-  const back = norm(sub(eye, target));
-  const right = norm(cross(up, back));
+  const back = norm(sub(eye, target), () => [0, 0, 1]);
+  const up1 = norm(up, () => [0, 1, 0]);
+  const right = norm(cross(up1, back), () => {
+    const sign = up1[2] < 0 || Object.is(up1[2], -0) ? -1 : 1;
+    const a = -1 / (sign + up1[2]);
+    return [up1[0] * up1[1] * a, sign + up1[1] * up1[1] * a, -up1[1]];
+  });
   const u = cross(back, right);
   // the rotation matrix's columns are right, u, back; its quaternion (Shepperd's method)
   const [m00, m10, m20, m01, m11, m21, m02, m12, m22] = [right[0], right[1], right[2], u[0], u[1], u[2], back[0], back[1], back[2]];
@@ -132,11 +138,13 @@ export const Transform = /* @__PURE__ */ Object.assign({}, TransformComponent, {
   fromScale: (s: Vec3) => built([0, 0, 0], [0, 0, 0, 1], s),
 });
 
-function place(t: TransformValue | undefined): Pick<MeshProps, "position" | "rotation" | "scale"> {
+// the rotation goes as Bevy's quaternion, end to end (docs/control.feature FC1d); a part whose `animate` turns it
+// keeps the Euler angles its tracks patch
+function place(t: TransformValue | undefined, animated = false): Pick<MeshProps, "position" | "rotation" | "quaternion" | "scale"> {
   if (!t) return {};
   return {
     ...(t.translation ? { position: t.translation } : {}),
-    ...(t.rotation ? { rotation: eulerOf(t.rotation) } : {}),
+    ...(t.rotation ? (animated ? { rotation: eulerOf(t.rotation) } : { quaternion: t.rotation }) : {}),
     ...(t.scale ? { scale: t.scale } : {}),
   };
 }
@@ -154,10 +162,11 @@ export function Mesh3d({ transform, visibility, children, ...rest }: Mesh3dProps
   const id = useId();
   if (visibility === "Hidden") return null;
   const layers = meshLayers("Mesh3d", rest.name ?? `layer${id}`, children, true);
-  if (!layers.surface) return <Mesh {...rest} {...place(transform)}>{layers.children}</Mesh>;
+  const at = place(transform, rest.animate !== undefined);
+  if (!layers.surface) return <Mesh {...rest} {...at}>{layers.children}</Mesh>;
   return (
     <>
-      <Mesh {...rest} {...place(transform)} surface={layers.surface}>{layers.children}</Mesh>
+      <Mesh {...rest} {...at} surface={layers.surface}>{layers.children}</Mesh>
       {layers.part}
     </>
   );

@@ -1,0 +1,15 @@
+[package]
+name = "raea-rune-page"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The native target's page (docs/targets.feature): raea's op wire kept as a tree, drawn as Rune elements, with input and events back to the app"
+
+[dependencies]
+rune.workspace = true
+rune-kit.workspace = true
+raea-core-wire = { path = "../../../core/wire" }
+raea-rune-style = { path = "../style" }
+serde_json = "1"
+base64 = "0.22"

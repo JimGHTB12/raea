@@ -105,73 +105,8 @@ pub fn bundle_tests(files: &[PathBuf], out: &Path, filter: Option<&str>, extra: 
     bundle_entry(&entry, out, extra)
 }
 
-/// raea-bundle (bundle/: Rolldown, lightningcss, the Z3 compile) as a library loaded at run time, never linked: its
-/// crates' Cargo features would reach raea's own (f60e0b7). Found at RAEA_BUNDLE_LIB, beside this binary, or in
-/// engine/bundle/target/release (`cargo build --release` in bundle/).
-pub mod inproc {
-    use std::ffi::{c_char, CStr, CString};
-    use std::path::{Path, PathBuf};
-
-    pub struct Lib {
-        pub path: PathBuf,
-        bundle: unsafe extern "C" fn(*const c_char, *const c_char) -> *mut c_char,
-        free: unsafe extern "C" fn(*mut c_char),
-        _lib: libloading::Library,
-    }
-
-    pub fn lib() -> Result<&'static Lib, String> {
-        static LIB: std::sync::OnceLock<Result<Lib, String>> = std::sync::OnceLock::new();
-        LIB.get_or_init(|| {
-            // libraea_bundle.dylib, .so on Linux, raea_bundle.dll on Windows
-            let name = libloading::library_filename("raea_bundle");
-            let mut at: Vec<PathBuf> = std::env::var_os("RAEA_BUNDLE_LIB").map(PathBuf::from).into_iter().collect();
-            // beside the binary (runtime/react/build.rs puts it there), or a folder up (test binaries run from deps/); the binary
-            // itself, not a link to it (an install links ~/.local/bin/raea to ~/.raea/bin)
-            if let Some(dir) = std::env::current_exe().ok().map(|e| e.canonicalize().unwrap_or(e)).and_then(|e| e.parent().map(Path::to_path_buf)) {
-                at.push(dir.join(&name));
-                at.extend(dir.parent().map(|d| d.join(&name)));
-            }
-            // no bundler at all when it isn't there: raea doesn't fall back to bun
-            let path = at.into_iter().find(|p| p.is_file()).ok_or(format!("raea can't bundle: no {} beside {} (runtime/react/build.rs builds it with raea-runtime-react's modules feature; RAEA_BUNDLE_LIB names another)", name.to_string_lossy(), std::env::current_exe().map(|e| e.display().to_string()).unwrap_or_default()))?;
-            // SAFETY: raea-bundle's own library, whose C API (engine/bundle/src/lib.rs ffi) is checked by its version first
-            unsafe {
-                let lib = libloading::Library::new(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-                let api: libloading::Symbol<unsafe extern "C" fn() -> u32> = lib.get(b"raea_bundle_api").map_err(|e| format!("{}: {e}", path.display()))?;
-                if api() != 1 {
-                    return Err(format!("{}: API {} (this raea wants 1): build bundle/ again", path.display(), api()));
-                }
-                let bundle = *lib.get(b"raea_bundle").map_err(|e| format!("{}: {e}", path.display()))?;
-                let free = *lib.get(b"raea_bundle_free").map_err(|e| format!("{}: {e}", path.display()))?;
-                Ok(Lib { path, bundle, free, _lib: lib })
-            }
-        })
-        .as_ref()
-        .map_err(|e| e.clone())
-    }
-
-    /// `entry` bundled with `opts` (raea-bundle's: {"z3"}, {"script", "defines"}): the script and the CSS its modules
-    /// imported
-    pub fn bundle(entry: &Path, opts: serde_json::Value) -> Result<(String, String), String> {
-        let lib = lib()?;
-        let e = CString::new(entry.to_string_lossy().as_bytes()).map_err(|e| e.to_string())?;
-        let o = CString::new(opts.to_string()).map_err(|e| e.to_string())?;
-        // SAFETY: NUL-terminated strings in; the reply is the library's, freed by it
-        let reply = unsafe {
-            let p = (lib.bundle)(e.as_ptr(), o.as_ptr());
-            if p.is_null() {
-                return Err("raea-bundle gave no reply".into());
-            }
-            let s = CStr::from_ptr(p).to_string_lossy().into_owned();
-            (lib.free)(p);
-            s
-        };
-        let v: serde_json::Value = serde_json::from_str(&reply).map_err(|e| format!("raea-bundle's reply: {e}"))?;
-        if let Some(err) = v["error"].as_str() {
-            return Err(err.to_string());
-        }
-        Ok((v["js"].as_str().unwrap_or_default().to_string(), v["css"].as_str().unwrap_or_default().to_string()))
-    }
-}
+/// raea-bundle's library, loaded at run time (runtime/bundle/lib: raea-runtime-bundle-lib)
+pub use raea_runtime_bundle_lib as inproc;
 
 pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&Path>) -> R<()> {
     let t0 = std::time::Instant::now();
@@ -180,7 +115,7 @@ pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&P
     static ONE: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let _one = ONE.lock().unwrap_or_else(|e| e.into_inner());
     let work = std::env::temp_dir().join(format!("raea-cli-b{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&work);
+    remove_work(&work);
     copy_dir(&dir, &work.join("src"), 0)?;
     let motion_src = raea_io_home::home().join("sdk/raea/src").canonicalize().map_err(|e| format!("raea/motion/src: {e}"))?;
     copy_dir(&motion_src, &work.join("motion"), 0)?;
@@ -243,8 +178,7 @@ pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&P
         }
     }
     let js = raea_io_home::home().join("sdk/react/js");
-    #[cfg(unix)]
-    std::os::unix::fs::symlink(js.join("node_modules"), work.join("node_modules")).map_err(|e| format!("node_modules: {e}"))?;
+    link_node_modules(&js, &work)?;
     if o.lite {
         // the game's code and the SDK's resolve "react" to the live view runtime (tsconfig paths cover the files under
         // the work folder; packages in node_modules keep their own React)
@@ -267,6 +201,45 @@ pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&P
         eprintln!("raea bundle: {} in {:.1} ms: the work folder {:.1} ms, Rolldown {:.1} ms", tsx.display(), t0.elapsed().as_secs_f64() * 1e3, t_work.as_secs_f64() * 1e3, (t0.elapsed() - t_work).as_secs_f64() * 1e3);
     }
     std::fs::write(out_js, code).map_err(|e| format!("{}: {e}", out_js.display()))?;
-    let _ = std::fs::remove_dir_all(&work);
+    remove_work(&work);
     Ok(())
+}
+
+/// The work folder's node_modules: the engine's (sdk/react/js's), linked. On Windows a junction, which needs none of the
+/// rights a symlink does (Developer Mode or an admin), as raea-io-npm links packages. Windows had no link at all, so the
+/// live runtime's `../../node_modules/bevy-react/src/bridge` resolved nothing and `raea play` couldn't bundle a game.
+fn link_node_modules(js: &Path, work: &Path) -> R<()> {
+    let (to, at) = (js.join("node_modules"), work.join("node_modules"));
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&to, &at).map_err(|e| format!("node_modules: {e}"))?;
+    #[cfg(windows)]
+    junction::create(&to, &at).map_err(|e| format!("node_modules: {e}"))?;
+    Ok(())
+}
+
+/// The work folder removed: on Windows its node_modules junction first, by remove_dir, which takes the link and never
+/// the engine's packages it points at
+fn remove_work(work: &Path) {
+    #[cfg(windows)]
+    let _ = std::fs::remove_dir(work.join("node_modules"));
+    let _ = std::fs::remove_dir_all(work);
+}
+
+#[cfg(test)]
+mod link_tests {
+    #[test]
+    fn the_work_folder_reads_the_engines_packages_and_its_removal_keeps_them() {
+        let base = std::env::temp_dir().join(format!("raea-link-test-{}", std::process::id()));
+        let (js, work) = (base.join("js"), base.join("work"));
+        std::fs::create_dir_all(js.join("node_modules/bevy-react/src")).unwrap();
+        std::fs::write(js.join("node_modules/bevy-react/src/bridge.ts"), "export {};").unwrap();
+        std::fs::create_dir_all(work.join("lite/parts")).unwrap();
+        super::link_node_modules(&js, &work).unwrap();
+        // what lite/parts/root.ts imports, read through the link
+        assert_eq!(std::fs::read_to_string(work.join("lite/parts/../../node_modules/bevy-react/src/bridge.ts")).unwrap(), "export {};");
+        super::remove_work(&work);
+        assert!(!work.exists(), "the work folder is gone");
+        assert!(js.join("node_modules/bevy-react/src/bridge.ts").exists(), "the engine's packages are kept");
+        let _ = std::fs::remove_dir_all(&base);
+    }
 }

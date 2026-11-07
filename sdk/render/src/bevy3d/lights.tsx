@@ -1,7 +1,7 @@
 // Lights.
 import { type ReactNode } from "react";
 import { AmbientLight as AmbientLight3, DirectionalLight as DirectionalLight3, PointLight as PointLight3, RectAreaLight, SpotLight as SpotLight3, type Vec3 } from "../3d";
-import { AMBIENT_NITS, LUMENS, LUX, OLD_LIGHT_PROPS, Quat, TransformValue } from "./all";
+import { OLD_LIGHT_PROPS, Quat, TransformValue } from "./all";
 
 function refuseOld(owner: string, props: Record<string, unknown>, allowed: readonly string[] = []) {
   for (const k of OLD_LIGHT_PROPS) {
@@ -50,7 +50,7 @@ export function PointLight(p: PointLightProps) {
   const { transform, visibility, intensity = 1_000_000, range = 20, radius, shadow_maps_enabled = false, soft_shadows_enabled, ...rest } = p;
   if (visibility === "Hidden") return null;
   const s = soft({ radius, soft_shadows_enabled });
-  return <PointLight3 {...rest} position={forward(transform).position} intensity={intensity / LUMENS} distance={range} castShadow={shadow_maps_enabled} {...(s !== undefined ? { softShadow: s } : {})} />;
+  return <PointLight3 {...rest} position={forward(transform).position} lumens={intensity} distance={range} castShadow={shadow_maps_enabled} {...(s !== undefined ? { softShadow: s } : {})} />;
 }
 
 export interface SpotLightProps extends PointLightProps {
@@ -68,7 +68,7 @@ export function SpotLight(p: SpotLightProps) {
   const s = soft({ radius, soft_shadows_enabled });
   // the rows take a penumbra: inner = outer * (1 - penumbra) (scene3d.rs)
   const penumbra = 1 - Math.min(inner_angle, outer_angle) / outer_angle;
-  return <SpotLight3 {...rest} {...forward(transform)} intensity={intensity / LUMENS} distance={range} castShadow={shadow_maps_enabled} angle={outer_angle} penumbra={penumbra} {...(s !== undefined ? { softShadow: s } : {})} />;
+  return <SpotLight3 {...rest} {...forward(transform)} lumens={intensity} distance={range} castShadow={shadow_maps_enabled} angle={outer_angle} penumbra={penumbra} {...(s !== undefined ? { softShadow: s } : {})} />;
 }
 
 export interface DirectionalLightProps extends Omit<LightCommon, "children"> {
@@ -86,7 +86,7 @@ export function DirectionalLight(p: DirectionalLightProps) {
   const { transform, visibility, illuminance = 10_000, shadow_maps_enabled = false, soft_shadow_size, ...rest } = p;
   if (visibility === "Hidden") return null;
   // 3d.tsx's sun shines from position to target; a direction needs only a point ahead of where it is
-  return <DirectionalLight3 {...rest} {...forward(transform)} intensity={illuminance / LUX} castShadow={shadow_maps_enabled} {...(soft_shadow_size ? { softShadow: soft_shadow_size } : {})} />;
+  return <DirectionalLight3 {...rest} {...forward(transform)} lux={illuminance} castShadow={shadow_maps_enabled} {...(soft_shadow_size ? { softShadow: soft_shadow_size } : {})} />;
 }
 
 export interface AmbientLightProps {
@@ -102,11 +102,11 @@ export function AmbientLight(p: AmbientLightProps) {
   return <AmbientLight3 {...ambientOf(p)} />;
 }
 
-/** An AmbientLight's props as 3d.tsx's light takes them (relative to AMBIENT_NITS). */
-export function ambientOf(p: AmbientLightProps): { name?: string; color?: string; intensity: number } {
+/** An AmbientLight's props as 3d.tsx's light takes them: its brightness as `nits`, which the rows take as written. */
+export function ambientOf(p: AmbientLightProps): { name?: string; color?: string; nits: number } {
   refuseOld("AmbientLight", p as Record<string, unknown>);
   const { brightness = 80, ...rest } = p;
-  return { ...rest, intensity: brightness / AMBIENT_NITS };
+  return { ...rest, nits: brightness };
 }
 
 /** The same light as a resource, as Bevy 0.20 names it. (A function, not a const alias: an alias would keep 3D code in
@@ -129,5 +129,5 @@ export function RectLight(p: RectLightProps) {
   refuseOld("RectLight", p as Record<string, unknown>, ["intensity"]);
   const { transform, visibility, intensity = 1_000_000, range = 20, width = 1, height = 1, ...rest } = p;
   if (visibility === "Hidden") return null;
-  return <RectAreaLight {...rest} {...forward(transform)} intensity={intensity / LUMENS} distance={range} width={width} height={height} />;
+  return <RectAreaLight {...rest} {...forward(transform)} lumens={intensity} distance={range} width={width} height={height} />;
 }

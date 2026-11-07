@@ -71,8 +71,15 @@ pub(crate) fn scene_program_checked(js: &Path, dir: &Path, upto: i64, wanted: Op
         }
     }
     raea_runtime_react::startup_mark("the 3D's rows: stepping React through the frames");
-    let Some((frames, w, h, fps)) = scene_frames_to(js, dir, upto)? else { return Ok(None) };
-    raea_runtime_react::startup_mark("the 3D's rows: frames stepped");
+    // a still steps only up to its frame, and one past it (what reads ahead, as a shutter might, has it); anything
+    // else steps the whole composition
+    let got = match wanted {
+        Some(&[f]) if f >= 0 => scene_frames(js, dir, upto.max(f + 1) + 1, false)?,
+        _ => scene_frames_to(js, dir, upto)?,
+    };
+    let Some((frames, w, h, fps)) = got else { return Ok(None) };
+    // the count too: tools/bevy-parity charges raea the time a frame takes to step (docs/control.feature FC0a)
+    raea_runtime_react::startup_mark(&format!("the 3D's rows: {} frames stepped", frames.len()));
     let p = program(&frames, w, h, fps);
     raea_runtime_react::startup_mark("the 3D's rows: program made");
     // a still: its own frame (the frames are 0..upto in order)

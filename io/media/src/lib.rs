@@ -56,6 +56,13 @@ pub fn backends() -> Vec<Box<dyn Backend>> {
     v
 }
 
+/// Whether this build's encoders sign what they write (Content Credentials): raea's own build does, the public engine
+/// doesn't, and a report says which (docs/targets.feature T1e)
+pub const SIGNS: bool = signs();
+const fn signs() -> bool {
+    false
+}
+
 
 /// The backends to try for a file, in order: RAEA_MEDIA's, the platform's, the portable one, then the ffmpeg CLI
 /// (which reads what the others don't: VP9 WebM).

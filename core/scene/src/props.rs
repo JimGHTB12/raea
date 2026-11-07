@@ -76,6 +76,18 @@ pub const LUX: f64 = 8000.0;
 pub const LUMENS: f64 = 9.0e5;
 /// An AmbientLight of intensity 1, in cd/m² (as before).
 pub const AMBIENT: f64 = 400.0;
+/// A light's power in Bevy's units (docs/control.feature FC1f): a Bevy light's own `lux` (directional), `lumens`
+/// (point, spot, rect) or `nits` (ambient, cd/m²) as written; a 3d.tsx light's relative `intensity` times LUX, LUMENS
+/// or AMBIENT.
+pub fn light_power(kind: &str, p: &Map<String, Value>) -> f64 {
+    let (field, k) = match kind {
+        "directional" => ("lux", LUX),
+        "ambient" => ("nits", AMBIENT),
+        _ => ("lumens", LUMENS),
+    };
+    num(p, field).unwrap_or_else(|| num(p, "intensity").unwrap_or(1.0) * k)
+}
+
 /// An <Environment> of intensity 1: the panorama's values (a Poly Haven HDR's sky is about 1) times this, in cd/m².
 pub const ENV: f64 = 1000.0;
 /// Bevy's default exposure (EV100): exposure 0; +1 is a stop brighter.

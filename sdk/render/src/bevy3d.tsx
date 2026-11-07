@@ -8,7 +8,7 @@
 //     <StandardMaterial base_color="#c84" perceptual_roughness={0.4} />
 //   </Mesh3d>
 import { eulerOf } from "./3d";
-export { Quat, Affine2, Transform, Mesh3d, Camera3d, Srgba, LinearRgba, StandardMaterial, GridExtension, PaintExtension, WearExtension, ToonExtension, ShaderExtension, ExtendedMaterial, ToonMaterial, Mesh2d, Circle, Rectangle, Ellipse, RegularPolygon, ColorMaterial, PointLight, SpotLight, DirectionalLight, AmbientLight, GlobalAmbientLight, RectLight } from "./bevy3d/all";
+export { Quat, Affine2, Transform, Mesh3d, Camera3d, Srgba, LinearRgba, StandardMaterial, GridExtension, PaintExtension, WearExtension, ToonExtension, ShaderExtension, ExtendedMaterial, ToonMaterial, Mesh2d, Circle, Rectangle, Ellipse, RegularPolygon, ColorMaterial, PointLight, SpotLight, DirectionalLight, AmbientLight, GlobalAmbientLight, RectLight, light_consts } from "./bevy3d/all";
 export type { EulerRot, TransformValue, TransformBuilt, Mesh3dProps, Projection, Camera3dProps, AlphaMode, StandardMaterialProps, StandardMaterialAnimate, ToonExtensionAnimate, SampledImage, MetallicRoughnessMaps, GridExtensionProps, PaintExtensionProps, WearExtensionProps, ToonExtensionProps, ShaderExtensionProps, ExtendedMaterialProps, ToonMaterialProps, Mesh2dProps, CircleProps, RectangleProps, EllipseProps, RegularPolygonProps, ColorMaterialProps, PointLightProps, SpotLightProps, DirectionalLightProps, AmbientLightProps, RectLightProps } from "./bevy3d/all";
 
 export { eulerOf };

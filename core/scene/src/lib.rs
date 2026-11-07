@@ -23,7 +23,9 @@ pub struct Node3 {
     /// rows by reference (ZeroHeap: a live 3D frame parsed and copied every part's props)
     pub props: std::sync::Arc<Map<String, Value>>,
     pub shape: Option<std::sync::Arc<str>>,
-    pub kids: Vec<Node3>,
+    /// shared: a subtree no commit touched is the last frame's, handed on for an Arc's count (docs/control.feature
+    /// FC1b: many_cubes' 10,000 parts were re-read each frame for a camera's move). Build from a Vec with `.into()`
+    pub kids: std::sync::Arc<[Node3]>,
 }
 
 /// A part of a frame's 3D, placed: its kind, props and shape, a material child, and its world transform.

@@ -1,0 +1,746 @@
+{
+ "app": "counter",
+ "steps": [
+  {
+   "press": "inc"
+  },
+  {
+   "press": "inc"
+  },
+  {
+   "press": "inc"
+  },
+  {
+   "press": "reset"
+  },
+  {
+   "press": "inc"
+  }
+ ],
+ "frames": [
+  {
+   "step": -1,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"listen\",\"id\":0,\"events\":[\"pointermove\",\"pointerdown\",\"pointerup\"]},{\"op\":\"clear\"},{\"op\":\"create\",\"id\":1,\"kind\":\"text\",\"props\":{},\"text\":\"Count: 0\"},{\"op\":\"create\",\"id\":2,\"kind\":\"span\",\"props\":{\"data-testid\":\"count\",\"style\":{\"fontSize\":32,\"fontWeight\":600,\"color\":\"#f2f3f5\"}}},{\"op\":\"listen\",\"id\":2,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":2,\"child\":1},{\"op\":\"create\",\"id\":3,\"kind\":\"text\",\"props\":{},\"text\":\"Add one\"},{\"op\":\"create\",\"id\":4,\"kind\":\"button\",\"props\":{\"data-testid\":\"inc\",\"style\":{\"padding\":10,\"borderRadius\":8,\"backgroundColor\":\"#2a2d35\",\"color\":\"#fff\",\"fontSize\":14},\"tabIndex\":0}},{\"op\":\"listen\",\"id\":4,\"events\":[\"pointerdown\",\"pointerup\",\"pointerenter\",\"pointerleave\",\"focus\",\"blur\",\"keydown\",\"keyup\"]},{\"op\":\"append\",\"parent\":4,\"child\":3},{\"op\":\"create\",\"id\":5,\"kind\":\"div\",\"props\":{\"style\":{\"display\":\"flex\",\"flexDirection\":\"row\",\"gap\":8}}},{\"op\":\"listen\",\"id\":5,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":5,\"child\":4},{\"op\":\"create\",\"id\":6,\"kind\":\"div\",\"props\":{\"data-testid\":\"root\",\"style\":{\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"center\",\"justifyContent\":\"center\",\"gap\":16,\"width\":360,\"height\":240,\"backgroundColor\":\"#111318\"}}},{\"op\":\"listen\",\"id\":6,\"events\":[\"pointerenter\",\"pointerleave\"]},{\"op\":\"append\",\"parent\":6,\"child\":2},{\"op\":\"append\",\"parent\":6,\"child\":5},{\"op\":\"append\",\"parent\":0,\"child\":6}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "gap": 16,
+        "width": 360,
+        "height": 240,
+        "backgroundColor": "#111318"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "span",
+        {
+         "data-testid": "count",
+         "style": {
+          "fontSize": 32,
+          "fontWeight": 600,
+          "color": "#f2f3f5"
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "text",
+          {},
+          "Count: 0",
+          [],
+          []
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 8
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "button",
+          {
+           "data-testid": "inc",
+           "style": {
+            "padding": 10,
+            "borderRadius": 8,
+            "backgroundColor": "#2a2d35",
+            "color": "#fff",
+            "fontSize": 14
+           },
+           "tabIndex": 0
+          },
+          null,
+          [
+           "blur",
+           "focus",
+           "keydown",
+           "keyup",
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "Add one",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "step": 0,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"update\",\"id\":1,\"text\":\"Count: 1\"},{\"op\":\"update\",\"id\":4,\"set\":{\"style\":{\"padding\":10,\"borderRadius\":8,\"backgroundColor\":\"#3b82f6\",\"color\":\"#fff\",\"fontSize\":14}}}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "gap": 16,
+        "width": 360,
+        "height": 240,
+        "backgroundColor": "#111318"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "span",
+        {
+         "data-testid": "count",
+         "style": {
+          "fontSize": 32,
+          "fontWeight": 600,
+          "color": "#f2f3f5"
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "text",
+          {},
+          "Count: 1",
+          [],
+          []
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 8
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "button",
+          {
+           "data-testid": "inc",
+           "style": {
+            "padding": 10,
+            "borderRadius": 8,
+            "backgroundColor": "#3b82f6",
+            "color": "#fff",
+            "fontSize": 14
+           },
+           "tabIndex": 0
+          },
+          null,
+          [
+           "blur",
+           "focus",
+           "keydown",
+           "keyup",
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "Add one",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "step": 1,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"update\",\"id\":1,\"text\":\"Count: 2\"},{\"op\":\"update\",\"id\":4,\"set\":{\"style\":{\"padding\":10,\"borderRadius\":8,\"backgroundColor\":\"#2a2d35\",\"color\":\"#fff\",\"fontSize\":14}}}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "gap": 16,
+        "width": 360,
+        "height": 240,
+        "backgroundColor": "#111318"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "span",
+        {
+         "data-testid": "count",
+         "style": {
+          "fontSize": 32,
+          "fontWeight": 600,
+          "color": "#f2f3f5"
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "text",
+          {},
+          "Count: 2",
+          [],
+          []
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 8
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "button",
+          {
+           "data-testid": "inc",
+           "style": {
+            "padding": 10,
+            "borderRadius": 8,
+            "backgroundColor": "#2a2d35",
+            "color": "#fff",
+            "fontSize": 14
+           },
+           "tabIndex": 0
+          },
+          null,
+          [
+           "blur",
+           "focus",
+           "keydown",
+           "keyup",
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "Add one",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "step": 2,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"create\",\"id\":7,\"kind\":\"text\",\"props\":{},\"text\":\"Reset\"},{\"op\":\"create\",\"id\":8,\"kind\":\"button\",\"props\":{\"data-testid\":\"reset\",\"style\":{\"padding\":10,\"borderRadius\":8,\"backgroundColor\":\"#2a2d35\",\"color\":\"#fca5a5\",\"fontSize\":14},\"tabIndex\":0}},{\"op\":\"listen\",\"id\":8,\"events\":[\"pointerdown\",\"pointerup\",\"pointerenter\",\"pointerleave\",\"focus\",\"blur\",\"keydown\",\"keyup\"]},{\"op\":\"append\",\"parent\":8,\"child\":7},{\"op\":\"update\",\"id\":1,\"text\":\"Count: 3\"},{\"op\":\"update\",\"id\":4,\"set\":{\"style\":{\"padding\":10,\"borderRadius\":8,\"backgroundColor\":\"#3b82f6\",\"color\":\"#fff\",\"fontSize\":14}}},{\"op\":\"append\",\"parent\":5,\"child\":8}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "gap": 16,
+        "width": 360,
+        "height": 240,
+        "backgroundColor": "#111318"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "span",
+        {
+         "data-testid": "count",
+         "style": {
+          "fontSize": 32,
+          "fontWeight": 600,
+          "color": "#f2f3f5"
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "text",
+          {},
+          "Count: 3",
+          [],
+          []
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 8
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "button",
+          {
+           "data-testid": "inc",
+           "style": {
+            "padding": 10,
+            "borderRadius": 8,
+            "backgroundColor": "#3b82f6",
+            "color": "#fff",
+            "fontSize": 14
+           },
+           "tabIndex": 0
+          },
+          null,
+          [
+           "blur",
+           "focus",
+           "keydown",
+           "keyup",
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "Add one",
+            [],
+            []
+           ]
+          ]
+         ],
+         [
+          "button",
+          {
+           "data-testid": "reset",
+           "style": {
+            "padding": 10,
+            "borderRadius": 8,
+            "backgroundColor": "#2a2d35",
+            "color": "#fca5a5",
+            "fontSize": 14
+           },
+           "tabIndex": 0
+          },
+          null,
+          [
+           "blur",
+           "focus",
+           "keydown",
+           "keyup",
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "Reset",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "step": 3,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"update\",\"id\":1,\"text\":\"Count: 0\"},{\"op\":\"remove\",\"id\":8},{\"op\":\"update\",\"id\":4,\"set\":{\"style\":{\"padding\":10,\"borderRadius\":8,\"backgroundColor\":\"#2a2d35\",\"color\":\"#fff\",\"fontSize\":14}}}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "gap": 16,
+        "width": 360,
+        "height": 240,
+        "backgroundColor": "#111318"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "span",
+        {
+         "data-testid": "count",
+         "style": {
+          "fontSize": 32,
+          "fontWeight": 600,
+          "color": "#f2f3f5"
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "text",
+          {},
+          "Count: 0",
+          [],
+          []
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 8
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "button",
+          {
+           "data-testid": "inc",
+           "style": {
+            "padding": 10,
+            "borderRadius": 8,
+            "backgroundColor": "#2a2d35",
+            "color": "#fff",
+            "fontSize": 14
+           },
+           "tabIndex": 0
+          },
+          null,
+          [
+           "blur",
+           "focus",
+           "keydown",
+           "keyup",
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "Add one",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "step": 4,
+   "batch": "{\"v\":1,\"ops\":[{\"op\":\"update\",\"id\":1,\"text\":\"Count: 1\"},{\"op\":\"update\",\"id\":4,\"set\":{\"style\":{\"padding\":10,\"borderRadius\":8,\"backgroundColor\":\"#3b82f6\",\"color\":\"#fff\",\"fontSize\":14}}}]}",
+   "shape": [
+    "#root",
+    {},
+    null,
+    [
+     "pointerdown",
+     "pointermove",
+     "pointerup"
+    ],
+    [
+     [
+      "div",
+      {
+       "data-testid": "root",
+       "style": {
+        "display": "flex",
+        "flexDirection": "column",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "gap": 16,
+        "width": 360,
+        "height": 240,
+        "backgroundColor": "#111318"
+       }
+      },
+      null,
+      [
+       "pointerenter",
+       "pointerleave"
+      ],
+      [
+       [
+        "span",
+        {
+         "data-testid": "count",
+         "style": {
+          "fontSize": 32,
+          "fontWeight": 600,
+          "color": "#f2f3f5"
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "text",
+          {},
+          "Count: 1",
+          [],
+          []
+         ]
+        ]
+       ],
+       [
+        "div",
+        {
+         "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 8
+         }
+        },
+        null,
+        [
+         "pointerenter",
+         "pointerleave"
+        ],
+        [
+         [
+          "button",
+          {
+           "data-testid": "inc",
+           "style": {
+            "padding": 10,
+            "borderRadius": 8,
+            "backgroundColor": "#3b82f6",
+            "color": "#fff",
+            "fontSize": 14
+           },
+           "tabIndex": 0
+          },
+          null,
+          [
+           "blur",
+           "focus",
+           "keydown",
+           "keyup",
+           "pointerdown",
+           "pointerenter",
+           "pointerleave",
+           "pointerup"
+          ],
+          [
+           [
+            "text",
+            {},
+            "Add one",
+            [],
+            []
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ]
+   ]
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@raea/rune",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rune-only behaviour as typed TSX props and components (docs/rune.feature R6a, docs/targets.feature T1b): drawn by the native target (raea-rune-host), ignored by Blitz and browsers",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  }
+}

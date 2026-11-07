@@ -61,6 +61,10 @@ mod sync;
 pub use sync::*;
 mod shaded;
 pub use shaded::*;
+mod instance;
+pub use instance::*;
+mod share;
+pub use share::*;
 
 /// A model row's glTF: loaded by the asset server, then its scene spawned under the row's entity and its clip set up.
 #[derive(Component)]
@@ -94,6 +98,8 @@ pub struct Model3d {
     graph: Vec<GraphPart>,
     /// the graph built: its handle and each node's index (and clip)
     built: Option<(Handle<AnimationGraph>, Vec<(AnimationNodeIndex, Option<Handle<bevy::animation::AnimationClip>>)>)>,
+    /// <Instances>: its placements, until its scene is copied to them (instance.rs's instance_models)
+    inst: Option<Vec<Transform>>,
 }
 
 /// One node of a <Model graph>: a clip (by name or index), a blend (weights normalised) or an additive blend, under
@@ -153,7 +159,7 @@ impl Model3d {
 
     /// Ready, with its own surfaces, toon and shaders on (or given up on): what a scene's <SurfaceShader> waits for.
     pub fn settled(&self) -> bool {
-        self.ready() && self.surfaces.is_empty() && self.toon.is_empty() && self.shaders.is_empty()
+        self.ready() && self.surfaces.is_empty() && self.toon.is_empty() && self.shaders.is_empty() && self.inst.is_none()
     }
 }
 

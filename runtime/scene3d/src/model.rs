@@ -13,11 +13,19 @@ pub fn model(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], dir: &Path
     let surfaces = super::surface::of(world, t, inserted, dir)?;
     let shaders = super::model_shaders(t)?;
     let sampler = raea_sys_sampler::Sampling::col(&t.vals, "sampler").map_err(|e| format!("model {}: {e}", t.id))?;
+    let inst = model_placements(t)?;
+    // `shadow={false}`, `receiveShadow={false}`: on the model, then on each of its meshes once spawned (model_shadow_markers)
+    if t.vals.get("shadow").is_some_and(|v| !v.truthy()) {
+        world.entity_mut(e).insert(bevy::light::NotShadowCaster);
+    }
+    if t.vals.get("receive").is_some_and(|v| !v.truthy()) {
+        world.entity_mut(e).insert(bevy::light::NotShadowReceiver);
+    }
     // a model that keeps its own surfaces (drawn flat, in a look, or toon) isn't given a scene's <SurfaceShader>
     if ["flat", "look", "toon"].iter().any(|k| t.vals.get(*k).is_some_and(V::truthy)) {
         world.entity_mut(e).insert(raea_sys_shader::OwnSurface);
     }
-    world.entity_mut(e).insert((Model3d { gltf, scene: num(&t.vals, "scene", 0.0) as usize, anim, state: ModelState::Loading, src, id: t.id.clone(), toon, toon_wait: 0, surfaces, shaders, sampler, mix: names_col(&t.vals, "mix"), mixer: vec![], morphs: names_col(&t.vals, "morph_names"), graph: graph_col(&t.vals).map_err(|e| format!("model {}: {e}", t.id))?, built: None }, transform_of(&t.vals), Visibility::default()));
+    world.entity_mut(e).insert((Model3d { gltf, scene: num(&t.vals, "scene", 0.0) as usize, anim, state: ModelState::Loading, src, id: t.id.clone(), toon, toon_wait: 0, surfaces, shaders, sampler, mix: names_col(&t.vals, "mix"), mixer: vec![], morphs: names_col(&t.vals, "morph_names"), graph: graph_col(&t.vals).map_err(|e| format!("model {}: {e}", t.id))?, built: None, inst }, transform_of(&t.vals), Visibility::default()));
     Ok(())
 }
 

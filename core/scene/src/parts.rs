@@ -168,7 +168,7 @@ pub fn own_tris(it: &Item) -> Result<Arc<(Vec<(String, Vec<[Vec3; 3]>)>, bool)>,
 
 pub fn parts_of(its: &[Item], moving: &[bool]) -> (Vec<Part>, Vec<Item>, Vec<String>) {
     let (mut parts, mut items, mut skipped) = (Vec::new(), Vec::new(), Vec::new());
-    for (it, &moves) in its.iter().zip(moving).filter(|(it, _)| it.kind == "mesh" || it.kind == "model") {
+    for (it, &moves) in its.iter().zip(moving).filter(|(it, _)| (it.kind == "mesh" || it.kind == "model") && !it.props.contains_key("at")) {
         let name = label(it, "");
         let own = match own_tris(it) {
             Ok(t) => t,

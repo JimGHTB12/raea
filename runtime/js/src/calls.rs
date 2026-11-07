@@ -54,13 +54,15 @@ pub struct HostCalls {
 }
 
 impl Default for HostCalls {
-    /// With the platform's built-in calls (src/net.rs: fetch, WebSocket, localStorage's persistence; src/webaudio.rs:
-    /// decodeAudioData), which an app's own `on` under the same name replaces.
+    /// With the platform's built-in calls (src/net.rs: fetch, WebSocket, localStorage's persistence; src/os.rs: os.open,
+    /// the clipboard, files, dialogs; src/webaudio.rs: decodeAudioData), which an app's own `on` under the same name
+    /// replaces.
     fn default() -> Self {
         let (tx, rx) = channel();
         let (push, pushed) = channel();
         let mut c = HostCalls { fns: HashMap::new(), otherwise: None, tx, rx: Mutex::new(rx), pushed: Mutex::new(pushed) };
         crate::net::install(&mut c, push);
+        crate::os::install(&mut c);
         #[cfg(feature = "media")]
         crate::webaudio::install(&mut c);
         c

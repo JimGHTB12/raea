@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use bevy::math::{Quat, Vec3};
 use serde_json::{json, Value};
 
-use raea_core_scene::{AMBIENT, ENV, EV100, Item, LUMENS, LUX, Part, hex, num, parts_of, ray_tri, rgb, src_path, vec3};
+use raea_core_scene::{ENV, EV100, Item, Part, light_power, hex, num, parts_of, ray_tri, rgb, src_path, vec3};
 
 /// An incident meter's calibration (ISO 2720, a flat receptor): EV100 = log2(E x 100 / C).
 const C: f32 = 250.0;
@@ -255,7 +255,8 @@ fn sources(its: &[Item], parts: &[&Part], at: Vec3, n: Vec3) -> Vec<Got> {
         let pr = &it.props;
         let shadows = pr.get("castShadow").and_then(Value::as_bool) == Some(true);
         let colour = linear(pr.get("color"));
-        let power = num(pr, "intensity").unwrap_or(1.0) as f32;
+        // an <Environment>'s intensity is relative to ENV, not a light's power
+        let power = if it.kind == "environment" { num(pr, "intensity").unwrap_or(1.0) } else { light_power(it.kind, pr) } as f32;
         let world = |key: &str, d: [f64; 3]| {
             let v = vec3(pr, key, d);
             it.world.transform_point3(Vec3::new(v[0] as f32, v[1] as f32, v[2] as f32))
@@ -268,7 +269,7 @@ fn sources(its: &[Item], parts: &[&Part], at: Vec3, n: Vec3) -> Vec<Got> {
                 let l = (world("position", [0.0, 1.0, 0.0]) - Vec3::new(t[0] as f32, t[1] as f32, t[2] as f32)).normalize();
                 let cos = n.dot(l).max(0.0);
                 let blocked = if shadows && cos > 0.0 { seen_by(l, 1e4) } else { None };
-                let lux = if blocked.is_some() { 0.0 } else { power * LUX as f32 * cos };
+                let lux = if blocked.is_some() { 0.0 } else { power * cos };
                 out.push(Got { name, kind: "sun", lux, colour, blocked, shadows });
             }
             "point" | "spot" => {
@@ -277,7 +278,7 @@ fn sources(its: &[Item], parts: &[&Part], at: Vec3, n: Vec3) -> Vec<Got> {
                 let r = to.length().max(1e-4);
                 let l = to / r;
                 let cos = n.dot(l).max(0.0);
-                let candela = power * LUMENS as f32 / (4.0 * PI);
+                let candela = power / (4.0 * PI);
                 // Bevy's range window: (1 - (d/range)^4)^2, the light gone at its range
                 let range = num(pr, "distance").filter(|d| *d > 0.0).unwrap_or(20.0) as f32;
                 let window = (1.0 - (r / range).powi(4)).clamp(0.0, 1.0).powi(2);
@@ -297,7 +298,7 @@ fn sources(its: &[Item], parts: &[&Part], at: Vec3, n: Vec3) -> Vec<Got> {
                 }
                 out.push(Got { name, kind: if it.kind == "spot" { "spot" } else { "point" }, lux, colour, blocked, shadows });
             }
-            "ambient" => out.push(Got { name, kind: "ambient", lux: PI * power * AMBIENT as f32, colour, blocked: None, shadows: false }),
+            "ambient" => out.push(Got { name, kind: "ambient", lux: PI * power, colour, blocked: None, shadows: false }),
             "environment" => {
                 let Some(src) = pr.get("src").and_then(Value::as_str) else { continue };
                 let Ok(pano) = pano(&src_path(src)) else { continue };

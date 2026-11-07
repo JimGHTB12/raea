@@ -148,6 +148,32 @@ raea check out/piece.mp4 --manifest out/render.json --taste ~/.raea/taste/taste.
   `ffmpeg -i film.mp4 -c:v libx264 -preset slow -crf 23 -maxrate 2600k -bufsize 5200k -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart film-share.mp4`.
 - Deliver to the controllers' specs (sizes, platforms, loudness) when the workspace sets them.
 
+## Native apps with Rune — HEADLESS (a checkout with projects/rune)
+<!-- sources: docs/rune.feature engine/cli/src/cli.rs -->
+
+The same TSX that renders on Bevy can be drawn by Rune, a native GPU UI framework, through `raea rune`. Target it for
+three things: a desktop app (a window of its own, packaged as a signed Mac app), UI rendered to video (product-UI ads:
+springs and presence on the virtual clock), and a Rune layer inside a Bevy scene (a HUD). A composition or a game
+stays on Bevy; reach for Rune when the thing is an application's interface.
+
+- Write it as a React app: a default export, DOM elements, inline `style` or Tailwind `className`. Rune draws the
+  subset in projects/rune/README.md's table (size, min/max, padding, margin, gap, flex, absolute insets, scroll,
+  colours and gradients, border, radius, shadow, opacity, font size, weight and family). Anything else is reported in
+  `unmapped.json`, never dropped: an empty one means the page maps whole.
+- Rune-only behaviour is typed props from `@raea/rune` (sdk/rune), ignored by every other host:
+  `<div {...rune({ motion: "pop", transition: { effect: { push: "top" }, enter: "pop" } })}>`, plus `lead`,
+  `instant`, `blur`, `backdropBlur` and `glass`, and rune-kit's `Badge`, `Spinner`, `Progress`, `RollingText` and
+  `Switch`. Without them an element lands at once, as it does in a browser.
+- Check your work headless before you show it: write the input as steps.json (`[{"press": "inc"}, {"type": "Ada", "into": "name"}, {"key": "Enter"}]`,
+  elements by `data-testid`) and run `raea rune --headless app.tsx --script steps.json --png out/`. It writes a PNG after the
+  mount and after each step (00-mount.png, 01-press-inc.png, ...), tree.json (each element's role, label, text and
+  box) and unmapped.json, the same bytes every run. Read the PNGs and the tree; fix what's unmapped.
+- Film it: add `--video out/app.mp4 [--audio music.wav]` to the headless run. Every frame on the virtual clock at 60 fps,
+  a cursor gliding to each element it presses, through `raea media encode` (signed like every export). The same app
+  and script give the same frames (out/video.json has their hashes).
+- Open it: `raea rune run app.tsx`. Package it: `raea rune bundle app.tsx -o App.app --notarize` (signed with raea's
+  Developer ID, notarized, accepted by Gatekeeper).
+
 ## Go further
 
 - The guides: `raea guide` lists them; `raea guide NAME` prints one (`motion` first; `bevy` and `bevy/NAME` for 3D).

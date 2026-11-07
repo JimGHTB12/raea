@@ -3,7 +3,7 @@
 A critique has three parts, and the person sees all three on one test item in the feed:
 
 1. **Measured.** `raea check` on the export: clipped text, text under a platform's buttons, captions too brief to
-   read, caption contrast, frozen stretches, cues off their words, loudness, blotching in the darks. These are facts;
+   read, caption contrast, frozen stretches, flashing past the limit, cues off their words, loudness, blotching in the darks. These are facts;
    a P0 or P1 among them is never argued with.
 2. **Judged.** The decision model watches the export (its first minute, with sound) and rates it on the questions
    below, each on five levels: poor, weak, acceptable, strong, excellent. It reads the brief's facts and the

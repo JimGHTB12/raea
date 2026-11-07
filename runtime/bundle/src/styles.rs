@@ -84,36 +84,51 @@ pub fn ensure(dir: &Path) -> R<()> {
     Ok(())
 }
 
+/// An app's Tailwind (docs/targets.feature T0b): every class any .ts or .tsx in `dir` uses, with Tailwind's own default
+/// theme (not raea's brand theme), as plain CSS for a page. A folder with no code has no classes: no compile runs.
+pub fn tailwind(dir: &Path) -> R<String> {
+    let code = sources(dir);
+    if code.is_empty() {
+        return Ok(String::new());
+    }
+    compile(&code, "")
+}
+
+#[cfg(not(feature = "modules"))]
+fn compile(_: &[PathBuf], _: &str) -> R<String> {
+    Err("tailwind: this build leaves out the module runtime Tailwind's compiler runs on (the modules feature)".into())
+}
+
 /// The project's CSS: its brand kit's variables, then its Tailwind.
-#[cfg(feature = "modules")]
 fn css(space: &Path, code: &[PathBuf]) -> R<String> {
-    let home = raea_io_home::home();
-    let pkg = home.join("sdk/react/tw/node_modules/tailwindcss");
-    let theme_file = home.join("engine/cli/template/theme.css");
+    let theme_file = raea_io_home::home().join("engine/cli/template/theme.css");
+    let theme = std::fs::read_to_string(&theme_file).map_err(|e| format!("styles.gen: {}: {e}", theme_file.display()))?;
+    let tw = compile(code, &theme).map_err(|e| format!("styles.gen: {e}"))?;
+    let brand = match std::fs::read_to_string(space.join("brand/brand.css")) {
+        Ok(b) => b.split('\n').filter(|l| !l.trim_start().starts_with("@import")).collect::<Vec<_>>().join("\n"),
+        Err(_) => String::new(),
+    };
+    Ok(format!("{brand}\n{tw}"))
+}
+
+/// Tailwind 4 for `code`'s candidates after `theme`, compiled on raea's JavaScriptCore
+#[cfg(feature = "modules")]
+fn compile(code: &[PathBuf], theme: &str) -> R<String> {
+    let pkg = raea_io_home::home().join("sdk/react/tw/node_modules/tailwindcss");
     let mut files = BTreeMap::new();
-    for e in std::fs::read_dir(&pkg).map_err(|e| format!("styles.gen: Tailwind's package isn't at {} ({e}; in a checkout: `bun install` in sdk/react/tw)", pkg.display()))?.flatten() {
+    for e in std::fs::read_dir(&pkg).map_err(|e| format!("Tailwind's package isn't at {} ({e}; in a checkout: `bun install` in sdk/react/tw)", pkg.display()))?.flatten() {
         let p = e.path();
         if p.extension().is_some_and(|x| x == "css") {
             files.insert(p.file_name().unwrap().to_string_lossy().into_owned(), std::fs::read_to_string(&p).map_err(|e| e.to_string())?);
         }
     }
-    let theme = std::fs::read_to_string(&theme_file).map_err(|e| format!("styles.gen: {}: {e}", theme_file.display()))?;
     let input = json!({ "candidates": candidates(code), "theme": theme, "files": files }).to_string();
     let entry = raea_native::js::Entry::Code { text: COMPILE.into(), ts: false, dir: pkg.clone() };
     let run = raea_native::js::run(&pkg, &pkg, entry, Vec::new(), Default::default(), input, Vec::new(), std::time::Duration::from_secs(60));
     if run.exit != 0 {
-        return Err(format!("styles.gen: tailwind: {}", run.stderr.chars().take(400).collect::<String>()));
+        return Err(format!("tailwind: {}", run.stderr.chars().take(400).collect::<String>()));
     }
-    let brand = match std::fs::read_to_string(space.join("brand/brand.css")) {
-        Ok(b) => b.split('\n').filter(|l| !l.trim_start().starts_with("@import")).collect::<Vec<_>>().join("\n"),
-        Err(_) => String::new(),
-    };
-    Ok(format!("{brand}\n{}", run.stdout))
-}
-
-#[cfg(not(feature = "modules"))]
-fn css(_: &Path, _: &[PathBuf]) -> R<String> {
-    Err("styles.gen: this build leaves out the module runtime Tailwind's compiler runs on (the modules feature)".into())
+    Ok(run.stdout)
 }
 
 /// Every whitespace-separated word inside a quoted string of `code`, first sighting first (void's project.ts order)

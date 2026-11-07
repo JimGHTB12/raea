@@ -12,3 +12,4 @@ export * from "./compute";
 export * from "./text";
 export * from "./shapes";
 export * from "./sprite";
+export * from "./instances";

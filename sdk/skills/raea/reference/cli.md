@@ -162,7 +162,7 @@ Access: HEADLESS. Arguments besides flags: 1.
 
 ```
 raea check EDIT.tsx --quick [--shape S] [--platform P] [--taste T] [-o check.json]   (three stills of a composition checked for text: clipped, cramped, safe areas, sizes; about a second)
-raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, cues, loudness, blotching, a placeholder brand kit; P0-P3)
+raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, flashing, cues, loudness, blotching, a placeholder brand kit; P0-P3)
 ```
 
 Flags: `--manifest` (1), `--perception` (1), `--platform` (1), `--quick`, `--shape` (1), `--taste` (1), `--words` (1), `-o` (1).
@@ -192,6 +192,16 @@ raea doctor [--fix] [DIR]   (what doesn't match this raea: old brief files, an o
 ```
 
 Flags: `--fix`.
+
+## raea app
+
+Access: HEADLESS. Arguments besides flags: 2.
+
+```
+raea app run|check|bundle APP.tsx [--target web|native] [--size WxH] [--script steps.json] [--png DIR] [-o App.app]   (a TSX app on @raea/ui: its window, the headless check, a Mac app; web is Blitz on Bevy, native is Rune; the app's `export const app` sets the target, web when it doesn't; raea rune ... is --target native)
+```
+
+Flags: `--png` (1), `--script` (1), `--size` (1), `--target` (1), `-o` (1).
 
 ## raea skill
 

@@ -36,6 +36,8 @@ pub struct Built {
     from_voices: Vec<NodeID>,
 }
 
+/// FNV-1a over the JSON's bytes. engine/rune/src/video.rs `fnv` is the same hash (the native host can't depend on
+/// systems/): a fix to one goes to the other.
 pub fn hash(json: &str) -> u64 {
     json.bytes().fold(0xcbf29ce484222325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100000001b3))
 }

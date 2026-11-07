@@ -18,6 +18,8 @@ mod sound;
 use sound::*;
 mod picture;
 use picture::*;
+mod flash;
+use flash::*;
 mod text;
 use text::*;
 pub mod quick;
@@ -53,7 +55,7 @@ fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
     args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).map(String::as_str)
 }
 
-pub const USAGE: &str = "raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, cues, loudness, blotching, a placeholder brand kit; P0-P3)";
+pub const USAGE: &str = "raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, flashing, cues, loudness, blotching, a placeholder brand kit; P0-P3)";
 
 /// A rule from the person's taste: a form raea can measure, its value, and the taste line it stands for.
 #[derive(Clone, Debug, PartialEq)]
@@ -124,6 +126,7 @@ fn run(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String, bool)
         sound(&video, words.as_deref(), &mut issues, &mut passed)?;
     }
     freezes(&video, &probe, taste_of(&taste, "still-max"), &mut issues, &mut passed)?;
+    flashing(&video, &probe, &mut issues, &mut passed)?;
     blotching(&video, &probe, &mut issues, &mut passed)?;
     brand_kit(&[flag(args, "--manifest").unwrap_or(""), video.as_str()], &mut issues, &mut passed);
     if let Some(manifest) = &manifest {
@@ -176,22 +179,46 @@ struct Probe {
     w: f64,
     h: f64,
     duration: f64,
+    /// when the picture ends, on the clock FFmpeg's filters read: it starts at the file's first stream, sound can run on
+    /// past the picture, and the container's duration counts that
+    picture: f64,
     audio: bool,
+}
+
+/// Where the picture's last packet ends, for a container that doesn't state the video stream's own length (Matroska)
+fn last_packet_end(video: &str) -> Option<f64> {
+    let out = Command::new("ffprobe").args(["-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time,duration_time", "-of", "csv=p=0", video]).output().ok()?;
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter_map(|l| {
+            let mut parts = l.split(',');
+            let t: f64 = parts.next()?.trim().parse().ok()?;
+            Some(t + parts.next().and_then(|d| d.trim().parse::<f64>().ok()).unwrap_or(0.0))
+        })
+        .max_by(f64::total_cmp)
 }
 
 impl Probe {
     fn of(video: &str) -> R<Probe> {
         let out = Command::new("ffprobe")
-            .args(["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate:format=duration", "-of", "json", video])
+            .args(["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate,duration,start_time:format=duration,start_time", "-of", "json", video])
             .output()
             .map_err(|e| format!("ffprobe: {e}"))?;
         let v: Value = serde_json::from_slice(&out.stdout).map_err(|e| format!("ffprobe: {e}"))?;
         let streams = v["streams"].as_array().cloned().unwrap_or_default();
         let vid = streams.iter().find(|s| s["codec_type"] == "video").ok_or("no video stream")?;
+        let seconds = |field: &Value| field.as_str().and_then(|d| d.parse::<f64>().ok());
+        let duration = seconds(&v["format"]["duration"]).unwrap_or(0.0);
+        let origin = seconds(&v["format"]["start_time"]).unwrap_or(0.0);
+        let picture = match seconds(&vid["duration"]) {
+            Some(length) => seconds(&vid["start_time"]).unwrap_or(origin) - origin + length,
+            None => last_packet_end(video).map_or(duration, |end| end - origin),
+        };
         Ok(Probe {
             w: vid["width"].as_f64().unwrap_or(1920.0),
             h: vid["height"].as_f64().unwrap_or(1080.0),
-            duration: v["format"]["duration"].as_str().and_then(|d| d.parse().ok()).unwrap_or(0.0),
+            duration,
+            picture,
             audio: streams.iter().any(|s| s["codec_type"] == "audio"),
         })
     }
