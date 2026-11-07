@@ -301,10 +301,11 @@ fn sync_glitches(
     joints: Query<&GlobalTransform, Without<Mesh3d>>,
 ) {
     for (e, root_gt) in &rows {
-        let Some(v) = frame.vals(e) else { continue };
-        if !GLITCH_COLS.iter().any(|k| v.contains_key(*k)) {
+        // a row with no glitch column is passed over without making its values (10 000 cubes made them every frame)
+        if !GLITCH_COLS.iter().any(|k| frame.get(e, k).is_some()) {
             continue;
         }
+        let Some(v) = frame.vals(e) else { continue };
         let p = params(&v);
         let active = p[..7].iter().any(|x| *x != 0.0);
         let mut fresh = None;

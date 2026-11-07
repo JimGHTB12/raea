@@ -314,6 +314,9 @@ fn intern(s: &str) -> &'static str {
 
 /// Props other than `style` that the host reads, and a report for the rest.
 fn props(n: &Node, path: &str, report: &mut Report) {
+    if let Some(w) = n.props.get("data-rune-web-ignored").and_then(Value::as_str) {
+        report.web_ignored(path, w);
+    }
     for k in n.props.keys() {
         let known = k == "style" || k == "className" || k.starts_with("data-") || k.starts_with("aria-") || matches!(k.as_str(), "role" | "id" | "tabIndex" | "value" | "placeholder" | "disabled" | "type" | "name" | "src" | "alt" | "autoplay" | "autoPlay" | "loop" | "muted" | "playsInline" | "playsinline" | "__seek");
         if !known {

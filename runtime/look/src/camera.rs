@@ -56,9 +56,10 @@ pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>)
             row.insert(name.into(), V::N(v));
         }
     }
-    // ambient: every AmbientLight's intensity summed, per frame; its colour the first one's
+    // ambient: every AmbientLight's intensity summed, per frame; its colour the first one's. Any AmbientLight sends the
+    // column, so one of brightness 0 turns the ambient off as Bevy's does (with none, the camera keeps Bevy's default 80)
     let amb: Vec<f64> = all.iter().map(|its| its.iter().filter(|i| i.kind == "ambient").map(|i| light_power("ambient", &i.props)).sum::<f64>()).collect();
-    if amb.iter().any(|a| *a > 0.0) {
+    if all.iter().flatten().any(|i| i.kind == "ambient") {
         column(p, row, id, "ambient", &amb);
         if let Some(c) = all.iter().flatten().find(|i| i.kind == "ambient").and_then(|i| hex(i.props.get("color"))) {
             if c != "#ffffff" {

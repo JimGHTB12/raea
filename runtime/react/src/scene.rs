@@ -9,7 +9,7 @@ use serde_json::{Map, Value};
 
 use crate::{ReactKind, ReactOutbox, ReactProps};
 pub use raea_runtime_bundle::*;
-pub use raea_core_scene::{Node3, hex_of, num};
+pub use raea_core_scene::{Node3, hex_of, num, see_through};
 
 /// A composition bundled (raea_runtime_bundle), its folder first named as where its models' calls read from
 pub fn bundle_composition(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&Path>) -> R<()> {

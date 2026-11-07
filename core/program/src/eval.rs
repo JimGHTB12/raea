@@ -42,6 +42,15 @@ impl Col {
             Col::Any(x) => x[r].is_some(),
         }
     }
+    /// Whether row r holds the same value here as in `other` (None: a column the row doesn't have), copying nothing.
+    pub fn same_at(&self, other: Option<&Col>, r: usize) -> bool {
+        match (self, other) {
+            (Col::Num { v, has }, Some(Col::Num { v: w, has: h })) => has[r] == h[r] && (!has[r] || v[r].to_bits() == w[r].to_bits()),
+            (Col::Any(x), Some(Col::Any(y))) => std::sync::Arc::ptr_eq(x, y) || x[r] == y[r],
+            (c, None) => !c.has(r),
+            (c, Some(o)) => c.get(r) == o.get(r),
+        }
+    }
     pub fn num(&self, r: usize) -> Option<f64> {
         match self {
             Col::Num { v, has } => has[r].then_some(v[r]),

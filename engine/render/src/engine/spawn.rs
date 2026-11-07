@@ -29,6 +29,9 @@ pub(crate) fn relational(edit: Res<Edit>, clock: Res<Clock>, mut err: ResMut<Err
     }
     let t0 = bevy::platform::time::Instant::now();
     frame.cols = edit.timeline.cols(clock.0);
+    if !frame.timeline.as_ref().is_some_and(|t| std::sync::Arc::ptr_eq(t, &edit.timeline)) {
+        frame.timeline = Some(edit.timeline.clone());
+    }
     frame.parse_looks();
     st.rules += t0.elapsed().as_nanos() as u64;
     let _ = &mut err;
@@ -241,6 +244,17 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             let tangents = vals.get("normal_map").is_some_and(V::truthy);
             // made once per shape and what it's given (share.rs): equal parts hold one Mesh, so Bevy batches them
             let mesh = scene3d::shared_mesh(world, &format!("{expr}\0{uvs}\0{tangents}"), || {
+                // a sphere on its own is Bevy's Sphere::mesh() (its icosphere, or its UV sphere), as a Bevy Mesh3d's is
+                let ball = raea_core_shape::sphere_of(&expr).map(|s| match s {
+                    raea_core_shape::SphereOf::Ico { radius, subdivisions } => Sphere::new(radius).mesh().ico(subdivisions).map_err(|e| format!("mesh {}: {e}", t.id)),
+                    raea_core_shape::SphereOf::Uv { radius, sectors, stacks } => Ok(Sphere::new(radius).mesh().uv(sectors, stacks)),
+                });
+                if let Some(mut m) = ball.transpose()? {
+                    if tangents {
+                        m.generate_tangents().map_err(|e| format!("mesh {}: normalMap: its tangents: {e}", t.id))?;
+                    }
+                    return Ok(m);
+                }
                 // or its own vertex buffers (<BufferMesh>: "buffer:{positions, indices, normals, uvs}")
                 let (tris, own_uvs, own_colors) = match expr.strip_prefix("buffer:") {
                     Some(b) => {
@@ -375,4 +389,3 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
     }
     Ok(())
 }
-

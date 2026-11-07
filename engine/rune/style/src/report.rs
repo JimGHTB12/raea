@@ -18,6 +18,8 @@ pub struct Seen {
 pub struct Report {
     seen: BTreeMap<(String, &'static str), Seen>,
     fresh: Vec<String>,
+    /// what the SDK marked as having no web form (`data-rune-web-ignored`, T4b), by element path
+    web: BTreeMap<String, String>,
 }
 
 impl Report {
@@ -44,6 +46,15 @@ impl Report {
     /// Everything seen, by (prop, why).
     pub fn all(&self) -> impl Iterator<Item = (&str, &Seen)> {
         self.seen.iter().map(|((p, _), s)| (p.as_str(), s))
+    }
+
+    /// Element `path`'s Rune props that the web target ignores, as @raea/rune named them (T4b).
+    pub fn web_ignored(&mut self, path: &str, what: &str) {
+        self.web.insert(path.to_string(), what.to_string());
+    }
+
+    pub fn web(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.web.iter().map(|(p, w)| (p.as_str(), w.as_str()))
     }
 
     pub fn is_empty(&self) -> bool {

@@ -33,8 +33,9 @@ export interface BoxProps { args?: [number, number, number] }
 /** Bevy's Cuboid: half its size along each axis ([0.5, 0.5, 0.5], a 1 m cube, as Bevy's default). */
 export interface CuboidProps { half_size?: [number, number, number] }
 
-/** `args`, or Bevy's Sphere field: radius (0.5 by Bevy's default). */
-export interface SphereProps { args?: [number]; radius?: number }
+/** `args`, or Bevy's Sphere field: radius (0.5 by Bevy's default). Its mesh is Bevy's Sphere::mesh(): an icosphere of 5
+ *  subdivisions, or `ico` of them (Bevy's `.ico(n)`, 0 to 80), or a UV sphere of `uv` = [sectors, stacks] (`.uv(s, t)`). */
+export interface SphereProps { args?: [number]; radius?: number; ico?: number; uv?: [number, number] }
 
 export interface PlaneProps { args?: [number, number] }
 
@@ -73,16 +74,16 @@ interface BevyShape<P> {
   args: (p: P) => number[];
 }
 
-function geometry<P extends { args?: number[] }>(name: string, defaults: number[], shape: (a: number[]) => string, bevy?: BevyShape<P>, display = name) {
+function geometry<P extends { args?: number[] }>(name: string, defaults: number[], shape: (a: number[], props: P) => string, bevy?: BevyShape<P>, display = name) {
   const own = (props: P) => bevy !== undefined && bevy.keys.some((k) => (props as Record<string, unknown>)[k] !== undefined);
   const argsOf = (props: P) => {
     if (own(props) && props.args !== undefined) throw new TypeError(`${display}: args or Bevy's fields (${bevy!.keys.join(", ")}), not both`);
     return checkArgs(display, own(props) ? bevy!.args(props) : (props.args ?? defaults), defaults.length);
   };
-  const toShape = (props: Record<string, unknown>) => shape(argsOf(props as P));
+  const toShape = (props: Record<string, unknown>) => shape(argsOf(props as P), props as P);
   const Component = (props: P) => {
     const args = argsOf(props);
-    shape(args);
+    shape(args, props);
     const rest = own(props) ? Object.fromEntries(Object.entries(props).filter(([k]) => !bevy!.keys.includes(k))) : props;
     return node3d(name, { ...rest, args });
   };
@@ -106,7 +107,22 @@ function fromSize(size: [number, number, number]): Required<CuboidProps> {
 
 export const Cuboid = /* @__PURE__ */ Object.assign(CuboidShape, { fromSize });
 
-export const Sphere = /* @__PURE__ */ geometry<SphereProps>("Sphere", [1], (a) => `sphere(${list(a)})`, { keys: ["radius"], args: (p) => [p.radius ?? 0.5] });
+/** A sphere's expression: sphere(r), sphere(r, ico n) as sphere(r, n), or uv_sphere(r, sectors, stacks). */
+function sphereOf(r: number, p: SphereProps): string {
+  if (p.ico !== undefined && p.uv !== undefined) throw new TypeError("Sphere: ico or uv, not both");
+  if (p.ico !== undefined) {
+    if (!Number.isInteger(p.ico) || p.ico < 0 || p.ico > 80) throw new TypeError(`Sphere: ico is a whole number of subdivisions from 0 to 80, not ${p.ico}`);
+    return `sphere(${r}, ${p.ico})`;
+  }
+  if (p.uv !== undefined) {
+    const [s, t] = p.uv;
+    if (!Number.isInteger(s) || !Number.isInteger(t) || s < 3 || t < 2) throw new TypeError(`Sphere: uv is [sectors, stacks], whole numbers, at least [3, 2], not [${p.uv}]`);
+    return `uv_sphere(${r}, ${s}, ${t})`;
+  }
+  return `sphere(${r})`;
+}
+
+export const Sphere = /* @__PURE__ */ geometry<SphereProps>("Sphere", [1], (a, p) => `${sphereOf(a[0], p)}`, { keys: ["radius", "ico", "uv"], args: (p) => [p.radius ?? 0.5] });
 
 /** @deprecated <Plane3d>, raea/mesh */
 export const Plane = /* @__PURE__ */ geometry<PlaneProps>("Plane", [1, 1], (a) => `box(${list(a)}, 0)`);

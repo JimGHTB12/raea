@@ -10,6 +10,7 @@
 //!   refine(a, n)  refine_length(a, len)  refine_tolerance(a, tol)  smooth(a, angle°, smoothness, n)  simplify(a, tol)
 //!   extrude("x y, ...; ...", h [, divisions, twist°, scale_x, scale_y])  revolve("x y, ...", [degrees, segments])
 //!   obj("path") / glb("path")       a mesh file, closed into a solid
+//!   sphere(r, n) / uv_sphere(r, sectors, stacks)   Bevy's icosphere of n subdivisions, or its UV sphere
 //!
 //! `minus(rounded_box(2, 1, 0.2, 0.1), text3d("SALE", 0.45, 0.3))` is a sign with the word cut through it.
 //!
@@ -27,6 +28,8 @@ mod build;
 mod glyphs;
 mod mesh;
 mod parse;
+mod sphere;
+pub use sphere::{SphereOf, sphere_of};
 
 pub use mesh::{export, from_mesh, read_glb, read_obj, to_mesh};
 

@@ -37,7 +37,8 @@ pub(crate) struct Warned(std::collections::HashSet<String>);
 pub(crate) fn sample_animations(
     mut commands: Commands,
     mut clock: ResMut<FrameClock>,
-    mut q: Query<(Entity, &ReactNode, &mut ReactProps, Option<&Animated>)>,
+    // to sample, those whose props changed and the animated ones (not every element: 40% of 100 000 lights' step); the marker's
+    mut qs: ParamSet<(Query<(Entity, &ReactNode, &mut ReactProps, Option<&Animated>), Or<(Changed<ReactProps>, With<Animated>)>>, Query<(Entity, &ReactProps)>)>,
     kids: Query<&Children>,
     mut texts: Query<(&ReactNode, &ReactKind, &mut ReactText), Without<ReactProps>>,
     mut marker: Local<MarkerCache>,
@@ -45,11 +46,12 @@ pub(crate) fn sample_animations(
 ) {
     // the frame: the marker's, found once and kept
     let has_marker = |p: &ReactProps| p.0.contains_key("data-raea-frame");
-    if marker.entity.is_none_or(|e| q.get(e).map(|(_, _, p, _)| !has_marker(&p)).unwrap_or(true)) {
-        marker.entity = q.iter().find(|(_, _, p, _)| has_marker(p)).map(|(e, ..)| e);
+    let all = qs.p1();
+    if marker.entity.is_none_or(|e| all.get(e).map(|(_, p)| !has_marker(p)).unwrap_or(true)) {
+        marker.entity = all.iter().find(|(_, p)| has_marker(p)).map(|(e, _)| e);
     }
     let Some(me) = marker.entity else { return };
-    let Ok((_, _, mp, _)) = q.get(me) else { return };
+    let Ok((_, mp)) = all.get(me) else { return };
     let Some(frame) = mp.0.get("data-raea-frame").and_then(Value::as_f64) else { return };
     if frame < 0.0 {
         return;
@@ -65,8 +67,7 @@ pub(crate) fn sample_animations(
         *clock = next;
     }
     let f = clock.frame as f64;
-
-    for (e, node, mut props, animated) in &mut q {
+    for (e, node, mut props, animated) in &mut qs.p0() {
         let Some(src) = props.0.get("data-raea-anim").and_then(Value::as_str) else {
             if animated.is_some() {
                 commands.entity(e).remove::<Animated>();

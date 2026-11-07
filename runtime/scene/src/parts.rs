@@ -28,6 +28,9 @@ fn shader_row(id: String, it: &Item) -> BTreeMap<String, V> {
 /// lights: directional (towards its target, the origin by default), point, spot
 pub(crate) fn lights_rows(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
     let mut li = 0;
+    // a <Shadows>, found once: every light takes its cascades and biases (looking for it per light scanned every
+    // frame's items once a light, 100 000 lights by 100 000 items)
+    let shadows = all.iter().flatten().find(|i| i.kind == "shadows");
     for (_, track) in &tr.lights {
         let its = filled(&track);
         let kind = its[0].kind;
@@ -82,7 +85,7 @@ pub(crate) fn lights_rows(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
             row.insert("soft".into(), V::N(r));
         }
         // a <Shadows>' cascades (the sun's) and biases (every light's)
-        if let Some(sh) = all.iter().flatten().find(|i| i.kind == "shadows") {
+        if let Some(sh) = shadows {
             for (prop, col) in [("distance", "shadow_dist"), ("firstCascade", "shadow_first"), ("cascades", "shadow_cascades"), ("overlap", "shadow_overlap"), ("bias", "shadow_bias"), ("normalBias", "shadow_nbias")] {
                 if let Some(x) = num(&sh.props, prop) {
                     row.insert(col.into(), V::N(x));

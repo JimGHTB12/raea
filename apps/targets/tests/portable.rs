@@ -38,3 +38,13 @@ fn a_run_with_no_report_is_an_error_not_a_pass() {
     std::fs::create_dir_all(&d).unwrap();
     assert!(report(&d).is_err());
 }
+
+#[test]
+fn a_web_apps_rune_props_the_web_ignores_are_named_by_path() {
+    let d = dir("[]", "[] ");
+    std::fs::write(d.join("web-ignored.json"), r#"[{"path": "/div[0]/div[1]", "ignored": "lead"}]"#).unwrap();
+    let lines = raea_app_targets::portable::web_ignored(&d).unwrap();
+    assert_eq!(lines, ["ignored on web: lead at /div[0]/div[1]"]);
+    assert!(raea_app_targets::portable::web_note(&lines).contains("@raea/rune has no CSS for them"));
+    assert_eq!(raea_app_targets::portable::web_note(&[]), "");
+}

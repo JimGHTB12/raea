@@ -23,6 +23,18 @@ pub(crate) fn program(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64) -> raea
         eprintln!("raea: --alpha keeps 2D pages and <Video> clips transparent; the frames with 3D are drawn over the 3D and come out opaque");
     }
     let mut cam = row("cam", clear.map(|c| ("bg", V::S(c))).into_iter().collect());
+    // a holder's background that changes over the frames: the clear keyed frame by frame (bg_r, bg_g, bg_b, bg_a, sRGB),
+    // as the page over it changes. Before, the first frame's clear held for the whole render.
+    if has3d && !ALPHA.load(std::sync::atomic::Ordering::Relaxed) {
+        let mut last = None;
+        let each: Vec<Option<[f64; 4]>> = frames.iter().map(|(_, f)| f.clear.as_deref().and_then(hex_of).and_then(|c| rgba_of(&c))).collect();
+        if each.iter().flatten().any(|c| Some(c) != each[0].as_ref()) {
+            let cols: Vec<[f64; 4]> = each.iter().map(|c| *last.insert((*c).or(last).unwrap_or([0.0, 0.0, 0.0, 1.0]))).collect();
+            for (k, name) in ["bg_r", "bg_g", "bg_b", "bg_a"].iter().enumerate() {
+                raea_runtime_scene::column(&mut p, &mut cam, "cam", name, &cols.iter().map(|c| c[k]).collect::<Vec<_>>());
+            }
+        }
+    }
     if has3d {
         // where it is and looks, frame by frame; its lens, ambient light and post-processing (scene3d)
         scene3d::camera(frames, &mut p, &mut cam);
@@ -154,4 +166,15 @@ pub(crate) fn sound_lint(p: &raea_core_program::ir::Program, fps: f64) {
             }
         }
     }
+}
+
+/// A `#rgb`, `#rrggbb` or `#rrggbbaa` colour as sRGB 0..1, alpha last
+pub(crate) fn rgba_of(c: &str) -> Option<[f64; 4]> {
+    let h = c.strip_prefix('#')?;
+    let h: String = if h.len() == 3 { h.chars().flat_map(|c| [c, c]).collect() } else { h.to_string() };
+    if h.len() != 6 && h.len() != 8 {
+        return None;
+    }
+    let at = |i: usize| u8::from_str_radix(h.get(i..i + 2)?, 16).ok().map(|v| v as f64 / 255.0);
+    Some([at(0)?, at(2)?, at(4)?, if h.len() == 8 { at(6)? } else { 1.0 }])
 }

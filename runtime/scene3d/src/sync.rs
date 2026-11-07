@@ -40,6 +40,13 @@ pub fn sync_pictures(
     }
 }
 
+/// A still row's entity whose values sync_meshes or sync_lights has applied: it isn't read again (FrameRows::still).
+#[derive(Component)]
+pub struct StillSynced;
+
+/// The columns sync_meshes applies to a part's material.
+const MATERIAL_COLS: [&str; 6] = ["col_r", "opacity", "emissive_k", "rough", "metal", "sheet_frame"];
+
 /// Meshes and models where the frame's rows put them: transform, whether they show, and the material values a row
 /// animates. Only columns a row has are applied, so rows written before these columns draw as they did.
 #[allow(clippy::type_complexity)]
@@ -60,11 +67,18 @@ pub fn sync_meshes(
             Option<&super::decal::DecalStd>,
             Option<&raea_sys_shader::Shaded>,
             Has<super::SharedMaterial>,
+            Has<StillSynced>,
         ),
         Or<(With<Mesh3d>, With<Model3d>, With<Instanced>)>,
     >,
 ) {
-    for (e, mut t, mut vis, mut mat, mut fogged, driven, mut painted, decal, shaded, shared) in &mut q {
+    for (e, mut t, mut vis, mut mat, mut fogged, driven, mut painted, decal, shaded, shared, synced) in &mut q {
+        // a row the same on every frame is applied once (10 000 still cubes made their values every frame); a live
+        // scene's rows are never still
+        let still = frame.still(e);
+        if still && synced {
+            continue;
+        }
         let Some(v) = frame.vals(e) else { continue };
         let v = &v;
         // a mesh a Bevy plugin moves (a rigid body) keeps the plugin's transform (engine/plugins.rs)
@@ -81,7 +95,16 @@ pub fn sync_meshes(
         // a painted mesh's standard material is kept aside for this (paint.rs), and a see-through mesh drawn with its froxel
         // fog copy (froxel_glass.rs) follows its standard material
         // (and a decal's, decal.rs, and a shaded one's, raea-sys-shader)
-        let Some(h) = mat.as_ref().map(|m| m.0.clone()).or(painted.as_ref().map(|p| p.std.clone())).or(fogged.as_ref().map(|(f, _)| f.std.clone())).or(decal.map(|d| d.0.clone())).or(shaded.map(|s| s.std.clone())) else { continue };
+        let Some(h) = mat.as_ref().map(|m| m.0.clone()).or(painted.as_ref().map(|p| p.std.clone())).or(fogged.as_ref().map(|(f, _)| f.std.clone())).or(decal.map(|d| d.0.clone())).or(shaded.map(|s| s.std.clone())) else {
+            // no material yet: a still row with material columns waits for one (a painted or shaded copy comes later)
+            if still && !MATERIAL_COLS.iter().any(|k| v.contains_key(*k)) {
+                commands.entity(e).insert(StillSynced);
+            }
+            continue;
+        };
+        if still {
+            commands.entity(e).insert(StillSynced);
+        }
         let h = &h;
         // a sprite sheet's cell (an ImagePlane's `frame` of its `grid`)
         if let Some(fr) = v.get("sheet_frame") {
@@ -164,8 +187,8 @@ pub fn sync_meshes(
 /// once, and a row that moves (or moves back) writes every frame it changes. An entity with no entry always writes,
 /// so a render seeking straight to frame N places its camera.
 #[allow(clippy::type_complexity)]
-pub fn sync_camera(frame: Res<FrameRows>, edit: Option<Res<Edit>>, mut placed: Local<bevy::platform::collections::HashMap<Entity, (Vec3, Vec3)>>, mut q: Query<(Entity, &mut Transform, Option<&mut Projection>, Option<&mut AmbientLight>, Option<&mut bevy::post_process::dof::DepthOfField>, Option<&mut super::lens::Lens>, Option<&mut bevy::post_process::effect_stack::ChromaticAberration>), (With<Camera3d>, Without<super::BareEntity>)>) {
-    for (e, mut t, proj, amb, dof, lens, ab) in &mut q {
+pub fn sync_camera(frame: Res<FrameRows>, edit: Option<Res<Edit>>, mut placed: Local<bevy::platform::collections::HashMap<Entity, (Vec3, Vec3)>>, mut q: Query<(Entity, &mut Transform, Option<&mut Projection>, Option<&mut AmbientLight>, Option<&mut bevy::post_process::dof::DepthOfField>, Option<&mut super::lens::Lens>, Option<&mut bevy::post_process::effect_stack::ChromaticAberration>, Option<&mut Camera>), (With<Camera3d>, Without<super::BareEntity>)>) {
+    for (e, mut t, proj, amb, dof, lens, ab, cam) in &mut q {
         let Some(v) = frame.vals(e) else { continue };
         let v = &v;
         let pos = Vec3::new(num(v, "x", 0.0), num(v, "y", 2.0), num(v, "z", 9.0));
@@ -239,21 +262,37 @@ pub fn sync_camera(frame: Res<FrameRows>, edit: Option<Res<Edit>>, mut placed: L
                 a.brightness = b.num() as f32;
             }
         }
+        // a clear keyed frame by frame (bg_r..bg_a, sRGB: a holder's background that changes, runtime/export program.rs)
+        if let (Some(r), Some(mut c)) = (v.get("bg_r"), cam) {
+            let want = Color::srgba(r.num() as f32, num(v, "bg_g", 0.0), num(v, "bg_b", 0.0), num(v, "bg_a", 1.0));
+            if !matches!(c.clear_color, ClearColorConfig::Custom(have) if have == want) {
+                c.clear_color = ClearColorConfig::Custom(want);
+            }
+        }
     }
 }
 
 /// Lights where the frame's rows put them, as bright as they say.
-pub fn sync_lights(frame: Res<FrameRows>, mut q: Query<(Entity, &mut Transform, Option<&mut DirectionalLight>, Option<&mut PointLight>, Option<&mut SpotLight>, Option<&CastsShadows>, Option<&mut bevy::light::RectLight>)>) {
+#[allow(clippy::type_complexity)]
+pub fn sync_lights(frame: Res<FrameRows>, mut commands: Commands, mut q: Query<(Entity, &mut Transform, Option<&mut DirectionalLight>, Option<&mut PointLight>, Option<&mut SpotLight>, Option<&CastsShadows>, Option<&mut bevy::light::RectLight>, Has<StillSynced>)>) {
     // a dark light (a frame it isn't in: its power is 0) has its shadow maps off, so no shadow pass is drawn for it. Lit or dark,
     // every light stays shown: hiding the dark ones (so Bevy doesn't extract them) put the lit volumetric spots' shafts
     // out, as Bevy 0.19's prepare_lights indexes its spot lights past a count of point lights that the hidden ones
     // threw off. Dark with its maps on, a film's every shadow-casting light drew them on every frame of every scene
     // (the rome film: 20 lights, 4096-texel maps; 2026-10-20)
-    for (e, mut t, d, p, s, casts, rect) in &mut q {
+    for (e, mut t, d, p, s, casts, rect, synced) in &mut q {
         if d.is_none() && p.is_none() && s.is_none() && rect.is_none() {
             continue;
         }
+        // a light the same on every frame is applied once, as a still mesh is (100 000 lights made their values each frame)
+        let still = frame.still(e);
+        if still && synced {
+            continue;
+        }
         let Some(v) = frame.vals(e) else { continue };
+        if still {
+            commands.entity(e).insert(StillSynced);
+        }
         let v = &v;
         let pos = Vec3::new(num(v, "x", 0.0), num(v, "y", 0.0), num(v, "z", 0.0));
         let dir = Vec3::new(num(v, "dir_x", -0.5), num(v, "dir_y", -1.0), num(v, "dir_z", -0.4));

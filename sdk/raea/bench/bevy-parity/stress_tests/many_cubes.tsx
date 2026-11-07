@@ -24,23 +24,35 @@ const places: [number, number, number][] = Array.from({ length: N }, (_, i) => {
   return [Math.cos(theta) * Math.sin(phi) * RADIUS, Math.sin(theta) * Math.sin(phi) * RADIUS, Math.cos(phi) * RADIUS];
 });
 
-function Shot() {
+// the example's move_camera system: only the camera reads the clock, as only that system touches it each update
+function Rig() {
   const f = useCurrentFrame();
-  // rotate_z then rotate_x each update, about the world's axes: q = (Rx(d) * Rz(d))^(f + 1)
+  // rotate_z then rotate_x each update, about the world's axes: q = (Rx(d) * Rz(d))^(f + 1) (--benchmark turns a fixed 1/60 s each update, the first too)
   const d = 0.15 / 60;
   const step = Quat.mul(Quat.fromRotationX(d), Quat.fromRotationZ(d));
   let q = Quat.IDENTITY;
   for (let k = 0; k <= f; k++) q = Quat.mul(step, q);
+  return <Camera3d transform={{ translation: [0, 0, 0], rotation: q }} />;
+}
+
+// the example's setup: spawned once, never touched again
+const Cubes = () => (
+  <>
+    {places.map((p, i) => (
+      <Mesh3d key={i} transform={Transform.fromXyz(p[0], p[1], p[2]).lookingAt([0, 0, 0])}>
+        <Cuboid half_size={[H, H, H]} />
+        <StandardMaterial base_color="#ffffff" />
+      </Mesh3d>
+    ))}
+  </>
+);
+
+function Shot() {
   return (
     <>
-      <Camera3d transform={{ translation: [0, 0, 0], rotation: q }} />
+      <Rig />
       <DirectionalLight transform={Transform.fromXyz(0, 0, 0).lookingAt([0, -1, -1])} />
-      {places.map((p, i) => (
-        <Mesh3d key={i} transform={Transform.fromXyz(p[0], p[1], p[2]).lookingAt([0, 0, 0])}>
-          <Cuboid half_size={[H, H, H]} />
-          <StandardMaterial base_color="#ffffff" />
-        </Mesh3d>
-      ))}
+      <Cubes />
       <Mesh3d transform={{ translation: [0, 0, 0], scale: [-1, -1, -1] }}>
         <Cuboid half_size={[RADIUS * 1.1, RADIUS * 1.1, RADIUS * 1.1]} />
         <StandardMaterial base_color="#ffffff" />

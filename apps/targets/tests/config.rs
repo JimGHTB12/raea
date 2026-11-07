@@ -68,3 +68,14 @@ fn the_command_line_overrides_the_file() {
     assert!(e.starts_with(&format!("{}:2: ", f.display())), "{e}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn an_apps_own_steps_are_its_checks_script() {
+    use raea_app_targets::config::steps;
+    let src = "export default function A() { return <b /> }\n// export const steps = [{ press: 'no' }]\nexport const steps = [{ press: \"add\" }, { type: \"ada\", into: \"email\" }, { key: \"Tab\" }];";
+    let got: serde_json::Value = serde_json::from_str(&steps(src).unwrap().unwrap()).unwrap();
+    assert_eq!(got, serde_json::json!([{ "press": "add" }, { "type": "ada", "into": "email" }, { "key": "Tab" }]));
+    assert_eq!(steps("export default function A() {}").unwrap(), None);
+    let e = steps("const s = [];\nexport const steps = s;").unwrap_err();
+    assert_eq!(e.line, 2);
+}

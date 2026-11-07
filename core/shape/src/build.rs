@@ -83,7 +83,17 @@ pub(crate) fn call(f: &str, a: Vec<Arg>) -> Result<Manifold, String> {
                 .collect();
             Manifold::hull_manifolds(&corners)
         }
-        "sphere" => Manifold::sphere(nums(f, &a, 1)?[0], SEGMENTS),
+        // sphere(r), or sphere(r, n) for Bevy's icosphere of n subdivisions (drawn by Bevy's builder: engine spawn.rs),
+        // its segments about an icosphere's (4.5 x 2^n) up to 256 for CSG and contacts; uv_sphere(r, sectors, stacks)
+        "sphere" => {
+            let n = nums(f, &a, 1)?;
+            let seg = n.get(1).map_or(SEGMENTS, |s| (4.5 * 2f64.powf(s.clamp(0.0, 6.0))).round().clamp(8.0, 256.0) as i32);
+            Manifold::sphere(n[0], seg)
+        }
+        "uv_sphere" => {
+            let n = nums(f, &a, 3)?;
+            Manifold::sphere(n[0], (n[1].round() as i32).clamp(3, 512))
+        }
         "cylinder" => {
             let n = nums(f, &a, 2)?;
             Manifold::cylinder_centered(n[1], n[0], n[0], SEGMENTS, true)
@@ -213,7 +223,7 @@ pub(crate) fn call(f: &str, a: Vec<Arg>) -> Result<Manifold, String> {
             let (verts, tris) = if f == "obj" { read_obj(&path)? } else { read_glb(&path)? };
             from_mesh(&verts, &tris)?
         }
-        o => return Err(format!("no shape {o}: box, rounded_box, sphere, cylinder, cone, torus, text3d, extrude, revolve, union, minus, intersect, hull, minkowski, minkowski_diff, move, rotate, scale, mirror, transform, trim, refine, smooth, simplify, refine_length, refine_tolerance, obj, glb; in a mask also frame, rect, disc, wipe, during, slide")),
+        o => return Err(format!("no shape {o}: box, rounded_box, sphere, uv_sphere, cylinder, cone, torus, text3d, extrude, revolve, union, minus, intersect, hull, minkowski, minkowski_diff, move, rotate, scale, mirror, transform, trim, refine, smooth, simplify, refine_length, refine_tolerance, obj, glb; in a mask also frame, rect, disc, wipe, during, slide")),
     })
 }
 

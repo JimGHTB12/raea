@@ -2,7 +2,8 @@
 //! (brand/brand.css beside the edit, its @imports dropped: Blitz loads no remote CSS), then Tailwind 4 for every class
 //! any .ts or .tsx in the edit's folder uses, with raea's brand theme (engine/cli/template/theme.css: class names onto
 //! --brand-* variables). render, play, bundle and export-game write it before they bundle, as the legacy app does
-//! (apps/legacy/shell/src/tailwind.rs: the same compile, which this follows byte for byte). Tailwind's compiler runs on raea's
+//! (apps/legacy/shell/src/tailwind.rs: the same compile, which this follows byte for byte, but for the classes inside a
+//! template's `${...}`, which it finds: docs/targets.feature T5a). Tailwind's compiler runs on raea's
 //! JavaScriptCore (raea-native's js-exec), from the package raea ships (sdk/react/tw/node_modules/tailwindcss under
 //! raea_io_home::home(): the checkout's, or an install's share/raea).
 #[cfg(feature = "modules")]
@@ -149,47 +150,105 @@ fn candidates(code: &[PathBuf]) -> Vec<String> {
     out
 }
 
-/// The strings /(["'`])((?:(?!\1)[^\\]|\\.)*)\1/g matches: from a quote to the next unescaped same quote; a quote with
-/// no closing one is passed over
+/// The strings of `src` as JS reads them: from a quote to the next unescaped same quote, a quote with no closing one
+/// passed over. A template's text between its `${...}`s is a string each, and the code inside each `${...}` is read for
+/// strings of its own (`size-4 ${on ? "bg-blue-600" : "bg-white"}` gives `size-4 `, `bg-blue-600` and `bg-white`);
+/// read as one string, its words reached Tailwind with the quotes on them and matched nothing (docs/targets.feature T5a)
 #[cfg_attr(not(feature = "modules"), allow(dead_code))]
 fn quoted(src: &str) -> Vec<&str> {
-    let b = src.as_bytes();
-    let utf8_len = |lead: u8| match lead {
+    let mut out = Vec::new();
+    strings(src, 0, src.len(), false, &mut out);
+    out
+}
+
+fn utf8_len(lead: u8) -> usize {
+    match lead {
         0xf0..=0xff => 4,
         0xe0..=0xef => 3,
         0xc0..=0xdf => 2,
         _ => 1,
-    };
-    let mut out = Vec::new();
-    let mut i = 0;
-    while i < b.len() {
+    }
+}
+
+/// The strings in src[i..end], pushed in order; returns where it stopped: `end`, or in a `${` (`nested`) its closing `}`
+/// (an unmatched one at the top is passed over, so a stray brace in a comment or a regex can't end the file's read)
+fn strings<'a>(src: &'a str, mut i: usize, end: usize, nested: bool, out: &mut Vec<&'a str>) -> usize {
+    let b = src.as_bytes();
+    let mut depth = 0usize;
+    while i < end {
         let q = b[i];
-        if q == b'"' || q == b'\'' || q == b'`' {
-            let mut j = i + 1;
-            let mut closed = None;
-            while j < b.len() {
-                if b[j] == b'\\' {
-                    if j + 1 >= b.len() {
-                        break;
-                    }
-                    j += 1 + utf8_len(b[j + 1]);
+        match q {
+            b'"' | b'\'' => {
+                if let Some(close) = closing(b, i + 1, end, q) {
+                    out.push(&src[i + 1..close]);
+                    i = close + 1;
                     continue;
                 }
-                if b[j] == q {
-                    closed = Some(j);
+            }
+            b'`' => {
+                if let Some(next) = template(src, i + 1, end, out) {
+                    i = next;
+                    continue;
+                }
+            }
+            b'{' => depth += 1,
+            b'}' if depth == 0 => {
+                if nested {
+                    return i;
+                }
+            }
+            b'}' => depth -= 1,
+            _ => {}
+        }
+        i += utf8_len(q).max(1);
+    }
+    end
+}
+
+/// The next unescaped `q` from `j`, before `end`
+fn closing(b: &[u8], mut j: usize, end: usize, q: u8) -> Option<usize> {
+    while j < end {
+        if b[j] == b'\\' {
+            if j + 1 >= end {
+                return None;
+            }
+            j += 1 + utf8_len(b[j + 1]);
+            continue;
+        }
+        if b[j] == q {
+            return Some(j);
+        }
+        j += utf8_len(b[j]);
+    }
+    None
+}
+
+/// A template from just after its backtick: its text pieces and the strings in its `${...}`s pushed in order, and where
+/// it ends (after the closing backtick), or None for one that never closes (its pushes taken back)
+fn template<'a>(src: &'a str, mut j: usize, end: usize, out: &mut Vec<&'a str>) -> Option<usize> {
+    let b = src.as_bytes();
+    let (mark, mut start) = (out.len(), j);
+    while j < end {
+        match b[j] {
+            b'\\' if j + 1 < end => j += 1 + utf8_len(b[j + 1]),
+            b'`' => {
+                out.push(&src[start..j]);
+                return Some(j + 1);
+            }
+            b'$' if b.get(j + 1) == Some(&b'{') => {
+                out.push(&src[start..j]);
+                let close = strings(src, j + 2, end, true, out);
+                if close >= end {
                     break;
                 }
-                j += utf8_len(b[j]);
+                j = close + 1;
+                start = j;
             }
-            if let Some(end) = closed {
-                out.push(&src[i + 1..end]);
-                i = end + 1;
-                continue;
-            }
+            c => j += utf8_len(c),
         }
-        i += utf8_len(b[i]).max(1);
     }
-    out
+    out.truncate(mark);
+    None
 }
 
 #[cfg(test)]
@@ -198,6 +257,14 @@ mod tests {
 
     #[test]
     fn finds_quoted_words_as_project_ts() {
-        assert_eq!(quoted(r#"a "b c" 'd' `e ${f}` "g\"h" 'unclosed"#), vec!["b c", "d", "e ${f}", "g\\\"h"]);
+        assert_eq!(quoted(r#"a "b c" 'd' `e ${f}` "g\"h" 'unclosed"#), vec!["b c", "d", "e ", "", "g\\\"h"]);
+    }
+
+    #[test]
+    fn reads_a_templates_code_for_strings_of_its_own() {
+        let src = r#"<div className={`size-4 ${on ? "bg-blue-600" : `ring ${n}`} rounded`} />"#;
+        assert_eq!(quoted(src), vec!["size-4 ", "bg-blue-600", "ring ", "", " rounded"]);
+        // a stray brace at the top doesn't end the read; a template that never closes is passed over
+        assert_eq!(quoted("} \"a\" { `b ${\"c\"} \"d\""), vec!["a", "c", "d"]);
     }
 }

@@ -3,6 +3,10 @@
 
 What works today. The "not yet" list is the gaps: when one is built, delete its line here.
 
+This page covers an app inside a composition. An app that is its own program, a window on the web target (Blitz) or
+the native one (Rune) chosen by `export const app = { target }`, is `raea app run|check|bundle`: see the raea skill's
+"Apps: web or native", and `sdk/rune/examples/` for two that pass the check on both targets.
+
 - Packages: `raea add @assistant-ui/react` writes `package.json` and `raea.lock` and lays out `node_modules`. raea's own package
   manager does it; no Node, npm or bun is needed, and install scripts never run.
 - A React library that needs a real DOM (assistant-ui, Radix, shadcn) runs as an app: a module whose default export is

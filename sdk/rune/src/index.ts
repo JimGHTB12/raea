@@ -1,13 +1,18 @@
 // @raea/rune: what Rune can do that CSS can't, as typed props on any element (docs/rune.feature R6a). They travel as
 // one `data-rune` attribute, so React DOM, Blitz and a browser ignore them and the same TSX renders there unchanged;
-// raea-rune-host reads it (engine/rune/style/src/runeprops.rs) and maps each field to Rune's builder.
+// raea-rune-host reads it (engine/rune/style/src/runeprops.rs) and maps each field to Rune's builder. On the web, the
+// data-rune-* attributes beside it and web.css draw what CSS can (T4b, web.ts).
 //
 //   <div {...rune({ motion: "pop", transition: { effect: "slide" } })}>...</div>
 //
 // Everything not marked with motion lands at once in the Rune host, as the DOM does; an element that asks for motion,
 // a transition or lead and trail animates as Rune does.
 
+import "./web.css";
+import { web } from "./web.ts";
+
 export * from "./kit.tsx";
+export { web } from "./web.ts";
 
 /** A spring as Rune has it: how long it takes to settle, in seconds, and how much it overshoots (0 none, 1 a lot). */
 export type Spring = { duration: number; bounce?: number };
@@ -79,7 +84,8 @@ export type RuneProps = {
   glass?: boolean;
 };
 
-/** The prop that carries `p`: spread it onto any element. */
-export function rune(p: RuneProps): { "data-rune": string } {
-  return { "data-rune": JSON.stringify(p) };
+/** The props that carry `p`: spread them onto any element. `data-rune` is the native host's; the `data-rune-*` ones are
+ *  the web's CSS fallbacks (web.ts, web.css), and `data-rune-web-ignored` names what the web can't draw (T4b). */
+export function rune(p: RuneProps): { "data-rune": string } & Record<string, string> {
+  return { "data-rune": JSON.stringify(p), ...web(p).attrs };
 }

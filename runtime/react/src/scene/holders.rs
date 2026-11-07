@@ -22,94 +22,89 @@ pub fn scene_of(world: &mut World) -> Vec<Node3> {
     world.resource_scope(|world, mut kept: Mut<Kept3d>| contrib3d(world, surf, &mut kept, &dirty).to_vec())
 }
 
-/// The page elements holding the frame's 3D (each 3D root's ancestors up to the surface, nearest first) with their
-/// props: a render clears their backgrounds (the 3D is drawn under the page) and the nearest one's colour is the 3D's.
 /// The elements holding the 3D (holders_of's), into `out` (ZeroHeap: live play's present asks each frame)
 pub fn holder_entities(world: &mut World, out: &mut Vec<Entity>) {
     out.clear();
-    with_holder_query(world, |world, q| {
-        let is3d = |w: &World, e: Entity| w.get::<ReactProps>(e).is_some_and(|p| p.0.contains_key("data-3d"));
-        for (r, p, c) in q.0.iter(world) {
-            if !p.0.contains_key("data-3d") || c.is_some_and(|c| is3d(world, c.parent())) {
-                continue;
+    out.extend(fresh_holders(world).0);
+}
+
+/// Each 3D root's ancestors up to the surface, nearest first, in the page's order: a walk down from the surface that
+/// stops at each data-3d element (a 3D root), so the 3D's own parts are never visited. Before, every element's props
+/// were looked at each frame to find the roots (half of many_lights' React step, its 100 000 lights).
+fn holders_walk(world: &mut World, out: &mut Vec<Entity>) {
+    let Some(surf) = world.query::<(Entity, &ReactKind)>().iter(world).find(|(_, k)| k.0 == "surface").map(|(e, _)| e) else { return };
+    let world: &World = world;
+    let mut stack: Vec<(Entity, usize)> = vec![(surf, 0)];
+    let mut path: Vec<Entity> = Vec::new();
+    while let Some((e, depth)) = stack.pop() {
+        path.truncate(depth);
+        if e != surf
+            && let Some(p) = world.get::<ReactProps>(e)
+            && p.0.contains_key("data-3d")
+        {
+            for a in path.iter().rev().filter(|a| **a != surf) {
+                if !out.contains(a) {
+                    out.push(*a);
+                }
             }
-            let mut at = world.get::<ChildOf>(r).map(|c| c.parent());
-            while let Some(e) = at {
-                if world.get::<ReactKind>(e).is_some_and(|k| k.0 == "surface") {
-                    break;
-                }
-                if !out.contains(&e) {
-                    out.push(e);
-                }
-                at = world.get::<ChildOf>(e).map(|c| c.parent());
+            continue;
+        }
+        path.push(e);
+        if let Some(kids) = world.get::<Children>(e) {
+            for k in kids.iter().rev() {
+                stack.push((k, depth + 1));
             }
         }
-    })
-}
-
-#[derive(Resource)]
-pub struct HolderQuery(QueryState<(Entity, &'static ReactProps, Option<&'static ChildOf>)>);
-
-pub fn with_holder_query<T>(world: &mut World, f: impl FnOnce(&mut World, &mut HolderQuery) -> T) -> T {
-    if !world.contains_resource::<HolderQuery>() {
-        let q = world.query();
-        world.insert_resource(HolderQuery(q));
     }
-    world.resource_scope(|world, mut q: Mut<HolderQuery>| f(world, &mut q))
 }
 
+/// The page elements holding the frame's 3D (each 3D root's ancestors up to the surface, nearest first) with their
+/// props: a render clears their backgrounds (the 3D is drawn under the page) and the nearest one's colour is the 3D's.
 pub fn holders_of(world: &mut World) -> Vec<(Entity, Map<String, Value>)> {
-    let mut q = world.query::<(Entity, &ReactProps, Option<&ChildOf>)>();
-    let is3d = |w: &World, e: Entity| w.get::<ReactProps>(e).is_some_and(|p| p.0.contains_key("data-3d"));
-    let roots: Vec<Entity> = q.iter(world).filter(|(_, p, c)| p.0.contains_key("data-3d") && !c.is_some_and(|c| is3d(world, c.parent()))).map(|(e, _, _)| e).collect();
-    let mut out: Vec<(Entity, Map<String, Value>)> = Vec::new();
-    for r in roots {
-        let mut at = world.get::<ChildOf>(r).map(|c| c.parent());
-        while let Some(e) = at {
-            if world.get::<ReactKind>(e).is_some_and(|k| k.0 == "surface") {
-                break;
-            }
-            if !out.iter().any(|(x, _)| *x == e) {
-                out.push((e, world.get::<ReactProps>(e).map(|p| p.0.clone()).unwrap_or_default()));
-            }
-            at = world.get::<ChildOf>(e).map(|c| c.parent());
-        }
-    }
-    out
-}
-
-/// A holder of the 3D made see-through, as every path that draws the 3D under the page does: its inline background
-/// goes (the nearest one's colour is the 3D's clear colour, returned here), and when it had one or has a class, an
-/// inline transparent background and no image override whatever a class gives it. Before, only an inline background
-/// went, so `className="bg-brand-bg"` (the brand's own utility) painted an opaque page over the 3D and every frame
-/// rendered as the background colour alone (2026-10-18, void's agent's perfume shot, black for 24 renders). Whether
-/// the props changed, and the clear colour.
-pub fn see_through(p: &mut Map<String, Value>) -> (bool, Option<String>) {
-    let classed = p.get("className").and_then(Value::as_str).is_some_and(|c| !c.trim().is_empty());
-    let style = p.entry("style").or_insert_with(|| Value::Object(Map::new()));
-    let Value::Object(st) = style else { return (false, None) };
-    let mut clear = None;
-    let mut had = false;
-    for k in ["background", "backgroundColor"] {
-        if let Some(v) = st.remove(k) {
-            had = true;
-            if clear.is_none() {
-                clear = v.as_str().map(str::to_string);
-            }
-        }
-    }
-    if had || classed {
-        st.insert("backgroundColor".into(), Value::String("transparent".into()));
-        st.insert("backgroundImage".into(), Value::String("none".into()));
-    }
-    (had || classed, clear)
+    fresh_holders(world).0.into_iter().map(|e| (e, world.get::<ReactProps>(e).map(|p| p.0.clone()).unwrap_or_default())).collect()
 }
 
 /// A layered Canvas3D's slot: the `<img data-raea-scene>` it renders, whose place in the page's paint order the 3D's
 /// frame takes (as a texture), so page elements before it in the tree are under the 3D and those after it over it.
 pub fn scene_slot(world: &mut World) -> Option<u64> {
-    let mut q = world.query::<(&ReactProps, Option<&crate::ReactNode>)>();
-    q.iter(world).find(|(p, _)| p.0.contains_key("data-raea-scene")).and_then(|(_, n)| n.map(|n| n.0))
+    fresh_holders(world).1.and_then(|s| world.get::<crate::ReactNode>(s)).map(|n| n.0)
+}
+
+/// The holders and the slot as the page last had them, worked out again only when the page changed: a child added,
+/// moved or taken away (or a commit's note that a parent lost one, `stale`), or new props on a holder, on the slot
+/// or on an element that becomes one (a page element's other props, a frame's mark, change nothing here). Each was a
+/// look at every element's props every frame (100 000 lights).
+#[derive(Resource)]
+pub(crate) struct HolderCache {
+    #[allow(clippy::type_complexity)]
+    watch: bevy::ecs::system::SystemState<(Query<'static, 'static, (), Or<(Changed<Children>, Changed<ChildOf>)>>, Query<'static, 'static, (Entity, &'static ReactProps), Changed<ReactProps>>)>,
+    holders: Vec<Entity>,
+    slot: Option<Entity>,
+    pub(crate) stale: bool,
+}
+
+fn fresh_holders(world: &mut World) -> (Vec<Entity>, Option<Entity>) {
+    if !world.contains_resource::<HolderCache>() {
+        let watch = bevy::ecs::system::SystemState::new(world);
+        world.insert_resource(HolderCache { watch, holders: Vec::new(), slot: None, stale: true });
+    }
+    let stale = world.resource_scope(|world, mut c: Mut<HolderCache>| {
+        let (holders, slot) = (c.holders.clone(), c.slot);
+        let Ok((moved, props)) = c.watch.get(world) else { return true };
+        let changed = moved.iter().next().is_some() || props.iter().any(|(e, p)| holders.contains(&e) || slot == Some(e) || p.0.contains_key("data-raea-scene"));
+        // what a commit changes directly on the World after this has a newer tick than this read (read.rs dirty3d)
+        world.increment_change_tick();
+        std::mem::take(&mut c.stale) || changed
+    });
+    if stale {
+        let mut holders = Vec::new();
+        holders_walk(world, &mut holders);
+        let slot = world.query::<(Entity, &ReactProps)>().iter(world).find(|(_, p)| p.0.contains_key("data-raea-scene")).map(|(e, _)| e);
+        let mut c = world.resource_mut::<HolderCache>();
+        (c.holders, c.slot) = (holders, slot);
+    }
+    let c = world.resource::<HolderCache>();
+    (c.holders.clone(), c.slot)
 }
 
 /// The 3D's clear colour for a render or play: transparent (#00000000) for a layered Canvas3D, whose background is the

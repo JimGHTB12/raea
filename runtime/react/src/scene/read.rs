@@ -90,6 +90,10 @@ pub(crate) struct Watch3d(bevy::ecs::system::SystemState<Query<'static, 'static,
 
 /// A commit's note that `e`'s parent loses it (a remove, or a move by append or insert)
 pub(crate) fn touch_parent(world: &mut World, e: Entity) {
+    // the 3D's holders are worked out again too (holders.rs HolderCache)
+    if let Some(mut h) = world.get_resource_mut::<super::holders::HolderCache>() {
+        h.stale = true;
+    }
     if let Some(p) = world.get::<ChildOf>(e).map(|c| c.parent())
         && let Some(mut k) = world.get_resource_mut::<Kept3d>()
     {

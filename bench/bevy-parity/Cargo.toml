@@ -7,9 +7,10 @@ publish = false
 description = "Bevy's own examples, built against raea's Bevy with the parity probe in their App (docs/control.feature FC0a): one binary, RAEA_PARITY_EXAMPLE picks the example"
 
 [dependencies]
-# the feature list engine/render's bevy has, so the examples build against the Bevy raea already compiled, and winit: the
-# examples open a window (raea's renders don't), and bevy_scene: Bevy 0.20's examples write their scenes in BSN
-bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "experimental_pbr_pcss", "area_light_luts", "bevy_gilrs", "bevy_winit", "bevy_scene"] }
+# the feature list engine/render's bevy has (its bevy-all: dfg_lut and bluenoise_texture too, which stock Bevy's defaults
+# leave out; without the DFG table rough surfaces at grazing angles take less ambient, many_cubes' box srgb 64 for 88), so the
+# examples build against the Bevy raea already compiled, and winit: the examples open a window (raea's renders don't), and bevy_scene: Bevy 0.20's examples write their scenes in BSN
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "default_font", "multi_threaded", "3d_bevy_render", "ui_bevy_render", "png", "jpeg", "tonemapping_luts", "ktx2", "zstd_rust", "smaa_luts", "experimental_pbr_pcss", "area_light_luts", "dfg_lut", "bluenoise_texture", "bevy_gilrs", "bevy_winit", "bevy_scene"] }
 raea-sys-parity = { path = "../../systems/parity" }
 # Bevy's examples' own dependencies (bevy v0.20.0's dev-dependencies)
 argh = "0.1.12"

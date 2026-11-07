@@ -45,9 +45,29 @@ pub struct FrameRows {
     pub live: Option<Vec<BTreeMap<String, V>>>,
     /// rows whose frame look changes (the camera's `frame_looks`): that list as written, and each look's columns
     pub looks: HashMap<usize, (String, Vec<BTreeMap<String, V>>)>,
+    /// the edit's timeline the columns came from (which rows never change: `still`)
+    pub timeline: Option<std::sync::Arc<raea_core_program::timeline::Timeline>>,
 }
 
 impl FrameRows {
+    /// Whether a row's values are the same on every frame of the edit, so a system applying them to its entity each
+    /// frame can apply them once (a live scene's rows: never, since a play changes any of them).
+    pub fn still(&self, e: Entity) -> bool {
+        self.live.is_none() && self.timeline.as_ref().zip(self.ix.get(&e)).is_some_and(|(t, r)| t.still(*r))
+    }
+
+    /// One of a row's values this frame, copying only it (with its frame look laid on, as `vals` has it).
+    pub fn get(&self, e: Entity, c: &str) -> Option<V> {
+        let r = *self.ix.get(&e)?;
+        if self.looks.contains_key(&r) {
+            return self.vals(e)?.get(c).cloned();
+        }
+        match &self.live {
+            Some(rows) => rows.get(r)?.get(c).cloned(),
+            None => self.cols.get(r, c),
+        }
+    }
+
     /// A row's values this frame.
     pub fn vals(&self, e: Entity) -> Option<std::borrow::Cow<'_, BTreeMap<String, V>>> {
         let r = *self.ix.get(&e)?;

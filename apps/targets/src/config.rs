@@ -65,7 +65,7 @@ pub fn parse(src: &str) -> Result<AppConfig, Error> {
     if let Some(at) = other_export(&bare) {
         return Err(Error::at(src, at, "`app` is exported, but not as `export const app = { ... }` (a literal the CLI can read)"));
     }
-    let Some(start) = find_export(&bare) else { return Ok(c) };
+    let Some(start) = find_export(&bare, "app") else { return Ok(c) };
     c.declared = true;
     let (value, _) = literal::value(src, &code, start)?;
     let Value::Object(o) = value else { return Err(Error::at(src, start, "`app` must be an object literal")) };
@@ -99,8 +99,8 @@ fn pair(src: &str, at: usize, key: &str, v: &Value) -> Result<(f32, f32), Error>
     Ok((w as f32, h as f32))
 }
 
-/// Where `export const app` starts its value: past `=`, its type annotation skipped.
-fn find_export(code: &str) -> Option<usize> {
+/// Where `export const NAME` starts its value: past `=`, its type annotation skipped.
+fn find_export(code: &str, name: &str) -> Option<usize> {
     let mut from = 0;
     while let Some(i) = code[from..].find("export") {
         let at = from + i;
@@ -108,7 +108,7 @@ fn find_export(code: &str) -> Option<usize> {
         let t = rest.trim_start();
         if let Some(r) = t.strip_prefix("const")
             && r.starts_with(char::is_whitespace)
-            && let Some(r) = r.trim_start().strip_prefix("app")
+            && let Some(r) = r.trim_start().strip_prefix(name)
             && !r.starts_with(|ch: char| ch.is_alphanumeric() || ch == '_' || ch == '$')
         {
             let off = code.len() - r.len();
@@ -142,4 +142,16 @@ fn other_export(code: &str) -> Option<usize> {
         from = at + 6;
     }
     None
+}
+
+/// The steps an app file exports (`export const steps = [...]`, a literal as `app` is) as a check's script JSON, or
+/// None when it exports none: `raea app check` plays them when no `--script` is given, so an example's steps travel
+/// with it (docs/targets.feature T5a)
+pub fn steps(src: &str) -> Result<Option<String>, Error> {
+    let code = literal::blank_comments(src);
+    let Some(start) = find_export(&literal::blank_strings(&code), "steps") else { return Ok(None) };
+    match literal::value(src, &code, start)?.0 {
+        v @ Value::Array(_) => Ok(Some(v.to_string())),
+        _ => Err(Error::at(src, start, "`steps` must be an array literal of the check's steps")),
+    }
 }

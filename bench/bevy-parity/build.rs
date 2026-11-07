@@ -39,6 +39,16 @@ fn main() {
             .replace("include_bytes!(\"", &format!("include_bytes!(\"{}/", file.parent().unwrap().display()))
             .replace("App::new()", "crate::parity_app()")
             .replace("\nfn main()", "\npub fn main()");
+        // an example drawing from an unseeded rng draws differently every run (two runs of many_lights: SSIM 0.58), so
+        // its draws are made a fixed sequence its port computes the same way: the n-th light's hue the golden angle
+        // times n. Each pattern must be found, so a changed example fails here instead of running unseeded
+        let mut code = code;
+        for (p, from, to) in SEEDED {
+            if path == *p {
+                assert!(code.contains(from), "{path}: no `{from}` to make fixed (bench/bevy-parity/build.rs SEEDED)");
+                code = code.replace(from, to);
+            }
+        }
         let m = format!("ex_{}", path.replace('/', "__"));
         std::fs::write(out.join(format!("{m}.rs")), code).unwrap();
         writeln!(mods, "#[allow(dead_code, unused_imports, non_snake_case, clippy::all)]\npub mod {m} {{ include!(concat!(env!(\"OUT_DIR\"), \"/{m}.rs\")); }}").unwrap();
@@ -47,3 +57,6 @@ fn main() {
     let reg = format!("{mods}\n/// Where the examples came from: empty when Bevy's source wasn't found at build time.\npub const BEVY_SRC: &str = {:?};\n/// Runs the example at `path`, false when the host doesn't build it.\npub fn run(path: &str) -> bool {{\n    match path {{\n{arms}        _ => return false,\n    }}\n    true\n}}\n", if have { src.display().to_string() } else { String::new() });
     std::fs::write(out.join("registry.rs"), reg).unwrap();
 }
+
+/// (example, its random draw, the fixed one put in its place): see main.
+const SEEDED: &[(&str, &str, &str)] = &[("stress_tests/many_lights", "rng.random_range(0.0..360.0)", "((i as f64 * 137.507_764_050_037_85) % 360.0) as f32")];

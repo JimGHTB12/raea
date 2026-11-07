@@ -114,3 +114,30 @@ pub fn fields_of(p: &Map<String, Value>) -> Option<String> {
     }
     (!o.is_empty()).then(|| Value::Object(o).to_string())
 }
+
+/// A holder of the 3D made see-through, as every path that draws the 3D under the page does: its inline background
+/// goes (the nearest one's colour is the 3D's clear colour, returned here), and when it had one or has a class, an
+/// inline transparent background and no image override whatever a class gives it. Before, only an inline background
+/// went, so `className="bg-brand-bg"` (the brand's own utility) painted an opaque page over the 3D and every frame
+/// rendered as the background colour alone (2026-10-18, void's agent's perfume shot, black for 24 renders). Whether
+/// the props changed, and the clear colour.
+pub fn see_through(p: &mut Map<String, Value>) -> (bool, Option<String>) {
+    let classed = p.get("className").and_then(Value::as_str).is_some_and(|c| !c.trim().is_empty());
+    let style = p.entry("style").or_insert_with(|| Value::Object(Map::new()));
+    let Value::Object(st) = style else { return (false, None) };
+    let mut clear = None;
+    let mut had = false;
+    for k in ["background", "backgroundColor"] {
+        if let Some(v) = st.remove(k) {
+            had = true;
+            if clear.is_none() {
+                clear = v.as_str().map(str::to_string);
+            }
+        }
+    }
+    if had || classed {
+        st.insert("backgroundColor".into(), Value::String("transparent".into()));
+        st.insert("backgroundImage".into(), Value::String("none".into()));
+    }
+    (had || classed, clear)
+}

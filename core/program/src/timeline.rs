@@ -12,6 +12,9 @@ pub struct Timeline {
     pub base: Cols,
     /// per frame: the columns whose values differ from the base (whole columns)
     written: Vec<HashMap<String, Col>>,
+    /// per row: true when no frame changes any of its values from the base, so a system that applies a row's values
+    /// to the World each frame can apply a still row's once
+    still: Vec<bool>,
 }
 
 impl Timeline {
@@ -21,16 +24,31 @@ impl Timeline {
 
     pub fn from_cols(prog: &Program, base: Cols) -> Result<Timeline, String> {
         let frames = prog.frames.max(0);
-        let written = parallel(frames as usize, |f| {
+        let per: Vec<(HashMap<String, Col>, Vec<usize>)> = parallel(frames as usize, |f| {
             let raw = eval::frame_cols(prog, &base, f as i64);
-            Ok(raw.cols.into_iter().filter(|(c, v)| base.cols.get(c) != Some(v)).collect())
+            let w: HashMap<String, Col> = raw.cols.into_iter().filter(|(c, v)| base.cols.get(c) != Some(v)).collect();
+            // the rows this frame moves: a written column's value differing from the base's at that row
+            let moved = (0..base.len()).filter(|r| w.iter().any(|(c, col)| !col.same_at(base.cols.get(c), *r))).collect();
+            Ok((w, moved))
         })?;
-        Ok(Timeline { frames, base, written })
+        let mut still = vec![true; base.len()];
+        let written = per.into_iter().map(|(w, moved)| {
+            for r in moved {
+                still[r] = false;
+            }
+            w
+        }).collect();
+        Ok(Timeline { frames, base, written, still })
     }
 
     /// Whether row r's value of any of `cols` differs from its base on some frame (it moves over the edit).
     pub fn moves(&self, r: usize, cols: &[&str]) -> bool {
         self.written.iter().any(|w| cols.iter().any(|c| w.get(*c).is_some_and(|col| col.get(r) != self.base.get(r, c))))
+    }
+
+    /// Whether row r's values are the same on every frame (out of range: false).
+    pub fn still(&self, r: usize) -> bool {
+        self.still.get(r).copied().unwrap_or(false)
     }
 
     /// One frame as columns.
@@ -82,4 +100,26 @@ fn parallel_threads<T: Send>(n: usize, f: impl Fn(usize) -> Result<T, String> + 
         out.extend(p?);
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn row(id: &str, x: f64) -> Tup {
+        Tup { kind: "mesh".into(), id: id.into(), vals: [("x".to_string(), V::N(x))].into_iter().collect() }
+    }
+
+    #[test]
+    fn a_row_no_frame_changes_is_still_and_a_keyed_one_is_not() {
+        let mut prog = Program { frames: 4, ..Default::default() };
+        prog.keys.insert(("moves".into(), "x".into()), vec![(0, 0.0, "linear".into()), (3, 3.0, "linear".into())]);
+        // a key that holds one value on every frame changes nothing
+        prog.keys.insert(("held".into(), "x".into()), vec![(0, 2.0, "linear".into()), (3, 2.0, "linear".into())]);
+        let t = Timeline::new(&prog, &[row("cube", 1.0), row("moves", 0.0), row("held", 2.0)]).unwrap();
+        assert!(t.still(0));
+        assert!(!t.still(1));
+        assert!(t.still(2));
+        assert!(!t.still(3), "a row past the end is never still");
+    }
 }

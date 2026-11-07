@@ -2,9 +2,10 @@
 //! targets, the target read from the app's own `export const app` (T0a) unless `--target` says otherwise.
 //!
 //!   run      a window of its own: Blitz on Bevy for web (raea-page-host's window build), Rune for native
-//!   check    headless (R4b): the mount and each step of `--script` written as PNGs to `--png DIR`, with tree.json (each
-//!            frame's elements by data-testid), and the portability report (portable.rs, T4a): on native it fails on any
-//!            unmapped prop or unanswered call, naming each; on web it says what native wouldn't draw
+//!   check    headless (R4b): the mount and each step of `--script` (or the app's own `export const steps`, T5a) written as
+//!            PNGs to `--png DIR`, with tree.json (each frame's elements by data-testid), and the portability report
+//!            (portable.rs, T4a): on native it fails on any unmapped prop or unanswered call, naming each; on web it
+//!            says what native wouldn't draw
 //!   bundle   a Mac app, `-o App.app` (the file's name when left out)
 //!
 //! `raea rune ARGS` is `raea app ARGS --target native`, and its older spellings (`rune --headless APP`) still reach
@@ -106,8 +107,20 @@ pub fn parse(args: &[String], forced: Option<Target>) -> Result<Ask, String> {
     if (identity.is_some() || notarize.is_some()) && verb != Verb::Bundle {
         return Err("--identity and --notarize sign a Mac app: they're `raea app bundle`'s".into());
     }
+    if verb == Verb::Check && script.is_none() {
+        script = exported_steps(&app)?;
+    }
     let sign = crate::sign::Signing::new(identity, notarize);
     Ok(Ask { verb, app, config, size, title, script, png, settle, out, rest, sign })
+}
+
+/// The app's own `export const steps`, written out as the check's script, when it has them
+fn exported_steps(app: &Path) -> Result<Option<PathBuf>, String> {
+    let src = std::fs::read_to_string(app).map_err(|e| format!("{}: {e}", app.display()))?;
+    let Some(json) = crate::config::steps(&src).map_err(|e| format!("{}:{}: {}", app.display(), e.line, e.why))? else { return Ok(None) };
+    let file = std::env::temp_dir().join(format!("raea-app-steps-{}.json", std::process::id()));
+    std::fs::write(&file, json).map_err(|e| format!("{}: {e}", file.display()))?;
+    Ok(Some(file))
 }
 
 pub fn wxh(v: &str) -> Result<(u32, u32), String> {

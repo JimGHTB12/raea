@@ -47,13 +47,17 @@ struct Probe {
 /// Adds the probe when RAEA_PARITY is set: the example host's entry and RaeaPlugins' (raea_plugins.rs).
 pub fn install(app: &mut App) {
     let Ok(out) = std::env::var("RAEA_PARITY") else { return };
-    let frames = match std::env::var("RAEA_PARITY_FRAMES").ok().as_deref() {
+    let frames: Option<BTreeSet<u64>> = match std::env::var("RAEA_PARITY_FRAMES").ok().as_deref() {
         None | Some("all") | Some("") => None,
         Some(s) => Some(s.split(',').filter_map(|f| f.trim().parse().ok()).collect()),
     };
     let png = std::env::var("RAEA_PARITY_PNG").ok().map(PathBuf::from);
     if let Some(d) = &png {
         let _ = std::fs::create_dir_all(d);
+        // an earlier run's pictures would end RAEA_PARITY_EXIT's wait for this run's
+        for k in frames.iter().flatten() {
+            let _ = std::fs::remove_file(d.join(format!("{k}.png")));
+        }
     }
     let exit = std::env::var("RAEA_PARITY_EXIT").is_ok_and(|v| v == "1");
     let types: Vec<String> = std::env::var("RAEA_PARITY_TYPES")
@@ -86,8 +90,13 @@ fn probe(
     p.frame += 1;
     p.ticks += 1;
     let last = p.frames.as_ref().and_then(|s| s.last().copied());
+    // a screenshot's readback lands some frames after it's asked for (save_to_disk writes it on the main thread), so
+    // the run ends once every probed frame's picture is on disk, or 600 frames on without it
     if p.exit && last.is_some_and(|l| f >= l + 4) {
-        exit.write(AppExit::Success);
+        let saved = |d: &PathBuf| p.frames.iter().flatten().all(|k| d.join(format!("{k}.png")).exists());
+        if p.png.as_ref().is_none_or(saved) || last.is_some_and(|l| f >= l + 600) {
+            exit.write(AppExit::Success);
+        }
         return;
     }
     if p.frames.as_ref().is_some_and(|s| !s.contains(&f)) {

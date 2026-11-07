@@ -1,3 +1,5 @@
 # path	example arguments (- for none)	frames probed (docs/control.feature FC0a; tools/bevy-parity)
 stress_tests/many_cubes	--benchmark --instance-count 10000	30,60
 3d/3d_scene	-	5,10
+stress_tests/many_lights	-	30,60
+stress_tests/many_foxes	--sync	30,60

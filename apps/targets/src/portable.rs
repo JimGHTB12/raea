@@ -39,3 +39,20 @@ pub fn note(lines: &[String]) -> String {
     }
     format!("native wouldn't draw or answer {} thing{} (the web check still passes):\n  {}", lines.len(), if lines.len() == 1 { "" } else { "s" }, lines.join("\n  "))
 }
+
+/// The Rune props a web app has that the web target ignores (T4b): @raea/rune names them on each element in
+/// `data-rune-web-ignored`, and the native host's run lists them by path in web-ignored.json.
+pub fn web_ignored(dir: &Path) -> Result<Vec<String>, String> {
+    let p = dir.join("web-ignored.json");
+    let text = std::fs::read_to_string(&p).map_err(|e| format!("{}: {e}", p.display()))?;
+    let v: Vec<Value> = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", p.display()))?;
+    Ok(v.iter().map(|w| format!("ignored on web: {} at {}", w["ignored"].as_str().unwrap_or(""), w["path"].as_str().unwrap_or(""))).collect())
+}
+
+/// A web app's Rune props the web ignores, said; empty when there are none.
+pub fn web_note(lines: &[String]) -> String {
+    if lines.is_empty() {
+        return String::new();
+    }
+    format!("Rune props the web target doesn't draw (@raea/rune has no CSS for them):\n  {}", lines.join("\n  "))
+}

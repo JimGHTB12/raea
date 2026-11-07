@@ -46,7 +46,20 @@ mkdir -p "$stage/bin" "$stage/share/raea" "$out"
 # the skills gate (docs/skills.feature SK9): the committed tree at REF against this release's raea, so a stale reference,
 # a retired word, a flag no verb takes or a dead link refuses the release
 gate=$(mktemp -d)
-git archive "$ref" | tar -x -C "$gate"
+# Windows makes no symlinks: tar fails on each of the tree's (sdk/*/node_modules, old content links), which the skills
+# check never reads. There, those failures alone are left out and counted; any other is the release's (T1f, 11-07)
+untar() {
+  local err rc=0
+  err=$(tar -x -C "$1" 2>&1 >/dev/null) || rc=$?
+  [ $rc -eq 0 ] && return 0
+  if [ "$platform" = windows-x86_64 ] && ! grep -v -e "Cannot create symlink" -e "Exiting with failure status" <<< "$err" | grep -q .; then
+    echo "release.sh: note: the skills gate left out $(grep -c "Cannot create symlink" <<< "$err") symlinks (Windows makes none)"
+    return 0
+  fi
+  printf '%s\n' "$err" >&2
+  return $rc
+}
+git archive "$ref" | untar "$gate" || { echo "release.sh: the skills gate couldn't unpack $ref" >&2; exit 1; }
 git -C "$gate" init -q && git -C "$gate" add -A && git -C "$gate" -c user.name=release -c user.email=release@raea.io commit -qm "$ref" --no-verify
 raea_bin=$bin/raea; [ -f "$raea_bin.exe" ] && raea_bin=$raea_bin.exe
 if ! (cd "$gate" && SKILLS_STRICT=1 SKILLS_CHANGED= RAEA_BIN="$raea_bin" RAEA_APP="$root/apps/app" RAEA_APP_REV="$(git -C "$root" rev-parse "$ref:apps/app")" bash tools/skills.sh check); then

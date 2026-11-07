@@ -193,6 +193,10 @@ fn run() -> Result<(), String> {
     }
     let report = a.out.join("unmapped.json");
     std::fs::write(&report, serde_json::to_string_pretty(&unmapped).unwrap()).map_err(|e| format!("{}: {e}", report.display()))?;
+    // the Rune props the web target ignores, as the SDK marked them: the web check lists them (T4b)
+    let web: Vec<_> = app.session.rt.state.report.borrow().web().map(|(path, w)| json!({"path": path, "ignored": w})).collect();
+    let report = a.out.join("web-ignored.json");
+    std::fs::write(&report, serde_json::to_string_pretty(&web).unwrap()).map_err(|e| format!("{}: {e}", report.display()))?;
     // and every call the app made that this host didn't answer (T2c), the same way
     let unanswered: Vec<_> = app.refused.borrow().iter().map(|(name, (why, n))| json!({"call": name, "why": why, "times": n})).collect();
     for (name, (why, n)) in app.refused.borrow().iter() {

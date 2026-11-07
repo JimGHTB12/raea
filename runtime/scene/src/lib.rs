@@ -12,7 +12,7 @@ use raea_core_program::ir::{Program, V};
 use serde_json::{Map, Value};
 
 use raea_core_scene::*;
-pub use raea_runtime_look::camera;
+pub use raea_runtime_look::{camera, column};
 use raea_runtime_look::*;
 
 mod parts;

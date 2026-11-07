@@ -54,13 +54,15 @@ pub fn run(a: &Ask) -> Result<String, String> {
     }
 }
 
-/// What the native target wouldn't draw (T4a): the app through raea-rune-host headless too, with the same steps, into
-/// `--png`'s native/. Said, never failed on: a web app is checked against web. A host that can't run says why.
+/// The Rune props the web ignores (T4b) and what the native target wouldn't draw (T4a): the app through
+/// raea-rune-host headless too, with the same steps, into `--png`'s native/. Said, never failed on: a web app is
+/// checked against web. A host that can't run says why.
 fn native_note(a: &Ask) -> String {
     let dir = a.png.join("native");
     let native = Ask { png: dir.clone(), ..a.clone() };
-    match crate::native::host(&crate::native::args(&native)).and_then(|_| crate::portable::report(&dir)) {
-        Ok(lines) => crate::portable::note(&lines),
+    let read = |_| Ok::<_, String>((crate::portable::report(&dir)?, crate::portable::web_ignored(&dir)?));
+    match crate::native::host(&crate::native::args(&native)).and_then(read) {
+        Ok((lines, web)) => [crate::portable::web_note(&web), crate::portable::note(&lines)].into_iter().filter(|s| !s.is_empty()).collect::<Vec<_>>().join("\n"),
         Err(e) => format!("native: the Rune host couldn't run it headless ({e}), so what native wouldn't draw isn't known"),
     }
 }
