@@ -189,6 +189,7 @@ pub fn bundle_cache(tsx: &Path, o: &CompOpts) -> Option<PathBuf> {
         eat(&t.to_le_bytes());
     }
     eat(file.as_bytes());
+    eat(if crate::fresh::stamps() { b"stamps" } else { b"plain" });
     eat(if o.lite { entry_lite(&file, o) } else { entry(&file, o) }.as_bytes());
     // the bundler: raea-bundle's library, by its path, size and time
     if let Some((p, n, t)) = inproc::lib().ok().and_then(|l| stat(&l.path).map(|(n, t)| (l.path.clone(), n, t))) {

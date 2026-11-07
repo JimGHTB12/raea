@@ -108,6 +108,12 @@ pub fn bundle_tests(files: &[PathBuf], out: &Path, filter: Option<&str>, extra: 
 /// raea-bundle's library, loaded at run time (runtime/bundle/lib: raea-runtime-bundle-lib)
 pub use raea_runtime_bundle_lib as inproc;
 
+/// Whether a composition's elements are stamped with their place in the code (engine/bundle stamp.rs): the app's editor
+/// sets RAEA_SOURCE_STAMPS=1 on the renders it asks for, so its render manifest says which JSX drew what
+pub fn stamps() -> bool {
+    std::env::var("RAEA_SOURCE_STAMPS").as_deref() == Ok("1")
+}
+
 pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&Path>) -> R<()> {
     let t0 = std::time::Instant::now();
     let dir = tsx.parent().unwrap().to_path_buf();
@@ -194,7 +200,7 @@ pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&P
     }
     let t_work = t0.elapsed();
     // in process by raea-bundle's library (Rolldown; a live bundle with its Z3 compile in Rust)
-    let (js_text, css) = inproc::bundle(&work.join("entry.tsx"), serde_json::json!({"z3": o.lite, "edit": {"dir": dir, "js": js}})).map_err(|e| format!("couldn't bundle {file}: {}", e.lines().filter(|l| !l.trim().is_empty()).take(6).collect::<Vec<_>>().join(" | ")))?;
+    let (js_text, css) = inproc::bundle(&work.join("entry.tsx"), serde_json::json!({"z3": o.lite, "edit": {"dir": dir, "js": js}, "stamps": stamps()})).map_err(|e| format!("couldn't bundle {file}: {}", e.lines().filter(|l| !l.trim().is_empty()).take(6).collect::<Vec<_>>().join(" | ")))?;
     // its CSS rides in the bundle's last line (bundle_css), so every copy and cache of it carries it
     let code = if css.is_empty() { js_text } else { format!("{js_text}\n//# raea-css={}\n", serde_json::to_string(&css).unwrap_or_default()) };
     if std::env::var_os("RAEA_BUNDLE_TRACE").is_some() {
