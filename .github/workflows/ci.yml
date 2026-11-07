@@ -1,0 +1,106 @@
+# raea's public CI (docs/public-first.feature PF5), on GitHub's hosted runners only: it runs code from pull requests,
+# so it never touches a self-hosted machine. What needs this Mac's GPU, VideoToolbox or audio (P26, UI parity, the
+# sound gates) stays the maintainers' L1/L2 (docs/agents.md); this is the part anyone can read and rerun.
+#   every pull request and push to main   guard (names and secrets), L0's repo-wide gates, cargo check of the engine
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  guard:
+    # what this change adds names no home folder, agent path or session, and holds no secret (tools/public-guard.sh)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: |
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar -xz -C /usr/local/bin gitleaks
+      - name: public-guard
+        run: |
+          base=${{ github.event.pull_request.base.sha || github.event.before }}
+          git cat-file -e "$base^{commit}" 2>/dev/null || base=$(git rev-list --max-parents=0 HEAD | tail -1)
+          bash tools/public-guard.sh range "$base..HEAD"
+
+  gates:
+    # L0's repo-wide steps (tools/agents/check's list, the ones that need no GPU)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: tools
+        run: |
+          rustup show active-toolchain
+          cargo install --locked cargo-shear cargo-dupes
+      - name: layers
+        run: bash tools/layers.sh
+      - name: names
+        run: bash tools/names.sh
+      - name: size
+        run: bash tools/size.sh
+      - name: one-version
+        run: bash tools/one-version.sh
+      - name: no-void
+        run: bash tools/no-void.sh
+      - name: dupes
+        run: bash tools/dupes.sh
+      - name: unused dependencies
+        run: cargo shear --color never --deny-warnings
+      - name: tasks
+        run: bash tools/rask.sh check
+      - name: sdk coverage
+        run: bash tools/sdk-coverage --check
+      - name: sdk props
+        run: bash tools/sdk-props.sh --check
+      - name: taxonomy
+        run: bash tools/taxonomy.sh --check
+
+  engine:
+    # a fresh clone builds as the README says (public #14): the toolchain from rust-toolchain.toml, --locked
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - name: Linux libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build libasound2-dev libfontconfig1-dev libvulkan-dev libudev-dev
+      - name: macOS tools
+        if: runner.os == 'macOS'
+        run: brew install cmake ninja
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo check
+        run: cargo check --locked -p raea-cli --tests
+      - name: unit tests (the crates with no GPU or media device)
+        run: cargo test --locked -p raea-io-media -p raea-core-fonts -p raea-native
