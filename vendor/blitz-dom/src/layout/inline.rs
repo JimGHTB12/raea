@@ -920,6 +920,16 @@ impl LayoutPassState<'_> {
             }
         }
 
+        // raea: a bevy_text box sized by its content (no width of its own), its lines broken in the space it was
+        // given: as wide as its widest line, as bevy_text measures it (TextPipeline's laid-out size), not that space
+        let width = if unit == 1.0 && known_dimensions.width.is_none() && node_size.width.is_none() && inline_layout.layout.len() > 1 {
+            let w = inline_layout.layout.width().ceil().min(width);
+            inline_layout.layout.set_lines_max_advance(w);
+            w
+        } else {
+            width
+        };
+
         // Propagate the height consumed by floats placed within this container to the
         // enclosing block context (so that the BFC root can contain them)
         #[cfg(feature = "floats")]

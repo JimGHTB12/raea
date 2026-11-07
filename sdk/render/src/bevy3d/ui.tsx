@@ -43,8 +43,8 @@ export interface NodeProps {
   background_color?: Color;
   /** BorderColor: every side one colour, or each its own ({ top, right, bottom, left }) */
   border_color?: Color | { top: Color; right: Color; bottom: Color; left: Color };
-  /** Outline: a line outside the border box, `offset` from it (0 by default) */
-  outline?: { width: Val; offset?: Val; color: Color };
+  /** Outline: a line outside the border box, `offset` from it (0 by default), white by default */
+  outline?: { width: Val; offset?: Val; color?: Color };
   z_index?: number;
   /** FixedNode: laid out as a root wherever it is in the tree (its own viewport, the window's), drawn with its parent */
   fixed?: boolean;
@@ -104,7 +104,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
   if (p.border_radius !== undefined) s.borderRadius = radiusCss(who, p.border_radius, wh.every(Number.isFinite) ? (wh as [number, number]) : undefined);
   // (the outline is outside the node: over what is under the node, not its own background)
   if (p.outline !== undefined) {
-    s.outline = `${checkVal(who, "outline.width", p.outline.width)} solid ${over(who, "outline.color", p.outline.color, back).css}`;
+    s.outline = `${checkVal(who, "outline.width", p.outline.width)} solid ${over(who, "outline.color", p.outline.color ?? "#ffffff", back).css}`;
     if (p.outline.offset !== undefined) s.outlineOffset = checkVal(who, "outline.offset", p.outline.offset);
   }
   if (p.background_color !== undefined) ({ css: s.backgroundColor, back } = over(who, "background_color", p.background_color, back));
@@ -287,7 +287,7 @@ export function Text({ children, font, font_size, weight, style, color, line_hei
   if (justify !== undefined && !["Left", "Center", "Right", "Justified", "Start", "End"].includes(justify)) throw new TypeError(`Text: justify is Left, Center, Right, Justified, Start or End, got ${JSON.stringify(justify)}`);
   if (linebreak !== undefined && !(linebreak in BREAK)) throw new TypeError(`Text: linebreak is WordBoundary, AnyCharacter, WordOrCharacter or NoWrap, got ${JSON.stringify(linebreak)}`);
   const textAlign = { Left: "left", Center: "center", Right: "right", Justified: "justify", Start: "start", End: "end" }[justify ?? "Left"] as CSSProperties["textAlign"];
-  // the text itself in one block inside the Node, as bevy_text's measured leaf: its lines laid out together.
+  // the text itself the Node's own block, as bevy_text's measured leaf: its lines laid out together.
   // data-raea-bevy-text: Blitz measures the block as bevy_text does, rounded up to whole pixels (38.4 px lines are 39).
   // Its own strings carry its lines and background (runOf), inside the block: Blitz draws a line from the run's
   // inline root down, not from a block above it, as thick as the font says (bevy_text's underline_size, not em/10)
@@ -299,9 +299,12 @@ export function Text({ children, font, font_size, weight, style, color, line_hei
     if (!(Number.isFinite(x) && Number.isFinite(y))) throw new TypeError(`Text: shadow is { offset: [x, y], color } (TextShadow.default()), got ${JSON.stringify(shadow)}`);
     css.textShadow = `${x}px ${y}px 0 ${over("Text", "shadow.color", shadow.color, n.back).css}`;
   }
-  // the block fills a node wider than its lines, so a centred or right one is so within the node, as bevy_text justifies
-  const fill: CSSProperties = justify === "Center" || justify === "Right" || justify === "End" ? { flexGrow: 1 } : {};
-  return boxOf(css, n.back, <span data-raea-bevy-text="" style={{ ...BREAK[linebreak ?? "WordBoundary"], ...fill }}>{own}</span>, ui === null, <style>{t.face}</style>);
+  // the box itself the text's block (a block container, not Node's flex): bevy_ui's Text is a measured leaf, which a
+  // grid or a flex line sizes by its text's min- and max-content, and which Blitz sizes as bevy_text does, a wrapped
+  // one as wide as its widest line (taffy sizes a flex container's min-content by its items' max-content, so a root
+  // Text in its viewport grid never wrapped). Its lines are justified within the box
+  if (css.display !== "none") css.display = "flow-root";
+  return boxOf({ ...css, ...BREAK[linebreak ?? "WordBoundary"] }, n.back, own, ui === null, <style>{t.face}</style>, { "data-raea-bevy-text": "" });
 }
 
 /** A run of a <Text> in a style of its own (Bevy's defaults, not its Text's, where left out). @bevy bevy_text::text::TextSpan */

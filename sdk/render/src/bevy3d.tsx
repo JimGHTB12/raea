@@ -29,5 +29,5 @@ export { Hdr } from "./bevy3d/core";
 export { Lightmap, type LightmapProps } from "./bevy3d/lightmap";
 // bevy_ui's Node, Text and TextSpan, and their values, drawn by the page (docs/control.feature FC0a)
 export { Node, Text, TextSpan, TextShadow, Text2d, UiScale, FontVariationTag, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type Text2dProps } from "./bevy3d/ui";
-export { ImageNode, ImagePlugin, TextureAtlasLayout, type TextureSlicer, type SliceScaleMode, type ImageNodeProps } from "./bevy3d/ui-image";
+export { ImageNode, InlineImage, ImagePlugin, TextureAtlasLayout, type TextureSlicer, type SliceScaleMode, type ImageNodeProps } from "./bevy3d/ui-image";
 export { px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadius, Overflow, OverflowClipMargin, type Val } from "./bevy3d/ui-val";

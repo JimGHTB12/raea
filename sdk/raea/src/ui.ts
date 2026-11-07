@@ -6,4 +6,4 @@ export * from "@raea/video/region";
 // InputRegion (input-region.tsx) joins when it is committed
 export * from "@raea/video/panel";
 // bevy_ui's Node and Text, and bevy_text's TextSpan, with their values (Val, UiRect, BorderRadius, Overflow)
-export { Node, Text, TextSpan, TextShadow, Text2d, UiScale, ImageNode, type TextureSlicer, type SliceScaleMode, ImagePlugin, FontVariationTag, TextureAtlasLayout, type ImageNodeProps, px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadius, Overflow, OverflowClipMargin, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type Text2dProps, type Val } from "@raea/render/bevy3d";
+export { Node, Text, TextSpan, TextShadow, Text2d, UiScale, ImageNode, InlineImage, type TextureSlicer, type SliceScaleMode, ImagePlugin, FontVariationTag, TextureAtlasLayout, type ImageNodeProps, px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadius, Overflow, OverflowClipMargin, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type Text2dProps, type Val } from "@raea/render/bevy3d";

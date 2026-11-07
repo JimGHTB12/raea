@@ -64,3 +64,5 @@ ui/images/ui_texture_atlas_slice	-	10
 ui/widgets/button	-	10
 ui/text/letter_spacing	-	10
 ui/styling/borders	-	10
+ui/window_fallthrough	-	10
+ui/text/inline_image	-	10

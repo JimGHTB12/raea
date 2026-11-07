@@ -65,3 +65,5 @@ ui/images/ui_texture_slice_flip_and_tile
 ui/widgets/button
 ui/text/letter_spacing
 ui/styling/borders
+ui/window_fallthrough
+ui/text/inline_image

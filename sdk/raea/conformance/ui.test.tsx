@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { BorderRadius, CornerRadius, FontVariationTag, ImageNode, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { renderFrame } from "../src/test";
 import { Transform } from "raea/transform";
@@ -100,9 +100,9 @@ describe("ImageNode, Underline and Strikethrough", () => {
     expect(() => html(<ImageNode image="" />)).toThrow(/picture file/);
   });
   test("Underline and Strikethrough are lines on the text; a font file's face spans every weight (a variable font's axis)", () => {
-    // inside the text's own block (the inline root Blitz draws decorations from), not on the Node around it; as thick
-    // as the font says; the block measured as bevy_text measures (whole pixels)
-    expect(html(<Text underline strikethrough>a</Text>)).toContain('<span data-raea-bevy-text="" style="white-space:pre-wrap"><span style="text-decoration-line:underline line-through;text-decoration-thickness:from-font">a</span></span>');
+    // on its own strings inside the text's block (the Text's box, the inline root Blitz draws decorations from); as
+    // thick as the font says; the block measured as bevy_text measures (whole pixels)
+    expect(html(<Text underline strikethrough>a</Text>)).toContain('white-space:pre-wrap" data-raea-bevy-text=""><span style="text-decoration-line:underline line-through;text-decoration-thickness:from-font">a</span></div>');
     expect(html(<Text>a</Text>)).not.toContain("text-decoration");
     // a Text's lines are its own string's: its spans aren't struck (CSS would carry them to every span inside)
     const mixed = html(<Text strikethrough>a<TextSpan>b</TextSpan></Text>);
@@ -178,9 +178,16 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     expect(() => html(<ImageNode image="p.png" image_mode={{ Sliced: { ...slicer, center_scale_mode: { Tile: { stretch_value: 0 } } } }} />)).toThrow(/center_scale_mode is/);
     expect(() => html(<ImageNode image="p.png" image_mode={{ Sliced: { border: { left: -1, right: 0, top: 0, bottom: 0 } } }} />)).toThrow(/px >= 0/);
   });
-  test("a centred or right-justified Text's block fills its node, so its lines are justified within the node's width", () => {
-    expect(html(<Text justify="Right" width={percent(100)}>hi</Text>)).toContain('white-space:pre-wrap;flex-grow:1');
-    expect(html(<Text justify="Left" width={percent(100)}>hi</Text>)).not.toContain("flex-grow:1");
+  test("a Text's box is its text's block, a measured leaf (a block container), so its lines are justified within it", () => {
+    const out = html(<Text justify="Right" width={percent(100)}>hi</Text>);
+    expect(out).toMatch(/<div style="display:flow-root;[^"]*width:100%[^"]*text-align:right;white-space:pre-wrap" data-raea-bevy-text="">hi<\/div>/);
+    expect(html(<Text display="None">hi</Text>)).toContain("display:none");
+  });
+  test("InlineImage is a picture in the line, sized by width or height and its aspect, tinted by multiplying it over the colour, its alpha the mask", () => {
+    const out = html(<Text>a<InlineImage image="p.png" color={new Srgba(1, 0, 0, 0.5)} height={30} /></Text>);
+    for (const s of ['background-image:url(&quot;p.png&quot;), linear-gradient(rgba(255, 0, 0, 1), rgba(255, 0, 0, 1))', "background-blend-mode:multiply", 'mask-image:url(&quot;p.png&quot;)', "opacity:0.5", '<img src="p.png" style="display:block;height:30px;opacity:0"/>']) expect(out).toContain(s);
+    expect(html(<Text><InlineImage image="p.png" width={30} /></Text>)).toContain('<span style="display:inline-block"><img src="p.png" style="display:block;width:30px;opacity:1"/></span>');
+    expect(() => html(<Text><InlineImage image="p.png" width={0} /></Text>)).toThrow(/width is px above 0/);
   });
   test("corners resolve as Bevy's do with the node's px size: circular ones clamped to half its shorter side, elliptical ones per axis", () => {
     const out = html(<Node width={px(50)} height={px(40)} border_radius={BorderRadius.px(3.4e38, 0, 10, 0)} />);

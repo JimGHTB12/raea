@@ -2,8 +2,8 @@
 // nine (NodeImageMode::Sliced), each sampled as ImagePlugin's default sampler or its own says.
 import { Children, createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { InUi, VIEWPORT, boxOf, nodeCss, type NodeProps } from "./ui";
-import { px } from "./ui-val";
-import type { LinearRgba, Srgba } from "./colors";
+import { over, px } from "./ui-val";
+import { LinearRgba, Srgba } from "./colors";
 import { samplerSpec, type SamplerSpec } from "../3d/materials";
 
 type Color = Srgba | LinearRgba | string;
@@ -150,4 +150,25 @@ function SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atl
   const flips = [flip_x && "scaleX(-1)", flip_y && "scaleY(-1)"].filter(Boolean).join(" ");
   const layer = <div key="raea-slices" style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", zIndex: -1, transform: flips, ...slices }} {...marker} />;
   return boxOf({ ...n.css, position: n.css.position ?? "relative", zIndex: 0 }, n.back, [layer, ...Children.toArray(children)], root);
+}
+
+/** bevy_ui's InlineImage: a picture in a <Text>'s line, as an inline box on its baseline (bevy_text's parley lays it
+ *  out so, and Blitz's parley here), `width` and `height` px (the other by its aspect, or its own size), tinted by
+ *  `color` (each pixel times it: the picture multiplied over the tint, its own alpha the mask).
+ * @bevy bevy_ui::widget::InlineImage */
+export function InlineImage({ image, color, width, height }: { image: string; color?: Color; width?: number; height?: number }) {
+  if (typeof image !== "string" || image === "") throw new TypeError(`InlineImage: image is a picture file (staticFile("x.png")), got ${JSON.stringify(image)}`);
+  for (const [k, v] of [["width", width], ["height", height]] as const) if (v !== undefined && !(Number.isFinite(v) && v > 0)) throw new RangeError(`InlineImage: ${k} is px above 0, got ${v}`);
+  const url = `url("${image}")`;
+  // the tint opaque, multiplied under the picture, and its alpha the box's opacity (each pixel's alpha times it)
+  const s = color instanceof LinearRgba ? color.to_srgba() : color instanceof Srgba ? color : undefined;
+  if (color !== undefined && s === undefined) throw new TypeError(`InlineImage: color is an Srgba or LinearRgba, got ${JSON.stringify(color)}`);
+  const tint = s && over("InlineImage", "color", new Srgba(s.red, s.green, s.blue, 1), undefined).css;
+  const tinted: CSSProperties = tint === undefined ? {} : { backgroundImage: `${url}, linear-gradient(${tint}, ${tint})`, backgroundSize: "100% 100%", backgroundBlendMode: "multiply", maskImage: url, maskSize: "100% 100%" };
+  if (s && s.alpha < 1) tinted.opacity = Math.max(0, s.alpha);
+  return (
+    <span style={{ display: "inline-block", ...tinted }}>
+      <img src={image} style={{ display: "block", width: width === undefined ? undefined : `${width}px`, height: height === undefined ? undefined : `${height}px`, opacity: tint === undefined ? 1 : 0 }} />
+    </span>
+  );
 }
