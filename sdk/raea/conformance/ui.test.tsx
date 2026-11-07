@@ -178,6 +178,12 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     expect(() => html(<ImageNode image="p.png" image_mode={{ Sliced: { ...slicer, center_scale_mode: { Tile: { stretch_value: 0 } } } }} />)).toThrow(/center_scale_mode is/);
     expect(() => html(<ImageNode image="p.png" image_mode={{ Sliced: { border: { left: -1, right: 0, top: 0, bottom: 0 } } }} />)).toThrow(/px >= 0/);
   });
+  test("a sliced atlas cell puts its rect in its layout on the marker, which Blitz slices", () => {
+    const layout = TextureAtlasLayout.from_grid([50, 50], 6, 6, [2, 2]);
+    const out = html(<ImageNode image="p.png" texture_atlas={{ layout, index: 13 }} image_mode={{ Sliced: slicer }} />);
+    expect(out).toContain('data-raea-bevy-slice="2 t1.5 s cell 52 104 50 50 of 310 310"');
+    expect(() => html(<ImageNode image="p.png" texture_atlas={{ layout, index: 36 }} image_mode={{ Sliced: slicer }} />)).toThrow(/not one of its layout's 36 cells/);
+  });
   test("a flipped one draws its slices on a mirrored layer behind its children", () => {
     const out = html(<ImageNode image="p.png" flip_x image_mode={{ Sliced: slicer }}><Text>hi</Text></ImageNode>);
     for (const s of ["z-index:-1", "transform:scaleX(-1)", "position:relative", "z-index:0"]) expect(out).toContain(s);

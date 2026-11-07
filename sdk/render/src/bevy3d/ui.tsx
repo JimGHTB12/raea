@@ -425,7 +425,14 @@ function SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atl
   const sl = image_mode?.Sliced;
   const b = sl?.border;
   if (!sl || !b || ![b.left, b.right, b.top, b.bottom].every((v) => Number.isFinite(v) && v >= 0)) throw new TypeError(`ImageNode: image_mode is { Sliced: { border: { left, right, top, bottom } } } (px >= 0), got ${JSON.stringify(image_mode)}`);
-  if (texture_atlas !== undefined) throw new TypeError("ImageNode: a sliced picture takes no texture_atlas here yet");
+  // a sliced atlas cell: its rect in the layout, which Blitz scales to the sheet as Bevy's atlas UVs are
+  let cellOf = "";
+  if (texture_atlas !== undefined) {
+    const { layout, index } = texture_atlas;
+    const c = layout?.textures?.[index];
+    if (!c) throw new RangeError(`ImageNode: texture_atlas.index ${index} is not one of its layout's ${layout?.textures?.length ?? 0} cells`);
+    cellOf = ` cell ${c.x} ${c.y} ${c.w} ${c.h} of ${layout.size[0]} ${layout.size[1]}`;
+  }
   if (color !== undefined && !(color.red === 1 && color.green === 1 && color.blue === 1 && color.alpha === 1)) throw new TypeError("ImageNode: a sliced picture is untinted here yet (color white)");
   const max = sl.max_corner_scale ?? 1;
   if (!(Number.isFinite(max) && max > 0)) throw new RangeError(`ImageNode: max_corner_scale is above 0, got ${max}`);
@@ -435,7 +442,7 @@ function SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atl
     if (!(typeof v === "number" && Number.isFinite(v) && v > 0)) throw new TypeError(`ImageNode: ${which} is "Stretch" or { Tile: { stretch_value } } (above 0), got ${JSON.stringify(m)}`);
     return `t${v}`;
   };
-  const marker = { "data-raea-bevy-slice": `${max} ${mode(sl.sides_scale_mode, "sides_scale_mode")} ${mode(sl.center_scale_mode, "center_scale_mode")}` };
+  const marker = { "data-raea-bevy-slice": `${max} ${mode(sl.sides_scale_mode, "sides_scale_mode")} ${mode(sl.center_scale_mode, "center_scale_mode")}${cellOf}` };
   const ui = useContext(InUi);
   const n = nodeCss("ImageNode", p, ui?.back);
   const rendering = RENDERING[useContext(Sampler)];

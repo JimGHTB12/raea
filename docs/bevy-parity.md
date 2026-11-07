@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **61**, passing **58**, excluded **16** (docs/bevy-parity/excluded.tsv), left **364**.
+Examples: **438**, ported **62**, passing **59**, excluded **16** (docs/bevy-parity/excluded.tsv), left **363**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -115,8 +115,9 @@ doesn't pay.
 | ui/images/image_node | 5 | 0.999893 | 1 | 0 / 0 | 442 / 492 | 5 / 7 | 1 / 1 | 48.07 / 1.966 = 1.766 + 0.200 | yes |  |
 | ui/images/ui_texture_atlas | 10 | 0.999601 | 7 | 0 / 0 | 445 / 492 | 5 / 7 | 1 / 1 | 16.378 / 0.959 = 0.832 + 0.127 | yes |  |
 | ui/images/ui_texture_atlas | 5 | 0.999601 | 7 | 0 / 0 | 445 / 492 | 5 / 7 | 1 / 1 | 48.378 / 2.164 = 1.981 + 0.183 | yes |  |
-| ui/images/ui_texture_slice | 10 | 0.998957 | 8 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 34.134 / 1.088 = 0.943 + 0.145 | yes |  |
 | ui/images/ui_texture_slice_flip_and_tile | 10 | 1.000000 | 0 | 0 / 0 | 461 / 492 | 5 / 7 | 1 / 1 | 34.186 / 1.095 = 0.895 + 0.200 | yes |  |
+| ui/images/ui_texture_slice | 10 | 0.998957 | 8 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 34.421 / 1.249 = 1.104 + 0.145 | yes |  |
+| ui/images/ui_texture_atlas_slice | 10 | 0.990791 | 17 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 31.071 / 1.311 = 1.175 + 0.136 | yes |  |
 
 ## Excluded
 

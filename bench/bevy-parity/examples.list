@@ -60,4 +60,5 @@ ui/scroll_and_overflow/overflow
 ui/scroll_and_overflow/overflow_clip_margin
 ui/images/ui_texture_atlas
 ui/images/ui_texture_slice
+ui/images/ui_texture_atlas_slice
 ui/images/ui_texture_slice_flip_and_tile

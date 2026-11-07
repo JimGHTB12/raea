@@ -60,3 +60,4 @@ ui/layout/flex_layout	-	10
 ui/scroll_and_overflow/overflow_clip_margin	-	10
 ui/images/ui_texture_slice	-	10
 ui/images/ui_texture_slice_flip_and_tile	-	10
+ui/images/ui_texture_atlas_slice	-	10

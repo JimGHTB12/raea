@@ -61,6 +61,16 @@ impl ElementCx<'_, '_> {
         let ImageData::Raster(image) = &res.image else { return false };
         let border = self.style.get_border();
         let (iw, ih) = (image.width as f64, image.height as f64);
+        // a sliced atlas cell (data-raea-bevy-slice's "cell x y w h of LW LH": the cell's rect in its layout of LW x LH):
+        // that rect is what's sliced, scaled from the layout to the picture as Bevy's atlas UVs are (the rect over the
+        // layout's size)
+        let cell = self.element.bevy_slice().and_then(|a| {
+            let n: Vec<f64> = a.split(" cell ").nth(1)?.split_whitespace().filter(|x| *x != "of").filter_map(|x| x.parse().ok()).collect();
+            let [x, y, w, h, lw, lh] = n[..] else { return None };
+            let (kx, ky) = (iw / lw.max(1.0), ih / lh.max(1.0));
+            Some((x * kx, y * ky, (w * kx).min(iw - x * kx), (h * ky).min(ih - y * ky)))
+        });
+        let (ox, oy, iw, ih) = cell.unwrap_or((0.0, 0.0, iw, ih));
         if iw <= 0.0 || ih <= 0.0 {
             return false;
         }
@@ -125,7 +135,7 @@ impl ElementCx<'_, '_> {
                     if tile.width() <= 0.0 || tile.height() <= 0.0 {
                         continue;
                     }
-                    let map = Affine::translate((x, y)) * Affine::scale_non_uniform(w / src.width(), h / src.height()) * Affine::translate((-src.x0, -src.y0));
+                    let map = Affine::translate((x, y)) * Affine::scale_non_uniform(w / src.width(), h / src.height()) * Affine::translate((-(src.x0 + ox), -(src.y0 + oy)));
                     scene.fill(peniko::Fill::NonZero, self.transform, brush.as_ref(), Some(map), &tile);
                 }
             }
