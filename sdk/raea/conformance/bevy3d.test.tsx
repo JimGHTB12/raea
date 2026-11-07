@@ -84,12 +84,14 @@ describe("Bevy's shapes draw the same args", () => {
     expect(html(<Mesh><ConicalFrustum /></Mesh>)).toBe(html(<Mesh><Cylinder args={[0.25, 0.5, 0.5]} /></Mesh>));
   });
 
-  test("Plane3d faces its normal: along z the old Plane, along y or x a Box with no depth; tilted is refused", () => {
-    expect(html(<Mesh><Plane3d normal={[0, 0, 1]} half_size={[2, 0.75]} /></Mesh>)).toBe(html(<Mesh><Plane args={[4, 1.5]} /></Mesh>));
-    expect(html(<Mesh><Plane3d normal={[0, 0, 1]} /></Mesh>)).toBe(html(<Mesh><Plane /></Mesh>));
+  test("Plane3d is Bevy's one-faced plane facing its normal, its sign kept (plane(nx, ny, nz, w, h)); tilted is refused", () => {
+    const shape = (node: React.ReactElement) => /data-shape="([^"]*)"/.exec(html(node))?.[1];
     // Bevy's default faces +Y, half_size.y along z
-    expect(html(<Mesh><Plane3d half_size={[2, 3]} /></Mesh>)).toBe(html(<Mesh><Box args={[4, 0, 6]} /></Mesh>));
-    expect(html(<Mesh><Plane3d normal={[-1, 0, 0]} half_size={[2, 3]} /></Mesh>)).toBe(html(<Mesh><Box args={[0, 4, 6]} /></Mesh>));
+    expect(shape(<Mesh><Plane3d half_size={[2, 3]} /></Mesh>)).toBe("plane(0, 1, 0, 4, 6)");
+    expect(shape(<Mesh><Plane3d /></Mesh>)).toBe("plane(0, 1, 0, 1, 1)");
+    // facing down is its own plane, not the one facing up (a box of no depth had both faces)
+    expect(shape(<Mesh><Plane3d normal={[0, -1, 0]} half_size={[2, 3]} /></Mesh>)).toBe("plane(0, -1, 0, 4, 6)");
+    expect(shape(<Mesh><Plane3d normal={[-1, 0, 0]} half_size={[2, 0.75]} /></Mesh>)).toBe("plane(-1, 0, 0, 4, 1.5)");
     expect(() => html(<Mesh><Plane3d normal={[0, 1, 1]} /></Mesh>)).toThrow(/along an axis/);
   });
 
@@ -155,7 +157,7 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
     expect(html(<StandardMaterial base_color="#cc8844" perceptual_roughness={0.4} metallic={1} />)).toBe(html(<MeshStandardMaterial color="#cc8844" roughness={0.4} metalness={1} />));
     expect(html(<StandardMaterial />)).toBe(html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} />));
     expect(html(<StandardMaterial base_color="#ff0000" unlit />)).toBe(html(<MeshBasicMaterial color="#ff0000" />));
-    expect(html(<StandardMaterial alpha_mode={{ Mask: 0.3 }} cull_mode={null} />)).toBe(html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} alphaMode="mask" alphaCutoff={0.3} side="double" />));
+    expect(html(<StandardMaterial alpha_mode={{ Mask: 0.3 }} cull_mode={null} />)).toBe(html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} alphaMode="mask" alphaCutoff={0.3} opacity={1} side="double" />));
   });
 
   test("WearExtension is the old material's wear, its colours camelCase there", () => {
@@ -240,6 +242,10 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
     expect(html(<StandardMaterial base_color={Srgba.hex("#88ccff").with_alpha(0.4)} />)).toBe(old({}));
     expect(html(<StandardMaterial base_color={Srgba.hex("#88ccff").with_alpha(0.4)} alpha_mode="Blend" unlit />)).toBe(html(<MeshBasicMaterial color="#88ccff" transparent opacity={0.4} />));
     expect(html(<StandardMaterial base_color={new Srgba(1, 0.5, 0, 0.25)} alpha_mode="Blend" />)).toBe(html(<MeshStandardMaterial color="#ff8000" roughness={0.5} metalness={0} transparent opacity={0.25} />));
+    // a Mask cuts by the alpha and AlphaToCoverage dithers by it, as Bevy's read the base colour's alpha too
+    expect(html(<StandardMaterial base_color={Srgba.hex("#88ccff").with_alpha(0.4)} alpha_mode={{ Mask: 0.5 }} />)).toBe(old({ alphaMode: "mask", alphaCutoff: 0.5, opacity: 0.4 }));
+    expect(html(<StandardMaterial base_color={Srgba.hex("#88ccff").with_alpha(0.4)} alpha_mode="AlphaToCoverage" />)).toBe(old({ alphaMode: "coverage", opacity: 0.4 }));
+    expect(html(<StandardMaterial base_color={Srgba.hex("#88ccff").with_alpha(0.4)} alpha_mode="Add" />)).toBe(old({ alphaMode: "add", opacity: 0.4 }));
   });
 
   test("emissive brighter than white: LinearRgba, made from a colour, goes as that colour and its intensity exactly", () => {
@@ -372,6 +378,25 @@ describe("S2a's last Bevy names: Mesh2d with a primitive and a ColorMaterial, an
     expect(() => html(<Mesh2d><Circle /><Ellipse /></Mesh2d>)).toThrow(/one primitive/);
     expect(() => html(<Mesh2d><ColorMaterial /></Mesh2d>)).toThrow(/give it a primitive/);
     expect(() => html(<Circle />)).toThrow(/goes in a Mesh2d/);
+  });
+  test("a ColorMaterial's texture and AlphaMode2d reach the Shape2D; an Srgba's alpha is its opacity (mesh2d_alpha_mode)", () => {
+    expect(html(<Mesh2d><Rectangle half_size={[128, 128]} /><ColorMaterial color={new Srgba(0, 0, 1, 0.7)} texture="branding/icon.png" alpha_mode="Blend" /></Mesh2d>))
+      .toBe(html(<Shape2D shape="rect" size={[256, 256]} color="#0000FF" opacity={0.7} texture="branding/icon.png" alpha_mode="Blend" x={160} y={120} z={0} rotation={0} scale={1} />));
+    expect(html(<Mesh2d><Rectangle /><ColorMaterial color={new LinearRgba(0.2, 0, 0, 1)} alpha_mode={{ Mask: 0.5 }} /></Mesh2d>))
+      .toBe(html(<Shape2D shape="rect" size={[1, 1]} color="#7C0000" opacity={1} alpha_mode={{ Mask: 0.5 }} x={160} y={120} z={0} rotation={0} scale={1} />));
+    expect(html(<Mesh2d opacity={0.5}><Rectangle /><ColorMaterial color={new Srgba(1, 1, 1, 0.5)} /></Mesh2d>)).toContain("&quot;opacity&quot;:0.25");
+    expect(() => html(<Shape2D alpha_mode={"Mask" as never} />)).toThrow(/alpha_mode/);
+    expect(() => html(<Shape2D texture="" />)).toThrow(/texture/);
+  });
+  test("a primitive's vertex_colors (LinearRgba or [r, g, b, a]) reach the Shape2D as linear arrays, one per vertex (mesh2d_vertex_color_texture)", () => {
+    const four = [new LinearRgba(1, 0, 0, 1), [0, 1, 0, 1] as [number, number, number, number], new LinearRgba(0, 0, 1, 0.5), new LinearRgba(1, 1, 1, 1)];
+    expect(html(<Mesh2d><Rectangle vertex_colors={four} /><ColorMaterial /></Mesh2d>))
+      .toBe(html(<Shape2D shape="rect" size={[1, 1]} vertex_colors={[[1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 0.5], [1, 1, 1, 1]]} color="#ffffff" x={160} y={120} z={0} rotation={0} scale={1} />));
+    expect(html(<Mesh2d><Rectangle /></Mesh2d>)).not.toContain("vertex_colors");
+    expect(() => html(<Shape2D vertex_colors={[[1, 0, 0, 1]]} />)).toThrow(/rect's mesh has 4 vertices/);
+    expect(() => html(<Shape2D shape="triangle" vertex_colors={four.slice(0, 2).map(() => [1, 1, 1, 1] as [number, number, number, number])} />)).toThrow(/triangle's mesh has 3/);
+    expect(html(<Shape2D shape="circle" vertex_colors={[[1, 1, 1, 1]]} />)).toContain("vertex_colors");
+    expect(() => html(<Shape2D vertex_colors={[[1, 0, 0]] as never} />)).toThrow(/one linear \[r, g, b, a\]/);
   });
   test("ToonMaterial is the StandardMaterial with ToonExtension", () => {
     expect(html(<Mesh3d><Cuboid /><ToonMaterial base_color="#c84" steps={3} rim /></Mesh3d>))

@@ -34,6 +34,11 @@ mod meshseq;
 /// Fields of grass' rows (<Grass>).
 mod grass;
 
+/// The scene-wide parts placed by their parent alone, a camera column or a post effect each: node kind, item kind. An
+/// <Atmosphere> is Bevy's procedural sky round the scene, a <Skybox> Bevy's cubemap sky on the camera.
+const BY_PARENT: [(&str, &str); 19] = [("AmbientLight", "ambient"), ("Bloom", "bloom"), ("Atmosphere", "atmosphere"), ("Fog", "fog"), ("ToneMapping", "tonemapping"), ("DepthOfField", "dof"), ("Grade", "grade"), ("VolumetricFog", "volfog"), ("Environment", "environment"), ("Skybox", "skybox"),
+    ("AmbientOcclusion", "ssao"), ("AntiAliasing", "aa"), ("Shadows", "shadows"), ("Look", "framelook"), ("Outline", "outline"), ("Fisheye", "fisheye"), ("LensDistortion", "distortion"), ("MotionBlur", "mblur"), ("BevyResource", "resource")];
+
 fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
     let item = |kind: &'static str, world: Mat4, material: Option<Node3>| Item { kind, props: n.props.clone(), shape: n.shape.clone(), material, world };
     match &*n.kind {
@@ -98,7 +103,8 @@ fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
             }
             // MeshStandardMaterial children: its glTF materials (all, or the one each names) given another colour,
             // texture or finish, the rest of each kept
-            let mats: Vec<_> = n.kids.iter().filter(|k| matches!(&*k.kind, "MeshStandardMaterial" | "MeshPhysicalMaterial")).collect();
+            // (and its <Lightmap> children, a bake on each glTF mesh one names: raea-sys-material's lightmap.rs)
+            let mats: Vec<_> = n.kids.iter().filter(|k| matches!(&*k.kind, "MeshStandardMaterial" | "MeshPhysicalMaterial" | "Lightmap")).collect();
             let surfaces: Vec<Value> = mats.iter().map(|k| surface_spec(&k.props)).collect();
             if !surfaces.is_empty() {
                 std::sync::Arc::make_mut(&mut it.props).insert("surfaces".into(), Value::Array(surfaces));
@@ -142,21 +148,9 @@ fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
             bevy_parts(n, &mut it);
             out.push(it)
         }
-        "AmbientLight" => out.push(item("ambient", parent, None)),
-        "Bloom" => out.push(item("bloom", parent, None)),
-        // a procedural sky round the scene (Bevy's Atmosphere): a camera column
-        "Atmosphere" => out.push(item("atmosphere", parent, None)),
+        k if BY_PARENT.iter().any(|(n, _)| *n == k) => out.push(item(BY_PARENT.iter().find(|(n, _)| *n == k).map_or("", |&(_, i)| i), parent, None)),
         // text in the 3D world (<RichText>): a block and its glyphs (raea-render's text3d.rs)
         "RichText" => out.push(item("text", parent * local(&n.props), None)),
-        "Fog" => out.push(item("fog", parent, None)),
-        "ToneMapping" => out.push(item("tonemapping", parent, None)),
-        "DepthOfField" => out.push(item("dof", parent, None)),
-        "Grade" => out.push(item("grade", parent, None)),
-        "VolumetricFog" => out.push(item("volfog", parent, None)),
-        "Environment" => out.push(item("environment", parent, None)),
-        "AmbientOcclusion" => out.push(item("ssao", parent, None)),
-        "AntiAliasing" => out.push(item("aa", parent, None)),
-        "Shadows" => out.push(item("shadows", parent, None)),
         "FogVolume" => out.push(item("fogvolume", parent * local(&n.props), None)),
         "Fire" => out.push(item("fire", parent * local(&n.props), None)),
         // a field of grass made by the engine from its grids (<Grass>): grass.rs
@@ -166,12 +160,6 @@ fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
         "Sprite" => out.push(item("sprite", Mat4::IDENTITY, None)),
         "Shape2D" => out.push(item("shape2d", Mat4::IDENTITY, None)),
         "MeshSequence" => out.push(item("meshseq", parent * local(&n.props), None)),
-        "Look" => out.push(item("framelook", parent, None)),
-        "Outline" => out.push(item("outline", parent, None)),
-        "Fisheye" => out.push(item("fisheye", parent, None)),
-        "LensDistortion" => out.push(item("distortion", parent, None)),
-        "MotionBlur" => out.push(item("mblur", parent, None)),
-        "BevyResource" => out.push(item("resource", parent, None)),
         // one shader over every lit standard surface left (<SurfaceShader>, docs/shaders.feature SH4)
         "SurfaceShader" => out.push(item("surface_shader", parent, None)),
         // a shader over the frame (<FramePass>, docs/shaders.feature SH6)
@@ -214,6 +202,7 @@ pub fn items_of(scene: &[Node3]) -> Vec<Item> {
     if out.iter().any(own) {
         out.retain(|i| i.kind != "ambient" || own(i));
     }
+    raea_core_review::camera_override(&mut out); // a review's fixed camera in place of the scene's own (RAEA_CAMERA)
     out
 }
 

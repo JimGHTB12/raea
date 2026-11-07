@@ -1,0 +1,279 @@
+#!/bin/bash
+# What of Bevy and Blitz an author reaches from raea's SDK, and how (docs/handoff/sdk.md, docs/sdk.feature S8).
+#
+#   tools/sdk-coverage              write docs/sdk-coverage.md from the registry snapshot and the sources
+#   tools/sdk-coverage --registry   first retake the snapshot (docs/sdk-coverage/bevy.tsv) from the plugin build's
+#                                   raea-bevy-sdk (RAEA_BEVY_SDK, default target/release/raea-bevy-sdk)
+#   tools/sdk-coverage --check      the ratchet (tools/agents/check): the reached count is at least
+#                                   tools/sdk-coverage.min, and docs/sdk-coverage.md is what this writes
+#   tools/sdk-coverage --rows       print the rows (area, item, kind, tier, reach or reason) as TSV
+#
+# Each authorable thing is one row, with its tier:
+#   1  typed: a hand-written component or hook. Bevy: a `@bevy <type path>` tag in the doc comment of the sdk/*/src
+#      export that sets it. CSS: a property React's CSSProperties types (csstype), on an element Blitz draws. An
+#      element: one React's JSX types.
+#   2  reflected: a typed handle generated from the type registry (sdk/render/src/bevy-own.gen.tsx in every build;
+#      a project's bevy/<plugin>.gen.tsx from tools/bevy-plugins.sh gen; the catalog's are raea/plugins/<plugin>)
+#   3  plugin: added by one declaration (package.json raea.plugins), and in the plugin build
+#   n  not rendered: a CSS property an author writes and Chrome draws, which Blitz never reads (a gap, not reached)
+#   s  SVG attribute only: an SVG property Blitz passes to usvg from the element's attributes and style="", not from
+#      a stylesheet (a gap for blitz-bridge's SVG parity, not reached)
+#   b  blocked upstream: a declared plugin with no release on this Bevy, and its exit condition
+#   -  excluded: not authorable, with the reason docs/sdk-coverage/excluded.tsv gives
+#   0  unmapped: nothing reaches it yet
+# Sources: the Bevy rows are every component, resource, event, message, state and asset in the registry of the plugin
+# build's App (RaeaPlugins and every declared plugin); the CSS rows are every property stylo parses for servo
+# (vendor/stylo/properties/*.toml without engine = "gecko"), those Blitz never reads by name not rendered; the element
+# rows are those blitz-dom names (local_name!) or styles (its default.css).
+set -uo pipefail
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+cd "$ROOT" || exit 2
+D=docs/sdk-coverage
+OUT=docs/sdk-coverage.md
+MIN=tools/sdk-coverage.min
+BENCH=sdk/raea/bench/bevy-plugins
+# the catalog's generated modules, raea/plugins/<name> (the bench's raea.generated)
+PLUGINS=sdk/plugins/src
+STYLO=vendor/stylo/properties
+# node_modules aren't in git: a clean export (tools/agents/check on a lane) reads the shared tree's
+NM=sdk/raea/node_modules; [ -d $NM ] || NM=${RAEA_NODE_MODULES:-$HOME/raea/sdk/raea/node_modules}
+CSSTYPE=$NM/csstype/index.d.ts
+REACT=$NM/@types/react/index.d.ts
+[ -f "$CSSTYPE" ] && [ -f "$REACT" ] || { echo "sdk-coverage: no csstype or @types/react under $NM (bun install in sdk/raea)" >&2; exit 2; }
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/sdk-coverage.XXXXXX")
+trap 'rm -rf "$TMP"' EXIT
+
+mode=${1:-write}
+
+if [ "$mode" = --registry ]; then
+  BIN=${RAEA_BEVY_SDK:-$ROOT/target/release/raea-bevy-sdk}
+  [ -x "$BIN" ] || { echo "sdk-coverage: no raea-bevy-sdk at $BIN (tools/bevy-plugins.sh build $BENCH)" >&2; exit 2; }
+  log=$("$BIN" --prefix "" --registry "$TMP/registry.tsv" -o "$TMP/all.tsx" 2>&1) || { echo "$log" | tail -5 >&2; exit 1; }
+  plugins=$(sed -n 's/.*plugins compiled: \[\(.*\)\].*/\1/p' <<<"$log" | tr -d '" ' | tr , '\n' | sort)
+  {
+    echo "# The plugin build's TypeRegistry: every component, resource, event, message, state and asset (tools/sdk-coverage --registry)"
+    echo "# compiled plugins: $(echo $plugins)"
+    cat "$TMP/registry.tsv"
+  } > $D/bevy.tsv
+  echo "sdk-coverage: $D/bevy.tsv: $(grep -vc '^#' $D/bevy.tsv) types, $(echo "$plugins" | grep -c .) plugins compiled"
+  mode=write
+fi
+
+if [ "$mode" = --upstream ]; then
+  # each declared plugin with no version for Bevy 0.20: its latest unyanked release on crates.io and the bevy it needs
+  {
+    echo "# name	crate	latest	bevy (crates.io's index, tools/sdk-coverage --upstream, $(date +%F))"
+    jq -r '.raea.plugins | to_entries[] | select(.value.versions["0.20"] == null) | [.key, .value.crate] | @tsv' $BENCH/package.json |
+      while IFS=$'\t' read -r name crate; do
+        l=$(tr A-Z a-z <<<"$crate")
+        case ${#l} in 1) p=1/$l ;; 2) p=2/$l ;; 3) p=3/${l:0:1}/$l ;; *) p=${l:0:2}/${l:2:2}/$l ;; esac
+        curl -sf "https://index.crates.io/$p" |
+          jq -r --arg n "$name" --arg c "$crate" -s 'map(select(.yanked | not)) | last | [$n, $c, .vers, ([.deps[] | select(.name | test("^bevy(_ecs|_app|_internal)?$")) | .req] | first // "?")] | @tsv'
+      done
+  } > $D/upstream.tsv
+  echo "sdk-coverage: $D/upstream.tsv: $(grep -vc '^#' $D/upstream.tsv) plugins looked up"
+  mode=write
+fi
+
+# --- what reaches what ------------------------------------------------------------------------------------------
+
+# tier 1, Bevy: `@bevy <path>` tags, each with the export after it (path, export, file)
+for f in $(rg -l '@bevy [a-z_]+::' sdk/*/src -g '*.ts' -g '*.tsx' -g '!*.gen.*' 2>/dev/null); do
+  awk -v f="$f" '
+    { while (match($0, /@bevy [a-z_][A-Za-z0-9_:<>, ]*[A-Za-z0-9_>]/)) { tags[++n] = substr($0, RSTART + 6, RLENGTH - 6); $0 = substr($0, RSTART + RLENGTH) } }
+    n && /^export (default )?(async )?(function|const|class|interface|type|let) / {
+      name = $0; sub(/^export (default )?(async )?(function|const|class|interface|type|let) /, "", name); sub(/[^A-Za-z0-9_$].*/, "", name)
+      for (i = 1; i <= n; i++) printf "%s\t%s\t%s\n", tags[i], name, f
+      n = 0
+    }' "$f"
+done | sort -u > "$TMP/typed"
+
+# tier 2: generated handles: every-build wrappers, then each plugin's (path, export)
+rg -o --no-filename -N 'type="[^"]+"' sdk/render/src/bevy-own.gen.tsx | sed 's/^type="//; s/"$//' | sort -u |
+  awk -F'\t' '{printf "%s\traea/bevy-own\n", $1}' > "$TMP/gen"
+for g in $PLUGINS/*.gen.tsx; do
+  p=$(basename "$g" .gen.tsx)
+  rg -o --no-filename -N '^  [A-Za-z0-9_]+: (component|resource|event|message|state)(<[^(]*>)?\("[^"]+"\)' "$g" |
+    sed -E "s/^  ([A-Za-z0-9_]+): .*\(\"([^\"]+)\"\)$/\2\t$p.\1 (raea\/plugins\/$p)/"
+done | sort -t$'\t' -k1,1 -u >> "$TMP/gen"
+sort -t$'\t' -k1,1 -u "$TMP/gen" -o "$TMP/gen"
+
+# excluded: area, prefix, reason
+grep -v '^#' $D/excluded.tsv | grep . > "$TMP/excluded" || true
+
+# Each row's tier: rows "area item kind tier reach" come in with tier 0 (or the tier a source proved), and a
+# row still at 0 whose item an excluded prefix of its area starts takes that exclusion.
+exclude() {
+  awk -F'\t' -v OFS='\t' -v ex="$TMP/excluded" '
+    BEGIN { while ((getline l < ex) > 0) { split(l, a, "\t"); n++; area[n] = a[1]; pre[n] = a[2]; why[n] = a[3] } }
+    $4 == "0" { for (i = 1; i <= n; i++) if (area[i] == $1 && index($2, pre[i]) == 1) { $4 = "-"; $5 = why[i]; break } }
+    { print }'
+}
+
+# --- rows -------------------------------------------------------------------------------------------------------
+
+rows() {
+  # Bevy's registry
+  grep -v '^#' $D/bevy.tsv | awk -F'\t' -v OFS='\t' -v typed="$TMP/typed" -v gen="$TMP/gen" '
+    BEGIN {
+      while ((getline l < typed) > 0) { split(l, a, "\t"); t[a[1]] = (a[1] in t ? t[a[1]] ", " : "") a[2] " (" a[3] ")" }
+      while ((getline l < gen) > 0) { split(l, a, "\t"); if (!(a[1] in g)) g[a[1]] = a[2] }
+    }
+    { if ($1 in t) print "bevy", $1, $2, 1, t[$1]; else if ($1 in g) print "bevy", $1, $2, 2, g[$1]; else print "bevy", $1, $2, 0, "" }'
+
+  # plugins: each declaration the bench project makes. Reached when the plugin build registers it, or when a library
+  # with no Plugin to register is in every plugin App (builtin: bevy_remote) or has generated handles (raea/plugins/NAME);
+  # a library compiled in that nothing reaches is unmapped. One with no version for
+  # Bevy 0.20 is this lane's to declare when crates.io has a release on 0.20 (docs/sdk-coverage/upstream.tsv, from
+  # --upstream), and blocked upstream until then.
+  compiled=" $(sed -n 's/^# compiled plugins: //p' $D/bevy.tsv) "
+  jq -r '.raea.plugins | to_entries[] | [.key, .value.crate, (.value.versions["0.20"] != null), (.value.plugin != null), (.value.builtin // false)] | @tsv' $BENCH/package.json |
+    while IFS=$'\t' read -r name crate v20 has_plugin builtin; do
+      case $compiled in
+        *" $name "*) printf 'plugin\t%s\tdeclared\t3\traea.plugins: "%s" (%s)\n' "$name" "$name" "$crate"; continue ;;
+      esac
+      if [ "$v20" = true ] && [ "$has_plugin" = false ] && { [ "$builtin" = true ] || grep -qE "^  [A-Za-z_]+: " "$PLUGINS/$name.gen.tsx" 2>/dev/null; }; then
+        printf 'plugin\t%s\tdeclared\t3\traea.plugins: "%s" (%s): compiled in, no Plugin to register\n' "$name" "$name" "$crate"
+      elif [ "$v20" = true ] && [ "$has_plugin" = false ]; then
+        printf 'plugin\t%s\tdeclared\t0\t%s: compiled in, but nothing reaches it (no Plugin, no generated handles)\n' "$name" "$crate"
+      elif [ "$v20" = true ]; then
+        printf 'plugin\t%s\tdeclared\t0\t%s: declared for 0.20, not registered in the plugin build\n' "$name" "$crate"
+      else
+        awk -F'\t' -v OFS='\t' -v n="$name" -v c="$crate" '$1 == n { found = 1
+            if ($4 ~ /0\.20/) print "plugin", n, "declared", 0, c " " $3 " is on bevy " $4 ": declare its 0.20 version (this lane, tools/bevy-plugins.sh)"
+            else print "plugin", n, "declared", "b", c "'"'"'s latest release (" $3 ") is on bevy " $4 ". Exit: a release of " c " on Bevy 0.20" }
+          END { if (!found) print "plugin", n, "declared", 0, c ": no version for 0.20 (tools/sdk-coverage --upstream looks it up)" }' $D/upstream.tsv
+      fi
+    done
+
+  # CSS: what Blitz reads by name (its source's `.name` and `.clone_name`), and what csstype types
+  rg -o --no-filename -N '\.(clone_)?[a-z_][a-z0-9_]*' vendor/blitz-dom/src vendor/blitz-paint/src \
+    "$(ls -d ~/.cargo/registry/src/*/stylo_taffy-"$(awk '/^name = "stylo_taffy"/{getline; gsub(/version = |"/, ""); print; exit}' Cargo.lock)" 2>/dev/null | head -1)/src" 2>/dev/null |
+    sed 's/^\.//; s/^clone_//' | sort -u > "$TMP/blitz-reads"
+  # csstype's, and raea's own for what csstype doesn't type yet (sdk/video/src/css.ts, which augments csstype)
+  { rg -o --no-filename -N '^ +"?[A-Za-z]+"?\??: Property\.' "$CSSTYPE"; rg -o --no-filename -N '^  [a-zA-Z]+\?:' sdk/video/src/css.ts; } | sed -E 's/^ +"?([A-Za-z]+)"?.*/\1/' | sort -u > "$TMP/csstype"
+  # Each servo property: name, kind, its sub-properties (a shorthand's) and its logical group. A logical longhand
+  # (margin-inline-start) is drawn when its group's physical longhands are: stylo's cascade maps it onto them, so Blitz
+  # never names it. Animations and transitions are run by stylo's animation engine, which Blitz drives
+  # (resolve(current_time_for_animations)); their values reach the frame as the animated properties'.
+  for kind in longhand shorthand; do
+    awk -v kind=$kind '
+      function flush() { if (name != "" && name !~ /\./ && !gecko) printf "%s\t%s\t%s\t%s\t%d\t%s\n", name, kind, subs, group, logical, strct; name = ""; gecko = 0; subs = ""; insub = 0; group = ""; logical = 0; strct = "" }
+      /^\[[^]]+\]$/ { flush(); name = substr($0, 2, length($0) - 2); next }
+      /^engine = "gecko"/ { gecko = 1 }
+      /^logical = true/ { logical = 1 }
+      /^struct = / { strct = $0; sub(/^struct = "/, "", strct); sub(/".*/, "", strct) }
+      /^logical_group = / { group = $0; sub(/^logical_group = "/, "", group); sub(/".*/, "", group) }
+      /^sub_properties = \[/ { insub = 1; s = $0; sub(/^sub_properties = \[/, "", s); subs = subs s }
+      insub && !/^sub_properties/ { subs = subs $0 }
+      insub && /\]/ { insub = 0 }
+      END { flush() }' $STYLO/${kind}s.toml
+  done | awk -F'\t' -v OFS='\t' -v reads="$TMP/blitz-reads" -v types="$TMP/csstype" '
+    function ident(n,   s) { s = n; gsub(/-/, "_", s); return s }
+    function camel(n,   p, k, i, s, w) { k = split(n, p, "-"); s = ""; for (i = 1; i <= k; i++) { if (p[i] == "") continue; w = p[i]; if (i > 1) w = toupper(substr(w, 1, 1)) substr(w, 2); s = s w } return s }
+    BEGIN { while ((getline l < reads) > 0) r[l] = 1; while ((getline l < types) > 0) c[l] = 1 }
+    { n++; name[n] = $1; kind[n] = $2; subs[n] = $3; group[n] = $4; logical[n] = $5; svg[n] = ($6 ~ /^(inherited_)?svg$/ && $1 !~ /^(clip-path|mask-(image|position-x|position-y|repeat|size|mode|clip|origin|composite))$/)
+      if ($2 == "longhand" && !$5 && $4 != "" && (ident($1) in r)) physical[$4] = 1 }
+    END {
+      for (i = 1; i <= n; i++) if (kind[i] == "longhand") {
+        how[name[i]] = (ident(name[i]) in r) ? "read" : (logical[i] && group[i] in physical) ? "logical" : (name[i] ~ /^(animation|transition)-/) ? "animated" : ""
+      }
+      for (i = 1; i <= n; i++) {
+        h = ""
+        if (kind[i] == "longhand") h = how[name[i]]
+        else if (name[i] ~ /^(animation|transition)$/) h = "animated"
+        else { s = subs[i]; gsub(/[][", ]/, " ", s); k = split(s, sb, " "); for (j = 1; j <= k; j++) if (how[sb[j]] != "") { h = "read"; break } }
+        cm = camel(name[i]); typed = (cm in c)
+        why = (h == "logical") ? "; stylo maps it onto its physical longhands, which Blitz draws" : (h == "animated") ? "; stylo animates it, and Blitz draws the animated values" : ""
+        if (h == "" && svg[i]) print "css", name[i], kind[i], "s", (typed ? "style={{ " cm " }} types it" : "csstype has no " cm) "; drawn on an inline <svg> when written as its attribute or in its style=\"\" (blitz-dom serializes those for usvg), not when a stylesheet or class sets it (the computed value never reaches usvg)"
+        else if (h == "") print "css", name[i], kind[i], "n", (typed ? "style={{ " cm " }} types it" : "csstype has no " cm) "; stylo parses it, Blitz never reads it by name, so nothing lays it out or paints it"
+        else if (typed) print "css", name[i], kind[i], 1, "style={{ " cm " }} (React CSSProperties)" why
+        else print "css", name[i], kind[i], 0, "Blitz draws it" why "; csstype has no " cm
+      }
+    }'
+
+  # elements: the type selectors of blitz-dom's default stylesheet, and the names its code matches that are elements
+  # (local_name! names attributes too, so those count only when React's JSX has the element)
+  # React's elements, and raea's own (sdk/ui/src/elements.ts: view3d and its parts)
+  rg -o --no-filename -N '^      [a-z][a-z0-9]*: [A-Z][A-Za-z0-9]*Attributes;' sdk/ui/src/elements.ts | sed -E 's/^ +([a-z0-9]+):.*/\1/' | sort -u > "$TMP/own"
+  { awk '/interface IntrinsicElements/ { p = 1 } p' "$REACT" | rg -o --no-filename -N '^ +"?[a-z][a-zA-Z0-9-]*"?: React\.' | sed -E 's/^ +"?([^":]+)"?: .*/\1/'; cat "$TMP/own"; } | sort -u > "$TMP/jsx"
+  {
+    tr '\n' ' ' < vendor/blitz-dom/assets/default.css | sed 's#/\*[^*]*\*\{1,\}\([^/*][^*]*\*\{1,\}\)*/##g' | awk 'BEGIN { RS = "}" }
+      { n = split($0, p, "{"); if (n < 2) next; s = p[n - 1]; if (s ~ /@/) next
+        gsub(/\[[^]]*\]/, " ", s); gsub(/::?[a-z-]+(\([^)]*\))?/, " ", s); gsub(/[.#][A-Za-z0-9_-]+/, " ", s); gsub(/[a-z*]*\|/, "", s)
+        k = split(s, t, /[ ,>+~()]+/); for (i = 1; i <= k; i++) if (t[i] ~ /^[a-z][a-z0-9]*$/) print t[i] }'
+    rg -o --no-filename -N 'local_name!\("[a-z][a-z0-9-]*"\)' vendor/blitz-dom/src | sed 's/local_name!("//; s/")//' | grep -Fxf "$TMP/jsx"
+  } | sort -u > "$TMP/elements"
+  awk -F'\t' -v OFS='\t' -v jsx="$TMP/jsx" -v own="$TMP/own" 'BEGIN { while ((getline l < jsx) > 0) j[l] = 1; while ((getline l < own) > 0) o[l] = 1 }
+    { if ($1 in o) print "element", $1, "html", 1, "<" $1 "> (raea JSX, sdk/ui/src/elements.ts)"; else if ($1 in j) print "element", $1, "html", 1, "<" $1 "> (React JSX)"; else print "element", $1, "html", 0, "React JSX has no <" $1 ">" }' "$TMP/elements"
+}
+
+rows | exclude > "$TMP/rows"
+[ "$mode" = --rows ] && { cat "$TMP/rows"; exit 0; }
+
+reached=$(awk -F'\t' '$4 ~ /^[123]$/' "$TMP/rows" | wc -l | tr -d ' ')
+unmapped=$(awk -F'\t' '$4 == "0"' "$TMP/rows" | wc -l | tr -d ' ')
+
+# --- the page ---------------------------------------------------------------------------------------------------
+
+md() {
+  cat <<'EOF'
+# SDK coverage
+
+What of Bevy and Blitz an author reaches from raea's SDK, and how. Generated by `tools/sdk-coverage` (its header
+says where each list comes from); don't edit, regenerate. A row says what reaches the type today; unbuilt work is in
+docs/handoff/sdk.md.
+
+Tiers: **1** typed (a hand-written component, hook or typed style prop), **2** reflected (a typed handle generated
+from the type registry), **3** plugin (one declaration), **not rendered** (an author writes it, and Chrome draws it, but
+Blitz doesn't: a gap, never counted as reached), **SVG attribute only** (an SVG property drawn when it's written as
+the element's attribute or inline style, not when a stylesheet sets it: a gap), **blocked upstream** (a plugin with no release on this Bevy, and
+what ends the block), **excluded** (not authorable, with the reason), **unmapped** (nothing
+reaches it yet).
+
+EOF
+  echo "| area | kind | tier 1 | tier 2 | tier 3 | not rendered | SVG attribute only | blocked upstream | excluded | unmapped | total |"
+  echo "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"
+  awk -F'\t' '{ k = $1 "\t" $3; c[k, $4]++; t[k]++; if (!(k in seen)) { seen[k] = 1; order[++n] = k } }
+    END { for (i = 1; i <= n; i++) { k = order[i]; split(k, a, "\t"); printf "| %s | %s | %d | %d | %d | %d | %d | %d | %d | %d | %d |\n", a[1], a[2], c[k, "1"], c[k, "2"], c[k, "3"], c[k, "n"], c[k, "s"], c[k, "b"], c[k, "-"], c[k, "0"], t[k] } }' \
+    <(sort -t$'\t' -k1,1 -k3,3 "$TMP/rows")
+  awk -F'\t' '{ c[$4]++ } END { printf "| **all** | | **%d** | **%d** | **%d** | **%d** | **%d** | **%d** | **%d** | **%d** | **%d** |\n", c["1"], c["2"], c["3"], c["n"], c["s"], c["b"], c["-"], c["0"], NR }' "$TMP/rows"
+  echo
+  echo "Reached (tiers 1-3): **$reached**. The ratchet (\`tools/sdk-coverage --check\`, in tools/agents/check) keeps it from dropping."
+  for area in bevy plugin css element; do
+    case $area in
+      bevy) title="Bevy types (the plugin build's TypeRegistry)" ;;
+      plugin) title="Plugins (package.json raea.plugins)" ;;
+      css) title="CSS properties (stylo, servo)" ;;
+      element) title="Elements (blitz-dom)" ;;
+    esac
+    echo; echo "## $title"; echo
+    echo "| item | kind | tier | reached by, or why not |"
+    echo "|---|---|---|---|"
+    awk -F'\t' -v a=$area '$1 == a { t = ($4 == "-") ? "excluded" : ($4 == "n") ? "not rendered" : ($4 == "s") ? "SVG attribute only" : ($4 == "b") ? "blocked upstream" : ($4 == "0") ? "unmapped" : $4; gsub(/\|/, "\\|", $5); printf "| `%s` | %s | %s | %s |\n", $2, $3, t, $5 }' "$TMP/rows"
+  done
+}
+
+md > "$TMP/md"
+
+if [ "$mode" = --check ]; then
+  floor=$(cat $MIN 2>/dev/null || echo 0)
+  ok=1
+  if [ "$reached" -lt "$floor" ]; then echo "sdk-coverage: reached $reached, below the floor $floor ($MIN)" >&2; ok=0; fi
+  # one form per Bevy concept (docs/control.feature FC1e): a Bevy type tagged on two exports is two spellings of it;
+  # the ratchet holds the count where it stands until the codemod moves the three.js-shaped ones and they go
+  dupes=$(awk -F'\t' '{ c[$1]++; e[$1] = e[$1] " " $2 } END { for (t in c) if (c[t] > 1) print t ":" e[t] }' "$TMP/typed" | sort)
+  nd=$(awk -F'\t' '{ c[$1]++ } END { for (t in c) if (c[t] > 1) n += c[t] - 1; print n + 0 }' "$TMP/typed")
+  maxd=$(cat tools/sdk-coverage.dupes 2>/dev/null || echo 0)
+  if [ "$nd" -gt "$maxd" ]; then echo "sdk-coverage: $nd exports beside a Bevy type's first (allowed $maxd, tools/sdk-coverage.dupes): one form per concept, so move the newer to the existing export:" >&2; echo "$dupes" | sed 's/^/  /' >&2; ok=0; fi
+  [ "$nd" -lt "$maxd" ] && echo "sdk-coverage: note $nd second exports of a Bevy type now, under $maxd: lower tools/sdk-coverage.dupes" >&2
+  # a stale page is a note, not a failure: another lane's change to Blitz or a generated file moves rows it doesn't own
+  cmp -s "$TMP/md" $OUT || echo "sdk-coverage: note $OUT is out of date (tools/sdk-coverage rewrites it)" >&2
+  [ $ok = 1 ] && echo "sdk-coverage: ok, reached $reached (floor $floor), unmapped $unmapped"
+  [ $ok = 1 ]; exit $?
+fi
+
+cp "$TMP/md" $OUT
+floor=$(cat $MIN 2>/dev/null || echo 0)
+[ "$reached" -gt "$floor" ] && echo "$reached" > $MIN
+echo "sdk-coverage: wrote $OUT: reached $reached, unmapped $unmapped (floor $(cat $MIN))"

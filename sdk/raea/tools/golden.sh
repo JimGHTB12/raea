@@ -3,7 +3,7 @@
 # frames, which must agree to its ssim_min with the case's reference frames (reference/fNNNN.png): the retired rrl
 # stack's renders of the case's edit.rrl, frozen on 2026-10-17 when rrl was deleted (03-video-take's stay local, since
 # its footage is), or renders the user approved (reference/APPROVED). The SDK's renderer is RAEA_RENDER
-# (an agent session, first slice 2026-10-22), called as: $RAEA_RENDER EDIT.tsx --frame N -o OUT.png
+# (its first slice, 2026-10-22), called as: $RAEA_RENDER EDIT.tsx --frame N -o OUT.png
 # Real ffmpeg does the comparison, so the grader doesn't depend on what it grades.
 # A case with reference/APPROVED compares against those frames, which the user approved; editing them needs a new approval.
 # Usage: sdk/raea/tools/golden.sh [CASE_DIR ...]   (default: every case)

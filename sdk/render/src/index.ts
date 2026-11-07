@@ -6,6 +6,8 @@ export * from "./paint";
 export * from "./matchmove";
 export * from "./scene";
 export * from "./solid";
+export * from "./grow";
+export * from "./place";
 export * from "./pick";
 export * from "./splat";
 // scene and solid each declare the same Bounds; /3d has always given solid's

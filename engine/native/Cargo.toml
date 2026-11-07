@@ -3,7 +3,7 @@ name = "raea-native"
 version = "0.1.0"
 edition = "2024"
 license = "FSL-1.1-ALv2"
-description = "raea's one native-call layer: the registry every host links (raea, the sandbox, HostCore), the TypeScript types made from it, and the web shims bundles expect on JavaScriptCore"
+description = "raea's one native-call layer: the registry every host links (raea, the sandbox, the host app), the TypeScript types made from it, and the web shims bundles expect on JavaScriptCore"
 
 [lib]
 name = "raea_native"

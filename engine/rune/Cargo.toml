@@ -9,21 +9,26 @@ description = "The native target's host (docs/targets.feature): raea's op wire d
 [dependencies]
 rune.workspace = true
 raea-core-wire = { path = "../../core/wire" }
-# the net.* host calls, answered as the web target answers them (docs/targets.feature T2a)
-raea-io-net-calls = { path = "../../io/net/calls" }
-# os.open, the clipboard, files and dialogs, answered as the web target answers them (docs/targets.feature T2d)
+# the app's JS against its page (js/: the engine, the host calls)
+raea-rune-js = { path = "js" }
+# the check's scripted system calls (script.rs), headless (T2d)
 raea-io-os = { path = "../../io/os" }
-raea-runtime-jsengine = { path = "../../runtime/jsengine" }
 raea-rune-page = { path = "page" }
 raea-rune-media = { path = "media" }
 raea-rune-look = { path = "look" }
+# the app drawn by Bevy (docs/targets.feature T6c): a Bevy window with the tree as a layer on its device (on_bevy/window.rs),
+# and the check's frames drawn through it (on_bevy/shot.rs). Off by default until T6c passes
+raea-rune-bevy = { path = "bevy", optional = true }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "async_executor", "bevy_log", "bevy_window", "bevy_winit", "bevy_asset", "bevy_image", "bevy_render", "bevy_core_pipeline", "ui_bevy_render"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 png = "0.18"
 
 [features]
+# Rune over Bevy (T6c): `run app.js --draw bevy` and `--headless app.js --draw bevy`
+bevy = ["dep:raea-rune-bevy", "dep:bevy"]
 # QuickJS beside JavaScriptCore on a Mac (BEVY_TSX_ENGINE=quickjs picks it): the portable engine tested here
-portable = ["raea-runtime-jsengine/portable"]
+portable = ["raea-rune-js/portable"]
 
 [dev-dependencies]
 # the tests bundle their apps as raea does (runtime/bundle/lib app.rs), with nothing of Bevy in their tree

@@ -4,6 +4,7 @@
 //! both re-exported here under their old paths.
 
 pub mod cli;
+pub mod fit;
 mod hosted;
 pub mod native;
 pub mod route;

@@ -38,7 +38,7 @@ pub struct Edit {
 #[derive(Resource, Default)]
 pub struct FrameRows {
     pub cols: eval::Cols,
-    pub ix: HashMap<Entity, usize>,
+    pub ix: bevy::ecs::entity::EntityHashMap<usize>,
     /// a live scene's rows (Engine::set_rows): a game's 3D comes from its play's state each frame, not from a timeline,
     /// so each row's latest values are kept here (in the store's order), changed in place where a frame changes them,
     /// and lent to the systems as they are (no columns made, nothing copied per frame)
@@ -54,6 +54,12 @@ impl FrameRows {
     /// frame can apply them once (a live scene's rows: never, since a play changes any of them).
     pub fn still(&self, e: Entity) -> bool {
         self.live.is_none() && self.timeline.as_ref().zip(self.ix.get(&e)).is_some_and(|(t, r)| t.still(*r))
+    }
+
+    /// Whether any row may have column `c` this frame (a live scene's or a frame look's rows: always), so a system
+    /// looking for a rare column (a glitch's) passes over a frame without it at once, not row by row (FC1b)
+    pub fn may_have(&self, c: &str) -> bool {
+        self.live.is_some() || !self.looks.is_empty() || self.cols.cols.contains_key(c)
     }
 
     /// One of a row's values this frame, copying only it (with its frame look laid on, as `vals` has it).
@@ -198,6 +204,16 @@ pub fn colour(v: Option<&V>, d: [f32; 4]) -> Color {
         _ => d,
     };
     Color::srgba(c[0], c[1], c[2], c[3])
+}
+
+/// A picture file Bevy reads itself (a .ktx2 cubemap or lightmap, with its own format and mips) decoded into a new
+/// image (`what` names the part in the error): an environment map's, a skybox's or a lightmap's.
+pub fn image_file(world: &mut World, what: &str, p: &str) -> Result<Handle<Image>, String> {
+    let bytes = std::fs::read(p).map_err(|err| format!("{what}: {p}: {err}"))?;
+    let ext = Path::new(p).extension().and_then(|x| x.to_str()).unwrap_or("ktx2");
+    let img = Image::from_buffer(&bytes, bevy::image::ImageType::Extension(ext), bevy::image::CompressedImageFormats::NONE, false, bevy::image::ImageSampler::Default, bevy::asset::RenderAssetUsages::RENDER_WORLD)
+        .map_err(|err| format!("{what}: {p}: {err}"))?;
+    Ok(world.resource_mut::<Assets<Image>>().add(img))
 }
 
 /// A clip's or audio row's source: `media:<sha256>` names a row of the media table (content-addressed footage, music

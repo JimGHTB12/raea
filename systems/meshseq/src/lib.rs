@@ -300,6 +300,11 @@ fn sync_glitches(
     binds: Res<Assets<bevy::mesh::skinning::SkinnedMeshInverseBindposes>>,
     joints: Query<&GlobalTransform, Without<Mesh3d>>,
 ) {
+    // a frame with no glitch column anywhere (most) is passed over whole: 10 000 cubes asked each row for each column,
+    // a third of many_cubes' update (FC1b)
+    if !GLITCH_COLS.iter().any(|k| frame.may_have(k)) {
+        return;
+    }
     for (e, root_gt) in &rows {
         // a row with no glitch column is passed over without making its values (10 000 cubes made them every frame)
         if !GLITCH_COLS.iter().any(|k| frame.get(e, k).is_some()) {

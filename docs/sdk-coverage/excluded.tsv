@@ -1,0 +1,30 @@
+# area	prefix	reason (tools/sdk-coverage: a row whose item starts with prefix is excluded, not authorable)
+css	-x-	stylo's internal properties (-x-lang, -x-text-scale): set by the engine from attributes, never by an author
+element	acronym	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	basefont	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	dir	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	frame	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	frameset	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	listing	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	marquee	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	multicol	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	nobr	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	noembed	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	noframes	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	plaintext	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	rb	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	rtc	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	spacer	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	strike	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	tt	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+element	xmp	obsolete in HTML (non-conforming): Blitz styles it so old pages render; React's JSX has no such element
+bevy	raea_runtime_js::host::TestId	the conformance harness's test id, not an author's
+bevy	bevy_render::globals::GlobalsUniform	the render world's shader globals, written by the renderer each frame
+bevy	bevy_extract::sync_world::MainEntity	the render world's link back to its main-world entity
+bevy	bevy_ecs::observer::distributed_storage::ObservedBy	ECS bookkeeping: which observers watch an entity (an author adds observers with useObserver)
+bevy	bevy_ecs::resource::IsResource	ECS bookkeeping: marks the entity a resource is stored on
+bevy	bevy_transform::components::transform::TransformTreeChanged	transform propagation's dirty flag
+bevy	bevy_gizmos_render::LineGizmoEntities	the gizmo renderer's entity cache
+bevy	bevy_sprite_render::tilemap_chunk::TilemapChunkMeshCache	the tilemap renderer's mesh cache
+bevy	bevy_remote::schemas::SchemaTypesMetadata	bevy_remote's own schema table
+bevy	bevy_render::storage::ShaderBuffer	a storage buffer the engine fills for its own passes (the NV12 readback, a splat cloud): an author reaches what it holds through <Splat> and the export, never the buffer

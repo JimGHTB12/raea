@@ -50,7 +50,7 @@ pub struct Module {
 }
 
 /// Why an import or a load can't be done: the sentence for the agent, and the parts the engine turns into an action
-/// row (an agent session, 2026-10-16): what kind of refusal, the import as written, and the module that made it.
+/// row (2026-10-16): what kind of refusal, the import as written, and the module that made it.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Refusal {
     pub message: String,

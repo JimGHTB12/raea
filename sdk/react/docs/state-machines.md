@@ -139,7 +139,7 @@ the snapshot as plain JSON (a workflow resumes from any step, as a game resumes 
 rules, which already take "progress" as a number the host supplies (the platformer's x; a workflow's passed checks).
 What a workflow would add is outside the step: an async loop that asks clef or a person at a choice point, appends the
 answer to the decision log, and steps the machine with `replayDecider`. That keeps the machine pure and the run
-replayable from its log. The legacy app's agent loop belongs to raea-01, and nothing here touches it.
+replayable from its log. The legacy app's agent loop is its own, and nothing here touches it.
 
 ## Is XState needed? (assessment, 2026-10-18)
 

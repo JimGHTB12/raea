@@ -103,8 +103,12 @@ pub struct Driven;
 /// takes, for each, the last row from at or before it, so a seek (a still, live play's jump) lands on its value.
 #[derive(Resource, Default)]
 struct Keyed {
+    /// in order of the frame each is from (load sorts them), so a frame reads only the rows due since the last
     rows: Vec<(Option<Entity>, String, Value, i64)>,
     applied: std::collections::HashMap<(Option<Entity>, String), i64>,
+    /// the rows before this one are due by `last`, the frame last applied (a frame before it reads them all again)
+    next: usize,
+    last: i64,
 }
 
 /// Adds the registered plugins (all but the on-demand ones) and the frame clock, when there are any. An App without
@@ -236,9 +240,15 @@ fn keyed_rows(world: &mut World) {
         },
     };
     let due: Vec<(Option<Entity>, String, Value, i64)> = {
-        let k = world.resource::<Keyed>();
+        let mut k = world.resource_mut::<Keyed>();
+        // forwards, only the rows that came due since the last frame (mesh_ray_cast's 66 gizmos keyed every frame were
+        // 59 000 rows read each update by frame 900); a frame before the last reads them all again
+        let from = if f >= k.last { k.next } else { 0 };
+        let upto = from + k.rows[from..].partition_point(|r| r.3 <= f);
+        (k.next, k.last) = (upto, f);
+        let k = &*k;
         let mut last: std::collections::HashMap<(Option<Entity>, &str), &(Option<Entity>, String, Value, i64)> = Default::default();
-        for r in k.rows.iter().filter(|r| r.3 <= f) {
+        for r in &k.rows[from..upto] {
             let at = last.entry((r.0, r.1.as_str())).or_insert(r);
             if r.3 >= at.3 {
                 *at = r;
@@ -316,7 +326,8 @@ pub fn apply_rows(world: &mut World, inserted: &[Tup], ents: &[Entity], dir: &Pa
         }
         keyed.rows.push((target, ty, v, from.max(0)));
     }
-    // kept only when a row waits for a frame (a still edit's rows are all applied now)
+    // kept only when a row waits for a frame (a still edit's rows are all applied now); in frame order for keyed_rows
+    keyed.rows.sort_by_key(|r| r.3);
     if !keyed.rows.iter().any(|r| r.3 > 0) {
         keyed = Keyed::default();
     }

@@ -7,7 +7,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea` (sdk/raea/src/index.tsx)
 
-`ACTION_KEY`, `AbsoluteFill`, `Animate`, `Audio`, `Clock`, `Composition`, `Easing`, `FEED_KEY`, `Freeze`, `Img`, `InputRegion`, `Loop`, `MEDIA_ROOT`, `Mix`, `Nudge`, `Overlay`, `Region`, `SPACE_KEY`, `Sequence`, `Series`, `SongPlot`, `Stagger`, `Video`, `actionsIn`, `applyActions`, `curve`, `curveFn`, `delay`, `fade`, `feedIn`, `fill`, `findPhrase`, `firstDecider`, `fish`, `getCompositions`, `gridDelay`, `inState`, `interpolate`, `isGeneratedAsset`, `keyEdges`, `lyria`, `machine`, `measureSpring`, `move`, `moves`, `overlays`, `parallel`, `pop`, `proofBoxes`, `propsFingerprint`, `pushIn`, `regionBand`, `registerRoot`, `replayDecider`, `reverse`, `rise`, `sampleAnimation`, `sao`, `sequence`, `sequenceGap`, `slam`, `slide`, `song`, `songAt`, `spring`, `stagger`, `stateOf`, `staticFile`, `stepAll`, `strike`, `tick`, `timeline`, `toMove`, `track`, `transitionOf`, `useCurrentFrame`, `useGameEvents`, `useGameState`, `useInput`, `useRegion`, `useSong`, `useVideoConfig`, `useWords`, `wipe`, `word`
+`ACTION_KEY`, `AbsoluteFill`, `Animate`, `Audio`, `Clock`, `Composition`, `Easing`, `FEED_KEY`, `Freeze`, `Img`, `InputRegion`, `Loop`, `MEDIA_ROOT`, `Mix`, `Nudge`, `Overlay`, `Region`, `SPACE_KEY`, `Sequence`, `Series`, `SongPlot`, `Stagger`, `Video`, `actionsIn`, `applyActions`, `curve`, `curveFn`, `delay`, `fade`, `feedIn`, `fill`, `findPhrase`, `firstDecider`, `fish`, `getCompositions`, `gridDelay`, `inState`, `interpolate`, `isGeneratedAsset`, `keyEdges`, `lyria`, `machine`, `measureSpring`, `move`, `moves`, `overlays`, `parallel`, `pop`, `proofBoxes`, `propsFingerprint`, `pushIn`, `regionBand`, `registerRoot`, `replayDecider`, `reverse`, `rise`, `sampleAnimation`, `sao`, `sequence`, `sequenceGap`, `slam`, `slide`, `song`, `songAt`, `spring`, `stagger`, `stateOf`, `staticFile`, `stepAll`, `strike`, `tick`, `tickClocks`, `timeline`, `toMove`, `track`, `transitionOf`, `useCurrentFrame`, `useGameEvents`, `useGameState`, `useInput`, `useRegion`, `useSong`, `useVideoConfig`, `useWords`, `wipe`, `word`
 
 ## `raea/3d` (sdk/raea/src/3d.tsx)
 
@@ -35,11 +35,11 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/camera` (sdk/raea/src/camera.ts)
 
-`Camera3d`, `Canvas3D`, `Matchmove`, `TextureView`, `checkMatchmove`, `matchmoveIndex`, `matchmoveView`, `useMatchmove`
+`Camera3d`, `Canvas3D`, `Hdr`, `Matchmove`, `TextureView`, `checkMatchmove`, `matchmoveIndex`, `matchmoveView`, `useMatchmove`
 
 ## `raea/color` (sdk/raea/src/color.ts)
 
-`LinearRgba`, `Srgba`, `kelvin`, `toHex`
+`Hsla`, `LinearRgba`, `Oklaba`, `Oklcha`, `Srgba`, `Xyza`, `kelvin`, `toHex`
 
 ## `raea/gizmos` (sdk/raea/src/gizmos.ts)
 
@@ -55,7 +55,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/light` (sdk/raea/src/light.ts)
 
-`AmbientLight`, `Atmosphere`, `DirectionalLight`, `Environment`, `EnvironmentMapLight`, `GlobalAmbientLight`, `Pathtracer`, `PointLight`, `RectLight`, `Shadows`, `SolariLighting`, `SpotLight`, `light_consts`
+`AmbientLight`, `Atmosphere`, `DirectionalLight`, `Environment`, `EnvironmentMapLight`, `GlobalAmbientLight`, `Pathtracer`, `PointLight`, `RectLight`, `Shadows`, `Skybox`, `SolariLighting`, `SpotLight`, `light_consts`
 
 ## `raea/math` (sdk/raea/src/math.ts)
 
@@ -67,7 +67,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/pbr` (sdk/raea/src/pbr.ts)
 
-`AmbientOcclusion`, `Decal`, `ExtendedMaterial`, `Fire`, `Fog`, `FogVolume`, `GridExtension`, `PaintExtension`, `Refinish`, `ShaderExtension`, `ShaderMesh`, `StandardMaterial`, `SurfaceShader`, `ThreeShaderMaterial`, `ToonExtension`, `ToonMaterial`, `VolumetricFog`, `WearExtension`
+`AmbientOcclusion`, `Decal`, `ExtendedMaterial`, `Fire`, `Fog`, `FogFalloff`, `FogVolume`, `GridExtension`, `Lightmap`, `PaintExtension`, `ProceduralExtension`, `Refinish`, `ShaderExtension`, `ShaderMesh`, `StandardMaterial`, `SurfaceShader`, `ThreeShaderMaterial`, `ToonExtension`, `ToonMaterial`, `VolumetricFog`, `WearExtension`
 
 ## `raea/post_process` (sdk/raea/src/post_process.ts)
 
@@ -99,7 +99,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/ui` (sdk/raea/src/ui.ts)
 
-`AbsoluteFill`
+`AbsoluteFill`, `BorderRadius`, `FontVariationTag`, `ImageNode`, `ImagePlugin`, `Node`, `Overflow`, `Text`, `TextSpan`, `TextureAtlasLayout`, `UiRect`, `auto`, `percent`, `px`, `vh`, `vmax`, `vmin`, `vw`
 
 ## `raea/video` (sdk/raea/src/video.ts)
 

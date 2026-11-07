@@ -11,6 +11,8 @@
 //!   extrude("x y, ...; ...", h [, divisions, twist°, scale_x, scale_y])  revolve("x y, ...", [degrees, segments])
 //!   obj("path") / glb("path")       a mesh file, closed into a solid
 //!   sphere(r, n) / uv_sphere(r, sectors, stacks)   Bevy's icosphere of n subdivisions, or its UV sphere
+//!   sdf("field" [, step])  tree("k=v ..." [, part])  loft("y: outline; ..." [, n])  terrain("k=v ...")
+//!   boulder("k=v ...")  rosette("k=v ...")   blended fields and generated growth (see grown.rs)
 //!
 //! `minus(rounded_box(2, 1, 0.2, 0.1), text3d("SALE", 0.45, 0.3))` is a sign with the word cut through it.
 //!
@@ -26,10 +28,11 @@
 
 mod build;
 mod glyphs;
+mod grown;
 mod mesh;
 mod parse;
 mod sphere;
-pub use sphere::{SphereOf, cuboid_of, sphere_of};
+pub use sphere::{SphereOf, cuboid_of, plane_of, sphere_of};
 
 pub use mesh::{export, from_mesh, read_glb, read_obj, to_mesh};
 

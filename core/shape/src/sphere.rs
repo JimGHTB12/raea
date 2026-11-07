@@ -27,6 +27,17 @@ pub fn sphere_of(expr: &str) -> Option<SphereOf> {
     }
 }
 
+/// The plane `expr` is, `plane(nx, ny, nz, w, h)` alone: its normal and full size, drawn as Bevy's Plane3d mesh (one
+/// face, facing the normal, as PlaneMeshBuilder lays it out)
+pub fn plane_of(expr: &str) -> Option<([f32; 3], [f32; 2])> {
+    let inner = expr.trim().strip_prefix("plane(")?.strip_suffix(')')?;
+    let n: Vec<f32> = inner.split(',').map(|s| s.trim().parse().ok()).collect::<Option<_>>()?;
+    match n.as_slice() {
+        &[x, y, z, w, h] => Some(([x, y, z], [w, h])),
+        _ => None,
+    }
+}
+
 /// The cuboid `expr` is, `box(w, h, d)` alone with each side above 0 (a 0 side is a plane: Manifold's), as its full
 /// size: drawn as Bevy's Cuboid mesh, with its normals and texture coordinates, as a Bevy Mesh3d's is
 pub fn cuboid_of(expr: &str) -> Option<[f32; 3]> {
@@ -47,6 +58,20 @@ mod tests {
         assert_eq!(cuboid_of(" box(1, 2, 0.5) "), Some([1.0, 2.0, 0.5]));
         for e in ["box(1, 1, 0)", "box(1, 1)", "box(1, 1, 1, 0.1)", "move(box(1, 1, 1), 0, 1, 0)", "sphere(1)"] {
             assert_eq!(cuboid_of(e), None, "{e}");
+        }
+    }
+
+    #[test]
+    fn a_plane_alone_is_read_with_its_normal_and_its_solid_is_the_flat_box() {
+        assert_eq!(plane_of(" plane(0, -1, 0, 4, 6) "), Some(([0.0, -1.0, 0.0], [4.0, 6.0])));
+        for e in ["plane(0, 1, 0, 4)", "box(4, 0, 6)", "move(plane(0, 1, 0, 1, 1), 0, 1, 0)"] {
+            assert_eq!(plane_of(e), None, "{e}");
+        }
+        // laid out as raea/mesh's <Plane3d>: facing y it spans x and z, facing x it spans y and z, facing z x and y
+        for (e, size) in [("plane(0, 1, 0, 4, 6)", (4.0, 0.0, 6.0)), ("plane(-1, 0, 0, 4, 6)", (0.0, 4.0, 6.0)), ("plane(0, 0, 1, 4, 6)", (4.0, 6.0, 0.0))] {
+            let b = crate::solid(e).unwrap().bounding_box();
+            let got = (b.max.x - b.min.x, b.max.y - b.min.y, b.max.z - b.min.z);
+            assert!((got.0 - size.0).abs() < 1e-6 && (got.1 - size.1).abs() < 1e-6 && (got.2 - size.2).abs() < 1e-6, "{e}: {got:?}");
         }
     }
 

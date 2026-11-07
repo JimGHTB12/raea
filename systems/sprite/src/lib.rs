@@ -104,19 +104,35 @@ pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>,
     world.entity_mut(e).insert((sprite, place_of(v), Visibility::default(), Part2d));
 }
 
-/// A flat shape's entity from its row.
-pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup) {
+/// A flat shape's entity from its row: its ColorMaterial the row's colour, its texture (decoded by the caller) and
+/// AlphaMode2d (`alpha`: "opaque", "mask" at `alpha_cutoff`, otherwise Bevy's default "blend").
+pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle<Image>>) {
     let v = &t.vals;
     let (w, h) = (num(v, "w", 100.0), num(v, "h", 100.0));
-    let mesh = match v.get("shape") {
+    let mut mesh = match v.get("shape") {
         Some(V::S(s)) if s == "circle" => Mesh::from(Circle::new(w / 2.0)),
         Some(V::S(s)) if s == "ellipse" => Mesh::from(Ellipse::new(w / 2.0, h / 2.0)),
         Some(V::S(s)) if s == "triangle" => Mesh::from(Triangle2d::new(Vec2::new(0.0, h / 2.0), Vec2::new(-w / 2.0, -h / 2.0), Vec2::new(w / 2.0, -h / 2.0))),
         Some(V::S(s)) if s == "polygon" => Mesh::from(RegularPolygon::new(w / 2.0, num(v, "sides", 5.0).max(3.0) as u32)),
         _ => Mesh::from(Rectangle::new(w, h)),
     };
+    // per-vertex linear colours (Mesh::ATTRIBUTE_COLOR), which ColorMaterial multiplies its colour and texture by
+    if let Some(V::S(s)) = v.get("vertex_colors") {
+        // the row's JSON, [[r, g, b, a], ..]: its numbers in order, four to a vertex
+        let f: Vec<f32> = s.split([',', '[', ']']).filter_map(|x| x.trim().parse().ok()).collect();
+        let colors: Vec<[f32; 4]> = f.chunks_exact(4).filter_map(|c| c.try_into().ok()).collect();
+        match colors.len() == mesh.count_vertices() {
+            true => mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors),
+            false => error!("Shape2D {}: vertex_colors has {} colours for a mesh of {} vertices; drawn without them", t.id, colors.len(), mesh.count_vertices()),
+        }
+    }
     let mesh = world.resource_mut::<Assets<Mesh>>().add(mesh);
-    let mat = world.resource_mut::<Assets<ColorMaterial>>().add(ColorMaterial { color: color_of(v), alpha_mode: AlphaMode2d::Blend, ..default() });
+    let alpha_mode = match v.get("alpha") {
+        Some(V::S(a)) if a == "opaque" => AlphaMode2d::Opaque,
+        Some(V::S(a)) if a == "mask" => AlphaMode2d::Mask(num(v, "alpha_cutoff", 0.5)),
+        _ => AlphaMode2d::Blend,
+    };
+    let mat = world.resource_mut::<Assets<ColorMaterial>>().add(ColorMaterial { color: color_of(v), alpha_mode, texture, ..default() });
     world.entity_mut(e).insert((Mesh2d(mesh), MeshMaterial2d(mat), place_of(v), Visibility::default(), Part2d));
 }
 

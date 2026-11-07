@@ -7,7 +7,7 @@ use std::process::Command;
 
 type R<T> = Result<T, String>;
 
-pub const USAGE: &str = "raea setup blender [--check] [--download]   (find Blender or download the LTS into ~/.raea/tools/blender, and install its MCP add-on)\n       raea blender run SCRIPT.py [ARGS...]   (blender --background --python SCRIPT.py -- ARGS, headless)";
+pub const USAGE: &str = "raea setup blender [--check] [--download]   (find Blender or download the LTS into ~/.raea/tools/blender, and install its MCP add-on)\n       raea blender run SCRIPT.py [ARGS...]   (blender --background --python SCRIPT.py -- ARGS, headless; blender/X.py missing from the project is copied from the library: convert, decimate, repair, split, bake, rig, cloth)";
 
 /// The LTS series raea downloads; the newest patch in blender.org/release/Blender<LTS>/ is taken. Moved when Blender
 /// ships a new LTS (blender.org/download/lts).
@@ -189,6 +189,25 @@ pub fn setup(args: &[String]) -> R<String> {
     Ok(format!("{head} {v} ({from})\n  {}\n  {add}\n  headless: raea blender run SCRIPT.py; live: start Blender and the agent's `blender` MCP server connects (raea skills install adds it)", bin.display()))
 }
 
+/// The library's scripts (sdk/guides/craft/bevy/blender: convert, decimate, repair, split, bake, rig, cloth): a fix
+/// names `blender/X.py`, and the first run copies the library's X.py into the project's blender/ folder, where it is
+/// kept with the project and edited for it (docs/blender.feature, Background). A script already there is never replaced.
+fn library(script: &str) -> R<()> {
+    let p = Path::new(script);
+    let (Some(name), Some(dir)) = (p.file_name(), p.parent()) else { return Ok(()) };
+    if p.exists() || dir.file_name().is_none_or(|d| d != "blender") {
+        return Ok(());
+    }
+    let from = raea_io_home::home().join("sdk/guides/craft/bevy/blender").join(name);
+    if !from.is_file() {
+        return Ok(());
+    }
+    std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    std::fs::copy(&from, p).map_err(|e| format!("{}: {e}", p.display()))?;
+    eprintln!("copied the library's {} into {} (it is the project's now: edit it there)", name.to_string_lossy(), dir.display());
+    Ok(())
+}
+
 /// `raea blender run SCRIPT.py [ARGS...]`: the script in a windowless Blender, its args after `--` (sys.argv), its
 /// output passed through. Exits as Blender's Python did: --python-exit-code makes an uncaught error fail the run.
 pub fn blender(args: &[String]) -> R<String> {
@@ -196,6 +215,7 @@ pub fn blender(args: &[String]) -> R<String> {
         return Err(format!("usage: {USAGE}"));
     }
     let script = args.get(2).ok_or_else(|| format!("which script: {USAGE}"))?;
+    library(script)?;
     if !Path::new(script).is_file() {
         return Err(format!("no script {script}"));
     }

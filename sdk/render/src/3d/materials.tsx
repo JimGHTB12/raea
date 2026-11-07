@@ -1,6 +1,6 @@
 // Materials: surfaces drawn on, standard and physical materials, toon bands and outlines.
 import { toHex } from "../colour";
-import { checkOverlays, type GridOverlay, type PaintOverlay, type WearOverlay } from "../overlays";
+import { checkOverlays, type GridOverlay, type PaintOverlay, type ProceduralSurface, type WearOverlay } from "../overlays";
 import { useAnimation3d } from "@raea/math/animate";
 import { Animate3d, apply3d, node3d } from "./all";
 
@@ -62,6 +62,8 @@ export interface MeshStandardMaterialProps extends SurfaceDrawProps {
   paint?: PaintOverlay;
   /** a worn surface, fixed on the part as it moves (systems/wear): WearOverlay, overlays.ts */
   wear?: WearOverlay;
+  /** a pattern made on the GPU with dust, dirt and worn edges (systems/procmat): ProceduralSurface, overlays.ts */
+  procedural?: ProceduralSurface;
   /** how its maps are read (docs/shaders.feature SH5): { filter: "nearest" } for hard pixels */
   sampler?: SamplerSpec;
   /** one map's sampler, over `sampler`, by its prop name */

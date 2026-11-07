@@ -338,6 +338,10 @@ pub fn sync_lights(frame: Res<FrameRows>, mut commands: Commands, mut q: Query<(
             if s.intensity != lm {
                 s.intensity = lm;
             }
+            // its cone, as its rows animate it (spotlight.rs's light_sway widens every light each frame; light.rs set it once)
+            let outer = num(v, "outer", std::f32::consts::FRAC_PI_4);
+            let inner = num(v, "inner", 0.0).min(outer);
+            if s.outer_angle != outer || s.inner_angle != inner { (s.outer_angle, s.inner_angle) = (outer, inner); }
             let sh = shadows(lm, s.shadow_maps_enabled);
             if s.shadow_maps_enabled != sh {
                 s.shadow_maps_enabled = sh;

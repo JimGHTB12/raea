@@ -2,7 +2,7 @@
 //! any headless Bevy program sets them, then raea in one RaeaPlugin: raea's plugins (RaeaPlugins, Scene3dPlugin), React
 //! (ReactPlugin, running the bundle in this App's World), ScenePlugin, which turns React's <Canvas3D> tree into the
 //! scene's rows, and raea-page's PagePlugin and WorldPagePlugin, which draw its HTML layer on Blitz over the scene's
-//! camera. No Engine and no second App: the App is the founder's own. --scene-only leaves the page out (the 3D alone). The
+//! camera. No Engine and no second App: the App is the user's own. --scene-only leaves the page out (the 3D alone). The
 //! frame is saved as a PNG, to compare with raea's own render on the Blitz page (RAEA_PAGE=blitz).
 //!
 //! --window draws into a window in place of an image (S6a's window target): a winit window made here, never shown and

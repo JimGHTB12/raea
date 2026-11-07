@@ -29,6 +29,16 @@ export class Srgba {
     s[MADE_FROM] = this[MADE_FROM];
     return s;
   }
+  /** Bevy's Srgba::to_hex: #RRGGBB (and AA when not opaque), each channel clamped and rounded */
+  to_hex(): string {
+    const byte = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0").toUpperCase();
+    return "#" + byte(this.red) + byte(this.green) + byte(this.blue) + (this.alpha < 1 ? byte(this.alpha) : "");
+  }
+  /** Bevy's Mix: each channel lerped, in f32 */
+  mix(o: Srgba, t: number): Srgba {
+    const m = (a: number, b: number) => Math.fround(Math.fround(a * Math.fround(1 - t)) + Math.fround(b * t));
+    return new Srgba(m(this.red, o.red), m(this.green, o.green), m(this.blue, o.blue), m(this.alpha, o.alpha));
+  }
 }
 
 // a base colour as the old material takes it: its colour (the one it was made from, exactly) and its alpha
@@ -53,6 +63,16 @@ export class LinearRgba {
     const l = new LinearRgba(srgbToLinear(c.red), srgbToLinear(c.green), srgbToLinear(c.blue), c.alpha);
     l[MADE_FROM] = c[MADE_FROM];
     return l;
+  }
+  /** Bevy's Srgba::from(LinearRgba): gamma-encoded (a channel at or below 0 kept as it is) */
+  to_srgba(): Srgba {
+    const g = (c: number) => (c <= 0 ? c : Math.fround(linearToSrgb(c)));
+    return new Srgba(g(this.red), g(this.green), g(this.blue), this.alpha);
+  }
+  /** Bevy's Mix: each channel lerped, in f32 */
+  mix(o: LinearRgba, t: number): LinearRgba {
+    const m = (a: number, b: number) => Math.fround(Math.fround(a * Math.fround(1 - t)) + Math.fround(b * t));
+    return new LinearRgba(m(this.red, o.red), m(this.green, o.green), m(this.blue, o.blue), m(this.alpha, o.alpha));
   }
   /** Bevy's `* k`: each colour channel scaled (alpha kept) */
   mul(k: number): LinearRgba {

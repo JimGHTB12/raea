@@ -1,4 +1,4 @@
-//! Text read off a rendered video as rows (docs/the roadmap J1): every frame's lines from Apple Vision's accurate text
+//! Text read off a rendered video as rows (docs/goal.feature J1): every frame's lines from Apple Vision's accurate text
 //! recognition, chained through frames into rows: a line continues a row when its text is the same (case and
 //! punctuation aside) and its box overlaps the row's last one, with up to `GAP` frames missed between; each row keeps
 //! its text, its first and last frame, and its median box. The rows read can then be set against the rows an edit

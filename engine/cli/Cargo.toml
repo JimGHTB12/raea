@@ -26,6 +26,7 @@ raea-io-home = { path = "../../io/home" }
 raea-core-brief = { path = "../../core/brief" }
 # `raea workspace`, `raea project` and `raea controller` (docs/projects.feature PJ1-PJ4)
 raea-app-workspace = { path = "../../apps/workspace" }
+# raea-runtime-react's defaults
 raea-runtime-react = { path = "../../runtime/react", default-features = false, features = ["h264", "av1", "scripts", "modules", "network", "ml"] }
 # the sound of its renders and plays: <Seedling> samples and speech (raea-runtime-sound's features)
 raea-runtime-sound = { path = "../../runtime/sound", features = ["seedling", "ml"] }
@@ -51,6 +52,10 @@ regex = "1"
 raea-app-check = { path = "../../apps/check" }
 raea-app-ci = { path = "../../apps/ci" }
 raea-app-tools = { path = "../../apps/tools" }
+# raea solid info|view: a solid file measured and pictured
+raea-app-solid = { path = "../../apps/solid" }
+# raea judge: review sheets judged by clef-omni
+raea-app-judge = { path = "../../apps/judge" }
 raea-app-media = { path = "../../apps/media" }
 # `raea app run|check|bundle` and `raea rune` on either target (docs/targets.feature T0b)
 raea-app-targets = { path = "../../apps/targets" }

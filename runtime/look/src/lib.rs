@@ -118,6 +118,15 @@ pub fn surface_spec(p: &Map<String, Value>) -> Value {
             o.insert("repeat_v".into(), Value::from(v.as_f64().unwrap_or(1.0)));
         }
     }
+    // a <Lightmap> (raea-sys-material's lightmap.rs): its file, the glTF mesh it lies on, its sampling and rect
+    if let Some(src) = p.get("lightmap").and_then(Value::as_str) {
+        o.insert("lightmap".into(), Value::String(src_path(src)));
+        for k in ["mesh", "bicubic", "uv_x0", "uv_y0", "uv_x1", "uv_y1"] {
+            if let Some(v) = p.get(k) {
+                o.insert(k.into(), v.clone());
+            }
+        }
+    }
     Value::Object(o)
 }
 

@@ -1,0 +1,17 @@
+# tools/dupes.sh: the most duplicate groups allowed; lower them as copies are folded, never raise
+# Raised once, 11-06 (docs/targets.feature T1a): 292/48 -> 296/56 when the Rune host joined the
+# workspace as engine/rune. Its two real copies were folded (view.rs padding(), tests/common); these twelve are
+# accessors, one-line forwards and closures matched by shape, not copies:
+#   exact: rune/page tree.rs:57 Tree::get (a11y Ctx::el); rune/page page.rs:83 Page::take_out (rune/style report.rs:40
+#          Report::take_fresh); rune/page kit.rs:17 closure (engine/native node.rs:257); rune/page events.rs:42 and :54
+#          the two pointer handlers' closures
+#   near:  rune js.rs:164/173 Host clock/take_out; rune/page session.rs:179/192 focused_field/take_out; rune/page
+#          tree.rs:52 Tree::ids (speech Slot::lock); tree.rs:149 Tree::node_mut (calls State::solid); rune tests/css.rs:7
+#          style (core/wire raw.rs is_object); rune video.rs:155 fnv (tone tonegraph.rs hash, the same FNV-1a: kept, the
+#          host can't depend on systems/); rune/style css.rs:409 closure (plugins fields.rs:272); rune bundle.rs:9 js_dir
+# Raised once more, 11-06, by raea-web (web-export): 296 -> 297. Its copies were folded (grass's and volume's JSON number
+# into raea_sys_frame::json_f32; begin_live and app_mut gone; await_models split by target); the one left is an
+# accessor matched by shape: Engine::world_mut and Opening::world_mut (the canvas window goes on before the engine is
+# finished, its camera after) with runtime/page bevy_page.rs BevyPage::app
+exact=296
+near=56

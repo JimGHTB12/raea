@@ -21,6 +21,13 @@ pub(crate) fn out_ext(out: &Path) -> String {
 /// `raea render EDIT.tsx -o OUT ...`: the edit bundled with the words and perception beside it (a flag wins), its
 /// export options set, then rendered, or cloned from the export cache when a whole video was made from the same inputs
 pub fn render(args: &[String]) -> R<String> {
+    // --review DIR: the fixed cameras in colour and clay, stitched (review.rs); --clay: every standard surface grey
+    if let Some(d) = flag(args, "--review") {
+        return crate::review::review(args, Path::new(&d));
+    }
+    if args.iter().any(|a| a == "--clay") {
+        raea_runtime_scene3d::clay::CLAY.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
     let tsx = PathBuf::from(&args[1]).canonicalize().map_err(|e| format!("{}: {e}", args[1]))?;
     let out = PathBuf::from(flag(args, "-o").ok_or("-o OUT.mp4|OUT.png|DIR")?);
     let dir = tsx.parent().unwrap().to_path_buf();
@@ -85,7 +92,7 @@ pub fn render(args: &[String]) -> R<String> {
             if std::fs::copy(c, &out).is_ok() && kept_manifest.as_ref().is_none_or(|(m, k)| std::fs::copy(k, m).is_ok()) {
                 let _ = std::fs::File::options().append(true).open(c).and_then(|f| f.set_modified(std::time::SystemTime::now()));
                 let _ = std::fs::remove_file(&js);
-                return Ok(format!("{} (the same export as before: from the export cache)", said.replace("{OUT}", &out.display().to_string())));
+                return Ok(with_exposure(format!("{} (the same export as before: from the export cache)", said.replace("{OUT}", &out.display().to_string())), &out, manifest.as_deref()));
             }
         }
     }
@@ -111,7 +118,42 @@ pub fn render(args: &[String]) -> R<String> {
             }
         }
     }
-    said
+    said.map(|s| with_exposure(s, &out, manifest.as_deref()))
+}
+
+/// The render's message with its pictures' exposure after it (a still, or a folder's frames; a video's frames are
+/// measured by rendering them to a folder with --at), and the stats in the manifest with --manifest.
+fn with_exposure(said: String, out: &Path, manifest: Option<&Path>) -> String {
+    let pngs: Vec<PathBuf> = if out.is_dir() {
+        let mut v: Vec<PathBuf> = std::fs::read_dir(out).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with("frame-")) && p.extension().is_some_and(|x| x == "png")).collect();
+        v.sort();
+        v
+    } else if out.extension().is_some_and(|x| x == "png") {
+        vec![out.to_path_buf()]
+    } else {
+        return said;
+    };
+    if pngs.is_empty() {
+        return said;
+    }
+    match raea_sys_light_meter::exposure::of_pngs(&pngs) {
+        Ok((e, v)) => {
+            if let Some(m) = manifest {
+                if let Ok(mut doc) = std::fs::read_to_string(m).map_err(|e| e.to_string()).and_then(|t| serde_json::from_str::<serde_json::Value>(&t).map_err(|e| e.to_string())) {
+                    if let Some(o) = doc.as_object_mut() {
+                        o.insert("exposure".into(), v.clone());
+                        let _ = std::fs::write(m, doc.to_string());
+                    }
+                }
+            }
+            let mut msg = format!("{said}\nEXPOSURE  {}", e.line());
+            for f in v["found"].as_array().into_iter().flatten() {
+                msg.push_str(&format!("\n  {}: {}", f["level"].as_str().unwrap_or(""), f["says"].as_str().unwrap_or("")));
+            }
+            msg
+        }
+        Err(e) => format!("{said}\nEXPOSURE  not measured: {e}"),
+    }
 }
 
 /// A bundled composition rendered by the engine, in this process (the Mac or the iPhone): React on JavaScriptCore inside Bevy steps

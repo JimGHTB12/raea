@@ -1,0 +1,1 @@
+../../guides/craft/bevy/prompts.md

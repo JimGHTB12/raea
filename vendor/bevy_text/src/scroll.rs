@@ -1,7 +1,7 @@
 //! `EditableText` scrolling logic
 //!
 //! - [`TextViewport`] is a rectangle aligned to the text layout's axis representing
-//!   the founder's view of the text layout.
+//!   the user's view of the text layout.
 //! - Coordinates are in text layout space, increasing right and downwards.
 //! - If the text layout is smaller than the viewport on an axis, the viewport is
 //!   given an offset of zero on that the axis.

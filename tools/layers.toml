@@ -1,0 +1,200 @@
+# Each crate of ours and its layer (docs/overhaul.md, "Layers"). tools/layers.sh reads this file. A dependency may
+# point down to a lower layer. Within a layer, it may point sideways only where the layer allows it: core, io,
+# gpu, runtime, apps and tools do; systems don't, except to a crate listed under [facility]. Vendored crates sit
+# below everything. A crate missing from this file fails the check: give every new crate its layer here.
+# The order, lowest first: core io gpu systems runtime sdk apps tools
+
+[crates]
+raea-core-program = "core"
+raea-core-scene = "core"
+raea-core-shape = "core"
+raea-core-meshcheck = "core"
+raea-core-sdf = "core"
+raea-core-grow = "core"
+raea-core-review = "core"
+raea-core-solidinfo = "core"
+raea-core-place = "core"
+raea-shape-web = "runtime"
+raea-web = "runtime"
+raea-core-wire = "core"
+raea-core-alloc = "core"
+raea-io-net = "io"
+raea-io-net-calls = "io"
+raea-io-os = "io"
+# raea's own build: the CLI with the signer installed (private)
+raea-io-trace = "io"
+raea-io-media = "io"
+raea-io-assets = "io"
+raea-io-gen = "io"
+raea-io-gen-comfy = "io"
+raea-io-gen-core = "io"
+raea-io-home = "io"
+raea-io-codec = "io"
+raea-io-soft = "io"
+raea-io-av1 = "io"
+raea-io-ffmpeg = "io"
+raea-io-apple = "io"
+raea-io-apple-coding = "io"
+raea-io-shell = "io"
+raea-core-animate = "core"
+raea-core-ease = "core"
+raea-core-fonts = "core"
+raea-sys-animate = "systems"
+raea-gpu-device = "gpu"
+raea-core-k = "core"
+raea-core-calls = "core"
+raea-core-brief = "core"
+raea-sys-k = "systems"
+raea-sys-mix = "systems"
+raea-sys-tone = "systems"
+raea-seedling = "systems"
+raea-sys-ml = "systems"
+raea-sys-speech = "systems"
+raea-sys-layout = "systems"
+raea-sys-vision = "systems"
+raea-sys-song = "systems"
+raea-sys-perceive = "systems"
+raea-sys-footage = "systems"
+raea-perceive = "tools"
+raea-bridge-bench = "tools"
+raea-bevy-parity = "tools"  # Bevy's own examples with the parity probe (docs/control.feature FC0a)
+raea-sys-parity = "systems"  # the parity probe, in raea's App and the examples'
+raea-bench-swatch = "systems"  # a Blitz widget fixture (bench/bridge/swatch) the plugin catalog declares: a leaf on vendored crates, so a runtime crate may build it in
+raea-render = "runtime"
+raea-render-raytrace = "runtime"
+raea-bevy-plugins = "runtime"
+raea-bevy-calls = "runtime"
+raea-bevy-adapters = "runtime"
+wsx = "systems"
+raea-native = "runtime"
+raea-modules = "runtime"
+raea-io-npm = "io"
+raea-bevy-world = "runtime"
+raea-runtime-js = "runtime"
+raea-runtime-jsengine = "runtime"
+raea-sys-a11y = "systems"
+raea-sys-bake = "systems"
+raea-sys-contact = "systems"
+raea-sys-light-meter = "systems"
+raea-sys-canvas = "systems"
+raea-sys-tweak = "systems"
+raea-sys-filters = "systems"
+raea-sys-wear = "systems"
+raea-sys-procmat = "systems"
+raea-sys-grass = "systems"
+raea-sys-page = "systems"
+raea-sys-page-net = "systems"
+raea-sys-frame = "systems"
+raea-sys-splat = "systems"
+raea-sys-sprite = "systems"
+raea-sys-rt = "systems"
+raea-sys-text3d = "systems"
+raea-runtime-gpuframe = "runtime"
+raea-runtime-scene3d = "runtime"
+raea-sys-screen = "systems"
+raea-sys-matchmove = "systems"
+raea-sys-grid = "systems"
+raea-sys-meshseq = "systems"
+raea-sys-environment = "systems"
+raea-sys-look = "systems"
+raea-sys-compose = "systems"
+raea-sys-material = "systems"
+raea-sys-framepass = "systems"
+raea-sys-compute = "systems"
+raea-sys-sampler = "systems"
+raea-sys-shader = "systems"
+raea-sys-three-shader = "systems"
+raea-sys-post = "systems"
+raea-sys-fog = "systems"
+raea-sys-fog-half = "systems"
+raea-sys-volume = "systems"
+raea-sys-fonts = "systems"
+raea-sys-image = "systems"
+raea-runtime-twins = "runtime"
+raea-runtime-dom = "runtime"
+raea-runtime-edit = "runtime"
+raea-runtime-input = "runtime"
+raea-runtime-bake = "runtime"
+raea-runtime-bundle = "runtime"
+raea-runtime-bundle-lib = "runtime"
+raea-runtime-calls = "runtime"
+raea-runtime-export = "runtime"
+raea-runtime-page = "runtime"
+raea-runtime-sound = "runtime"
+raea-runtime-view = "runtime"
+raea-runtime-encode = "runtime"
+raea-runtime-plugins = "runtime"
+raea-runtime-live = "runtime"
+raea-runtime-look = "runtime"
+raea-runtime-scene = "runtime"
+raea-runtime-shared = "runtime"
+raea-page = "runtime"
+raea-app-check = "apps"
+raea-app-ci = "apps"
+raea-app-tools = "apps"
+raea-app-judge = "apps"
+raea-app-solid = "apps"
+raea-app-media = "apps"
+raea-app-targets = "apps"
+raea-app-game = "apps"
+raea-app-play = "apps"
+raea-page-host = "runtime"
+raea-rune-host = "runtime"
+raea-rune-page = "runtime"
+raea-rune-media = "runtime"
+raea-rune-look = "runtime"
+raea-rune-style = "runtime"
+raea-rune-js = "runtime"
+raea-rune-bevy = "runtime"
+raea-page-stage = "runtime"
+raea-page-window = "runtime"
+raea-runtime-react = "runtime"
+raea-cli = "apps"
+raea-neural = "runtime"
+raea-app-workspace = "apps"
+raea-bundle = "apps"
+raea-sdk-props = "tools"
+conformance = "tools"
+ui-parity = "tools"
+ui-parity-compare = "tools"
+conformance-fake = "tools"
+rtools = "tools"
+seetool = "tools"
+
+# systems that hold only a facility another system may build on (docs/overhaul.md: the mixer graph, ONNX sessions,
+# Vision requests, K kernels on the GPU)
+[facility]
+# the frame's rows every pass reads (FrameRows, the edit, the clock, row helpers)
+raea-sys-frame = true
+# a row's standard material and its maps (meshseq builds its mesh's on it)
+raea-sys-material = true
+# how a texture is read (materials, shaders and models set it the same way)
+raea-sys-sampler = true
+# a shader's inputs, accessors and registration (surface shaders and frame passes share them)
+raea-sys-shader = true
+# the pass mask (looks and the paint look read which pass drew each pixel)
+raea-sys-compose = true
+# ink outlines (the frame's look sets its camera's)
+raea-sys-post = true
+# the froxel grid and glass fogged through it (looks and greybox surfaces keep a mesh's fog copy)
+raea-sys-fog = true
+# simulated volumes (a fire row with a sim is one)
+raea-sys-volume = true
+# the scene's ray tracing (the traced-light pass reads its scene)
+raea-sys-rt = true
+raea-sys-mix = true
+raea-sys-tone = true
+raea-sys-ml = true
+raea-sys-layout = true
+raea-sys-vision = true
+raea-sys-song = true
+raea-sys-k = true
+raea-sys-wear = true
+raea-sys-procmat = true
+raea-sys-canvas = true
+raea-sys-filters = true
+raea-sys-page = true
+# a page's loads (raea-sys-page's net)
+raea-sys-page-net = true
+raea-sys-fonts = true
+raea-sys-image = true

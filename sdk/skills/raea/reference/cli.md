@@ -12,7 +12,7 @@ Access: HEADLESS. Arguments besides flags: 1.
 
 ```
 raea render EDIT.tsx -o OUT.mp4|OUT.png|DIR [--frame N | --at A,B] [--composition ID] [--w W] [--h H] [--fps FPS] [--frames N] [--words W.json] [--perception P.json] [--input I.json|inputs.rrl] [--manifest render.json] [--stage WxH] [--10bit] [--aov] [--alpha] [--kbps N | --quality draft|high|master|0..1]   (also: --lite --comps)
-raea render PAGE.html -o OUT.mp4|DIR [--at A,B]   (an HTML composition, the HTML composition format format)
+raea render PAGE.html -o OUT.mp4|DIR [--at A,B]   (an HTML composition)
 raea render --bundle NAME.comp.js -o OUT.png|DIR [--dir DIR] [--frame N]   (a bundle from raea bundle, as render_bundle draws it)
 ```
 

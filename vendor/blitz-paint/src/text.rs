@@ -392,6 +392,8 @@ struct DecorationRunGeometry {
     underline_offset: f32,
     underline_size: f32,
     strikethrough_size: f32,
+    /// raea: the font's strikethrough offset above the baseline, where bevy_text puts the line (a bevy_ui <Text>)
+    strikethrough_offset: f32,
     font: parley::FontData,
     font_size: f32,
     css_font_size: f64,
@@ -634,6 +636,7 @@ fn flush_line_decorations(
     win_ascent_ratios: &mut WinAscentCache,
     inline_root_id: NodeId,
     line_baseline: f32,
+    bevy: bool,
 ) {
     // Draw innermost boxes first so ancestors' decorations paint on top, matching the
     // per-run drawing order this replaced (`stack.iter().rev()`).
@@ -678,12 +681,11 @@ fn flush_line_decorations(
         };
 
         if deco.line.contains(TextDecorationLine::UNDERLINE) {
-            let size = decoration_size(
-                &deco.thickness,
-                geom.underline_size,
-                geom.css_font_size,
-                scale,
-            );
+            // raea: in a bevy_ui <Text> (bevy), the font's thickness as bevy_text draws it, not floored to a pixel
+            let size = match bevy {
+                true => geom.underline_size,
+                false => decoration_size(&deco.thickness, geom.underline_size, geom.css_font_size, scale),
+            };
 
             // `text-underline-offset` moves the underline away from the text. `auto` keeps
             // the font's suggested position; otherwise it resolves against the font size
@@ -763,20 +765,21 @@ fn flush_line_decorations(
             );
         }
         if deco.line.contains(TextDecorationLine::LINE_THROUGH) {
-            let size = decoration_size(
-                &deco.thickness,
-                geom.strikethrough_size,
-                geom.css_font_size,
-                scale,
-            );
+            let size = match bevy {
+                true => geom.strikethrough_size,
+                false => decoration_size(&deco.thickness, geom.strikethrough_size, geom.css_font_size, scale),
+            };
 
             // Centre the line-through a third of the ascent above the baseline, matching
             // Chrome (which places it `2/3 * ascent` below the text-top). Parley's
             // `strikethrough_offset` (the font's `yStrikeoutPosition`) sits lower and would
             // draw the line too close to the baseline.
-            let ascent =
-                win_ascent(win_ascent_ratios, &geom.font, geom.font_size).unwrap_or(geom.ascent);
-            let offset = ascent / 3.0 + size / 2.0;
+            // raea: a bevy_ui <Text> puts it where bevy_text does, its top at that offset above the baseline
+            // (pipeline.rs: strikethrough_y = baseline - strikethrough_offset)
+            let offset = match bevy {
+                true => geom.strikethrough_offset,
+                false => win_ascent(win_ascent_ratios, &geom.font, geom.font_size).unwrap_or(geom.ascent) / 3.0 + size / 2.0,
+            };
 
             draw_decoration_line(
                 scene,
@@ -821,6 +824,8 @@ pub(crate) fn stroke_text<'a>(
     stack.clear();
     path_scratch.clear();
     deco_boxes.clear();
+    // raea: a bevy_ui <Text>'s block (blitz-dom's Node::is_bevy_text): its lines drawn as bevy_text draws them
+    let bevy = doc.get_node(inline_root_id).is_some_and(|n| n.is_bevy_text());
 
     // Persistent stack mirroring the ancestor path (inline root -> current run's
     // node) as we walk the runs. The `text-decoration-*` properties are *not*
@@ -1055,6 +1060,7 @@ pub(crate) fn stroke_text<'a>(
                     underline_offset: metrics.underline_offset,
                     underline_size: metrics.underline_size,
                     strikethrough_size: metrics.strikethrough_size,
+                    strikethrough_offset: metrics.strikethrough_offset,
                     font: font.clone(),
                     font_size,
                     css_font_size,
@@ -1128,6 +1134,7 @@ pub(crate) fn stroke_text<'a>(
             win_ascent_ratios,
             inline_root_id,
             line.metrics().baseline,
+            bevy,
         );
     }
 }

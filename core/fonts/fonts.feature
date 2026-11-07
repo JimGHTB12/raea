@@ -1,6 +1,8 @@
+@owner:unicorn @ticket:T-048
 Feature: Bundled fonts for deterministic font aliasing
   This folder holds the bundled fonts used for deterministic font aliasing (see
-  src/fonts.rs). They are Fontsource latin subsets, extracted to woff2 files.
+  src/fonts.rs). They are Fontsource latin subsets
+  (`packages/core/src/fonts/fontData.generated.ts`), extracted to woff2 files.
 
   Each family is licensed under the SIL Open Font License 1.1, and the license texts are in licenses/.
 

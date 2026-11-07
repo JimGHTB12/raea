@@ -76,27 +76,32 @@ pub fn apply(m: &mut StandardMaterial, vals: &BTreeMap<String, V>, who: &str) ->
                 }
             }
             ("diffuseTransmission", _) => m.diffuse_transmission = n(v, k)?,
+            ("lightmapExposure", _) => m.lightmap_exposure = n(v, k)?,
             _ => return Err(format!("{who}: fields has no {k} ({v})")),
         }
     }
     Ok(())
 }
 
-/// The fields `apply` sets, copied from the material made for a Model's surface onto its glTF material.
-pub fn copy(to: &mut StandardMaterial, from: &StandardMaterial) {
-    to.specular_tint = from.specular_tint;
-    to.anisotropy_strength = from.anisotropy_strength;
-    to.anisotropy_rotation = from.anisotropy_rotation;
-    to.attenuation_distance = from.attenuation_distance;
-    to.attenuation_color = from.attenuation_color;
-    to.parallax_depth_scale = from.parallax_depth_scale;
-    to.max_parallax_layer_count = from.max_parallax_layer_count;
-    to.parallax_mapping_method = from.parallax_mapping_method;
-    to.depth_bias = from.depth_bias;
-    to.fog_enabled = from.fog_enabled;
-    to.uv_transform = from.uv_transform;
-    to.opaque_render_method = from.opaque_render_method;
-    to.diffuse_transmission = from.diffuse_transmission;
+/// The fields `apply` set, by the names given (`keys`), copied from the material made for a Model's surface onto its
+/// glTF material; the glTF's others stay its own (a surface giving lightmapExposure alone kept the file's KHR texture
+/// transform and specular tint).
+pub fn copy(to: &mut StandardMaterial, from: &StandardMaterial, keys: &[String]) {
+    for k in keys {
+        match k.as_str() {
+            "specularTint" => to.specular_tint = from.specular_tint,
+            "anisotropy" => (to.anisotropy_strength, to.anisotropy_rotation) = (from.anisotropy_strength, from.anisotropy_rotation),
+            "attenuation" => (to.attenuation_distance, to.attenuation_color) = (from.attenuation_distance, from.attenuation_color),
+            "parallax" => (to.parallax_depth_scale, to.max_parallax_layer_count, to.parallax_mapping_method) = (from.parallax_depth_scale, from.max_parallax_layer_count, from.parallax_mapping_method),
+            "depthBias" => to.depth_bias = from.depth_bias,
+            "fog" => to.fog_enabled = from.fog_enabled,
+            "uvTransform" => to.uv_transform = from.uv_transform,
+            "renderMethod" => to.opaque_render_method = from.opaque_render_method,
+            "diffuseTransmission" => to.diffuse_transmission = from.diffuse_transmission,
+            "lightmapExposure" => to.lightmap_exposure = from.lightmap_exposure,
+            _ => {}
+        }
+    }
 }
 
 #[cfg(test)]
@@ -117,5 +122,20 @@ mod tests {
         assert!(matches!(m.opaque_render_method, OpaqueRendererMethod::Deferred));
         vals.insert("fields".to_string(), V::S(r#"{"shine":1}"#.into()));
         assert!(apply(&mut m, &vals, "m").is_err());
+    }
+
+    #[test]
+    fn a_model_surface_copies_only_the_fields_it_names() {
+        let mut vals = BTreeMap::new();
+        vals.insert("fields".to_string(), V::S(r#"{"lightmapExposure":250}"#.into()));
+        let mut made = StandardMaterial::default();
+        apply(&mut made, &vals, "m").unwrap();
+        assert_eq!(made.lightmap_exposure, 250.0);
+        // the glTF's own tint and texture transform stay
+        let mut gltf = StandardMaterial { specular_tint: Color::srgb(1.0, 0.0, 0.0), uv_transform: Affine2::from_scale(Vec2::splat(2.0)), ..default() };
+        copy(&mut gltf, &made, &["lightmapExposure".to_string()]);
+        assert_eq!(gltf.lightmap_exposure, 250.0);
+        assert_eq!(gltf.specular_tint, Color::srgb(1.0, 0.0, 0.0));
+        assert_eq!(gltf.uv_transform.matrix2.x_axis.x, 2.0);
     }
 }

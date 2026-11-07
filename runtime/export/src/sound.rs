@@ -34,7 +34,7 @@ pub(crate) fn core_bounce(frames: &[(i64, Frame)], notes: &[raea_sys_mix::ToneCu
 /// its children (a <Mix> did, 2026-10-18: a 20 s ad rendered with no audio track), a sound that's never on screen, or
 /// a generated sound that was never made all end here. What the edit renders is read from its bundle (not minified,
 /// and what isn't used left out): an <Audio> is a JSX call `(…jsx)(Audio, {`. The folder's .tsx files were read before,
-/// so a sibling's <Audio> refused an edit with none (raea-c1, 10-24).
+/// so a sibling's <Audio> refused an edit with none (10-24).
 pub(crate) fn no_sound_but_declared(js: &Path) -> R<()> {
     let code = std::fs::read_to_string(js).unwrap_or_default();
     let declares = code.match_indices(")(Audio").any(|(i, m)| {

@@ -127,5 +127,5 @@ Feature: ZeroHeap: a running world allocates nothing; its memory is fixed at loa
     Scenario: Fixed-width symbolic memory (HDC)
       Then a world's persistent symbolic memory (what happened, what matters: agent memory, perception summaries,
         playtest knowledge) is a fixed-width hypervector; bundling and binding never change its size, so it cannot grow
-      And this fits symbolic and perceptual memory (docs/the roadmap Track K, meaning/), not exact physics or game state,
+      And this fits symbolic and perceptual memory (docs/goal.feature Track K, meaning/), not exact physics or game state,
         which stay in Z2's fixed buffers

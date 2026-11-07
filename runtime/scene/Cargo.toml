@@ -14,3 +14,7 @@ bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
 serde_json = "1"
 # a material's `wear` prop as its row's columns
 raea-sys-wear = { path = "../../systems/wear" }
+# a material's `procedural` prop as its row's columns
+raea-sys-procmat = { path = "../../systems/procmat" }
+# a review's fixed camera (RAEA_CAMERA) in place of the scene's own
+raea-core-review = { path = "../../core/review" }

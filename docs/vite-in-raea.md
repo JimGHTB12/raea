@@ -208,9 +208,9 @@ into a raea timeline, and none of jetway's stubs.
 
 ## Owners and files
 
-- A and B: an agent session. Touches runtime/react/src/scene.rs (bundling), react/js/lite/build.ts and serve.ts, void's host,
+- A and B: the orchestrator. Touches runtime/react/src/scene.rs (bundling), react/js/lite/build.ts and serve.ts, void's host,
   workspace and brain, a new crate for the Bun build pieces.
-- C: an agent session (Shane asked for it directly, 2026-10-19); its files went with engine/html (see C's status).
+- C: the orchestrator (Shane asked for it directly, 2026-10-19); its files went with engine/html (see C's status).
 - lightspeed: performance; consulted before any change to sdk/react/js/lite, the bridge or [profile.game]. Z4 builds
   on JavaScriptCore's C API (JSObjectMakeArrayBufferWithBytesNoCopy for its op ring): if B changes the API the host
   calls, lightspeed hears first. Its files in flight (2026-10-19): media (soft audio / h264 split), raea-render's h264 gates,

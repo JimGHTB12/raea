@@ -71,11 +71,21 @@ pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>)
     // a cut from a hall to a street changes the light on that frame
     // Bevy's EnvironmentMapLight with its own prefiltered maps (<EnvironmentMapLight>: its diffuse and specular
     // cubemap files, as the first frame has them), in place of a panorama raea filters
-    if let Some(m) = all.iter().flatten().find(|i| i.kind == "environment" && i.props.contains_key("diffuse_map")) {
+    let maps: Vec<Option<&Item>> = all.iter().map(|its| its.iter().find(|i| i.kind == "environment" && i.props.contains_key("diffuse_map"))).collect();
+    if let Some(m) = maps.iter().flatten().next() {
         for k in ["diffuse_map", "specular_map"] {
             row.insert(format!("envmap_{k}"), V::S(m.props.get(k).and_then(Value::as_str).unwrap_or_default().to_string()));
         }
         row.insert("envmap_k".into(), V::N(n(&m.props, "intensity", 1.0)));
+        // its rotation (a Quat), keyed: rotate_environment_map turns it every frame
+        quat_columns(p, row, id, "envmap", &maps);
+    }
+    // a <Skybox>: Bevy's cubemap sky on the camera, its image as the first frame has it, its brightness and rotation keyed
+    if let Some(s) = all.iter().flatten().find(|i| i.kind == "skybox") {
+        row.insert("skybox_image".into(), V::S(s.props.get("image").and_then(Value::as_str).unwrap_or_default().to_string()));
+        let skies: Vec<Option<&Item>> = all.iter().map(|its| its.iter().find(|i| i.kind == "skybox")).collect();
+        column(p, row, id, "skybox_k", &skies.iter().map(|s| s.map(|i| n(&i.props, "brightness", 0.0)).unwrap_or(0.0)).collect::<Vec<_>>());
+        quat_columns(p, row, id, "skybox", &skies);
     }
     let envs: Vec<Option<&Item>> = all.iter().map(|its| its.iter().find(|i| i.kind == "environment" && !i.props.contains_key("diffuse_map"))).collect();
     if envs.iter().any(Option::is_some) {
@@ -301,5 +311,22 @@ pub fn motion_blur(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String
     column(p, row, id, "mb_shutter", &its.iter().map(|i| n(&i.props, "shutterAngle", 0.5)).collect::<Vec<_>>());
     if let Some(s) = num(&its[0].props, "samples") {
         row.insert("mb_samples".into(), V::N(s));
+    }
+}
+
+/// a part's `rotation` as glam's Quat [x, y, z, w] (Bevy's identity when it has none)
+fn quat(props: &serde_json::Map<String, Value>) -> [f64; 4] {
+    match props.get("rotation").and_then(Value::as_array) {
+        Some(q) if q.len() == 4 => [0, 1, 2, 3].map(|k| q[k].as_f64().unwrap_or(0.0)),
+        _ => [0.0, 0.0, 0.0, 1.0],
+    }
+}
+
+/// each frame's part's `rotation` (the identity on a frame without one) as four exact columns, `<name>_qx` to
+/// `<name>_qw` (keyed when it turns)
+fn quat_columns(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, name: &str, parts: &[Option<&Item>]) {
+    let qs: Vec<[f64; 4]> = parts.iter().map(|m| m.map_or([0.0, 0.0, 0.0, 1.0], |i| quat(&i.props))).collect();
+    for (k, axis) in ["qx", "qy", "qz", "qw"].iter().enumerate() {
+        exact(p, row, id, &format!("{name}_{axis}"), &qs.iter().map(|q| q[k]).collect::<Vec<_>>());
     }
 }

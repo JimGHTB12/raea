@@ -24,6 +24,45 @@
   level, never per frame, and move the Mesh3d instead.
 - Give a Mesh3d a `name` when it comes and goes, or swaps places with another of the same shape.
 
+## Many copies: `<Instances>`, `scatter()` and `<Grass>` (`raea/3d`)
+
+- `<Instances src={staticFile("tree.glb")} at={placements} />` draws one glTF at every placement, loaded once and drawn
+  by the GPU as instances; without `src`, a geometry child (or `shape={solid}`) and a material child draw a mesh at
+  every placement. Each placement is `{ position, rotation?, scale? }` (radians). The list is the first frame's for the
+  whole shot: move, turn, scale or hide the set with the Instances' own props. Copies share one surface and play no
+  clip. `shadow={false}` for grass and flowers by the thousand.
+- `scatter({ area: { min: [x0, z0], max: [x1, z1] }, count, spacing, avoid, margin, clearOf, seed, yaw, tilt, scale,
+  y, density })` makes the placements: seeded (the same every frame, render and play), at least `spacing` apart, off
+  the `avoid` boxes, on the ground height `y(x, z)`, kept where `density(x, z)` says. Call it once at module level.
+- `<Grass area height density patch size tints>` is a lawn or a meadow the engine grows itself from functions of the
+  ground, cut into tiles with detail by distance; under `<Look mode="paint" wind>` the wind bends it.
+
+## Organic shapes and growth: `sdf` and `grow` (`raea/3d`)
+
+- **Blended bodies.** A creature, a limb, a handle grown out of a body, or a melted form is a distance field. Build
+  it from `sdf.sphere`, `box`, `capsule(a, b, r)`, `cone(a, b, ra, rb)`, `tube([[x, y, z, r], ...])`, `ellipsoid`,
+  `torus` and `cylinder` (y up, metres).
+  - Join the parts with `sdf.smoothUnion(k, ...)`. Within `k` metres of each join it blends them into one surface,
+    which is what makes the parts read as one thing.
+  - Carve with `smoothSubtract(k, a, b)`, for example an eye socket.
+  - Modify with `.move`, `.rotate` (degrees), `.scale`, `.mirrorX()` (both sides from one), `.round(r)`,
+    `.shell(t)` and `.displace(amp, freq, octaves, seed)` (bark, rock, lumpy skin).
+  - `.solid(step)` meshes the field into a Solid. The default cell is a 96th of its size; pass about a third of the
+    thinnest part. Cut, union and measure it like any solid.
+- **Grown things.** These are seeded, so the same settings give the same shape on every frame:
+  - `grow.tree({ height, crown: "dome"|"sphere"|"cone"|"column"|"umbrella"|"vase", points, leaves, seed }, "wood"|"leaves")`
+    grows branches into the crown's shape by space colonization, thinned from trunk to twig. Draw the wood and the
+    leaves as two meshes with two materials. With `points` 600-2000 a tree is 20k-120k triangles: put a forest in
+    `<Instances>`.
+  - `grow.loft([[0, "circle 0.2"], [0.3, "circle 0.3"], [0.6, "rect 0.1 0.1"]])` skins outlines at heights into a
+    vase, a bottle, a lamp base or a column. An outline is `circle r`, `ellipse rx rz`, `rect w d`, `ngon n r`, or
+    `[x, z]` points.
+  - `grow.terrain({ size, height, freq, seed, flat })` is ground as a closed slab. `flat` clears a disc in the middle
+    to stand things on, and the slab can be cut with `minus` for a path or a pond.
+  - `grow.boulder({ size, squash, rough, seed })` is a rock resting on y 0.
+  - `grow.rosette({ leaves, length, tilt, rise })` is a succulent, an agave, a lettuce or a flower's petals, set at
+    the golden angle and blended from one heart.
+
 ## Text in the 3D world, animated glyph by glyph (`RichText`)
 
 `<RichText>` is flat lettering standing in the scene: every glyph its own lit, shaded entity (it takes the lights,

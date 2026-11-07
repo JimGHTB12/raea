@@ -9,6 +9,10 @@ description = "Meshes and materials: a row's primitive or buffer mesh, a row's s
 [features]
 # SVG pictures drawn on the CPU (resvg)
 native = ["dep:resvg"]
+# Bevy's clearcoat textures (StandardMaterial clearcoat_normal_texture, which rotate_environment_map uses). Off by
+# default: they add three samplers to every StandardMaterial, and an extension with a sampler of its own (<Material>,
+# froxel glass) then passes Metal's 16 a fragment stage (docs/control.feature FC0a)
+multi-layer = ["bevy/pbr_multi_layer_material_textures"]
 
 [dependencies]
 raea-sys-frame = { path = "../frame" }

@@ -1,4 +1,4 @@
-//! Motion read back into keys (docs/the roadmap J3): a tracked element's position over frames, split into moves, each fitted
+//! Motion read back into keys (docs/goal.feature J3): a tracked element's position over frames, split into moves, each fitted
 //! with raea-render's own easing functions (engine/render/src/eval.rs ease_fn: linear, in, out, inout, all cubic): for every start and
 //! end frame near the move and every ease, the start value and the distance that fit best (least squares; the frames
 //! read are the only data, so a move can start before its element is first seen, as a fade-in does); of the fits

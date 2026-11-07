@@ -5,7 +5,7 @@ import { abs, g, isRemote, pagePath, read, warn } from "./all";
 
 // ---------------------------------------------------------------- scripts
 
-/** The composition format's scoped `document` and `gsap` for a sub-composition's own script: selectors find its elements first. */
+/** The original runtime's scoped `document` and `gsap` for a sub-composition's own script: selectors find its elements first. */
 function scope(compId: string): { document: Document; gsap: any } {
   const root = Array.from(document.querySelectorAll("[data-composition-id]")).find((e) => e.getAttribute("data-composition-id") === compId);
   if (!root) return { document, gsap: g.gsap };

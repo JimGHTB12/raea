@@ -37,6 +37,8 @@ struct Args {
     base: Option<PathBuf>,
     /// the CSS the app's bundle imported, whose @font-face rules register (T3d)
     css: Option<PathBuf>,
+    /// `--draw bevy`: the window or the check's frames drawn by Bevy's device, the tree a Rune layer (T6c)
+    bevy: bool,
 }
 
 enum Mode {
@@ -51,6 +53,12 @@ fn args() -> Result<Args, String> {
     let (mut app, mut script, mut out, mut size, mut settle) = (None, None, PathBuf::from("out"), (800, 600), 12);
     let (mut headless, mut bundle, mut app_out) = (false, false, None);
     let (mut video, mut audio, mut title, mut base, mut css) = (None, None, None, None, None);
+    // RAEA_RUNE_DRAW=bevy is `--draw bevy` for a host raea launches (`raea app check|run --target native`), whose own
+    // flags raea doesn't pass through
+    let mut bevy = std::env::var("RAEA_RUNE_DRAW").as_deref() == Ok("bevy");
+    if bevy && !cfg!(feature = "bevy") {
+        return Err("RAEA_RUNE_DRAW=bevy: this host was built without its `bevy` feature".into());
+    }
     while let Some(a) = it.next() {
         let mut val = || it.next().ok_or_else(|| format!("{a} needs a value"));
         match a.as_str() {
@@ -70,6 +78,12 @@ fn args() -> Result<Args, String> {
             "--title" => title = Some(val()?),
             "--base" => base = Some(PathBuf::from(val()?)),
             "--css" => css = Some(PathBuf::from(val()?)),
+            "--draw" => match val()?.as_str() {
+                "bevy" if cfg!(feature = "bevy") => bevy = true,
+                "bevy" => return Err("--draw bevy: this host was built without its `bevy` feature".into()),
+                "rune" => bevy = false,
+                other => return Err(format!("--draw {other}? (rune or bevy)")),
+            },
             "--settle" => settle = val()?.parse().map_err(|_| "--settle is a number of frames")?,
             "-h" | "--help" => return Err(USAGE.into()),
             other => return Err(format!("{other}?\n{USAGE}")),
@@ -86,10 +100,10 @@ fn args() -> Result<Args, String> {
     } else {
         Mode::Window
     };
-    Ok(Args { app, script, out, size, settle, mode, video, audio, title, base, css })
+    Ok(Args { app, script, out, size, settle, mode, video, audio, title, base, css, bevy })
 }
 
-const USAGE: &str = "usage: raea-rune-host run app.js [--size 800x600] [--title T]\n       raea-rune-host bundle app.js [-o App.app] [--size 800x600] [--title T]\n       raea-rune-host --headless app.js [--script steps.json] [--png out/] [--size 800x600] [--settle 12] [--video OUT.mp4 [--audio FILE]]";
+const USAGE: &str = "usage: raea-rune-host run app.js [--size 800x600] [--title T] [--draw rune|bevy]\n       raea-rune-host bundle app.js [-o App.app] [--size 800x600] [--title T]\n       raea-rune-host --headless app.js [--script steps.json] [--png out/] [--size 800x600] [--settle 12] [--video OUT.mp4 [--audio FILE]] [--draw rune|bevy]";
 
 /// The app's script: a bundle raea made. A source file is refused with what makes its script.
 fn script_of(app: &Path) -> Result<String, String> {
@@ -139,6 +153,10 @@ fn run() -> Result<(), String> {
     match &a.mode {
         Mode::Window => {
             raea_rune_media::fonts::register(fonts);
+            #[cfg(feature = "bevy")]
+            if a.bevy {
+                return raea_rune_host::on_bevy::window::run(src?, &title, (a.size.0 as f32, a.size.1 as f32));
+            }
             return raea_rune_host::window::run(src?, &title, (a.size.0 as f32, a.size.1 as f32));
         }
         Mode::Bundle(out) => {
@@ -155,7 +173,7 @@ fn run() -> Result<(), String> {
     let mut app = App::new(&src?, (a.size.0 as f32, a.size.1 as f32))?;
     let film = a.video.as_deref().map(|v| raea_rune_host::video::start(&mut app.session, v, a.size, a.audio.as_deref())).transpose()?;
     // one renderer per session: while filming, the stills are the film's own frames (video.rs, `last`)
-    let mut shooter = film.is_none().then(|| Shooter::new(a.size.0, a.size.1));
+    let mut shooter = film.is_none().then(|| Shot::new(a.bevy, a.size));
     let mut trees = Vec::new();
     let film_ref = film.as_ref();
     let mut shoot = |app: &mut App, i: usize, name: &str| -> Result<(), String> {
@@ -236,4 +254,30 @@ fn name(s: &Step) -> String {
 
 fn shown(p: &Path) -> String {
     p.display().to_string()
+}
+
+/// The check's frames: Rune's own headless renderer, or Bevy's device (`--draw bevy`, T6c).
+enum Shot {
+    Rune(Shooter),
+    #[cfg(feature = "bevy")]
+    Bevy(raea_rune_host::on_bevy::shot::BevyShooter),
+}
+
+impl Shot {
+    fn new(bevy: bool, (w, h): (u32, u32)) -> Shot {
+        #[cfg(feature = "bevy")]
+        if bevy {
+            return Shot::Bevy(raea_rune_host::on_bevy::shot::BevyShooter::new(w, h));
+        }
+        let _ = bevy;
+        Shot::Rune(Shooter::new(w, h))
+    }
+
+    fn png(&mut self, rt: &mut rune::Runtime<raea_rune_host::page::Page>, path: &Path) -> Result<(), String> {
+        match self {
+            Shot::Rune(s) => s.png(rt, path),
+            #[cfg(feature = "bevy")]
+            Shot::Bevy(s) => s.png(rt, path),
+        }
+    }
 }

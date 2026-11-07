@@ -12,6 +12,7 @@ use raea_sys_frame::*;
 
 pub mod decal;
 pub mod fields;
+pub mod lightmap;
 pub mod maps;
 pub mod mesh;
 pub mod surface;

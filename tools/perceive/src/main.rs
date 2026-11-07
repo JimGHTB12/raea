@@ -335,7 +335,7 @@ fn main() {
 }
 
 /// The Vision behind see-layout and see-coach: apple (the default on Apple) or portable (open models; docs/checks.feature
-/// in host records which uses match Vision).
+/// in the host app's records which uses match Vision).
 fn vision_backend(name: Option<String>) -> Result<Box<dyn raea_sys_vision::vision::Vision>, String> {
     match name.as_deref().unwrap_or(if cfg!(target_vendor = "apple") { "apple" } else { "portable" }) {
         #[cfg(target_vendor = "apple")]

@@ -1,6 +1,6 @@
 //! Where each step runs. A step that names its model goes there (`made:<id>`, `fal:<endpoint>`,
 //! `replicate:<owner/name>`, `openrouter:<model>`, `modal:<endpoint>`, `fish:<model>`, `tripo:<model>`, `comfy`, `local:<name>`). mesh.generate goes to
-//! Tripo 3D: through the tripo CLI on the founder's own key when this host has both (tripo.rs), else the same Tripo model on fal. text.generate goes to
+//! Tripo 3D: through the tripo CLI on the user's own key when this host has both (tripo.rs), else the same Tripo model on fal. text.generate goes to
 //! OpenRouter (RAEA_GEN_TEXT_MODEL, else Kimi). Otherwise: a `comfy` step on the ComfyUI server; a step with ComfyUI weights on the server too when
 //! the flow asks for the exact weights (`--exact`), else made's model for that op, which is noted as standing in for
 //! them; a local model when the host has one for the op (sao for effects); made for the rest.
@@ -16,9 +16,9 @@ pub enum Backend {
     Replicate(String),
     OpenRouter(String),
     Modal(String),
-    /// Fish Audio's text-to-speech, with the founder's FISH_API_KEY (raea-io-gen-core's fish.rs)
+    /// Fish Audio's text-to-speech, with the user's FISH_API_KEY (raea-io-gen-core's fish.rs)
     Fish(String),
-    /// Tripo 3D through its own CLI and the founder's key (raea-io-gen-core's tripo.rs); the name is Tripo's model id or alias
+    /// Tripo 3D through its own CLI and the user's key (raea-io-gen-core's tripo.rs); the name is Tripo's model id or alias
     Tripo(String),
     Comfy,
     Local(String),
@@ -112,7 +112,7 @@ pub fn route(s: &Step, p: &Policy) -> Result<(Backend, Option<String>), String> 
         "comfy" => return Ok((Backend::Comfy, None)),
         "text.generate" => return Ok((Backend::OpenRouter(crate::setting("RAEA_GEN_TEXT_MODEL").unwrap_or_else(|| "moonshotai/kimi-k3.1-pro".into())), None)),
         "mesh.generate" => {
-            // Tripo by default (hunyuan-3d rapid on fal errored three times running, 10-29): its CLI on the founder's key when
+            // Tripo by default (hunyuan-3d rapid on fal errored three times running, 10-29): its CLI on the user's key when
             // the host has both, else fal's resale of the same model
             if p.tripo {
                 return Ok((Backend::Tripo(String::new()), None));

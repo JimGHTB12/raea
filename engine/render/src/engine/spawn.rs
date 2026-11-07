@@ -163,7 +163,7 @@ pub fn remove_rows_from(world: &mut World, rows: &[(String, String)]) {
     }
     if any {
         // the rows after a dropped one moved up: their places again, from the store's order
-        let ix: HashMap<Entity, usize> = store::rows(world).iter().enumerate().map(|(r, &e)| (e, r)).collect();
+        let ix: bevy::ecs::entity::EntityHashMap<usize> = store::rows(world).iter().enumerate().map(|(r, &e)| (e, r)).collect();
         world.resource_mut::<FrameRows>().ix = ix;
     }
 }
@@ -241,7 +241,7 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             // tangents too, made from them (mikktspace); so does a grid's outline (grid.rs)
             let grid = grid::grid_of(vals);
             let uvs = scene3d::has_maps(vals) || grid.is_some();
-            let tangents = vals.get("normal_map").is_some_and(V::truthy);
+            let tangents = raea_sys_material::maps::needs_tangents(vals);
             // made once per shape and what it's given (share.rs): equal parts hold one Mesh, so Bevy batches them
             let mesh = scene3d::shared_mesh(world, &format!("{expr}\0{uvs}\0{tangents}"), || raea_sys_material::mesh::shape_mesh(&t.id, &expr, uvs, tangents))?;
             // a three.js shader (raea-sys-three-shader, docs/r3f.feature R3F11): its own material, and the mesh given
@@ -278,12 +278,15 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             } else if let Some(extension) = grid {
                 // graph paper over it (grid.rs): its colours fixed, so it isn't re-tinted frame by frame
                 grid::put(world, e, mesh, grid::GridMaterial { base: mat, extension }, vals);
-            } else if let Some(extension) = raea_sys_wear::of(vals) {
+            } else if let Some(extension) = raea_sys_procmat::of(vals).filter(|_| !scene3d::clay::on()) {
+                // a procedural surface (systems/procmat): its pattern, bump and use made on the GPU; clay draws it plain
+                grid::put(world, e, mesh, raea_sys_procmat::ProcMaterial { base: mat, extension }, vals);
+            } else if let Some(extension) = raea_sys_wear::of(vals).filter(|_| !scene3d::clay::on()) {
                 // worn paint (systems/wear): chipped edges, grime and rust, fixed in the part's own space
                 grid::put(world, e, mesh, raea_sys_wear::WearMaterial { base: mat, extension }, vals);
-            } else if vals.get("shader").is_none() && !vals.contains_key("opacity") {
-                // a plain surface: one material per value, shared by the parts that have it (share.rs; a see-through
-                // one keeps its own, as froxel_glass copies it per standard material)
+            } else if vals.get("shader").is_none() {
+                // a plain surface, see-through too: one material per value, shared by the parts that have it (share.rs;
+                // froxel_glass's fog copy is per material, so equal panes share it; mesh_ray_cast's six walls are one)
                 let (mat, shared) = scene3d::shared_material(world, mat);
                 world.entity_mut(e).insert((Mesh3d(mesh), MeshMaterial3d(mat), transform_of(vals)));
                 if shared {
@@ -317,7 +320,14 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             let image = world.resource_mut::<Assets<Image>>().add(sprite2d::sprite_image(pw, ph, pic.into_raw()));
             sprite2d::spawn_sprite(world, e, t, image, UVec2::new(pw, ph));
         }
-        "shape2d" => sprite2d::spawn_shape(world, e, t),
+        "shape2d" => {
+            // its ColorMaterial's texture, found and decoded as a sprite's picture
+            let tex = match vals.get("texture") {
+                Some(V::S(s)) => { let pic = scene3d::panel_picture(s, inserted, dir).map_err(|e| format!("shape2d {}: {e}", t.id))?; let (pw, ph) = pic.dimensions(); Some(world.resource_mut::<Assets<Image>>().add(sprite2d::sprite_image(pw, ph, pic.into_raw()))) }
+                _ => None,
+            };
+            sprite2d::spawn_shape(world, e, t, tex)
+        }
         // a live picture on a quad (<Screen>): screen.rs
         "panel" if vals.contains_key("screen") => screen::spawn_panel(world, e, t)?,
         // a screen's picture over a run of frames (raea's bevy_ui page): screen_page.rs

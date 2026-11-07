@@ -1,4 +1,4 @@
-//! What Apple Vision sees in a frame, behind one trait (docs/the roadmap A3): faces, text lines, rectangles, the person
+//! What Apple Vision sees in a frame, behind one trait (docs/goal.feature A3): faces, text lines, rectangles, the person
 //! mask and whether the picture is a screenshot. AppleVision runs Vision's requests through objc2 with the settings
 //! Perception.swift uses; another implementation (models elsewhere) can stand in on other platforms.
 
@@ -333,7 +333,7 @@ impl Vision for AppleVision {
     }
 }
 
-/// Every line of text Apple Vision reads accurately in a frame (docs/the roadmap J1), with its confidence and its box (0..1
+/// Every line of text Apple Vision reads accurately in a frame (docs/goal.feature J1), with its confidence and its box (0..1
 /// of the frame, from the top left, unrounded): no language correction (captions aren't prose), lines at least 1.5% of
 /// the frame high.
 pub fn text_lines(rgba: &[u8], w: usize, h: usize) -> Result<Vec<(String, f32, [f64; 4])>, String> {

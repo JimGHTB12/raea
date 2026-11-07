@@ -1,4 +1,4 @@
-//! Fish Audio: an audio.speech step on Fish's text-to-speech (`fish:<model>`, else `fish:s2.1-pro`), with the founder's own
+//! Fish Audio: an audio.speech step on Fish's text-to-speech (`fish:<model>`, else `fish:s2.1-pro`), with the user's own
 //! key in FISH_API_KEY. raea sends the step's words (`text`), its `voice` as Fish's reference_id (a voice model's id
 //! from fish.audio) and its `speed` as Fish's prosody speed, and keeps the MP3 that comes back. Fish bills UTF-8 bytes
 //! of text ($15 a million on its price list, 11-05), so a plan quotes the words before anything is sent.

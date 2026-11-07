@@ -3,6 +3,6 @@
 // raea/camera (bevy_camera): cameras and the views they make.
 export { Canvas3D, type Canvas3DProps } from "./3d";
 export { Matchmove, useMatchmove, matchmoveView, matchmoveIndex, checkMatchmove, type MatchmoveProps, type MatchmoveSolve, type MatchmoveState, type MatchmoveCamera } from "@raea/render/matchmove";
-export { Camera3d, type Camera3dProps, type Projection } from "@raea/render/bevy3d";
+export { Camera3d, Hdr, type Camera3dProps, type Projection } from "@raea/render/bevy3d";
 // a Bevy texture (a camera's target) drawn in an element (B3 H7)
 export { TextureView } from "@raea/render/bevy3d";

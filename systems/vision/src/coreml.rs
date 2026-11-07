@@ -1,4 +1,4 @@
-//! Core ML from Rust (docs/the roadmap A2): the same .mlpackage files the apps run, compiled once into the founder's caches,
+//! Core ML from Rust (docs/goal.feature A2): the same .mlpackage files the apps run, compiled once into the user's caches,
 //! fed BGRA pixel buffers, read back as floats through each multi-array's strides (Core ML pads rows). Apple only;
 //! other platforms run the ONNX exports through ort (later).
 

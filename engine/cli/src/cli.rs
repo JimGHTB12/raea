@@ -48,8 +48,14 @@ pub fn cli(args: &[String]) -> i32 {
     let code = match run(args) {
         Ok(msg) => {
             crate::refused::clear(args);
-            // a still is an export like a video (whose encoder signs and marks it): Content Credentials saying raea drew
-            // it, and a PNG's pixels carry its export id
+            // a still is an export like a video (whose encoder signs and marks it): when this program signs, Content
+            // Credentials saying raea drew it, and a PNG's pixels carry its export id (raea_io_media::sign)
+            if raea_io_media::signs() && args.first().map(String::as_str) == Some("render") {
+                let still = flag(args, "-o").map(PathBuf::from).filter(|o| o.is_file() && matches!(o.extension().and_then(|e| e.to_str()), Some("png" | "jpg" | "jpeg" | "webp")));
+                if let Some(o) = still {
+                    raea_io_media::sign::sign_file(&o, raea_io_media::sign::Made::Created);
+                }
+            }
             if !msg.is_empty() {
                 println!("{msg}");
             }
@@ -124,7 +130,7 @@ pub fn run(args: &[String]) -> R<String> {
         // a workspace's files and specs (docs/projects.feature), listed under render's usage like library
         let usage = format!("{usage}\n       raea spec FILE.ts [--as brief|script|taste|plan|controller]   (a spec's default export as JSON, checked against its schema: brief.ts, script.ts, taste.ts, plan.ts, controllers/ID.ts)\n       raea workspace init [NAME] [--layout LAYOUT] | raea workspace adopt DIR [--name NAME] | raea workspace [--json]   (a workspace: a git repo of projects and controllers under raea.root, ~/Studio unless git config says)\n       raea project new NAME [--storage inline|submodule] | raea project split NAME [--remote URL] | raea project join NAME | raea project [--json]   (a project in the workspace: its folder, brief.ts, media/, out/; split and join keep its history)\n       raea controller ls [--json] | raea controller get PATH [--json] | raea controller set PATH VALUE [--project] [--by NAME] | raea controller write FILE.ts [--by NAME] | raea controller rm ID [--by NAME]   (the workspace's controllers, controllers/ID.ts; PATH is controller.group.field; every change a commit)\n       raea check EDIT.tsx --quick [--shape S] [--platform P] [--taste T] [-o check.json]   (three stills of a composition checked for text: clipped, cramped, safe areas, sizes; about a second)\n       raea hook claude   (Claude Code's PostToolUse hook: the quick check after a composition is saved)\n       raea next [DIR]   (the two or three useful next steps for the project, from its brief, compositions, renders and checks)\n       raea doctor [--fix] [DIR]   (what doesn't match this raea: old brief files, an older workspace format, an agent's skill from another version)\n       raea app run|check|bundle APP.tsx [--target web|native] [--size WxH] [--script steps.json] [--png DIR] [-o App.app]   (a TSX app on @raea/ui: its window, the headless check, a Mac app; web is Blitz on Bevy, native is Rune; the app's `export const app` sets the target, web when it doesn't; raea rune ... is --target native)\n       {}\n       {}", skill::USAGE, tools::blender::USAGE);
         let (export_game, scene, physics, splat) = (raea_app_game::USAGE, export::SCENE_USAGE, motion::physics::USAGE, tools::splat::USAGE);
-        let apps = format!("       {}\n", raea_app_check::USAGE);
+        let apps = format!("       {}\n       {}\n       {}\n", raea_app_check::USAGE, raea_app_solid::USAGE, raea_app_judge::USAGE);
         return Ok(format!("raea: renders, plays and checks raea compositions (React and TypeScript) on the GPU.\n\nusage: {usage}\n       raea init   (a project's files where they're missing: edit.tsx, cuts.ts, components/, AGENTS.md)\n       raea cut TAKE \"line\" ... | --at A-B ... [--append]   (cuts.ts and words.json: a take under media/ cut in the pauses around each line it says, transcribed first if it has no TAKE.words.json; or at those seconds)\n       raea frame TAKE [--at S]   (how a take fits the edit: a talking take for <FaceFrame>, a screen for <ScreenFit>, from where its face is)\n       raea part list | raea part add NAME ... [--force]   (a ready part copied into components/, yours to change)\n       raea brand DOMAIN|URL   (the brand kit read from its website on this machine: brand/brand.css, brand/brand.json, BRAND.md, logos in media/brand; says when a plain fetch saw too little)\n       raea guide [NAME]   (craft, the floor read before any edit; the modes: pitch, explain, story, play, tool; motion, music, layout and the rest; bevy and bevy/NAME for 3D)\n       raea context PROJECT   (what to read before working on a project: taste, brief, look, the floor and its modes' guides)\n{apps}       raea play EDIT.tsx [--input | --input-script KEYS.json] [--size WxH] [--seconds N|end]   (a game, live; also: --input-log FILE --offscreen --snapshot T FILE --json FILE --seek F FILE --scrub N --baked --autoplay --no-vsync --master --3d)\n       {export_game}   (a game as a program of its own: a Mac app or a command)\n       {scene}   (what each 3D part rests on: floating, sunk and clipping parts; light: the scene's lighting)\n       {physics}   (the bakes <Physics> and <Goo> make)\n       {splat}   (footage trained into a Gaussian splat for <Splat>; setup installs its tools)\n       raea run SCRIPT.ts   (a TypeScript program on the engine, headless: its default export is called, what it prints is the answer; a check like a room's checkLayout; also: --timeout S)\n       raea gen image|video|music|sfx|speech|mesh|text \"PROMPT\" | gen plan|run FLOW.ts|FLOW.json | gen comfy import|export|run|schema FILE | gen models | gen balance   (generated media through made.app, fal, Replicate, OpenRouter, Modal or ComfyUI; ComfyUI workflows both ways: raea gen alone lists its flags)\n       {neural_usage}   (DLSS 5 neural rendering on a `render --aov` folder, with its motion and depth: your own MLX-DLSS build and weights, RAEA_MLXDLSS and RAEA_DLSS_MODEL)\n       raea mezz [--check] PATH...   (an intra-only ProRes copy of each long-GOP source over 1080p, for smooth scrubbing; --check says which would get one)\n       raea traces [show [N|last|DIR]]   (the sessions raea left, newest first: how each ended, its glitches; show tells one in full)"));
     }
     // `--version`: the release's version, which a skill's front matter names (docs/skills.feature SK6)
@@ -213,7 +219,7 @@ pub fn run(args: &[String]) -> R<String> {
     }
     // `mezz [--check] PATH...`: optimized media (raea_io_media::mezz, lightspeed F4): each long-GOP source over 1080p under
     // PATH (a file, or a folder's videos) gets its intra-only ProRes copy, one at a time; --check only says which would
-    // `neural mlxdlss DIR -o OUT`: DLSS 5 on a `render --aov` folder, through the founder's own MLX-DLSS (RT2)
+    // `neural mlxdlss DIR -o OUT`: DLSS 5 on a `render --aov` folder, through the user's own MLX-DLSS (RT2)
     if args.first().map(String::as_str) == Some("neural") {
         return neural::neural(&args[1..]);
     }
@@ -243,7 +249,7 @@ pub fn run(args: &[String]) -> R<String> {
         Some("gen") => return raea_app_tools::generate::generate(args),
         // the agent shell's own verbs ported here (`init`, `cut`, `frame`): engine/cli's handler, run by its native.ts (shell())
         Some(v) if SHELL.contains(&v) => return shell(args),
-        _ => {}
+        _ => if let Some(r) = raea_app_solid::verb(args) { return r }, // `solid info|view FILE.ts`, `judge DIR` (apps/solid)
     }
     // `master-gain BUNDLE.js DIR`: the gain and ceiling a composition's render masters its sound with, as JSON (live
     // play asks this of a child process, so its second React and the whole mix never sit in the game's memory)
@@ -339,7 +345,7 @@ pub fn run(args: &[String]) -> R<String> {
     }
     if args.first().map(String::as_str) != Some("render") || args.len() < 2 {
         return Err(format!(
-            "raea render EDIT.tsx -o OUT.mp4|OUT.png|DIR [--frame N | --at A,B] [--composition ID] [--w W] [--h H] [--fps FPS] [--frames N] [--words W.json] [--perception P.json] [--input I.json|inputs.rrl] [--manifest render.json] [--stage WxH] [--10bit] [--aov] [--alpha] [--kbps N | --quality draft|high|master|0..1]   (also: --lite --comps)\n       raea render PAGE.html -o OUT.mp4|DIR [--at A,B]   (an HTML composition, the HTML composition format format)\n       raea render --bundle NAME.comp.js -o OUT.png|DIR [--dir DIR] [--frame N]   (a bundle from raea bundle, as render_bundle draws it)
+            "raea render EDIT.tsx -o OUT.mp4|OUT.png|DIR [--frame N | --at A,B] [--composition ID] [--w W] [--h H] [--fps FPS] [--frames N] [--words W.json] [--perception P.json] [--input I.json|inputs.rrl] [--manifest render.json] [--stage WxH] [--10bit] [--aov] [--alpha] [--kbps N | --quality draft|high|master|0..1] [--clay]   (also: --lite --comps)\n       raea render EDIT.tsx --review DIR [--frame N]   (fixed cameras hero, front, right, top, iso, low in colour and clay: DIR/colour.png, clay.png, review.json)\n       raea render PAGE.html -o OUT.mp4|DIR [--at A,B]   (an HTML composition)\n       raea render --bundle NAME.comp.js -o OUT.png|DIR [--dir DIR] [--frame N]   (a bundle from raea bundle, as render_bundle draws it)
        raea media probe|still|sheet|audio|loudness|motion|cuts|freezes|proxy|trim|concat FILE ... | ffmpeg ARGS | ffprobe ARGS   (media work, native: media help)
        raea bundle EDIT.tsx --composition-bundle -o OUT.js [--portable DIR]   (a composition for render_bundle, on the Mac or the iPhone)\n       raea add PKG[@RANGE]... [--dev] | remove NAME... | install [--offline]  [--in DIR]   (npm packages for the project: raea.lock, node_modules)\n       {}   (foley, local)\n       {}   (an instrument's notes, local)\n       raea setup-audio [--check] [sao|tokensynth]   (install or check the local audio models)\n       {}   (the song's energy map: beats, sections, builds, drops, stops, hits, cuts per bar; also: --backend NAME)\n       raea sounds [WORDS] | sounds get PACK/INSTRUMENT [--notes ..|--all] [-o DIR]   (open sample libraries for a Sampler)\n       {}   (the clip's camera solved, for <Matchmove>)",
             tools::sound::SAO_USAGE, tools::sound::TOKENSYNTH_USAGE, tools::song::USAGE, motion::track::USAGE

@@ -1,5 +1,5 @@
 /* The Tailwind theme every raea project compiles with: class names (text-brand-accent, bg-brand-surface, font-brand,
-   text-caption, rounded-brand) mapped onto the brand kit's variables (brand/brand.css, the host app's --brand-* format).
+   text-caption, rounded-brand) mapped onto the brand kit's variables (brand/brand.css, the --brand-* format).
    Nothing here is a colour, a font or a size of its own: change the brand, and every component follows. The kit's
    sizes are the website's, so on a 1080x1920 video they're scaled up (the kit's own note: about 2.5x). */
 @theme inline {

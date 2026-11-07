@@ -2,7 +2,7 @@
 // the brand's website as scrape.ts read it (name, palette and logos; the styleguide, its tokens from the site's CSS) as
 // the project's brand kit:
 //   brand/styleguide.json  every token (pretty, sorted keys)
-//   brand/brand.css        the --brand-* stylesheet engine/cli/template/theme.css maps the brand classes onto (the host app's
+//   brand/brand.css        the --brand-* stylesheet engine/cli/template/theme.css maps the brand classes onto (the
 //                          BrandKit format, so a kit made there still works)
 //   brand/brand.json       derived from the two: colours by role (picked by contrast, only from the brand's own
 //                          colours), heading and body fonts, the type scale, the CTA button, the logos

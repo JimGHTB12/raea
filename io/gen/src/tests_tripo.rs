@@ -21,6 +21,20 @@ fn tripo_routes_and_args() {
     assert_eq!((a[1].as_str(), a[2].as_str(), a.last().unwrap().as_str()), ("/x/front.png", "/x/back.png", "--dry-run"));
     assert_eq!(crate::tripo::fal_twin("H3.1", 1), "tripo3d/h3.1/image-to-3d");
     assert_eq!(crate::tripo::fal_twin("tripo-p1", 3), "tripo3d/p1/multiview-to-3d");
+    // the defaults: a step's own x_ wins (face_limit 8000 stays, no second one); pictures face their own way; a
+    // textured model in metres with its texture seeded like its geometry
+    assert_eq!(line.matches("face_limit=").count(), 1, "{line}");
+    assert!(line.contains("-p auto_size=true") && line.contains("-p pbr=true") && line.contains("-p texture_seed=7") && !line.contains("orientation"), "{line}");
+    let bare = Step::new("mesh.generate", json!({"prompt": "a CRT television"}));
+    let a = crate::tripo::args("H3.1", &bare.inputs, &["/x/tv.png".into()], std::path::Path::new("/tmp/o"), false).join(" ");
+    assert!(a.contains("-p orientation=align_image") && a.contains("-p face_limit=30000"), "{a}");
+    // no seed given: one from the step, the same every run
+    let again = crate::tripo::args("H3.1", &bare.inputs, &["/x/tv.png".into()], std::path::Path::new("/tmp/o"), false).join(" ");
+    assert_eq!(a, again);
+    // P2 keeps its own topology; bare geometry gets no texture settings
+    let geo = Step::new("mesh.generate", json!({"prompt": "a CRT television", "texture": false}));
+    let p2 = crate::tripo::args("P2", &geo.inputs, &[], std::path::Path::new("/tmp/o"), false).join(" ");
+    assert!(!p2.contains("face_limit") && !p2.contains("auto_size") && !p2.contains("pbr=") && p2.contains("texture=false"), "{p2}");
 }
 
 #[test]
@@ -39,4 +53,16 @@ fn naming_an_output_never_truncates_it() {
     assert_eq!(std::fs::read(&glb).unwrap(), b"glTF-bytes");
     assert_eq!(std::fs::read(dir.join("prop.glb")).unwrap(), b"glTF-bytes");
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_mesh_steps_size_is_fitted_after_and_leaves_its_key() {
+    // the same step with and without a size has the same key: fitting after doesn't make another model
+    let mut f = crate::flow::Flow::default();
+    f.steps.insert("m".into(), Step::new("mesh.generate", json!({"prompt": "a chair"})));
+    let k0 = f.keys().unwrap()["m"].clone();
+    f.steps.insert("m".into(), Step::new("mesh.generate", json!({"prompt": "a chair", "size": {"h": 0.9}})));
+    assert_eq!(f.keys().unwrap()["m"], k0);
+    f.check().unwrap();
+    assert_eq!(crate::fit::want_of(&json!({"h": 0.9, "dims": [0.5, 0.5, 0.9], "turn": 90})).h, Some(0.9));
 }

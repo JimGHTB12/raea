@@ -121,6 +121,8 @@ fn deliver(from: &Path, to: &Path) -> R<()> {
         std::fs::create_dir_all(d).map_err(|e| format!("{}: {e}", d.display()))?;
     }
     std::fs::copy(from, to).map_err(|e| format!("{}: {e}", to.display()))?;
+    // signed as generated, when this program signs (raea_io_media::sign)
+    raea_io_media::sign::sign_file(to, raea_io_media::sign::Made::Generated);
     Ok(())
 }
 

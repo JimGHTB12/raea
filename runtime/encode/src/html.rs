@@ -1,4 +1,4 @@
-//! An HTML composition (a the HTML composition format-format page) on raea-render's GPU path. The Blitz page (raea-page's html.rs), its
+//! An HTML composition on raea-render's GPU path. The Blitz page (raea-page's html.rs), its
 //! scripts on @raea/ui's DOM, draws the whole page, its `<video>`s included, as the overlay over transparency, a frame at a time;
 //! its `<audio>`, and each `<video>` with sound, become sound rows.
 

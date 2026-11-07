@@ -1,5 +1,5 @@
 // Portions ported from HyperFrames (Apache-2.0, https://github.com/heygen-com/hyperframes); see NOTICE.
-// An HTML composition on bevy_ui (docs/ts-native.feature P27): a the HTML composition format-format page (HTML, CSS, GSAP and the
+// An HTML composition on bevy_ui (docs/ts-native.feature P27): an HTML composition page (HTML, CSS, GSAP and the
 // page's own scripts) run in a raea-runtime-js root, its elements dom.ts's, so its scripts work on a DOM and every element is
 // a bevy_ui entity. The host (runtime/js src/html_page.rs) mounts this bundle with `__html` set (the page's
 // source, its file and folder, the folder's files) and drives it a frame at a time:

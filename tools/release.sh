@@ -59,13 +59,23 @@ untar() {
   printf '%s\n' "$err" >&2
   return $rc
 }
-git archive "$ref" | untar "$gate" || { echo "release.sh: the skills gate couldn't unpack $ref" >&2; exit 1; }
-git -C "$gate" init -q && git -C "$gate" add -A && git -C "$gate" -c gc.auto=0 -c maintenance.auto=false -c user.name=release -c user.email=release@raea.io commit -qm "$ref" --no-verify
 raea_bin=$bin/raea; [ -f "$raea_bin.exe" ] && raea_bin=$raea_bin.exe
-if ! (cd "$gate" && SKILLS_STRICT=1 SKILLS_CHANGED= RAEA_BIN="$raea_bin" RAEA_APP="$root/apps/app" RAEA_APP_REV="$(git -C "$root" rev-parse "$ref:apps/app")" bash tools/skills.sh check); then
-  echo "release.sh: tools/skills.sh check failed on $ref with $raea_bin; fix the skills (tools/skills.sh gen) before releasing" >&2
-  rm -rf "$gate"
-  exit 1
+# The gate reads the feed app's checkout (apps/app), a private submodule GitHub's Windows runner can't fetch. There,
+# RAEA_SKILLS_PASSED=SHA stands for it: the gate passed at SHA on macOS or Linux, and it counts for REF only when what
+# the gate reads (the skills and guides, the glossary, the CLI's usage, skills.sh) is the same at both (T1f, 11-07)
+gate_inputs=(sdk/skills sdk/guides docs/skills.glossary.md engine/cli/src tools/skills.sh)
+if [ "$platform" = windows-x86_64 ] && [ ! -f "$root/apps/app/src/acp/protocol.ts" ] && [ -n "${RAEA_SKILLS_PASSED:-}" ]; then
+  git diff --quiet "$RAEA_SKILLS_PASSED" "$ref" -- "${gate_inputs[@]}" \
+    || { echo "release.sh: the skills changed between $RAEA_SKILLS_PASSED (where the gate passed) and $ref" >&2; exit 1; }
+  echo "release.sh: note: the skills gate passed at $(git rev-parse --short "$RAEA_SKILLS_PASSED") elsewhere and its inputs are unchanged; not run here (no feed app)"
+else
+  git archive "$ref" | untar "$gate" || { echo "release.sh: the skills gate couldn't unpack $ref" >&2; exit 1; }
+  git -C "$gate" init -q && git -C "$gate" add -A && git -C "$gate" -c gc.auto=0 -c maintenance.auto=false -c user.name=release -c user.email=release@raea.io commit -qm "$ref" --no-verify
+  if ! (cd "$gate" && SKILLS_STRICT=1 SKILLS_CHANGED= RAEA_BIN="$raea_bin" RAEA_APP="$root/apps/app" RAEA_APP_REV="$(git -C "$root" rev-parse "$ref:apps/app")" bash tools/skills.sh check); then
+    echo "release.sh: tools/skills.sh check failed on $ref with $raea_bin; fix the skills (tools/skills.sh gen) before releasing" >&2
+    rm -rf "$gate"
+    exit 1
+  fi
 fi
 rm -rf "$gate"
 # the skills' changes since the last release, for its notes (SK9): RAEA_SINCE names where that was (a ref, or a date

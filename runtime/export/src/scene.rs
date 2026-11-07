@@ -34,7 +34,7 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     }
     let tsx = std::path::PathBuf::from(edit).canonicalize().map_err(|e| format!("{edit}: {e}"))?;
     let dir = tsx.parent().unwrap().to_path_buf();
-    let frame: i64 = flag(args, "--frame").map(|f| f.parse().map_err(|_| "--frame takes a frame number")).transpose()?.unwrap_or(0);
+    let frame = frame_of(args)?;
     let js = std::env::temp_dir().join(format!("raea-scene-{}.js", std::process::id()));
     bundle_composition(&tsx, &js, &comp_opts(args)?, None)?;
     // and the frame after it, to see what moves
@@ -44,7 +44,11 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     let k = frames.iter().position(|(f, _)| *f == frame).ok_or_else(|| format!("no frame {frame}"))?;
     // the frame, and the next (or the one before, at the end) to see what moves
     let other = if k + 1 < frames.len() { k + 1 } else { k.saturating_sub(1) };
-    let (found, errors) = raea_sys_contact::lint(&items(&frames[k].1), &items(&frames[other].1));
+    let (mut found, errors) = raea_sys_contact::lint(&items(&frames[k].1), &items(&frames[other].1));
+    // and the Blender steps its models call for (a format raea can't load, triangles over budget for the distance)
+    let (more, unloadable) = raea_sys_contact::assets(&items(&frames[k].1));
+    found.extend(more);
+    let errors = errors + unloadable;
     let shown: Vec<&Value> = found.iter().filter(|v| mode == "explain" || !matches!(v["level"].as_str(), Some("ok") | Some("note"))).collect();
     let text = if args.iter().any(|a| a == "--json") {
         serde_json::to_string_pretty(&json!({"frame": frame, "errors": errors, "found": shown})).unwrap_or_default()
@@ -120,4 +124,12 @@ fn light(args: &[String]) -> Result<String, String> {
         t.push(format!("cut {}", c["says"].as_str().unwrap_or("")));
     }
     Ok(t.join("\n"))
+}
+
+/// `--frame N`, 0 when it isn't given (scene lint and render --review).
+pub(crate) fn frame_of(args: &[String]) -> Result<i64, String> {
+    match flag(args, "--frame") {
+        Some(f) => f.parse().map_err(|_| "--frame takes a frame number".to_string()),
+        None => Ok(0),
+    }
 }

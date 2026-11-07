@@ -1,0 +1,10 @@
+[package]
+name = "raea-core-grow"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Generators for what is too numerous or too organic to place by hand: trees grown by space colonization in a crown envelope (tubes and leaf cards), lofted shapes, terrain, boulders and phyllotaxis rosettes"
+
+[dependencies]
+raea-core-sdf = { path = "../sdf" }

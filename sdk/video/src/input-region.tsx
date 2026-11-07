@@ -1,7 +1,7 @@
 // A box of a page with input of its own: several panels in one page (the phone's compact shell, docs/platform.feature),
 // each hearing the pointer as it would as a page of its own (apps/void/src/space_ui.rs gives each panel its own page).
 import { useContext, useMemo, type ReactNode } from "react";
-import { ClockContext, type FrameInput, type InputTimeline } from "@raea/app/clock";
+import { ClockContext, useClockTick, type FrameInput, type InputTimeline } from "@raea/app/clock";
 
 type Box = { x: number; y: number; w: number; h: number; scale: number };
 type Entry = Partial<FrameInput> & { live?: boolean };
@@ -55,6 +55,8 @@ function boxed(timeline: InputTimeline, b: Box): InputTimeline {
  */
 export function InputRegion({ x, y, w, h, scale = 1, children }: { x: number; y: number; w: number; h: number; scale?: number; children?: ReactNode }) {
   const clock = useContext(ClockContext);
+  // its copy is a new object each frame, so its children hear the frame through it: it hears it from the Clock
+  useClockTick(clock);
   const input = useMemo(() => (clock ? boxed(clock.input, { x, y, w, h, scale }) : null), [clock?.input, x, y, w, h, scale]);
   if (!clock || !input) return <>{children}</>;
   return <ClockContext.Provider value={{ ...clock, input }}>{children}</ClockContext.Provider>;

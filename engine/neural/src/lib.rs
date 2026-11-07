@@ -1,6 +1,6 @@
 //! `raea neural mlxdlss DIR -o OUT` (docs/raytracing.feature RT2): DLSS 5's neural rendering on a render, on the Mac,
 //! through MLX-DLSS (github.com/iamwavecut/MLX-DLSS, Apache-2.0), fed raea's own motion vectors and depth (`render
-//! --aov`). An optional integration: the mlxdlss binary and the weights are the founder's (the weights are NVIDIA's,
+//! --aov`). An optional integration: the mlxdlss binary and the weights are the user's (the weights are NVIDIA's,
 //! extracted from their own DLSS install, and never ship with raea).
 
 use std::path::{Path, PathBuf};

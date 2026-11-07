@@ -1,4 +1,4 @@
-//! HTML compositions on the Blitz page (docs/blitz-bevy.feature B5d (1)): a the HTML composition format-format page (HTML, CSS, GSAP
+//! HTML compositions on the Blitz page (docs/blitz-bevy.feature B5d (1)): an HTML composition page (HTML, CSS, GSAP
 //! and its own scripts) mounted by the host (host.rs) with @raea/ui's HTML runtime (sdk/ui/src/html.ts, raea-runtime-js's
 //! html_page::bundle), so the page's scripts work on a DOM whose elements are a Blitz document's, which stylo styles,
 //! Taffy lays out and Vello paints as Chrome would. The same open, seek and frame as raea-runtime-js's HtmlPage (bevy_ui),

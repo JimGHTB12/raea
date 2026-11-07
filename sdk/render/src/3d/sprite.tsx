@@ -69,9 +69,19 @@ export interface Shape2DProps extends Place2dProps {
   /** [width, height] in px ([100, 100] by default); a circle's and a polygon's diameter is the width */
   size?: [number, number];
   sides?: number;
-  /** a CSS colour (white by default) */
+  /** a CSS colour (white by default); with a texture, it tints it */
   color?: string;
+  /** a picture on it, mapped by the mesh's UVs (Bevy's ColorMaterial texture) */
+  texture?: string;
+  /** Bevy's AlphaMode2d: "Blend" (Bevy's default), "Opaque", or { Mask: cutoff } */
+  alpha_mode?: AlphaMode2d;
+  /** one linear [r, g, b, a] per vertex of the shape's mesh (Bevy's Mesh::ATTRIBUTE_COLOR): the material's colour and
+   * texture are multiplied by them. A rect has 4 (top right, top left, bottom left, bottom right), a triangle 3. */
+  vertex_colors?: [number, number, number, number][];
 }
+
+/** bevy_sprite_render's AlphaMode2d */
+export type AlphaMode2d = "Opaque" | "Blend" | { Mask: number };
 
 /** A flat shape in 2D, over the 3D, in one colour: Bevy's Mesh2d with a ColorMaterial (raea-sys-sprite). Put it
  * inside the Canvas3D.
@@ -85,6 +95,13 @@ export function Shape2D(props: Shape2DProps) {
   if (s !== undefined && !(Array.isArray(s) && s.length === 2 && s.every((n) => Number.isFinite(n) && n > 0))) throw new TypeError(`Shape2D: size is [width, height], two numbers above 0, got ${JSON.stringify(s)}`);
   if (props.sides !== undefined && !(Number.isInteger(props.sides) && props.sides >= 3)) throw new RangeError(`Shape2D: sides is a whole number of 3 or more, got ${props.sides}`);
   check2d("Shape2D", props);
+  if (props.texture !== undefined && !(typeof props.texture === "string" && props.texture !== "")) throw new TypeError(`Shape2D: texture is a picture's path, staticFile("icon.png"), got ${JSON.stringify(props.texture)}`);
+  const a = props.alpha_mode;
+  if (a !== undefined && a !== "Opaque" && a !== "Blend" && !(typeof a === "object" && a !== null && typeof a.Mask === "number" && Number.isFinite(a.Mask))) throw new TypeError(`Shape2D: alpha_mode is "Opaque", "Blend" or { Mask: cutoff }, got ${JSON.stringify(a)}`);
+  const vc = props.vertex_colors;
+  if (vc !== undefined && !(Array.isArray(vc) && vc.every((c) => Array.isArray(c) && c.length === 4 && c.every(Number.isFinite)))) throw new TypeError(`Shape2D: vertex_colors is one linear [r, g, b, a] per vertex, got ${JSON.stringify(vc)}`);
+  const verts = ({ rect: 4, triangle: 3 } as Record<string, number>)[props.shape ?? "rect"];
+  if (vc !== undefined && verts !== undefined && vc.length !== verts) throw new RangeError(`Shape2D: a ${props.shape ?? "rect"}'s mesh has ${verts} vertices, so vertex_colors has ${verts} colours, got ${vc.length}`);
   const id = useId();
   const [w, h] = props.size ?? [100, 100];
   const round = props.shape === "circle" || props.shape === "ellipse" || props.shape === "polygon";

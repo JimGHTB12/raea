@@ -1,9 +1,9 @@
 //! raea's bundled faces: the Fontsource latin subsets in this folder (index.json), and the aliases that map a requested
-//! family onto one (the composition format's deterministic fonts: Helvetica, Arial and SF Pro draw as Inter, Times and Georgia as EB
+//! family onto one (a deterministic font set: Helvetica, Arial and SF Pro draw as Inter, Times and Georgia as EB
 //! Garamond, Courier and Menlo as JetBrains Mono, ...), so a render looks the same on every machine. Each family is
 //! under the SIL Open Font License 1.1 (licenses/).
 
-/// Lower-cased family → canonical bundled family (the composition format's FONT_ALIAS_MAP).
+/// Lower-cased family → canonical bundled family (the original runtime's FONT_ALIAS_MAP).
 pub const ALIASES: &[(&str, &str)] = &[
     ("inter", "inter"), ("montserrat", "montserrat"), ("outfit", "outfit"), ("nunito", "nunito"),
     ("oswald", "oswald"), ("league gothic", "league-gothic"), ("archivo black", "archivo-black"),

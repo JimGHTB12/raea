@@ -126,7 +126,7 @@ pub struct ValueChange<T> {
     /// The new value.
     pub value: T,
     /// If false, it means that we are in the middle of an interaction (slider being dragged,
-    /// user typing), while if true it means that the founder's interaction is finished (mouse button
+    /// user typing), while if true it means that the user's interaction is finished (mouse button
     /// released, drag ended, input lost focus).
     pub is_final: bool,
 }

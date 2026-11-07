@@ -6,10 +6,6 @@ license = "FSL-1.1-ALv2"
 publish = false
 description = "The `raea` verbs that run raea's model tools: sao, tokensynth, setup-audio, sounds, splat, song and gen"
 
-[features]
-# a made sound signed as generated (raea's own API; the public engine goes without)
-service = []
-
 [dependencies]
 raea-io-assets = { path = "../../io/assets" }
 # generation flows: made.app, fal, Replicate, OpenRouter, Modal, ComfyUI (`raea gen`)

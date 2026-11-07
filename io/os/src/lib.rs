@@ -1,4 +1,4 @@
-//! The system's host calls (docs/targets.feature T2d, agreed with raea-59 for raea-3f on 11-06), answered the same on
+//! The system's host calls (docs/targets.feature T2d, agreed on 11-06), answered the same on
 //! both app targets: runtime/js os.rs and engine/rune js.rs each hand a call here with how to answer.
 //!
 //!   os.open {url} -> null                 http, https or mailto in the system's handler; any other scheme refused

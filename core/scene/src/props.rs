@@ -106,7 +106,7 @@ pub const EV100: f64 = 9.7;
 /// column: the props present, colours as hex (raea-sys-material's fields.rs reads them).
 pub fn fields_of(p: &Map<String, Value>) -> Option<String> {
     let mut o = Map::new();
-    for k in ["specularTint", "anisotropy", "attenuation", "parallax", "depthBias", "fog", "uvTransform", "renderMethod", "diffuseTransmission"] {
+    for k in ["specularTint", "anisotropy", "attenuation", "parallax", "depthBias", "fog", "uvTransform", "renderMethod", "diffuseTransmission", "lightmapExposure"] {
         let Some(v) = p.get(k) else { continue };
         let v = match (k, v) {
             ("specularTint", _) => Value::String(hex(Some(v))?),

@@ -101,7 +101,7 @@ export async function gatherSheets(): Promise<boolean> {
     at.push(...s.at);
     for (const [k, v] of s.props) registered.set(k, v);
   }
-  // The composition format's deterministic fonts: the families the page names pinned to bundled and Google faces. A served page
+  // the deterministic font set: the families the page names pinned to bundled and Google faces. A served page
   // (WPT's) is a plain web page and keeps the families it names, as Chrome draws them: `monospace` is Menlo, not
   // `Inter, monospace`
   if (!P.served) {

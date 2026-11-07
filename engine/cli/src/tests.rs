@@ -32,7 +32,7 @@ fn help_lists_every_verb() {
     let listed = |v: &str| [format!("raea {v} "), format!("raea {v}\n"), format!("| {v} ")].iter().any(|l| help.contains(l.as_str()));
     let missing: Vec<_> = verbs.iter().filter(|v| !listed(v) && !unlisted.contains(&v.as_str())).collect();
     assert!(missing.is_empty(), "not in raea help: {missing:?}");
-    for usage in [raea_app_check::USAGE, raea_app_game::USAGE, raea_runtime_export::SCENE_USAGE, motion::physics::USAGE, tools::splat::USAGE, tools::sound::SAO_USAGE, tools::sound::TOKENSYNTH_USAGE, tools::song::USAGE, motion::track::USAGE] {
+    for usage in [raea_app_check::USAGE, raea_app_game::USAGE, raea_runtime_export::SCENE_USAGE, motion::physics::USAGE, tools::splat::USAGE, tools::sound::SAO_USAGE, tools::sound::TOKENSYNTH_USAGE, tools::song::USAGE, motion::track::USAGE, raea_app_solid::USAGE, raea_app_judge::USAGE, tools::blender::USAGE] {
         assert!(help.contains(usage), "{usage}");
     }
 }
@@ -72,7 +72,7 @@ fn a_verb_refuses_what_it_doesnt_take() {
         &["traces", "show", "last"],
         &["media", "ffmpeg", "-i", "x", "--anything"],
         &["physics", "bake", "r.json", "--whatever"],
-        &["test", "--filter", "x"],
+        &["test", "--filter", "x"], &["solid", "export", "b.ts", "-o", "b.glb", "--set", "w=1", "--part", "top", "--colour", "#8a6a4a"],
     ] {
         assert_eq!(stray(&help, &a(ok)), None, "{ok:?}");
     }

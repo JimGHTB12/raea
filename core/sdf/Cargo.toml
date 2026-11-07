@@ -1,0 +1,9 @@
+[package]
+name = "raea-core-sdf"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Organic solids as signed distance fields: round cones, tubes and blobs blended smoothly (smooth union, subtract, intersect), shelled, rounded and displaced, meshed watertight by marching tetrahedra"
+
+[dependencies]

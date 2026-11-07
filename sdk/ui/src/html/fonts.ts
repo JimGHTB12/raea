@@ -1,5 +1,5 @@
 // Portions ported from HyperFrames (Apache-2.0, https://github.com/heygen-com/hyperframes); see NOTICE.
-// The composition format's deterministic fonts (docs/ts-native.feature P27), as engine/html's fonts.rs did them: a page's
+// the deterministic font set (docs/ts-native.feature P27), as engine/html's fonts.rs did them: a page's
 // `font-family` gets the same faces whatever machine renders it. A system family is swapped for a bundled stand-in
 // (Helvetica, Arial, SF Pro, Avenir -> Inter; Georgia, Times -> EB Garamond; Menlo, Courier -> JetBrains Mono ...),
 // the bundle's weights (core/fonts) with Google Fonts' for the weights it lacks; any other family comes from Google
@@ -41,7 +41,7 @@ const GENERIC = new Set([
   "ui-rounded", "emoji", "math", "fangsong", "-apple-system", "blinkmacsystemfont", "inherit", "initial", "unset",
   "revert", "revert-layer",
 ]);
-/** The composition format's GENERIC_FAMILIES: a value starting with one of these gets Inter first. */
+/** The original runtime's GENERIC_FAMILIES: a value starting with one of these gets Inter first. */
 const HF_GENERIC = new Set([
   "sans-serif", "serif", "monospace", "cursive", "fantasy", "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace",
   "emoji", "math", "fangsong", "-apple-system", "blinkmacsystemfont",
@@ -107,7 +107,7 @@ type Face = { weight: string; style: string; url: string; range?: string };
 function faceRule(family: string, f: Face): string {
   return `@font-face{font-family:"${family.replace(/"/g, '\\"')}";src:url("${f.url}");font-weight:${f.weight};font-style:${f.style}}`;
 }
-/** The composition format's bundledFamilyFaceRules supplement: the faces collapsed into weight runs of one file (Google serves a
+/** The original runtime's bundledFamilyFaceRules supplement: the faces collapsed into weight runs of one file (Google serves a
  *  variable family's weights as one file) that don't span a weight the bundle covers, each a `font-weight: lo hi`
  *  range, so the file's `wght` axis answers every weight in its run. */
 function runs(faces: Face[], covered: Set<string>): Face[] {
@@ -220,7 +220,7 @@ export async function deterministic(rules: Rule[], inline: string[], at: string[
   for (const [lower, { family, longhand }] of wanted) {
     if (declared.has(lower)) continue;
     const canonical = ALIASES[lower];
-    // The HTML composition format reads `font-family` declarations only: a stand-in named only in a `font` shorthand keeps the
+    // The original runtime reads `font-family` declarations only: a stand-in named only in a `font` shorthand keeps the
     // installed font, as it does in Chrome
     if (!longhand && canonical && DISPLAY[canonical].toLowerCase() !== lower) continue;
     if (canonical) {

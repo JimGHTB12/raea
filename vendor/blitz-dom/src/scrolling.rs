@@ -74,7 +74,7 @@ pub(crate) struct ScrollRequest {
     pub(crate) source: ScrollSource,
     pub(crate) behavior: ScrollBehavior,
     /// Whether to abort a smooth scroll in progress. Set for user-initiated scrolls, so that
-    /// an animation does not fight the founder's input for the rest of its duration.
+    /// an animation does not fight the user's input for the rest of its duration.
     pub(crate) interrupt_animation: bool,
 }
 

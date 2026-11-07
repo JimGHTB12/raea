@@ -6,7 +6,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
   difference between play and render. Each will never quite reach zero, which is the point: every row below has a
   measured value, a target, and a path toward zero.
 
-  Owner: the lightspeed agent (session "lightspeed"), orchestrated by an agent session. It loops: pick the row with the biggest
+  Owner: the lightspeed agent (session "lightspeed"), orchestrated by the orchestrator. It loops: pick the row with the biggest
   measured gap, attribute where the time or bytes go, take the structural lever that moves it, measure before and after,
   commit, update this file. Individual spikes are knocked down only after the structural levers. Companion plan:
   docs/zeroheap.feature (lever L4).
@@ -34,8 +34,8 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
   Rule: Lightspeed's goals (set 2026-10-19, after the four multi-day levers; the user: "just focus on lightspeed work")
     Scenario: Who owns what now
       Then lightspeed owns performance and optimization end to end: it builds its levers itself, not only measures them
-        (the user moved an agent session off them, 2026-10-19)
-      And an agent session owns docs/vite-in-raea.md: A, Bun's build crates in process (the 7 places raea starts the bun CLI);
+        (the user moved the orchestrator off them, 2026-10-19)
+      And the orchestrator owns docs/vite-in-raea.md: A, Bun's build crates in process (the 7 places raea starts the bun CLI);
         B, bun_jsc as raea's JS engine, an evaluation; C, the page engine's 11 gaps from jetway. Lightspeed measures B
         the way T3 was (check.sh titles full and incremental, pong's three jsheap fixtures) and counts its bytes against
         R7; the exported player keeps the system JSC unless the user accepts those bytes; B tells lightspeed before it
@@ -127,7 +127,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         quiet nightly has measured anything yet (see "The quiet nightly that didn't run")
       And G9, quality polish: Q2's last 2. Met 2026-10-19: the full corpus has 0 failing (95 exact, 75 ok)
     Scenario: The second goal list (set 2026-10-19 evening, after G5: the best moves aside from Bevy, in order)
-      Given the founder's list: 1 compositor-only motion, 2 an incremental paint record, 3 the quads compositor on wgpu-hal,
+      Given the user's list: 1 compositor-only motion, 2 an incremental paint record, 3 the quads compositor on wgpu-hal,
         4 a binary path for 3D transforms, 5 Bevy trims by configuration only, 6 frame time and power as the scoreboard
         with allocations as a guard, 7 the Stylo and Blitz patches offered upstream
       Then 1, step 1 (5843067): a left/top-only change moves the box where it's laid out (no restyle, no relayout),
@@ -154,7 +154,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
     Scenario: What waits on the user
       Then F1 in the app's window needs a visible window the user agrees to (lightspeed never shows one unasked)
       And R5 and Q5 need the iPhone unlocked and connected
-      And R7 above 65 MB, if B ships a vendored WebKit in the player, is the founder's call on the counted bytes
+      And R7 above 65 MB, if B ships a vendored WebKit in the player, is the user's call on the counted bytes
     Scenario: What stays blocked, with its reason
       Then T1, T2, T4: the media engine's encode floor (~275 fps at 1080x1920 for H.264, 261 for HEVC Main10), one
         engine on this chip; G6 is the only lever left on our side
@@ -170,7 +170,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         | F2 | frame work p99 / p99.9, games at 120 fps | clean run (load 3-5, no other jobs, 02b4852): arena3d p99 3.87 / p99.9 4.58 ms (its steady 3D frame; Bevy's render ~2 ms), pong 1.72 / 2.80, platformer 1.12 / 1.52 | settle race fixed (aa4f78a: p99.9 507 -> 18-36 ms paired); arena3d p99 3.7-4.1 -> 2.7-3.2 ms (single-threaded Bevy, 4353e23), under load | p99.9 <= 4 ms |
         | F3 | missed frames in 5 min, pong and platformer | met: 0 missed frames in 3 x 60 s (clean run, load 3-5, 02b4852) | 3 in 2 x 60 s at load 7 (aa4f78a); 0 needs a quiet run | 0 at load <= 6 and at load 20 |
         | F4 | scrub / seek p99 | met: 1080p (ts1) 25.8 -> 12.5-14.6 ms (range copies 5cd890d, font reload skipped on seeks b0f6e8e); 4K (k4) 61.1 -> 16.6-26.6 ms (f83ae45, b4e7cc8); seeks = render 1.000000, load 3-6 | 1080p 25.8 ms (quiet, e0498ab); 4K 52.2 -> 17.7-28.2 ms, p50 18 -> 5 ms from a ProRes 422 copy (f83ae45, paired, load ~15; 3.1 GB for k4's 61 s, VMAF 99.78) | 1080p <= 16.7 ms; 4K <= 33 ms |
-        | F5 | spawn to first frame: game, timeline, bake, app launch, app object open (measured on the legacy app; the targets carry over to the feed); a 3D export's first launch | game 70, timeline 81, bake 28 ms (44028f1: frame 0 before the sound), the legacy app's object open 74-81 ms; the legacy app's launch 1187 -> 265-272 -> 206-220 ms (an agent session's 56cc5ac: the launch object opened before the app mounts, and the stage paints frame 0 before its sound; paired, under load; video.sh ts1 PASS, seeks 1.000000), the legacy app's ~200 ms launch accepted by the user (2026-10-19), masked by a launch reveal instead of restructured | the legacy app's launch 1187 -> ~310 ms (under load 10-27), 275 ms at load 3-6 (f894348's run: game 291, timeline 217, bake 30, object open 76 ms); exported 3D game: first paint 55 ms, playable 343 ms warm / 4.4 s cold (Metal compiles ~35 pipelines) | each < 100 ms; app launch ~200 ms with a pixel reveal over its first frame |
+        | F5 | spawn to first frame: game, timeline, bake, app launch, app object open (measured on the legacy app; the targets carry over to the feed); a 3D export's first launch | game 70, timeline 81, bake 28 ms (44028f1: frame 0 before the sound), the legacy app's object open 74-81 ms; the legacy app's launch 1187 -> 265-272 -> 206-220 ms (the orchestrator's 56cc5ac: the launch object opened before the app mounts, and the stage paints frame 0 before its sound; paired, under load; video.sh ts1 PASS, seeks 1.000000), the legacy app's ~200 ms launch accepted by the user (2026-10-19), masked by a launch reveal instead of restructured | the legacy app's launch 1187 -> ~310 ms (under load 10-27), 275 ms at load 3-6 (f894348's run: game 291, timeline 217, bake 30, object open 76 ms); exported 3D game: first paint 55 ms, playable 343 ms warm / 4.4 s cold (Metal compiles ~35 pipelines) | each < 100 ms; app launch ~200 ms with a pixel reveal over its first frame |
         | F6 | first-use hitches: frames past the first second over 2 ms | 37 in 60 s (max 7.26 ms), all pong's score card appearing (its first GPU work at clocked-down clocks); platformer 0; arena3d's steady frames are F2's | pong 2-3 in 8 s, max 7-8 ms: the score card's full-page group arriving with the GPU clocked down (attributed: no cache or buffer misses there); pong's page pass 3.48 -> 2.82 ms GPU (4b76f93), then 2.99 -> 2.45 ms (d06d52e), groups p90 0.93 -> 0.35 ms (eae9f02), paired under load | none > 2 ms |
     Scenario: Throughput
       Then these rows are tracked
@@ -194,7 +194,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       Then these rows are tracked
         | id | metric | harness | value | target |
         | Q1 | render = play, every medium (SSIM per frame, seeks included) | quality.sh, check.sh, replay.sh, video/gate.sh, bevy check | 1.000000 on HEAD: replay (pong, platformer, arena3d), timelines (aa4f78a); the legacy app's stage = render on ts1's full-page seeks, 0.997160-0.998681 -> 1.000000 (4100b50: emboldening per document), stage scale 0.9995 -> 0.9998 | exact everywhere, every fixture in the corpus |
-        | Q2 | Chrome parity | now docs/ts-native.feature's parity suite (sdk/ui/parity); these values were the Blitz corpus (engine/html/bench/parity.sh, deleted in f1b4a17e; after an agent session's page fixes 2e9ca65, 81e4a25): 95 exact, 75 ok, 0 fail; CI's react group 8 / 8 / 0 | 93 exact, 75 ok, 2 fail | all exact |
+        | Q2 | Chrome parity | now docs/ts-native.feature's parity suite (sdk/ui/parity); these values were the Blitz corpus (engine/html/bench/parity.sh, deleted in f1b4a17e; after the orchestrator's page fixes 2e9ca65, 81e4a25): 95 exact, 75 ok, 0 fail; CI's react group 8 / 8 / 0 | 93 exact, 75 ok, 2 fail | all exact |
         | Q3 | export fidelity against the source (VMAF), colour accuracy | --10bit (HEVC Main10, f1ca6ee): colour patches 0/255, 1024 random colours worst 1, ts1 VMAF 99.52 (worst frame 89.22); H.264 8-bit, still the default: colour 2/255 (its format's floor), VMAF 98.95 | export.sh --only Q3 measures both exports (exact 10-bit decode: swscale accurate_rnd+full_chroma_int); floors over all 16.7M colours: 8-bit limited 2, full range 1, 10-bit limited 0 | visually lossless (VMAF >= 95), BT.709 / P3 exact |
         | Q4 | audio: tap = bounce, LUFS, true peak, clicks | quality.sh (audio.sh) | PASS: live = render -14.9 LUFS, tap = bounce exact, 0 clicks (quiet, e0498ab) | holds for every edit |
         | Q5 | cross-device determinism: Mac = iPhone, byte for byte | ios.sh | frame 0 exact; glyph edges differ (<= 14/255) (4279d3f); needs the phone unlocked | byte-identical |
@@ -240,7 +240,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       And done: R6 measured, idle stage ~0 W, pong's watts halved
     Scenario: L9 Quality to exact
       Then colour managed end to end (BT.709 / Display P3, tone mapping), text rendered exactly as Chrome (Q2's last 2:
-        regenerate the shadcn reference through the composition format's render), the iPhone byte-identical to the Mac (Q5), and
+        regenerate the shadcn reference through a browser render), the iPhone byte-identical to the Mac (Q5), and
         exports checked by VMAF (Q3)
       And done: Q2 all exact, Q3 >= 95, Q5 byte-identical
     Scenario: L10 Experiments: the fun part (try, measure, keep or drop)
@@ -261,15 +261,15 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         builds are capped at -j 6 so three agents' builds don't drive the machine to load 100
       And it commits only its own hunks (check `git diff --cached`, stage explicit paths, filtered patches for shared
         files), with "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
-      And it never restarts, kills or quits an app the user may be using, and never shows a window on the founder's
+      And it never restarts, kills or quits an app the user may be using, and never shows a window on the user's
         screen: test apps run headless or windowless
       And only two API models exist: GLM 5.3 Flash and clef-omni. Small local models are fine. Spend under $10 without
         asking
-      And areas other agents are working on as of 2026-10-18 (coordinate through an agent session before touching them): live
+      And areas other agents are working on as of 2026-10-18 (coordinate through the orchestrator before touching them): live
         3D games in the legacy app, export-game, the legacy app's video and re-bake on change, the new-stack agent eval, the Tone.js layer and
         systems/mix/. Video playback is always fixed scale, never responsive
     Scenario: Reporting
-      Then after each turn lightspeed messages an agent session one line: the row, before and after, the commit
+      Then after each turn lightspeed messages the orchestrator one line: the row, before and after, the commit
       And it never claims a row moved without a quiet-machine measurement behind it
 
   Rule: Log (newest first; lightspeed appends)
@@ -328,7 +328,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         useLocalTime built a new object per call outside a Sequence, and validate a new fold.checked (3c36ba8). step+fold
         9.2 -> 1.4 KB, 30 -> 12 GC/min; pong 36.9 -> 33.4 KB; gates exact (replay, check.sh 360 of 600, audio.sh)
       And put (f3b0005): a changed prop's value is set in place, not insert(key.clone()): pong's op apply 87 -> 74.6
-      And an agent session's f60e0b7 (Rolldown) had raised pong's op apply 87 -> 159 (git bisect run, clean worktree builds): its
+      And the orchestrator's f60e0b7 (Rolldown) had raised pong's op apply 87 -> 159 (git bisect run, clean worktree builds): its
         crates turned on serde_json's preserve_order and arbitrary_precision for the whole binary, which also changed key
         order and number handling everywhere raea uses serde_json. Fixed in d91a34f (an opt-in feature) and 18d2801
         (raea-bundle loaded at run time, never a Cargo dependency); confirmed back at baseline
@@ -353,7 +353,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       And so frames still cross to the CPU (3.1 MB a frame, 1.85 GB for ts1), but the copies are ~0.13 ms of ~3.8: the media
         engine bounds T1 and an IOSurface path would move it ~nothing. Measured no: 8 frames in flight against 3, paired x3,
         258-264 fps both
-      And Q2 on HEAD, the full corpus: 95 exact, 75 ok, 0 fail (an agent session's page fixes landed meanwhile), G9's last two gone
+      And Q2 on HEAD, the full corpus: 95 exact, 75 ok, 0 fail (the orchestrator's page fixes landed meanwhile), G9's last two gone
     Scenario: 2026-10-19 midday: Z1's Rust counter, Z4 step 1, and T3's re-bake regression fixed (f910193, cd367dd)
       Then Z1: core/alloc counts each thread's allocations under RAEA_ZEROHEAP=1 (raea only; off it costs
         one relaxed load), and play's report carries rust_allocs: pong's op apply 172 allocations and 17.0 KB a frame, the
@@ -380,7 +380,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         platformer 65.5 -> 62.3; export.sh self-test PASS and SSIM 1.000000 on all five
       And opt-level z cost nothing measurable: paired on pong (4 pairs, load ~4), open 102-106 ms both, work p50 0.82-0.98
         against 0.83-1.04 ms, p99 the same within noise
-    Scenario: 2026-10-19 morning: Q3.colour met with 10-bit export (an agent session's Q3 agent, f1ca6ee)
+    Scenario: 2026-10-19 morning: Q3.colour met with 10-bit export (the orchestrator's Q3 agent, f1ca6ee)
       Then `raea render --10bit` (RAEA_EXPORT_10BIT=1) exports HEVC Main10: a GPU P010
         conversion (GPU kernel p010buf.k) into VideoToolbox; H.264 8-bit stays the default for playback reach
       And turn 3's muxer failure is fixed: muxide read HEVC's profile and level at fixed byte offsets of the stream
@@ -391,7 +391,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       And paired, H.264 -> --10bit (the agent's runs, load 7-8): colour patches 2 -> 0/255, 1024 random colours worst
         4 -> 1; ts1 VMAF 98.95 -> 99.52 (worst frame 88.31 -> 89.22), 263 -> 252.5 fps (-4%), 25.09 -> 25.20 MB; t3d600
         275 -> 261 fps (-5%), 15.31 -> 9.89 MB
-      And an agent session's check on the merged build: export.sh --only Q3 gives Q3.colour 0, Q3.vmaf 98.95 (H.264); titles' check
+      And the orchestrator's check on the merged build: export.sh --only Q3 gives Q3.colour 0, Q3.vmaf 98.95 (H.264); titles' check
         and replay x3 1.000000
       And what's left is the codec's, not a lever: ~20 of 1024 busy colours miss by 1 (VideoToolbox's compression; an
         ideal 10-bit input misses the same ones), and AVFoundation's own RGB conversion errs 1 on Main10 (Apple's decoder)
@@ -399,7 +399,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       Then Z3 is closed (pong 120.3 -> 34.6 KB a frame; the rest is Z4's and Z2's), T3 is blocked on the system
         JavaScriptCore (incremental 24-27 ms against 10), F5's app launch is decided by the user (~200 ms behind the
         launch reveal; edit-to-swap 132-163 -> 33-61 ms), and Q3 is met (10-bit export)
-    Scenario: 2026-10-19 morning: the legacy app's launch reveal (an agent session, f329b0f)
+    Scenario: 2026-10-19 morning: the legacy app's launch reveal (the orchestrator, f329b0f)
       Then a last pass in quads' window.rs, opt-in, turned on only by the legacy app's vendored dioxus-native (renders, exports and
         play never reach it): 280 ms from the first present, 12 px cells, Bayer x fbm thresholds ranked so the share shown
         follows a smoothstepped t, unrevealed cells black stepping through the site's greys 14 / 30 / 62; a plain fade
@@ -412,7 +412,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       And a headless legacy app's window is created invisible, so the MCP screenshot shows nothing of it: the look is checked
         offscreen through the quads compositor (window.rs's test runs the real mask: 0.1 / 6 / 28 / 65 / 100% shown at 0 /
         15 / 35 / 60 / 100%; RAEA_REVEAL_OUT=DIR writes the frames)
-    Scenario: 2026-10-19 morning: the legacy app's edit path, 132-163 -> 33-61 ms (an agent session, 0857a00)
+    Scenario: 2026-10-19 morning: the legacy app's edit path, 132-163 -> 33-61 ms (the orchestrator, 0857a00)
       Then the legacy app's edit-to-swap is 33-61 ms (one run of five at 105), from 132-163, in two parts
       And a session-long bundler (react/js/lite/serve.ts, a line per request) keeps each source's compile by content:
         bundle 38-41 -> 10-13 ms (a fresh bundle's compile alone was 12-15, bun's start ~11); no bundler outlives the legacy app
@@ -425,29 +425,29 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       Then the user: ~200 ms to the legacy app's first frame is standard and happens once, so it isn't restructured; a quick launch
         animation masks it instead, the website's pixel diffusion (apps/site/src/components/effects/dither-field.tsx: 4x4
         Bayer ordered dither, square cells, an fbm field)
-      And so an agent session's remaining step (window and stage painted before the chrome mounts) is dropped, step 1 was a
+      And so the orchestrator's remaining step (window and stage painted before the chrome mounts) is dropped, step 1 was a
         measured no (the stage's box waits on the chrome's first style, layout and render: 215-222 ms either way), and
         Phase A stays out of the tree
-      And the reveal is an agent session's, after the session-long bundler: the legacy app's window only (engine/html/src/quads/window.rs, a
+      And the reveal is the orchestrator's, after the session-long bundler: the legacy app's window only (engine/html/src/quads/window.rs, a
         flag only the legacy app sets), never renders or exports; done when first paint is unchanged within noise, the reveal's
         pass costs < 0.2 ms a frame while it runs and nothing after, and it plays once a launch (not on workspace
         switches), a plain fade under Reduce Motion
-    Scenario: 2026-10-19 morning: F5's app launch design, measured (an agent session, 26edce8: a launch design doc since deleted)
+    Scenario: 2026-10-19 morning: F5's app launch design, measured (the orchestrator, 26edce8: a launch design doc since deleted)
       Then the critical path to first paint is no longer the stage's open (its 63-75 ms runs off the path since 56cc5ac):
         it is the window and chrome mount (~100-130 ms), the chrome's first render, the launch's enter (a task spawned at
         mount, so a render late), the stage's box laid out (its rect at mount + ~80), then the paint
       And measured no: the stage thread started in main() before the window (Phase A) finishes the open at ~92 ms,
         before mount, but first paint doesn't move (`RAEA_FEED_EARLY_STAGE` on/off on one build, paired: 226 / 230 / 253
         against 211 / 220 / 228 ms); the patch is kept outside the tree until step 2
-      And the steps, both in the legacy app's launch (raea-01's, waiting on it or the user): 1, the recent workspace entered in
+      And the steps, both in the legacy app's launch (the legacy app's lane's, waiting on it or the user): 1, the recent workspace entered in
         the app's initial state so the stage's box is in the chrome's first frame (~60-80 ms off); 2, window and stage
         painted before the chrome mounts, in dioxus-native and stage_native (~90-100 ms off)
       And the edit path: an uncached bundle is 35-39 ms, bun's start only ~7 of it; a session-long bundler with in-place
-        resolution and the compile plugin cached by content should take it to ~10-15 ms (an agent session's, scheduled now)
+        resolution and the compile plugin cached by content should take it to ~10-15 ms (the orchestrator's, scheduled now)
       And Q3's encoder agent hit its weekly limit (~08:30) and resumes after the 10:00 reset. Its route is HEVC Main10
         on the media engine: this M5 Pro's VideoToolbox lists HEVC and ProRes hardware encoders and no AV1 encoder at
         all (AV1 decode only), and rav1e measured 547 ms a frame against H.264's 0.75 at the same bytes (bakeoff)
-    Scenario: 2026-10-19 morning: T3 step 2, and T3 blocked on the system JavaScriptCore (an agent session, e0452c6)
+    Scenario: 2026-10-19 morning: T3 step 2, and T3 blocked on the system JavaScriptCore (the orchestrator, e0452c6)
       Then titles' Counter calls toLocaleString every frame, and the system JSC built a new Intl.NumberFormat each call
         (56-64% of titles' frame, sampled in bun); the engine prelude keeps one formatter per locale and options
         (identical strings over 91 cases): full bake JS 26.5 -> 19.8 ms, check.sh's incremental 25-27 ms ("incremental,
@@ -463,7 +463,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         ships inside every exported player, already at 65.28 MB against 65
       And the legacy app's edit-to-swap is 132-163 ms, of which bun bundling is 38-41 and the bake 23-29: the bundle step is the
         larger and the cheaper lever (an incremental or cached bundle), a row for F5's edit path
-    Scenario: 2026-10-19 morning: T3 step 1, the range bake (an agent session, ec41abe)
+    Scenario: 2026-10-19 morning: T3 step 1, the range bake (the orchestrator, ec41abe)
       Then check.sh's titles edit at 4 / 8 runtimes: incremental 47-58 -> 25-29 ms (paired: 1 runtime 25-42, 4 runtimes
         27-30), full bake ~50 -> 25-32 ms; RAEA_BAKE_TRACE "incremental, 360 of 600 frames stepped", and per range
         "frames 240..600 in 19.0 ms: waited on React 6.1 ms, applying 3.6 ms, JS 19.0 ms"
@@ -478,7 +478,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         prelude and install 0.9, bundle eval 2.6, first render). Under 10 ms: less JS a frame in titles first (no
         footprint), then a warm spare JSC context (~4 ms), held only while a timeline is open so it counts against a
         stage's +40 MB (26 used), never against idle (215 against 200), and let go when the stage closes
-    Scenario: 2026-10-19 morning: Z3 step 2, and where Z3 stops (an agent session, c59c6f7)
+    Scenario: 2026-10-19 morning: Z3 step 2, and where Z3 stops (the orchestrator, c59c6f7)
       Then pong under jsheap.sh (12 s x 2, load ~3), whole / step+fold / view alone: 34.6 / 9.2 / 18.0 KB a frame and
         58 / 30 / 48 GC/min; an empty edit is 5.2 KB, so view alone sits 12.8 above the floor (74.5 before Z3); view
         alone's JS p50 0.087 -> 0.043 ms
@@ -493,8 +493,8 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         typed bridge or the time model), ~2.0 pong's own body (closures in render, Score and Paddle re-rendering), ~2.7
         the floor (Clock state, the marker op, the flush JSON)
       And Z3 stops here: the rest is Z4 (a typed bridge, no per-frame JSON) and Z2 (fixed state), not the view compile.
-        an agent session moves to T3
-    Scenario: 2026-10-19 morning: Z3 step 1, pong's garbage a third of what it was (an agent session, 36d4b06)
+        the orchestrator moves to T3
+    Scenario: 2026-10-19 morning: Z3 step 1, pong's garbage a third of what it was (the orchestrator, 36d4b06)
       Then pong under jsheap.sh (12 s x 2, load ~4), whole / step+fold / view alone, re-baselined at HEAD on the committed
         fixtures (sdk/react/bench/games/pong/edit.stepfold.tsx, edit.view.tsx): 120.3 / 9.7 / 81.3 -> 39.4 / 9.6 / 26.4 KB a
         frame, 192 / 30 / 170 -> 72 / 30 / 60 GC/min; JS p50 0.106 -> 0.094 ms
@@ -505,37 +505,37 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         ended, which was 39 of view alone's 48 KB
       And Q1 holds (replay.sh pong, platformer, arena3d 1.000000; check.sh titles 1.000000 with the incremental re-bake;
         audio.sh max diff 0); Q2's React render path isn't touched
-      And view alone has ~20 KB a frame left above an empty edit's 6.8 KB floor: an agent session's next Z3 step. A new tool,
+      And view alone has ~20 KB a frame left above an empty edit's 6.8 KB floor: the orchestrator's next Z3 step. A new tool,
         bench/lightspeed/jsalloc.ts, runs a lite bundle in bun's JSC and reads about half of live KB, the same proportions
     Scenario: 2026-10-19 early: R7 reopened, an exact lever
       Then R7's value is export-game's total_mb, the whole app: pong's now carries 2.9 MB of uncompressed WAV assets (one
         2.1 MB) and fonts.css 0.49 MB of base64. Encoding the assets losslessly at export (ALAC or FLAC: the same PCM, so
         tap = bounce) halves them, and fonts as files save ~0.12 MB more, with no feature dropped (not WebP). Handed to
-        an agent session (export-game). Until it lands, R7 stays blocked as logged (the player's last 0.66 MB is WebP or rdb's
+        the orchestrator (export-game). Until it lands, R7 stays blocked as logged (the player's last 0.66 MB is WebP or rdb's
         SQL); if the apps measure under 65 MB with it, the row is met
     Scenario: 2026-10-19 early: where the loop stops
       Then every row is met (F3, F4, F5 game/timeline/bake/object open, F1 offscreen, R3's stage, Q1, Q2) or blocked with
-        its reason in this log and sent to an agent session (F5's app launch, F2, F6, T1, T2, T3, T4, R1, R2, R3's idle, R4, R5, R6,
+        its reason in this log and sent to the orchestrator (F5's app launch, F2, F6, T1, T2, T3, T4, R1, R2, R3's idle, R4, R5, R6,
         R7, Q3, Q5, Q6, F1 in a window)
       And the targets changed tonight (R7 <= 65 MB, R3 <= 200 MB idle footprint) and the offline player were decided
-        under the founder's own instruction while out ("take executive decision", 2026-10-18 night), recorded with their
+        under the user's own instruction while out ("take executive decision", 2026-10-18 night), recorded with their
         reasons above; they stand unless the user changes them
       And the next multi-day levers, in order of what they unblock: Z3, the view compiled at bundle time (R1, R2, and
         pong's R6 watts); a bake that steps a range of frames per round trip, with helper-level coverage (T3); the legacy app's
         launch restructured so a native window and the stage come before dioxus mounts the chrome (F5's app launch, with
-        raea-01); 10-bit or full-range export (Q3 colour, T1 via HEVC once its muxer works)
-    Scenario: 2026-10-19 early: F5's app launch, blocked above 100 ms (final; an agent session's measurements)
-      Then a headless legacy app's launch (an agent session's marks, two runs): app mounted 106-121 ms (the window, winit and AppKit, and
+        the legacy app's lane); 10-bit or full-range export (Q3 colour, T1 via HEVC once its muxer works)
+    Scenario: 2026-10-19 early: F5's app launch, blocked above 100 ms (final; the orchestrator's measurements)
+      Then a headless legacy app's launch (the orchestrator's marks, two runs): app mounted 106-121 ms (the window, winit and AppKit, and
         dioxus's first render), stage show 117-130 (the early open of the launch's object fires), stage ready 178-182
         (titles' open, ~50 ms), frame 0 stepped 185-200, first paint 254-267: the ~60 ms between them is the first
         frame's sound waiting on the mixer's startup clock (RAEA_LIVE_TRACE "sound 62.0/67.7 ms")
-      And an agent session paints frame 0 before its sound, as play does (44028f1; step_world and sync_sound made pub in 31d5bf6):
+      And the orchestrator paints frame 0 before its sound, as play does (44028f1; step_world and sync_sound made pub in 31d5bf6):
         launch 265.0 / 271.8 -> 219.9 / 206.4 ms, paired under load (another agent's stress job); object open 78-81
         unchanged
       And below that it's blocked: the window and dioxus mount alone (106-121 ms) are past 100 before the stage can show
         anything, and the object's open (~50 ms) follows; under 100 needs the window and the chrome's first render
         restructured (a native window up before dioxus mounts, the chrome rendered after the stage's first paint), a
-        change to the legacy app's launch architecture and look (raea-01's), not tonight's
+        change to the legacy app's launch architecture and look (the legacy app's lane's), not tonight's
     Scenario: 2026-10-19 early: R6, the paused stage's audio rests
       Then the stage rests its mixer's device stream a second into a pause, and its spare 2 s after it opens (31d5bf6):
         the legacy app paused, sampled 3 s shows no Firewheel processing; a 3 s pause advanced the device clock 1.01 s (the
@@ -543,7 +543,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         idle stage 0.047-0.05 -> 0.039 W; the audio gate 4/4
       And what's left of the idle stage's 0.039 W is its threads' wakeups (the stage's 250 ms wait, the event loop):
         the target's "~0" would mean an idle app with nothing waking, the app parked; that's where R6 stops
-    Scenario: 2026-10-19 early: more blocked rows, final (sent to an agent session)
+    Scenario: 2026-10-19 early: more blocked rows, final (sent to the orchestrator)
       Then R7 (65.66 against 65) is blocked on features: what's left in the player that it could drop is image-webp
         (0.34 MB, anyrender_svg's image_format_webp: WebP images in a game's pages and SVGs would stop drawing) and
         sqlparser (2.3 MB, rdb's core: a refactor); tokenizers isn't in the player. 0.66 MB isn't worth losing WebP
@@ -559,12 +559,12 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       And T4 (1553 renders an hour, titles at 4 processes; 311 before the blur work) is encoder-bound as T1 and T2 are,
         which is its target's own wording
       And Q6 (the agent's first-try rate) is the new-stack eval's, measured nightly by its own agent: not lightspeed's
-      And F5's app launch (~280 against 100) and R6's idle stage are open, an agent session's next items
+      And F5's app launch (~280 against 100) and R6's idle stage are open, the orchestrator's next items
     Scenario: 2026-10-19 early: R6's idle stage and Q3's colour floor
       Then a headless legacy app with titles paused (energy.sh's idle, 0.047-0.05 W): nearly every thread waits, but CoreAudio's
         IOThread calls Firewheel's process each callback (VoicesProc zeroing buffers, the master limiter on silence),
         the output stream open while paused; stopping it while paused and starting it again on play is the lever,
-        an agent session's (mixer/ and the stage). Measured no: the voice speak thread's 20 ms wakeups (sleeping while idle left
+        the orchestrator's (mixer/ and the stage). Measured no: the voice speak thread's 20 ms wakeups (sleeping while idle left
         idle W unchanged, reverted)
       And Q3.colour is blocked on the format: an exact 8-bit limited-range BT.709 round trip (RGB -> Y'CbCr -> RGB, no
         encoder) has a worst error of 2/255 and 1 on 83% of 200,000 random colours, so the export's 2 is that floor;
@@ -582,12 +582,12 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       Then play presents frame 0 as soon as the object is open, the sound readied after it (44028f1): pong's spawn to
         first frame 339 -> 91-94 ms; startup.sh F5.game 70.2, F5.timeline 81.3 ms (load 26-30); the audio gate's
         seedling passes both ways (its one failure was load 32)
-      And R7 (an agent session, e0f14b3): the exported player runs offline, fonts inlined at export: 65.66 MB
-      And F2's arena3d frame on the GPU (an agent session's Metal trace): ~1.8 ms (quads 0.52, opaque 0.48, four shadow
+      And R7 (the orchestrator, e0f14b3): the exported player runs offline, fonts inlined at export: 65.66 MB
+      And F2's arena3d frame on the GPU (the orchestrator's Metal trace): ~1.8 ms (quads 0.52, opaque 0.48, four shadow
         cascades 0.38, wgpu internals 0.21, clustering 0.11); the CPU side (Bevy's update, extract and encode) is the
-        larger half of its ~3 ms. an agent session takes the exact GPU items (indirect-draw validation off in release, batched
+        larger half of its ~3 ms. the orchestrator takes the exact GPU items (indirect-draw validation off in release, batched
         staging), then the CPU side
-    Scenario: 2026-10-18 night: blocked rows, final for tonight (sent to an agent session)
+    Scenario: 2026-10-18 night: blocked rows, final for tonight (sent to the orchestrator)
       Then T1 and T2 are blocked on the hardware: H.264 on the media engine is ~275 fps at 1080x1920 with speed already
         prioritized and non-realtime, and there's one engine (two sessions halve each other); 600 frames can't go under
         ~2.2 s. Unblocks with another encode path: HEVC (the muxer failed, turn 3) or an export split across the
@@ -603,18 +603,18 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       And F6 is blocked on the GPU's clocks: pong's card frame is its first GPU work after the light game let clocks fall
         (the same group pass is 0.9 ms the first frame, 0.38 two frames later); the app can't hold clocks up, and making
         the card's work smaller didn't move it (two measured noes)
-      And R7 is in progress, not blocked: an agent session's offline player (no rustls/ureq, fonts embedded at export) should
+      And R7 is in progress, not blocked: the orchestrator's offline player (no rustls/ureq, fonts embedded at export) should
         take 66.77 MB under 65
     Scenario: 2026-10-18 night: executive decisions (the user, out until morning: "take executive decision")
       Then R7's target is <= 65 MB, not 50: opt-level s reached 53.8 MB at +20-22% frame work, and feel outranks bytes
       And the exported player runs offline: export-game embeds every font the game uses and the player drops the
-        network (rustls/ureq, ~1 MB), taking it under 65 MB (an agent session)
+        network (rustls/ureq, ~1 MB), taking it under 65 MB (the orchestrator)
       And R3's target is an idle footprint <= 200 MB (a stage <= +40): offscreen raea alone is 149-151 MB, so
         100 MB needs JSC or the GPU work out of process, logged as a later lever, not tonight's
       And ZeroHeap Z2 goes in as an opt-in fixed-state API beside today's SDK (games written today keep working),
         pong first, measured on R1/R2 (lightspeed). Revised after measuring (below): Z3 first, Z2 after
     Scenario: 2026-10-18 night: the clean feel run, and pong's card frame
-      Then an agent session's clean run (no other jobs, load 5.2 -> 3.0): F3 met (0 missed), F2 worst arena3d 4.58 ms p99.9, F6
+      Then the orchestrator's clean run (no other jobs, load 5.2 -> 3.0): F3 met (0 missed), F2 worst arena3d 4.58 ms p99.9, F6
         37 (pong's card; the logged 7117 predates da1dbe3, which adds the work p50 3d1ecde's rule reads), R1 125 KB, R2
         196/min
       And pong's card frame: the frame after the card first draws waits 4.3 ms with ~2.4 ms of timed GPU passes; its
@@ -638,39 +638,39 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       And so the lever for R1/R2 is Z3, the view compiled at bundle time into update functions bound to what changed
         (no per-frame elements), with Z2's fixed state after it for the last ~10 KB. useGameEvents' per-frame copies of
         its frame lists are a few KB and returning a shared array would break a game that mutates it: left as is
-      And F1 in a window stays blocked: no window on the founder's screen without their consent
+      And F1 in a window stays blocked: no window on the user's screen without their consent
     Scenario: 2026-10-18 night: where each open row stands, and what blocks it
       Then met: F4 (scrub 12.5-14.6 / 16.6-26.6 ms), Q1 (render = play 1.000000 everywhere checked), Q2 (react/ 0 fail)
       And blocked on the hardware: T1 and T2 sit at the H.264 engine's floor (~275 fps at 1080x1920, one engine, speed
         already prioritized, non-realtime); <= 1 s needs another encode path (HEVC failed in the muxer, turn 3)
       And blocked on the person: F1 in the app's window needs a visible window the user agrees to (the lever to try:
         desired_maximum_frame_latency 1); R5 and Q5 need the iPhone unlocked; R7's target (50 MB costs +20-22% frame work
-        with opt-level s; ~66-67 MB without it) and the offline player (rustls, ~1 MB) are the founder's calls; R1/R2 to 0
+        with opt-level s; ~66-67 MB without it) and the offline player (rustls, ~1 MB) are the user's calls; R1/R2 to 0
         need ZeroHeap Z2 (game state in one fixed buffer), which changes the SDK games are written against
       And F2 arena3d attributed further: offscreen, a frame's present is Live::prepare (Bevy's update and render
         submit), the quads composite (now 0.72 ms GPU) and the wait for the frame before (two in flight), so its work
         is about one frame's GPU time, ~2 ms of it Bevy's render at low clocks. Measured no: MSAA off (work and present
         unchanged, 3 pairs). Bevy's main passes report no GPU time (Apple GPUs time only at pass boundaries), so the next
-        step is a Metal trace of arena3d's frame, in the live-3D area an agent session coordinates
+        step is a Metal trace of arena3d's frame, in the live-3D area the orchestrator coordinates
       And L0 complete: bench/scoreboard.sh fills 27 of 27 rows. Two harness faults fixed: export.sh timed export-cache
         hits since 3479eea (4fce2f0: T1 read 0.024 s, T4 1.1 M/h; now 2.456 s, T2 2.702 s, T4 1553/h), and F6 counted
-        every arena3d frame (3d1ecde: games whose median frame is near 2 ms are F2's, listed). an agent session's e051025 marks a
+        every arena3d frame (3d1ecde: games whose median frame is near 2 ms are F2's, listed). the orchestrator's e051025 marks a
         run NOT QUIET when another agent's job overlapped it
       And F6/F2 attributed: platformer's 4.6-18.9 ms steps in the last feel.sh run were another agent's export.sh
-        overlapping it (an agent session: four quiet repeats never spiked, GC pauses <= 1.13 ms, p99.9 3.46 ms); the harness is
+        overlapping it (the orchestrator: four quiet repeats never spiked, GC pauses <= 1.13 ms, p99.9 3.46 ms); the harness is
         getting a NOT QUIET mark for runs other agents' jobs overlap. Pong's remaining hitch is the score card's first
         frame: its group's first GPU work at clocked-down GPU clocks, the next frame waiting 3.5-5.0 ms. Measured no:
         page-sized group targets from the start (the regrow at that frame isn't the cost)
       And F2 arena3d: a tile one instance covers whole skips the fine pass's staging (0471084, exact): page pass 1.93
         -> 0.72 ms GPU, pong 1.5-2.6 -> 1.5-2.2; frame work level (Bevy and the wait are the rest)
-      And R7 (an agent session, 9012fdc): blitz-v8-script and raea-modules gated out of the player (default-on features the legacy app,
+      And R7 (the orchestrator, 9012fdc): blitz-v8-script and raea-modules gated out of the player (default-on features the legacy app,
         browser and the iOS builds keep): 72.33 -> 66.77 MB, export selftests and renders 1.000000
       And R3 against its target: offscreen raea playing pong (no window, no chrome, no app) is already 149-151 MB
         of footprint, so an idle app at <= 100 MB needs another process shape (JSC or the GPU work out of process),
         a design call for the user. Meanwhile the GPU half keeps falling: blur scratch rings out of the threads
         (c68aca2: the legacy app idle 653 -> 272 MB), bounded group targets and a growing atlas (195945d, 5ff5843), the blur's
         8-bit scratch (a676f30: titles 56.8 -> 50.1 MB)
-      And open, being worked: F6/F2 (pong's card frame on a clocked-down GPU; platformer's step spikes, an agent session
+      And open, being worked: F6/F2 (pong's card frame on a clocked-down GPU; platformer's step spikes, the orchestrator
         attributing; arena3d's steady 3D frame: its page pass is one full-coverage texture per tile, 1.9 ms at low
         clocks, so a fast path for single-instance tiles is next), F3 (5 missed in 3 x 60 s, at those same frames)
     Scenario: 2026-10-18, turn 5: the 2D compositor's GPU time and memory (F6, R4)
@@ -687,10 +687,10 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
       And a fill covering a whole tile is only painted there (d06d52e: the bin entry's FULL flag, exact): pong's page
         pass 2.99 -> 2.45 ms, frame GPU p99 3.84-3.96 -> 3.03-3.45 ms, paired. Dropped, measured: staging instances in
         workgroup memory (~4x slower: occupancy)
-      And L9 (an agent session, 4100b50): the legacy app's stage drew thickened glyphs because dioxus-native's default features compiled
+      And L9 (the orchestrator, 4100b50): the legacy app's stage drew thickened glyphs because dioxus-native's default features compiled
         blitz-paint's apple-font-embolden into the whole process; it's per document now (on for the legacy app's chrome only).
         ts1 full-page seeks vs render 0.997160-0.998681 -> 1.000000, paired
-      And F4 attributed (an agent session): k4's 4K seeks are the hardware decoder's (1.6-1.8 ms a reference frame, ~25 per seek
+      And F4 attributed (the orchestrator): k4's 4K seeks are the hardware decoder's (1.6-1.8 ms a reference frame, ~25 per seek
         deep in a 1-2 s GOP), not restarts. Lever chosen: an intra-only mezzanine for long-GOP sources over 1080p
       And R3 attributed: an idle legacy app's footprint was 653 MB, 566 of it GPU memory neither RSS nor Metal's device count
         shows: the three-box blur's (00d156f) two 4 KB rings per thread, which the driver backs with scratch for every
@@ -698,7 +698,7 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         titles offscreen 535-542 -> 165-173 MB, a titles render 3.6-3.8 -> 3.4-3.5 s. R3's RSS row never saw it, so R3
         now carries footprint too
       And the export cache keys the build (7230a2b): a rebuilt engine was answered with the last one's video
-      And an agent session: F4's 4K scrub from a ProRes 422 copy made in the background (f83ae45: p99 52.2 -> 17.7-28.2 ms,
+      And the orchestrator: F4's 4K scrub from a ProRes 422 copy made in the background (f83ae45: p99 52.2 -> 17.7-28.2 ms,
         seeks = render 1.000000); R7's player keeps a dSYM beside it and crash files carry UUID and slide (af0c12f)
       And T2 attributed: a 3D export is the H.264 engine's (frames 3.6-4.3 ms, 3.3 ms of it feeding the encoder, which
         already prioritizes speed and runs non-realtime); setup is ~0.5 s. Its 1 s target needs another encode path
@@ -716,21 +716,21 @@ Feature: Lightspeed: raea as fast as anything could be, with the best quality, m
         Pong's 13-miss frame 1.42 -> 0.47 ms record, the 30-miss one 1.13-1.21 -> 0.52-0.55
       And feel.sh at load ~4 after them: pong 57 hitches (its card frame, GPU), platformer 35 (game steps of 4.6-18.9
         ms around 14.6 s, being attributed), counts swinging run to run; F3 5 missed in 3 x 60 s
-      And R7 (an agent session, bc82df0): AV1 gated out of the player, 74.55 -> 72.33 MB, export selftests and renders 1.000000
-      And F4 met (an agent session, b0f6e8e): a seek's present was 6.2 ms of Dom::load_fonts re-parsing every stylesheet (the
+      And R7 (the orchestrator, bc82df0): AV1 gated out of the player, 74.55 -> 72.33 MB, export selftests and renders 1.000000
+      And F4 met (the orchestrator, b0f6e8e): a seek's present was 6.2 ms of Dom::load_fonts re-parsing every stylesheet (the
         injected base64 @font-face included) after each reset re-created the <style>s; it's skipped while the font CSS
         is unchanged (60/61 hits, 0.02 ms). ts1 scrub p99 12.5-12.8 ms with range copies; check.sh, gate.sh and parity
         unchanged. Left in the tail: glyph misses on a caption's first sight (3-5 ms record on 10 of 61 seeks)
-      And F4 (an agent session): ProRes copies of just the ranges an edit uses (5cd890d, mapped by time, 449 MB for ts1): ts1
+      And F4 (the orchestrator): ProRes copies of just the ranges an edit uses (5cd890d, mapped by time, 449 MB for ts1): ts1
         scrub p99 23.5-24.5 -> 19.7-20.0 ms, step p99 12.4 -> 7.8; present (p99 12 ms) is now the larger half. R3:
         decoding 4K copies through AVAssetReaderVideoCompositionOutput kept its own pool of 4K frames (footprint 182
         -> 687-705 MB); identity tracks read through AVAssetReaderTrackOutput, pixels identical: 290-292 MB (b4e7cc8)
-      And F4/Q1 in the legacy app (an agent session, 9e5f358): copies made mid-session left the stage's decoders on the sources while
+      And F4/Q1 in the legacy app (the orchestrator, 9e5f358): copies made mid-session left the stage's decoders on the sources while
         renders opened the copies (seeks vs render 0.993-0.996); the legacy app now reopens the decoders once a copy is made.
         k4 in a headless legacy app: scrub p99 52.2 -> 9.1 ms, missed 2 -> 0, seeks 1.000000. R3 cost: RSS max 280 -> 434 MB
         with 4K ProRes in the decoder
-      And Q2 (an agent session, 71a349d): every react/ parity case passes (8 exact, 8 ok, 0 fail); shadcn 0.9997
-      And CI (an agent session, a599687): the games gates failed every CI run since ~13:30 because a Standard launchd agent's GPU
+      And Q2 (the orchestrator, 71a349d): every react/ parity case passes (8 exact, 8 ok, 0 fail); shadcn 0.9997
+      And CI (the orchestrator, a599687): the games gates failed every CI run since ~13:30 because a Standard launchd agent's GPU
         work is scheduled low (present p99 11.4 ms, 170-260 missed); the plists are Interactive now (1 missed, p99 3.6
         ms). The rest (~3000 hitches over 2 ms in 30 s against 3 from a terminal) is frontmost-app priority, so CI's
         F-rows read with the legacy app not frontmost, and F2/F3 history before a599687 is polluted. mezz's cap is min(20 GB, free -

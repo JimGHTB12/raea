@@ -1,0 +1,6 @@
+# The Rust raea builds with: rustup's proxies (cargo, rustc) read this pin in every checkout, CI included. Bevy 0.20's
+# port was built on 1.97.1 and moved to 1.99.1 (bevy_rich_text3d 0.8 needs str::substr_range). Move it to a newer
+# stable whenever that buys something (a plugin, speed, a feature), checked against the gates in docs/bevy-upgrade.md.
+[toolchain]
+channel = "1.99.1"
+components = ["clippy", "rustfmt"]

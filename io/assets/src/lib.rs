@@ -6,7 +6,7 @@
 //! seed, what tests use), the two local audio models, `tokensynth` (an instrument's notes, for music) and `sao` (Stable
 //! Audio Open on Core ML, foley). Every model runs on this computer. `lyria` (music) and `fish` (narration, through
 //! raea's API) are retired: a take made before plays from the index, and a new one is refused. Narration is Pocket TTS
-//! (raea/speech), and Fish Audio is a `raea gen` backend like fal or Replicate (`fish:<model>`, the founder's own key). The local models install themselves on first use (tools/sao/setup.sh,
+//! (raea/speech), and Fish Audio is a `raea gen` backend like fal or Replicate (`fish:<model>`, the user's own key). The local models install themselves on first use (tools/sao/setup.sh,
 //! tools/tokensynth/setup.sh). Each made asset gets a line in `assets/made.jsonl` under its cache key, a hash of
 //! (model, prompt, seed, params); `made` reads only that index, so a render or a check that resolves a make() never
 //! generates.

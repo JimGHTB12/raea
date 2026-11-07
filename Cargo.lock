@@ -13626,6 +13626,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-app-judge"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "image",
+ "raea-io-home",
+ "raea-runtime-bundle",
+ "serde_json",
+ "ureq 2.12.1",
+]
+
+[[package]]
 name = "raea-app-media"
 version = "0.1.0"
 dependencies = [
@@ -13653,6 +13665,18 @@ dependencies = [
  "raea-sys-speech",
  "serde_json",
  "winit",
+]
+
+[[package]]
+name = "raea-app-solid"
+version = "0.1.0"
+dependencies = [
+ "raea-app-judge",
+ "raea-core-meshcheck",
+ "raea-core-shape",
+ "raea-core-solidinfo",
+ "raea-runtime-bundle",
+ "serde_json",
 ]
 
 [[package]]
@@ -13895,8 +13919,10 @@ dependencies = [
  "raea-app-check",
  "raea-app-ci",
  "raea-app-game",
+ "raea-app-judge",
  "raea-app-media",
  "raea-app-play",
+ "raea-app-solid",
  "raea-app-targets",
  "raea-app-tools",
  "raea-app-workspace",
@@ -13967,12 +13993,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-core-grow"
+version = "0.1.0"
+dependencies = [
+ "raea-core-sdf",
+]
+
+[[package]]
 name = "raea-core-k"
 version = "0.1.0"
 
 [[package]]
+name = "raea-core-meshcheck"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "raea-core-place"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "raea-core-program"
 version = "0.1.0"
+
+[[package]]
+name = "raea-core-review"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-core-scene",
+ "serde_json",
+]
 
 [[package]]
 name = "raea-core-scene"
@@ -13984,13 +14040,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-core-sdf"
+version = "0.1.0"
+
+[[package]]
 name = "raea-core-shape"
 version = "0.1.0"
 dependencies = [
  "manifold-rust",
  "raea-core-fonts",
+ "raea-core-grow",
+ "raea-core-sdf",
  "serde_json",
  "skrifa 0.44.0",
+]
+
+[[package]]
+name = "raea-core-solidinfo"
+version = "0.1.0"
+dependencies = [
+ "manifold-rust",
+ "raea-core-place",
+ "raea-core-shape",
+ "serde_json",
 ]
 
 [[package]]
@@ -14101,6 +14173,7 @@ name = "raea-io-gen"
 version = "0.1.0"
 dependencies = [
  "image",
+ "raea-core-meshcheck",
  "raea-io-gen-comfy",
  "raea-io-gen-core",
  "raea-io-home",
@@ -14406,6 +14479,7 @@ dependencies = [
  "raea-sys-page",
  "raea-sys-parity",
  "raea-sys-post",
+ "raea-sys-procmat",
  "raea-sys-rt",
  "raea-sys-sampler",
  "raea-sys-screen",
@@ -14432,20 +14506,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-rune-bevy"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "rune",
+ "wgpu",
+]
+
+[[package]]
 name = "raea-rune-host"
 version = "0.1.0"
 dependencies = [
+ "bevy",
  "png 0.18.1",
  "raea-core-wire",
  "raea-io-net-calls",
  "raea-io-os",
+ "raea-rune-bevy",
+ "raea-rune-js",
  "raea-rune-look",
  "raea-rune-media",
  "raea-rune-page",
  "raea-runtime-bundle-lib",
- "raea-runtime-jsengine",
  "rune",
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-rune-js"
+version = "0.1.0"
+dependencies = [
+ "raea-core-wire",
+ "raea-io-net-calls",
+ "raea-io-os",
+ "raea-rune-page",
+ "raea-runtime-jsengine",
  "serde_json",
 ]
 
@@ -14522,6 +14619,7 @@ name = "raea-runtime-bundle-lib"
 version = "0.1.0"
 dependencies = [
  "libloading",
+ "raea-io-home",
  "serde_json",
 ]
 
@@ -14533,6 +14631,7 @@ dependencies = [
  "bevy",
  "image",
  "manifold-rust",
+ "raea-core-place",
  "raea-core-scene",
  "raea-core-shape",
  "raea-io-media",
@@ -14605,6 +14704,7 @@ dependencies = [
  "bevy",
  "image",
  "raea-core-program",
+ "raea-core-review",
  "raea-core-scene",
  "raea-gpu-device",
  "raea-io-assets",
@@ -14616,6 +14716,7 @@ dependencies = [
  "raea-runtime-page",
  "raea-runtime-react",
  "raea-runtime-scene",
+ "raea-runtime-scene3d",
  "raea-runtime-sound",
  "raea-runtime-view",
  "raea-sys-contact",
@@ -14798,8 +14899,10 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "raea-core-program",
+ "raea-core-review",
  "raea-core-scene",
  "raea-runtime-look",
+ "raea-sys-procmat",
  "raea-sys-wear",
  "serde_json",
 ]
@@ -14985,6 +15088,7 @@ name = "raea-sys-contact"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "raea-core-meshcheck",
  "raea-core-scene",
  "raea-core-shape",
  "serde_json",
@@ -15279,6 +15383,16 @@ dependencies = [
  "bevy",
  "raea-core-program",
  "raea-sys-frame",
+]
+
+[[package]]
+name = "raea-sys-procmat"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-core-program",
+ "raea-sys-frame",
+ "serde_json",
 ]
 
 [[package]]
@@ -20204,6 +20318,8 @@ dependencies = [
  "once_cell",
  "rustls",
  "rustls-pki-types",
+ "serde",
+ "serde_json",
  "url",
  "webpki-roots 0.26.11",
 ]

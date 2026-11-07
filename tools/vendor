@@ -1,0 +1,143 @@
+#!/bin/bash
+# raea's vendored crates, against the upstream versions in vendor/vendor.toml.
+#
+#   tools/vendor ls                   each crate: kind, upstream, lines changed, files changed, marked files
+#   tools/vendor diff <crate>         our patch: upstream -> our copy (Cargo.toml included)
+#   tools/vendor check                the manifest matches the tree: every [patch] and vendored path listed, every
+#                                     path present, a bump changes no source, a patch marks each changed file
+#   tools/vendor bump <crate> <ver>   our changes moved onto upstream <ver> (three-way, per file); conflicts are left
+#                                     marked in the files and listed; the manifest's upstream is updated
+#   tools/vendor outdated             each crate with a newer crates.io release than its base: the version, and which of
+#                                     our changed files that release already has as ours (upstream took the change)
+#
+# Upstream sources are fetched once from static.crates.io into ~/.cache/raea-vendor (cargo's registry copy is used
+# when it has one).
+set -uo pipefail
+RAEA=${RAEA_ROOT:-$HOME/raea}
+M=$RAEA/vendor/vendor.toml
+CACHE=${RAEA_VENDOR_CACHE:-$HOME/.cache/raea-vendor}
+MARK='raea:|raea patch'
+# what crates.io packaging adds or drops, which isn't ours
+X=(-x Cargo.toml.orig -x .cargo_vcs_info.json -x Cargo.lock -x target -x .git)
+cd "$RAEA" || exit 2
+
+names() { awk -F'[][]' '/^\[[^]]+\]$/{print $2}' "$M"; }
+field() { awk -v n="[$1]" -v k="$2" '$0==n{p=1; next} /^\[/{p=0} p && $1==k {sub(/^[^=]*= *"/, ""); sub(/" *$/, ""); print; exit}' "$M"; }
+
+# the upstream copy of <crate> at <upstream>, fetched if needed; prints its directory
+upstream_dir() {
+  local name=$1 up=$2 ver dir reg
+  case $up in
+    crates.io:*) ver=${up#crates.io:} ;;
+    *) echo "vendor: $name: only crates.io upstreams are fetched ($up)" >&2; return 1 ;;
+  esac
+  for reg in "$HOME"/.cargo/registry/src/index.crates.io-*/"$name-$ver"; do [ -d "$reg" ] && { echo "$reg"; return; }; done
+  dir=$CACHE/$name-$ver
+  if [ ! -d "$dir" ]; then
+    mkdir -p "$CACHE"
+    curl -fsSL "https://static.crates.io/crates/$name/$name-$ver.crate" | tar -xz -C "$CACHE" ||
+      { echo "vendor: couldn't fetch $name $ver" >&2; return 1; }
+  fi
+  echo "$dir"
+}
+
+# files that differ (relative paths), excluding packaging; Cargo.toml reported separately
+changed_files() { diff -rq "${X[@]}" "$1" "$2" 2>/dev/null | awk -v a="$1/" -v b="$2/" '
+  / differ$/ {f=$2; sub(a, "", f); print f; next}
+  /^Only in / {d=$3; sub(/:$/, "", d); f=d "/" $4; if (index(f, b)==1) {sub(b, "", f); print f}}'; }
+
+cmd=${1:-}; shift || true
+case $cmd in
+  ls)
+    printf '%-17s %-6s %-22s %7s %6s %7s\n' CRATE KIND UPSTREAM LINES FILES MARKED
+    for n in $(names); do
+      p=$(field "$n" path); up=$(field "$n" upstream); k=$(field "$n" kind)
+      u=$(upstream_dir "$n" "$up") || { printf '%-17s %-6s %-22s %s\n' "$n" "$k" "$up" "(no upstream copy)"; continue; }
+      lines=$(diff -r "${X[@]}" -x Cargo.toml "$u" "$p" 2>/dev/null | grep -cE '^[<>]')
+      files=$(changed_files "$u" "$p" | grep -vxc Cargo.toml)
+      marked=0; for f in $(changed_files "$u" "$p" | grep -vx Cargo.toml); do grep -qE "$MARK" "$p/$f" 2>/dev/null && marked=$((marked + 1)); done
+      printf '%-17s %-6s %-22s %7s %6s %7s\n' "$n" "$k" "$up" "$lines" "$files" "$marked"
+    done
+    ;;
+  diff)
+    n=${1:?crate}; p=$(field "$n" path); [ -n "$p" ] || { echo "vendor: $n isn't in vendor/vendor.toml" >&2; exit 2; }
+    u=$(upstream_dir "$n" "$(field "$n" upstream)") || exit 1
+    diff -ruN "${X[@]}" "$u" "$p"
+    ;;
+  check)
+    fail=0
+    say() { echo "vendor: $*" >&2; fail=1; }
+    listed=" $(for n in $(names); do field "$n" path; done | tr '\n' ' ') "
+    # every [patch.crates-io] path and every vendored crate directory is in the manifest
+    for p in $(awk '/^\[patch\.crates-io\]/{x=1; next} /^\[/{x=0} x && /path *=/' Cargo.toml | sed -E 's/.*path *= *"([^"]+)".*/\1/'); do
+      case $listed in *" $p "*) ;; *) say "Cargo.toml patches $p, which vendor/vendor.toml doesn't list" ;; esac
+    done
+    for d in $(ls -d vendor/*/ | sed 's#/$##'); do
+      case $listed in *" $d "*) ;; *) say "$d is vendored but not listed" ;; esac
+    done
+    # every copy lives under vendor/: a crate vendored anywhere else is out of place
+    for d in $(git ls-files '*/vendor/*/Cargo.toml' | xargs -n1 dirname | sort -u); do
+      [ -d "$d" ] && say "$d is vendored outside vendor/ (move it there and list it)"
+    done
+    for n in $(names); do
+      p=$(field "$n" path); k=$(field "$n" kind); up=$(field "$n" upstream)
+      for key in path upstream kind reason exit; do [ -n "$(field "$n" $key)" ] || say "$n has no $key"; done
+      [ -d "$p" ] || { say "$n: no $p"; continue; }
+      u=$(upstream_dir "$n" "$up") || { say "$n: no upstream copy to check against"; continue; }
+      src=$(changed_files "$u" "$p" | grep -vx Cargo.toml)
+      case $k in
+        bump) [ -z "$src" ] || say "$n is a bump but changes source: $(echo $src)" ;;
+        patch)
+          [ -n "$src" ] || say "$n is a patch but changes no source (a bump?)"
+          for f in $src; do grep -rqE "$MARK" "$p/$f" 2>/dev/null || say "$n: $f differs from upstream with no raea: mark"; done ;;
+        *) say "$n: kind is $k (bump or patch)" ;;
+      esac
+    done
+    [ $fail = 0 ] && echo "vendor: ok ($(names | wc -l | tr -d ' ') crates)"
+    exit $fail
+    ;;
+  bump)
+    n=${1:?crate}; new=${2:?version}; p=$(field "$n" path); up=$(field "$n" upstream)
+    [ -n "$p" ] || { echo "vendor: $n isn't in vendor/vendor.toml" >&2; exit 2; }
+    base=$(upstream_dir "$n" "$up") || exit 1
+    theirs=$(upstream_dir "$n" "crates.io:$new") || exit 1
+    conflicts=()
+    # every file of the new upstream, merged with our change to it (base = the upstream we patched)
+    while IFS= read -r f; do
+      [ "$f" = Cargo.toml.orig ] || [ "$f" = .cargo_vcs_info.json ] && continue
+      mkdir -p "$p/$(dirname "$f")"
+      if [ -f "$p/$f" ] && [ -f "$base/$f" ]; then
+        cp "$p/$f" "$p/$f.ours"
+        if ! git merge-file -L ours -L "$up" -L "crates.io:$new" "$p/$f.ours" "$base/$f" "$theirs/$f"; then conflicts+=("$f"); fi
+        mv "$p/$f.ours" "$p/$f"
+      elif [ ! -f "$p/$f" ]; then
+        cp "$theirs/$f" "$p/$f"
+      fi
+    done < <(cd "$theirs" && find . -type f | sed 's|^\./||')
+    # files upstream dropped since the base, which we hadn't changed, go too
+    while IFS= read -r f; do
+      [ -f "$theirs/$f" ] || { cmp -s "$base/$f" "$p/$f" && rm "$p/$f"; }
+    done < <(cd "$base" && find . -type f | sed 's|^\./||')
+    sed -i '' "/^\[$n\]\$/,/^\[/ s|^upstream = \".*\"|upstream = \"crates.io:$new\"|" "$M"
+    if [ ${#conflicts[@]} -gt 0 ]; then
+      echo "vendor: $n moved to $new with conflicts (marked <<<<<<< in each):"; printf '  %s/%s\n' "$p" "${conflicts[@]}"; exit 1
+    fi
+    echo "vendor: $n moved to $new cleanly; build it and run tools/vendor check"
+    ;;
+  outdated)
+    printf '%-17s %-14s %-14s %s\n' CRATE BASE NEWEST "OURS IN NEWEST"
+    for n in $(names); do
+      up=$(field "$n" upstream); base=${up#crates.io:}; p=$(field "$n" path)
+      # a pre-release base compares against every release, a stable one against stable releases only
+      case $base in *-*) key=max_version ;; *) key=max_stable_version ;; esac
+      newest=$(curl -fsS -A raea-vendor "https://crates.io/api/v1/crates/$n" 2>/dev/null | jq -r ".crate.$key // .crate.max_version")
+      [ -n "$newest" ] && [ "$newest" != null ] || { printf '%-17s %-14s %s\n' "$n" "$base" "(crates.io unreachable)"; continue; }
+      [ "$(printf '%s\n%s\n' "$base" "$newest" | sort -V | tail -1)" = "$base" ] && continue
+      b=$(upstream_dir "$n" "$up") && u=$(upstream_dir "$n" "crates.io:$newest") || continue
+      changed=$(changed_files "$b" "$p" | grep -vx Cargo.toml); total=$(printf '%s' "$changed" | grep -c .) same=0
+      for f in $changed; do cmp -s "$u/$f" "$p/$f" && same=$((same + 1)); done
+      printf '%-17s %-14s %-14s %s of %s files\n' "$n" "$base" "$newest" "$same" "$total"
+    done
+    ;;
+  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2 ;;
+esac

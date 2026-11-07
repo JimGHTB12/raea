@@ -1,5 +1,5 @@
 //! Optical flow through Apple Vision (VNGenerateOpticalFlowRequest, on the Neural Engine and GPU; no model shipped),
-//! reduced per frame pair to what editing rules ask about motion (docs/the roadmap Track L, the FLOW slot):
+//! reduced per frame pair to what editing rules ask about motion (docs/goal.feature Track L, the FLOW slot):
 //!
 //!   grid   mean flow magnitude in a 3x3 grid, as a share of the frame's width per frame pair (where things move)
 //!   dx dy  the mean flow (a pan or a scroll), same unit; dy > 0 is downward

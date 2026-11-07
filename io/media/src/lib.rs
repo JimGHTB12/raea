@@ -10,8 +10,8 @@
 //!
 //! Other platforms (Android MediaCodec, Linux VA-API / NVDEC) slot in behind the same trait.
 //!
-//! This crate is that one name: the backends compiled in (by feature), each encoder signing what it finishes, and the
-//! seam's types re-exported, so callers say `raea_io_media::backend("apple")`.
+//! This crate is that one name: the backends compiled in (by feature), each wrapped by a signer when one is
+//! installed (sign.rs), and the seam's types re-exported, so callers say `raea_io_media::backend("apple")`.
 
 pub use raea_io_codec::*;
 #[cfg(all(feature = "apple", target_vendor = "apple"))]
@@ -27,7 +27,7 @@ pub mod pcm;
 /// optimized copies of long-GOP sources: where they are and how they're made
 pub mod mezz;
 
-#[cfg(any(feature = "soft-audio", feature = "provenance"))]
+#[cfg(feature = "soft-audio")]
 use std::path::Path;
 
 /// `secs` seconds of a file's sound from `start` (decode_audio's time): a seek and a short decode, for streaming a long
@@ -53,16 +53,13 @@ pub fn backends() -> Vec<Box<dyn Backend>> {
     v.push(Box::new(apple::Apple));
     #[cfg(feature = "av1")]
     v.push(Box::new(av1::Av1));
-    v
+    // an installed signer wraps each backend, so its encoders sign and mark what they write (sign.rs)
+    v.into_iter().map(sign::wrap).collect()
 }
 
-/// Whether this build's encoders sign what they write (Content Credentials): raea's own build does, the public engine
-/// doesn't, and a report says which (docs/targets.feature T1e)
-pub const SIGNS: bool = signs();
-const fn signs() -> bool {
-    false
-}
-
+/// Signing what raea writes (Content Credentials, the watermark): a hook a signer installs from outside this crate
+pub mod sign;
+pub use sign::signs;
 
 /// The backends to try for a file, in order: RAEA_MEDIA's, the platform's, the portable one, then the ffmpeg CLI
 /// (which reads what the others don't: VP9 WebM).
@@ -85,5 +82,4 @@ pub fn backend(name: &str) -> R<Box<dyn Backend>> {
         .find(|b| b.name() == name)
         .ok_or(format!("no backend {name:?} in this build"))
 }
-
 

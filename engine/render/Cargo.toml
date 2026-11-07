@@ -20,6 +20,8 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg",
 raea-core-program = { path = "../../core/program" }
 # worn surfaces on a mesh row (`wear`)
 raea-sys-wear = { path = "../../systems/wear" }
+# procedural surfaces on a mesh row (`proc`)
+raea-sys-procmat = { path = "../../systems/procmat" }
 raea-core-shape = { path = "../../core/shape" }
 # text in the 3D world (<RichText>): each glyph a lit, shaded entity
 raea-sys-text3d = { path = "../../systems/text3d" }

@@ -85,7 +85,7 @@ impl Pocket {
         out
     }
 
-    /// The voice to use when none is chosen: the founder's clip "watts" when it's there, otherwise alba.
+    /// The voice to use when none is chosen: the user's clip "watts" when it's there, otherwise alba.
     pub fn default_voice() -> String {
         if Self::voice_dir().join("watts.wav").exists() { "watts".into() } else { "alba".into() }
     }

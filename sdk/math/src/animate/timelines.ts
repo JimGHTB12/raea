@@ -1,6 +1,6 @@
 // Timelines (who moves when, decided once), and the wire: an Animation for the engine.
 import { useContext, useRef } from "react";
-import { ClockContext, LocalTimeContext, TimeBaseContext } from "@raea/app/clock";
+import { ClockContext, LocalTimeContext, TimeBaseContext, useClockTick } from "@raea/app/clock";
 import type { AnimKey, AnimTrack } from "../animate.gen";
 import { Move, MoveLike, move, toMove } from "./all";
 
@@ -136,6 +136,7 @@ export function useTime(caller: string): Time {
     const clock = useContext(ClockContext);
     if (!clock) throw new Error(`${caller} was called outside a Clock: render it inside a composition`);
     const local = useContext(LocalTimeContext);
+    useClockTick(local ? null : clock);
     cur.frame = local ? local.frame : clock.frame;
     cur.fps = clock.config.fps;
   }

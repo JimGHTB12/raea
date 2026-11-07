@@ -250,6 +250,10 @@ impl LayoutPassState<'_> {
             ..
         } = inputs;
 
+        // raea: `data-raea-bevy-text` (sdk/render's bevy_ui <Text>) measures as bevy_text does: its size rounded up
+        // to whole device pixels (pipeline.rs: `layout_info.size = ...ceil()`), not to Chrome's 1/64 px layout unit
+        let unit: f32 = if self.nodes[node_id].is_bevy_text() { 1.0 } else { 64.0 };
+
         // Take inline layout to satisfy borrow checker
         let mut inline_layout = self.nodes[node_id]
             .data
@@ -633,7 +637,7 @@ impl LayoutPassState<'_> {
                 };
                 // raea: rounded up to Chrome's layout unit (1/64 px), not to a whole pixel: a shrink-to-fit box around
                 // text is as wide as Chrome makes it (a 7-glyph label at 9.6 px a glyph is 67.2 px, not 68)
-                let computed_width = (computed_width * 64.0).ceil() / 64.0;
+                let computed_width = (computed_width * unit).ceil() / unit;
 
                 let style_width = node_size.width.map(|w| w * scale);
                 let min_width = node_min_size.width.map(|w| w * scale);
@@ -676,7 +680,7 @@ impl LayoutPassState<'_> {
                 .inline_layout_data = Some(inline_layout);
 
             let measured_size = inputs.known_dimensions.unwrap_or(taffy::Size {
-                width: (width * 64.0).ceil() / 64.0 / scale,
+                width: (width * unit).ceil() / unit / scale,
                 // Height is ignored if RequestedAxis if Horizontal
                 height: 0.0,
             });
@@ -994,6 +998,10 @@ impl LayoutPassState<'_> {
         // `known_dimensions` must not be substituted in here: those are border-box sizes, and
         // using them for the scrollable overflow rect (which adds padding below) would
         // double-count padding, incorrectly making the container's content overflow it.
+        // raea: a bevy_text box's height rounded up as its width is (`unit` above)
+        if unit == 1.0 {
+            height = height.ceil();
+        }
         let measured_size = taffy::Size {
             width: width / scale,
             height: height / scale,

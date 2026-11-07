@@ -1,0 +1,7 @@
+first_seen	id	package	version	severity
+2026-10-23	GHSA-xjj6-f33q-929c	undici	7.29.1	7.5
+2026-10-23	RUSTSEC-2026-0194	quick-xml	0.31.0	7.5
+2026-10-23	RUSTSEC-2026-0194	quick-xml	0.38.4	7.5
+2026-10-23	RUSTSEC-2026-0195	quick-xml	0.31.0	7.5
+2026-10-23	RUSTSEC-2026-0195	quick-xml	0.38.4	7.5
+2026-10-23	RUSTSEC-2026-0344	ruzstd	0.8.3	7.5

@@ -152,10 +152,13 @@ raea check out/piece.mp4 --manifest out/render.json --taste ~/.raea/taste/taste.
 <!-- sources: docs/targets.feature apps/targets/src sdk/ui/src/app.ts sdk/rune/src -->
 
 An app is a React file with a default export: DOM elements, inline `style` or Tailwind `className`, on @raea/ui. One
-setting picks the host that draws it. **web** (the default) is Blitz on Bevy, with Chrome's CSS and npm packages.
-**native** is Rune: a native window, native text, keyboard and accessibility, and springs on every change. The SDK
-is the same; only the setting differs. A composition or a game stays a composition; an app is an application's
-interface.
+setting picks the host that draws it. Both are desktop windows that draw every pixel themselves (neither uses the
+OS's widgets or a browser), with the same kind of text and layout engines. **web** (the default) is Blitz on Bevy: a
+browser engine, so all of CSS (grid included), web npm UI packages and the 3D world. **native** is Rune, an app UI
+framework: springs on every change, GPU effects and kit components, a screen-reader tree (AccessKit), a ~27 MB host
+against web's ~175 MB, a subset of CSS (no grid) and no 3D yet. The SDK is the same; only the setting differs. Pick
+native for a small, motion-heavy app with no 3D that passes its check; anything else stays on web. A composition or a
+game stays a composition; an app is an application's interface.
 
 - Say the target in the app's own file, as a literal (anything else is refused at its line):
   `export const app = { target: "native", title: "Notes", size: [480, 640], minSize: [360, 480] };`. With no

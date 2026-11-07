@@ -212,8 +212,9 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
     let mut out = Map::new();
     let Some(p) = props else { return out };
     for (k, v) in p {
-        // (a <Sequence>'s data-raea-start kept: its CSS animations run from there, raea-runtime-js's src/anim.rs)
-        if k == "children" || k == "key" || (k.starts_with("data-raea") && k != "data-raea-start") || k == "data-props" || k == "data-shape" || k == "data-anim" || v.is_null() {
+        // (a <Sequence>'s data-raea-start kept: its CSS animations run from there, raea-runtime-js's src/anim.rs; a bevy_ui
+        // <Text>'s data-raea-bevy-text kept: Blitz measures its block as bevy_text does, vendor/blitz-dom layout/inline.rs)
+        if k == "children" || k == "key" || (k.starts_with("data-raea") && k != "data-raea-start" && k != "data-raea-bevy-text") || k == "data-props" || k == "data-shape" || k == "data-anim" || v.is_null() {
             continue;
         }
         if k.starts_with("on") && k.chars().nth(2).is_some_and(|c| c.is_ascii_uppercase()) {

@@ -63,6 +63,17 @@ pub(super) fn shapes(tracks: &[Track], p: &mut Program) {
         row.insert("w".into(), V::N(at(0)));
         row.insert("h".into(), V::N(at(1)));
         row.insert("sides".into(), V::N(n(first, "sides", 5.0)));
+        // its ColorMaterial's texture and AlphaMode2d ("opaque", "blend", or "mask" with its cutoff)
+        if let Some(t) = first.get("texture").and_then(Value::as_str) {
+            row.insert("texture".into(), V::S(src_path(t)));
+        }
+        // its mesh's Mesh::ATTRIBUTE_COLOR: linear [r, g, b, a] per vertex, as JSON
+        if let Some(cs) = first.get("vertex_colors").filter(|c| c.is_array()) { row.insert("vertex_colors".into(), V::S(cs.to_string())); }
+        match first.get("alpha_mode") {
+            Some(Value::String(a)) => { row.insert("alpha".into(), V::S(a.to_lowercase())); }
+            Some(Value::Object(m)) => { row.insert("alpha".into(), V::S("mask".into())); row.insert("alpha_cutoff".into(), V::N(n(m, "Mask", 0.5))); }
+            _ => {}
+        }
         place2d(p, &mut row, &id, &its, "#ffffff");
         visible(p, &mut row, &id, track);
         p.spawns.push(("shape2d".into(), vec![row]));

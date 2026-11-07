@@ -45,8 +45,12 @@
 - Meshes on Tripo (`npm install -g tripo-cli`, then `TRIPO_API_KEY=tsk_…` in ~/.raea/env or `tripo login`; every user
   brings their own key). Feed it a picture rather than words: an image step making a clean product shot (one object,
   plain light background, three-quarter view) gives far better geometry than a prompt. Tripo's own settings go in as
-  x_<name>: `x_face_limit: 15000` (a raw H3.1 model can be 1.5 million triangles and 40 MB, too heavy for a live
-  scene), `x_texture_quality: "detailed"`, `x_pbr: true`, `x_auto_size: true` (real metres). `tripo:H3.1` costs
+  x_<name>, and raea sets the ones that matter when you don't: `face_limit` 30000 on H3.1 (a raw H3.1 model can be
+  1.5 million triangles and 40 MB; 15000 for a background prop, 60000-150000 for a hero seen close), `orientation:
+  align_image` for a picture (the model faces as the picture does, not Tripo's sideways +X), `auto_size` (real
+  metres), `pbr`, and a seed from the step itself, geometry and texture alike, so a rerun gives the same model (set
+  `seed` for another candidate). `x_texture_quality: "detailed"` costs more and is worth it for a hero. Then
+  `raea gen check MODEL.glb --h 0.9` measures it and writes a fixed copy (`bevy/scenes`). `tripo:H3.1` costs
   20-50 credits a model, `tripo:P2` (Tripo's default, clean low topology) 100-130; a credit is 1¢, and `raea gen plan`
   quotes it with `tripo make --dry-run`. **Credits are the API wallet's:** buy them at
   https://developers.tripo3d.ai/en/billing, not on the tripo3d.ai dashboard, whose credits the key never sees (it

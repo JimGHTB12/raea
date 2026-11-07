@@ -60,23 +60,35 @@ impl Host for Win<'_> {
 
 /// `bundle` in a `size` window titled `title`, until it closes. Errors from the JS end the app and come back here.
 pub fn run(bundle: String, title: &str, size: (f32, f32)) -> Result<(), String> {
-    BESIDE.with_borrow_mut(|b| {
-        b.js = Some(Js::new()?);
-        b.bundle = Some(bundle);
-        b.viewport = size;
-        b.heard = size;
-        Ok::<_, String>(())
-    })?;
+    begin(bundle, size)?;
     // the window can shrink below Rune's default floor (420x400) when the app asks for less
     let min_size = Some((size.0.min(420.0), size.1.min(400.0)));
     // the app's faces, registered at the start (raea-rune-media's fonts: Rune takes them only then)
     let fonts = raea_rune_media::fonts::registered();
     let spec = AppSpec { setup: Some(setup), poll: Some(poll), on_key: Some(on_key), min_size, fonts, ..AppSpec::new(Box::leak(title.to_string().into_boxed_str()), size, Page::default, view) };
     App::new(spec).on_frame_drawn(drawn).run();
-    BESIDE.with_borrow_mut(|b| b.error.take()).map_or(Ok(()), Err)
+    error(false).map_or(Ok(()), Err)
 }
 
-fn setup(page: &mut Page, w: Waker) {
+/// The engine made and the bundle kept for the first poll, at `size`: what any window's host does first (Rune's shell
+/// here, Bevy's in on_bevy/window.rs).
+pub(crate) fn begin(bundle: String, size: (f32, f32)) -> Result<(), String> {
+    BESIDE.with_borrow_mut(|b| {
+        b.js = Some(Js::new()?);
+        b.bundle = Some(bundle);
+        b.viewport = size;
+        b.heard = size;
+        Ok::<_, String>(())
+    })
+}
+
+/// The error that ended the app (the JS's): taken once by the host that ends on it, or `peek`ed by a host without
+/// Rune's `tx.quit()` (Bevy's), which ends when there is one.
+pub(crate) fn error(peek: bool) -> Option<String> {
+    BESIDE.with_borrow_mut(|b| if peek { b.error.clone() } else { b.error.take() })
+}
+
+pub(crate) fn setup(page: &mut Page, w: Waker) {
     // a window's media: a decode or a URL's fetch wakes it, and a video streams its URL (T3d)
     page.images = crate::images::Images::new(w.clone());
     page.videos.window = true;
@@ -84,7 +96,7 @@ fn setup(page: &mut Page, w: Waker) {
 }
 
 /// After each frame: its layout, for the next poll, and a wake for that poll when it changed.
-fn drawn(rt: &rune::Runtime<Page>) {
+pub(crate) fn drawn(rt: &rune::Runtime<Page>) {
     // what a handler queued in this frame (a press, an edit, a hover) waits for the JS: a poll now
     if !rt.state.outbox.is_empty() {
         wake();
@@ -108,7 +120,7 @@ fn wake() {
 }
 
 /// The start of a frame, `t` seconds in: the layout taken in, a field Rune focused followed, and the JS moved on.
-fn poll(page: &mut Page, t: f64, tx: &mut Tx) -> bool {
+pub(crate) fn poll(page: &mut Page, t: f64, tx: &mut Tx) -> bool {
     let (measured, resized) = BESIDE.with_borrow_mut(|b| {
         let resized = (b.viewport != b.heard).then_some(b.viewport);
         b.heard = b.viewport;
@@ -164,7 +176,7 @@ fn poll(page: &mut Page, t: f64, tx: &mut Tx) -> bool {
 
 /// A key Rune's focused control didn't take (or any key while nothing has Rune's focus): the page's keydown, and
 /// whether the page took it from Rune (a menu's Enter, Space or Escape).
-fn on_key(page: &mut Page, k: &KeyEvent, tx: &mut Tx) -> bool {
+pub(crate) fn on_key(page: &mut Page, k: &KeyEvent, tx: &mut Tx) -> bool {
     let mut taken = !page.key_out(Ev::KeyDown, crate::events::key_payload(k));
     // Tab is the page's sequential focus (input.rs)
     if !taken && k.key == rune::Key::Tab {

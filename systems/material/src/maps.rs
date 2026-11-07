@@ -142,7 +142,16 @@ pub fn cached_map(world: &mut World, key: String, kind: MapKind, repeat: bool, s
 
 /// Whether a mesh row has any texture map (it then needs texture coordinates; a normal map needs tangents too).
 pub fn has_maps(vals: &BTreeMap<String, V>) -> bool {
-    ["map", "normal_map", "rough_map", "metal_map", "mr_map", "ao_map", "emissive_map"].iter().any(|k| vals.get(*k).is_some_and(V::truthy))
+    any_map(vals, &["map", "normal_map", "rough_map", "metal_map", "mr_map", "ao_map", "emissive_map", "clearcoat_normal_map"])
+}
+
+/// Whether a mesh row has a normal map, its own or its clearcoat's: its mesh then needs tangents.
+pub fn needs_tangents(vals: &BTreeMap<String, V>) -> bool {
+    any_map(vals, &["normal_map", "clearcoat_normal_map"])
+}
+
+fn any_map(vals: &BTreeMap<String, V>, keys: &[&str]) -> bool {
+    keys.iter().any(|k| vals.get(*k).is_some_and(V::truthy))
 }
 
 /// A mesh row's surface: the standard material from its columns.
@@ -191,6 +200,16 @@ pub fn material(world: &mut World, t: &Tup, inserted: &[Tup], dir: &Path) -> Res
     }
     if let Some(s) = src("normal_map") {
         m.normal_map_texture = Some(cached_map(world, s.clone(), MapKind::Data, repeat, sam("normalMap"), || map_picture(t, inserted, dir, "normalMap", &s))?);
+    }
+    // the clearcoat layer's own normals, data not colour (rotate_environment_map loads it with is_srgb false); Bevy
+    // binds them only with its multi-layer textures (this crate's `multi-layer` feature)
+    if let Some(s) = src("clearcoat_normal_map") {
+        #[cfg(feature = "multi-layer")]
+        {
+            m.clearcoat_normal_texture = Some(cached_map(world, s.clone(), MapKind::Data, repeat, sam("clearcoatNormalMap"), || map_picture(t, inserted, dir, "clearcoatNormalMap", &s))?);
+        }
+        #[cfg(not(feature = "multi-layer"))]
+        return Err(format!("{}: clearcoat_normal_texture {s}: this raea is built without Bevy's clearcoat textures (raea-sys-material's multi-layer feature, off by default: docs/control.feature FC0a)", t.id));
     }
     if let Some(s) = src("mr_map") {
         m.metallic_roughness_texture = Some(cached_map(world, s.clone(), MapKind::Data, repeat, sam("metallicRoughnessMap"), || map_picture(t, inserted, dir, "metallicRoughnessMap", &s))?);

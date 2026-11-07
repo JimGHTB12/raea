@@ -17,9 +17,10 @@ pub fn scene_of(world: &mut World) -> Vec<Node3> {
     let mut q = world.query::<(Entity, &ReactKind, Option<&ReactProps>)>();
     let Some(surf) = q.iter(world).find(|(_, k, p)| k.0 == "surface" && p.and_then(|p| p.0.get("id")).and_then(|v| v.as_str()) == Some("motion")).map(|(e, _, _)| e) else { return Vec::new() };
     // the 3D roots under the surface (a data-3d element stops the walk; its 3D is read3d's), each subtree no commit
-    // touched since the last scene handed on as it was (read.rs Kept3d)
+    // touched since the last scene handed on as it was (read.rs Kept3d); the surface's own straight into the scene, not
+    // kept and copied out (10 000 cubes beside a turning camera were copied three times a frame; FC1b)
     let dirty = dirty3d(world);
-    world.resource_scope(|world, mut kept: Mut<Kept3d>| contrib3d(world, surf, &mut kept, &dirty).to_vec())
+    world.resource_scope(|world, mut kept: Mut<Kept3d>| { let mut v = Vec::new(); kids3d(world, surf, &mut kept, &dirty, &mut v); v })
 }
 
 /// The elements holding the 3D (holders_of's), into `out` (ZeroHeap: live play's present asks each frame)

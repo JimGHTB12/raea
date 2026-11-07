@@ -59,7 +59,7 @@ async function load() {
   for (let i = 0; i < 3; i++) await new Promise((r) => (g.requestAnimationFrame(r), setTimeout(r, 200)));
   namedAccess();
   // the registry a page's scripts put their timelines in (window.__timelines["main"] = tl), made before they run as
-  // The composition format's own runtime makes it: without it every such script threw at that line and the page never moved
+  // the original runtime makes it: without it every such script threw at that line and the page never moved
   g.__timelines ??= {};
   for (let i = 0; i < compiled.scripts.length; i++) await runScript(compiled.scripts[i], i);
   try {

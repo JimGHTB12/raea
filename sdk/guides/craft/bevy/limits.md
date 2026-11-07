@@ -2,8 +2,10 @@
 
 ## Budgets
 
-- **Meshes:** each mesh draws on its own (no batching), so a few hundred animated meshes are fine and thousands are
-  not. For crowds, particles or debris, keep the count under about 300 and fake the rest with an ImagePlane or fog.
+- **Meshes:** a `<Mesh3d>` or `<Model>` is one entity, so a few hundred animated ones are fine and thousands are not.
+  Many copies of one thing are an `<Instances at={scatter({...})}>` (one glTF or one mesh at many placements, drawn
+  by the GPU as instances: a forest, a suburb's houses, 40k grass clumps), and a lawn is `<Grass>` (`bevy/meshes`).
+  Instanced copies share one surface, can't play a clip and are fixed for the shot (move the whole set).
 - **Distinct shapes** are built once each; reusing the same geometry and args is cheap, a new solid per part is not.
   Build Manifold solids at module level.
 - **Shadows:** a directional light's are cheap. A shadow-casting PointLight renders six maps, a SpotLight one; keep

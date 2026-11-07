@@ -63,12 +63,23 @@ pub(crate) fn call(f: &str, a: Vec<Arg>) -> Result<Manifold, String> {
     if let Some(r) = space_time(f, &a) {
         return r;
     }
+    if let Some(r) = crate::grown::call(f, &a) {
+        return r;
+    }
     let fold = |v: Vec<Manifold>, op: fn(&Manifold, &Manifold) -> Manifold| v.into_iter().reduce(|x, y| op(&x, &y)).unwrap();
     Ok(match f {
         "box" | "cube" => {
             let n = nums(f, &a, 1)?;
             let (w, h, d) = if n.len() >= 3 { (n[0], n[1], n[2]) } else { (n[0], n[0], n[0]) };
             Manifold::cube(Vec3::new(w, h, d), true)
+        }
+        // Bevy's Plane3d (plane(nx, ny, nz, w, h)): drawn with one face by Bevy's builder (sphere.rs plane_of); for CSG
+        // and contacts the box of no depth it lies in, w x h laid out as raea/mesh's <Plane3d> does
+        "plane" => {
+            let n = nums(f, &a, 5)?;
+            let (w, h) = (n[3], n[4]);
+            let size = if n[0] != 0.0 { Vec3::new(0.0, w, h) } else if n[2] != 0.0 { Vec3::new(w, h, 0.0) } else { Vec3::new(w, 0.0, h) };
+            Manifold::cube(size, true)
         }
         "rounded_box" => {
             let n = nums(f, &a, 4)?;
@@ -223,7 +234,7 @@ pub(crate) fn call(f: &str, a: Vec<Arg>) -> Result<Manifold, String> {
             let (verts, tris) = if f == "obj" { read_obj(&path)? } else { read_glb(&path)? };
             from_mesh(&verts, &tris)?
         }
-        o => return Err(format!("no shape {o}: box, rounded_box, sphere, uv_sphere, cylinder, cone, torus, text3d, extrude, revolve, union, minus, intersect, hull, minkowski, minkowski_diff, move, rotate, scale, mirror, transform, trim, refine, smooth, simplify, refine_length, refine_tolerance, obj, glb; in a mask also frame, rect, disc, wipe, during, slide")),
+        o => return Err(format!("no shape {o}: box, rounded_box, sphere, uv_sphere, cylinder, cone, torus, text3d, extrude, revolve, union, minus, intersect, hull, minkowski, minkowski_diff, move, rotate, scale, mirror, transform, trim, refine, smooth, simplify, refine_length, refine_tolerance, obj, glb, sdf, tree, loft, terrain, boulder, rosette; in a mask also frame, rect, disc, wipe, during, slide")),
     })
 }
 

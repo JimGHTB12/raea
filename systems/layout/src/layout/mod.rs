@@ -1,7 +1,7 @@
 //! How a frame is laid out (Perception.swift › layout(from:)): people, captions, screens, panes and splits, in the
 //! previz layout format (previz.rs, deleted with engine/html in f1b4a17e). The inputs are what Vision saw (faces, text lines, rectangles, the
 //! person mask, whether it's a screenshot) and grey copies of the frame and the next frames (240 px wide); the Vision
-//! side moves behind a trait later (docs/the roadmap A3). The arithmetic follows the Swift's order, and its ties (Swift's
+//! side moves behind a trait later (docs/goal.feature A3). The arithmetic follows the Swift's order, and its ties (Swift's
 //! `max(by:)` keeps the first maximum).
 
 use serde::{Deserialize, Serialize};

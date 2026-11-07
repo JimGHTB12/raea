@@ -25,6 +25,10 @@ raea-core-scene = { path = "../../core/scene" }
 raea-runtime-scene = { path = "../scene" }
 raea-sys-contact = { path = "../../systems/contact" }
 raea-sys-light-meter = { path = "../../systems/light-meter" }
+# --clay: every standard surface grey (its clay switch)
+raea-runtime-scene3d = { path = "../scene3d" }
+# --review: the fixed cameras
+raea-core-review = { path = "../../core/review" }
 raea-sys-mix = { path = "../../systems/mix" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app"] }
 image = { version = "0.25", default-features = false, features = ["png", "hdr"] }

@@ -3,7 +3,7 @@
 What reaches a speaker or a file is PCM from one mixer core. That core runs live in the device's callback and offline
 as a render's bounce, so a render and a play of the same frames give the same samples by construction. Neural models
 never sit in that path. Generated sound is rendered once, cached as PCM keyed by its inputs, and enters as an ordinary
-clip. Separately, frozen encoders turn sound into symbols and bits for the meaning lane (the HDC sandwich, docs/the roadmap
+clip. Separately, frozen encoders turn sound into symbols and bits for the meaning lane (the HDC sandwich, docs/goal.feature
 Track K).
 
 This document covers:

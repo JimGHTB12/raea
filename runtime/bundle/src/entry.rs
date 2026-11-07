@@ -14,7 +14,7 @@ pub fn entry(file: &str, o: &CompOpts) -> String {
 import {{ mount, addEventListener }} from "bevy-react";
 import {{ Component, useEffect, useMemo, useState }} from "react";
 import * as M from "./src/{file}";
-import {{ Clock, getCompositions }} from "./motion";
+import {{ Clock, getCompositions, tickClocks }} from "./motion";
 const want = {comp};
 const comps = getCompositions();
 const reg = comps.find((c) => want === null || c.id === want) ?? null;
@@ -84,7 +84,7 @@ class Catch extends Component<{{ children?: any }}, {{ err: string | null }}> {{
 const LIVE: any = {{}};
 let live = false;
 function Root() {{
-  const [f, setF] = useState(-1);
+  const [f, setF0] = useState(-1); const setF = (n: number) => {{ tickClocks(); setF0(n); }}; // the Clocks' frame readers told in the same batch (motion clock.tsx tickClocks)
   // the stage's size, for a composition that lays out from useVideoConfig (raea-size)
   const [size, setSize] = useState<{{ w: number; h: number }} | null>(null);
   useEffect(() => addEventListener("raea-size", (v: any) => setSize(v)), []);

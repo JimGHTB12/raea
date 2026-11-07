@@ -71,7 +71,7 @@ pub fn host(args: &[String]) -> Result<String, String> {
             // the app's folder (relative media and fonts) and the CSS it imported (its @font-face rules), T3d
             let sheet = script.with_extension("css");
             std::fs::write(&sheet, css).map_err(|e| format!("{}: {e}", sheet.display()))?;
-            let dir = p.canonicalize().ok().and_then(|c| c.parent().map(Path::to_path_buf)).unwrap_or_default();
+            let dir = p.canonicalize().ok().map(raea_io_home::plain).and_then(|c| c.parent().map(Path::to_path_buf)).unwrap_or_default();
             extra.extend(["--base".to_string(), dir.display().to_string(), "--css".to_string(), sheet.display().to_string()]);
         } else {
             handed.push(a.clone());

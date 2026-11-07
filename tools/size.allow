@@ -1,0 +1,2 @@
+# allowance per file or crate over the limit (tools/size.sh): it only shrinks; split it and take the new size
+

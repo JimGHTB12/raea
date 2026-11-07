@@ -81,7 +81,7 @@ content/**/*.db
 content/**/*.bak
 content/**/*.physics.json
 
-# local footage catalogues and eval takes (client data on Shane's drives, from the host app's era): never committed; raea
+# local footage catalogues and eval takes (client data, kept off git): never committed; raea
 # keeps no UGC data (10-24), so they're for moving out of the repo, not into it
 engine/media/library/
 engine/media/real/
@@ -101,3 +101,5 @@ sdk/raea/.scratch-*/
 
 # the Tripo CLI writes its last task id into the directory it runs in
 .tripo/
+# tools/bevy-parity links each example folder's assets/ to Bevy's checkout at run time (an absolute, per-machine path)
+/sdk/raea/bench/bevy-parity/**/assets

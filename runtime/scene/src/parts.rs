@@ -103,10 +103,10 @@ pub(crate) fn lights_rows(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
             row.insert("width".into(), V::N(r6(n(first, "width", 1.0))));
             row.insert("height".into(), V::N(r6(n(first, "height", 1.0))));
         }
-        if kind == "spot" {
-            let angle = n(first, "angle", std::f64::consts::FRAC_PI_3).clamp(0.0, std::f64::consts::FRAC_PI_2);
-            row.insert("outer".into(), V::N(r6(angle)));
-            row.insert("inner".into(), V::N(r6(angle * (1.0 - n(first, "penumbra", 0.0).clamp(0.0, 1.0)))));
+        if kind == "spot" { // its cone, keyed: spotlight.rs's light_sway widens it every frame
+            let outer: Vec<f64> = its.iter().map(|i| n(&i.props, "angle", std::f64::consts::FRAC_PI_3).clamp(0.0, std::f64::consts::FRAC_PI_2)).collect();
+            column(p, &mut row, &id, "inner", &its.iter().zip(&outer).map(|(i, a)| a * (1.0 - n(&i.props, "penumbra", 0.0).clamp(0.0, 1.0))).collect::<Vec<_>>());
+            column(p, &mut row, &id, "outer", &outer);
         }
         layers_column(&mut row, first);
         p.spawns.push(("light".into(), vec![row]));
@@ -159,7 +159,7 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
                 row.insert(col.into(), V::N(v));
             }
         }
-        for (prop, col) in [("map", "map"), ("normalMap", "normal_map"), ("roughnessMap", "rough_map"), ("metalnessMap", "metal_map"), ("metallicRoughnessMap", "mr_map"), ("aoMap", "ao_map"), ("emissiveMap", "emissive_map"), ("depthMap", "depth_map")] {
+        for (prop, col) in [("map", "map"), ("normalMap", "normal_map"), ("roughnessMap", "rough_map"), ("metalnessMap", "metal_map"), ("metallicRoughnessMap", "mr_map"), ("aoMap", "ao_map"), ("emissiveMap", "emissive_map"), ("depthMap", "depth_map"), ("clearcoatNormalMap", "clearcoat_normal_map")] {
             if let Some(src) = m0.get(prop).and_then(Value::as_str) {
                 row.insert(col.into(), V::S(src_path(src)));
             }
@@ -222,6 +222,7 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         grid_columns(&mut row, m0);
         paint_columns(&mut row, m0);
         raea_sys_wear::columns(&mut row, m0);
+        raea_sys_procmat::columns(&mut row, m0);
         placement(p, &mut row, &id, &its);
         visible(p, &mut row, &id, &track);
         pass_column(p, &mut row, &id, &its, &names);

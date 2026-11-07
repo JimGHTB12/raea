@@ -167,6 +167,8 @@ pub fn call(name: &str, v: &Value) -> R<Value> {
                 Ok(Value::Null)
             }
             n if n.starts_with("ecs.") => ecs::call(n, v),
+            // placement by relations (raea-core-place)
+            "place.solve" => raea_core_place::solve_json(v),
             n if n.starts_with("solid.") || n.starts_with("section.") => solid::call(&mut st, n, v),
             n => media::call(&mut st, n, v),
         }
@@ -203,6 +205,7 @@ pub fn register() {
             ("solid.hull_points", "{ points: [number, number, number][] }", SOLID, "the convex hull of points"),
             ("section.op", "{ fn: \"make\" | \"circle\" | \"square\" | \"hull_points\" | \"union\" | \"minus\" | \"intersect\" | \"hull\" | \"minkowski\" | \"offset\" | \"simplify\" | \"translate\" | \"rotate\" | \"scale\" | \"mirror\" | \"decompose\"; polygons?: [number, number][][]; others?: [number, number][][][]; args?: number[] }", &format!("{SECTION} | {SECTION}[]"), "a 2D cross-section made, combined, offset or moved (Manifold's CrossSection), held by value"),
             ("solid.free", "{ id: number }", "null", "drop a solid"),
+            ("place.solve", "{ objects: { id: string; size: [number, number, number]; at?: [number, number, number]; yaw?: number; fixed?: boolean }[]; rules: Record<string, string | number>[]; room?: { min: [number, number]; max: [number, number] } }", "{ objects: { id: string; at: [number, number, number]; yaw: number; size: [number, number, number] }[]; found: { part: string; check: string; level: string; says: string }[]; errors: number }", "boxes placed by relations (on, against, beside, near, apart, facing, align, clear), what can't hold found"),
             ("media.live", "{}", "{ vdecs: number; vencs: number; adecs: number; frames: number; solids: number; worlds: number }", "how many native coders, frames, solids and worlds are alive (for leak checks)"),
             ("media.size", "{ path: string }", "number", "a file's size in bytes"),
             ("media.read", "{ path: string; start: number; end: number }", "string", "bytes start..end of a file, base64"),

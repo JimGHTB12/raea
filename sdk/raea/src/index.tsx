@@ -8,6 +8,7 @@ export { interpolate, type ExtrapolateMode, type InterpolateOptions } from "@rae
 export { spring, measureSpring, type SpringConfig, type SpringOptions } from "@raea/math/spring";
 export {
   Clock,
+  tickClocks,
   useCurrentFrame,
   useVideoConfig,
   type ClockProps,

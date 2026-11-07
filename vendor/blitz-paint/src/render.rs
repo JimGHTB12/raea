@@ -1039,11 +1039,27 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
         // rectangle passed to descendants to the visible (clipped) region so that content
         // scrolled out of view is culled rather than drawn and clipped away. The box used
         // here matches the clip applied to the content below.
+        // raea: overflow clips each axis on its own: `overflow-x: clip` beside a visible y clips only x (as Chrome
+        // does, and bevy_ui's Overflow::clip_x), so the box of a lone clipping axis reaches far along the other
+        let (clips_x, clips_y) = (!matches!(overflow_x, Overflow::Visible), !matches!(overflow_y, Overflow::Visible));
+        let one_axis = clips_x != clips_y && !is_text_input && !is_image && !is_sub_doc && !contain_paint;
+        let clip_shape = |b: crate::kurbo_css::BoxShape| match one_axis {
+            true => {
+                let (r, far) = (b.bounding_box(), 1e4);
+                crate::kurbo_css::BoxShape::Rect(Rect::new(
+                    if clips_x { r.x0 } else { -far },
+                    if clips_y { r.y0 } else { -far },
+                    if clips_x { r.x1 } else { far },
+                    if clips_y { r.y1 } else { far },
+                ))
+            }
+            false => b,
+        };
         let child_clip_rect = if should_clip {
             let clip_box = if is_text_input {
                 cx.frame.content_box_path()
             } else {
-                cx.frame.padding_box_path()
+                clip_shape(cx.frame.padding_box_path())
             };
             clip_rect.intersect(screen_transform.transform_rect_bbox(clip_box.bounding_box()))
         } else {
@@ -1220,7 +1236,7 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                         let clip = if is_text_input {
                             &cx.frame.content_box_path()
                         } else {
-                            &cx.frame.padding_box_path()
+                            &clip_shape(cx.frame.padding_box_path())
                         };
 
                         // Clip layer if box requires clipping. Opacity set to 1.0

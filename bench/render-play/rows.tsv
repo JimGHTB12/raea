@@ -1,0 +1,23 @@
+# The render = play bench's rows (run.sh): each composition played live offscreen with its input, the input it logged
+# rendered at the same frames, and the two pictures compared. Columns, tab-separated:
+#   path      the composition, from the repo root
+#   input     - (none), keys:A,B+C,,D (RAEA_INPUT_KEYS: the play's random input thread picks from these sets) or
+#             script:FILE ({"FRAME": [keys]}, "Pointer:X:Y[:down]" for the pointer; FILE from the repo root)
+#   seconds   the moments compared, space-separated
+#   explained empty, or why the row may sit under 1.000000 (it still has to be >= 0.999)
+# React on the page with 3D in the world, picking and input replay are all here: the games (pong and platformer on
+# the page, arena3d's 3D drawn live), bevy-ts' live cases (keys, the pointer, a gamepad, the window and the World's
+# components through useQuery), the bridge's Engine reads (engine3d: a cube the World moves, React's marker reading it)
+# and pick3d (on* on 3D parts: hover, press, leave)
+sdk/react/bench/games/pong/edit.tsx	keys:ArrowUp,ArrowDown,,ArrowUp	0.25 0.75 1.25 1.75
+sdk/react/bench/games/platformer/edit.tsx	keys:ArrowRight,ArrowRight+ArrowUp,ArrowRight,	0.25 0.75 1.25 1.75
+sdk/react/bench/games/arena3d/edit.tsx	keys:ArrowRight,ArrowUp,ArrowLeft+ArrowUp,ArrowDown,	0.25 0.75 1.25 1.75
+sdk/raea/bench/bevy-ts/cases/live-world.tsx	script:sdk/raea/bench/bevy-ts/cases/live-world.json	0.2 0.4
+sdk/raea/bench/bevy-ts/cases/live-components.tsx	script:sdk/raea/bench/bevy-ts/cases/live-world.json	0.2 0.4
+sdk/raea/bench/bevy-ts/cases/live-input.tsx	script:sdk/raea/bench/bevy-ts/cases/live-input.json	0.2 0.4
+sdk/raea/bench/bevy-ts/cases/live-gamepad.tsx	script:sdk/raea/bench/bevy-ts/cases/live-world.json	0.4 0.8
+sdk/raea/bench/bevy-ts/cases/live-kinds.tsx	script:sdk/raea/bench/bevy-ts/cases/live-world.json	0.3 0.6
+sdk/raea/bench/bevy-ts/cases/live-window.tsx	script:sdk/raea/bench/bevy-ts/cases/live-world.json	0.2
+sdk/raea/bench/bevy-ts/cases/text3d-readback.tsx	script:sdk/raea/bench/bevy-ts/cases/live-world.json	0.3 0.6
+bench/bridge/engine3d.tsx	-	0.3 0.9 1.25
+sdk/raea/bench/bevy/pick3d/edit.tsx	script:bench/render-play/pick3d.json	0.1 0.2 0.3 0.4 0.6 0.9

@@ -25,6 +25,9 @@ use raea_core_scene::{Item, excused, filled, gltf_tris, label, src_path, tracks_
 pub mod lint;
 pub use lint::lint;
 // a model's box and a seat's facing (scene.bounds, scene.facing)
+mod assets;
+pub use assets::assets;
+
 mod model;
 pub use model::{bounds, facing, seat_facing};
 

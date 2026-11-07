@@ -1,0 +1,18 @@
+[package]
+name = "raea-app-solid"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea solid info and raea solid view: a solid file run, its parts measured (raea-core-solidinfo), and its review sheets in colour and clay"
+
+[dependencies]
+raea-core-solidinfo = { path = "../../core/solidinfo" }
+serde_json = "1"
+# --set's and the CLI's flags, read as the bundler reads them
+raea-runtime-bundle = { path = "../../runtime/bundle" }
+# `raea judge`, dispatched with `raea solid` (verb())
+raea-app-judge = { path = "../judge" }
+# `raea solid export`: the solid built, written as .glb and read back (core/shape), named and coloured (core/meshcheck)
+raea-core-shape = { path = "../../core/shape" }
+raea-core-meshcheck = { path = "../../core/meshcheck" }

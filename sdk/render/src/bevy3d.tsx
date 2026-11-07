@@ -8,8 +8,8 @@
 //     <StandardMaterial base_color="#c84" perceptual_roughness={0.4} />
 //   </Mesh3d>
 import { eulerOf } from "./3d";
-export { Quat, Affine2, Transform, Mesh3d, Camera3d, Srgba, LinearRgba, StandardMaterial, GridExtension, PaintExtension, WearExtension, ToonExtension, ShaderExtension, ExtendedMaterial, ToonMaterial, Mesh2d, Circle, Rectangle, Ellipse, RegularPolygon, ColorMaterial, PointLight, SpotLight, DirectionalLight, AmbientLight, GlobalAmbientLight, RectLight, light_consts } from "./bevy3d/all";
-export type { EulerRot, TransformValue, TransformBuilt, Mesh3dProps, Projection, Camera3dProps, AlphaMode, StandardMaterialProps, StandardMaterialAnimate, ToonExtensionAnimate, SampledImage, MetallicRoughnessMaps, GridExtensionProps, PaintExtensionProps, WearExtensionProps, ToonExtensionProps, ShaderExtensionProps, ExtendedMaterialProps, ToonMaterialProps, Mesh2dProps, CircleProps, RectangleProps, EllipseProps, RegularPolygonProps, ColorMaterialProps, PointLightProps, SpotLightProps, DirectionalLightProps, AmbientLightProps, RectLightProps } from "./bevy3d/all";
+export { Quat, Affine2, Transform, Mesh3d, Camera3d, Srgba, LinearRgba, StandardMaterial, GridExtension, PaintExtension, WearExtension, ProceduralExtension, ToonExtension, ShaderExtension, ExtendedMaterial, ToonMaterial, Mesh2d, Circle, Rectangle, Ellipse, RegularPolygon, ColorMaterial, PointLight, SpotLight, DirectionalLight, AmbientLight, GlobalAmbientLight, RectLight, light_consts } from "./bevy3d/all";
+export type { EulerRot, TransformValue, TransformBuilt, Mesh3dProps, Projection, Camera3dProps, AlphaMode, StandardMaterialProps, StandardMaterialAnimate, ToonExtensionAnimate, SampledImage, MetallicRoughnessMaps, GridExtensionProps, PaintExtensionProps, WearExtensionProps, ProceduralExtensionProps, ToonExtensionProps, ShaderExtensionProps, ExtendedMaterialProps, ToonMaterialProps, Mesh2dProps, CircleProps, RectangleProps, EllipseProps, RegularPolygonProps, ColorMaterialProps, MeshAttributes, PointLightProps, SpotLightProps, DirectionalLightProps, AmbientLightProps, RectLightProps } from "./bevy3d/all";
 
 export { eulerOf };
 // ray-traced lighting: Bevy's Solari (docs/raytracing.feature RT3)
@@ -19,3 +19,14 @@ export { ConicalFrustum, type ConicalFrustumProps } from "./3d/shapes";
 export { TextureView } from "./layers";
 // your own Material (docs/control.feature FC2a)
 export { Material, type MaterialProps } from "./bevy3d/all";
+// bevy_color's other spaces (docs/control.feature FC1f)
+export { Hsla, Oklaba, Oklcha, Xyza } from "./bevy3d/all";
+// FogFalloff, Bevy's constructors, for a <Fog> inside the <Camera3d> (docs/control.feature FC0a)
+export { FogFalloff } from "./bevy3d/fog";
+// Bevy's Hdr camera marker, inside the <Camera3d> (docs/control.feature FC0a)
+export { Hdr } from "./bevy3d/core";
+// Lightmap (bevy_pbr::lightmap): a bake on a <Model>'s glTF meshes by name (docs/control.feature FC0a)
+export { Lightmap, type LightmapProps } from "./bevy3d/lightmap";
+// bevy_ui's Node, Text and TextSpan, and their values, drawn by the page (docs/control.feature FC0a)
+export { Node, Text, TextSpan, ImageNode, ImagePlugin, FontVariationTag, TextureAtlasLayout, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type ImageNodeProps } from "./bevy3d/ui";
+export { px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, Overflow, type Val } from "./bevy3d/ui-val";

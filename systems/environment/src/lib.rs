@@ -28,6 +28,11 @@ use bevy::core_pipeline::Skybox;
 use bevy::light::{EnvironmentMapLight, GeneratedEnvironmentMapLight};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureViewDescriptor, TextureViewDimension};
 
+/// <EnvironmentMapLight>'s own prefiltered maps and <Skybox>
+mod prefiltered;
+use prefiltered::prefiltered;
+pub use prefiltered::{sync_prefiltered, Prefiltered};
+
 /// The camera's panoramas as cubemaps, in env_srcs' order, and each one's bake entity (its filtered light).
 #[derive(Component)]
 pub struct EnvMaps(Vec<Handle<Image>>, Vec<Entity>);
@@ -320,22 +325,6 @@ pub fn environment(world: &mut World, e: Entity, vals: &BTreeMap<String, V>, ins
         let k = num(vals, "sky_k", 0.0);
         world.entity_mut(e).insert(Skybox { image: (k > 0.0 && num(vals, "env_i", 0.0) > -0.5).then(|| maps[i.min(maps.len() - 1)].clone()), brightness: k, rotation: rot });
     }
-    Ok(())
-}
-
-/// Bevy's EnvironmentMapLight from its own prefiltered cubemaps (envmap_diffuse_map, envmap_specular_map: .ktx2 files,
-/// as Bevy's examples load environment_maps/pisa_*_rgb9e5_zstd.ktx2) at envmap_k cd/m², decoded by Bevy's KTX2 reader
-fn prefiltered(world: &mut World, e: Entity, vals: &BTreeMap<String, V>) -> Result<(), String> {
-    let (Some(V::S(d)), Some(V::S(s))) = (vals.get("envmap_diffuse_map"), vals.get("envmap_specular_map")) else { return Ok(()) };
-    let mut load = |p: &str| -> Result<Handle<Image>, String> {
-        let bytes = std::fs::read(p).map_err(|err| format!("EnvironmentMapLight: {p}: {err}"))?;
-        let ext = Path::new(p).extension().and_then(|x| x.to_str()).unwrap_or("ktx2");
-        let img = Image::from_buffer(&bytes, bevy::image::ImageType::Extension(ext), bevy::image::CompressedImageFormats::NONE, false, bevy::image::ImageSampler::Default, bevy::asset::RenderAssetUsages::RENDER_WORLD)
-            .map_err(|err| format!("EnvironmentMapLight: {p}: {err}"))?;
-        Ok(world.resource_mut::<Assets<Image>>().add(img))
-    };
-    let (diffuse_map, specular_map) = (load(d)?, load(s)?);
-    world.entity_mut(e).insert(EnvironmentMapLight { diffuse_map, specular_map, intensity: num(vals, "envmap_k", 1.0), ..default() });
     Ok(())
 }
 

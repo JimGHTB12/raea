@@ -1,0 +1,87 @@
+# tools/taxonomy.sh: the SDK's PascalCase names that are neither Bevy's nor a deprecated alias, a reason each.
+# web NAME   reason: the web's (HTML, CSS, React) name for it
+# raea NAME  reason: raea's own, with no Bevy or web name to take
+
+# the web's: HTML's elements, and Tone.js's names (the web's audio library, whose API /tone keeps)
+web Audio            HTML's <audio>: sound in step with the frame
+web Img              HTML's <img>: the renderer holds the frame until it has loaded
+web Video            HTML's <video>: a clip in step with the frame
+web Tone             Tone.js as a namespace (import * as Tone), as its users write it
+web Loop             Tone.js's Loop: a callback every interval in transport time
+web Part             Tone.js's Part: values at times
+web Sequence         Tone.js's Sequence: one value per subdivision
+
+# raea's own: the video timeline (no Bevy concept; frame-addressed pieces of a composition)
+raea AbsoluteFill    a box over its parent, as a flex column: the page layer's full-frame container
+raea Composition     a composition declared in the root (id, size, fps, length), found by registerRoot
+raea Series          shots one after another on the timeline
+raea Freeze          its children held at one frame
+raea Nudge           its child moved in front of its own transform
+raea Overlay         children only in a render asked for that overlay
+raea Region          a box at a named band, clear of the face perception found
+raea InputRegion     a box that keeps a press until it's let go (a panel's page of its own)
+raea Clock           the tree at one frame of a composition (the frame's provider)
+raea Matchmove       footage with solved 3D standing in it (its own Canvas3D)
+raea Plate           footage behind the 3D, filling the camera's view
+
+# raea's own: motion (frame-pure animation, engine/animate)
+raea Animate         a frame-pure animation of its child (raea_core_animate's Animation)
+raea Stagger         Animate over children, each delayed
+raea Easing          the easing curves (in, out, inOut), as values
+
+# raea's own: sound beyond Bevy's (raea-runtime-sound: seedling, speech, songs)
+raea Seedling        bevy_seedling's mixer graph as TSX (the crate's name: no single Bevy type)
+raea Sound3D         a sound placed in the 3D, heard from the camera (seedling's spatial sampler)
+raea Speech          a line spoken by the narration voice, word-timed
+raea SongPlot        a song's energy map drawn for a human to check
+
+# raea's own: 3D pieces with no single Bevy type (each groups several, its @bevy tags name them)
+raea AntiAliasing    one choice over Bevy's Smaa, Fxaa, TemporalAntiAliasing and Msaa
+raea AmbientOcclusion Bevy's ScreenSpaceAmbientOcclusion with its quality and thickness (M5: ScreenSpaceAmbientOcclusion)
+raea Shadows         the shadow maps' settings together (PointLightShadowMap, filtering, cascades)
+raea Grade           Bevy's ColorGrading with chromatic aberration and the effect stack (ColorGrading alone is M5's name)
+raea Fog             Bevy's DistanceFog plus an exponential form by density (DistanceFog is M5's name)
+raea ToneMapping     Bevy's Tonemapping with Exposure (Tonemapping is M5's name)
+raea Environment     Bevy's EnvironmentMapLight from a panorama, drawn as the sky with `background` (M5: EnvironmentMapLight)
+raea Decal           Bevy's ForwardDecal with its picture and the camera's depth prepass (M5: ForwardDecal)
+raea Look            the scene's one look (paint, toon, flat) as an ExtendedMaterial on every surface
+raea SurfaceShader   one WGSL/WESL surface for every material in the scene (docs/shaders.feature SH4)
+raea ShaderMesh      a mesh drawn by its own shader, uniforms set at load (Mesh3d with a raea Material)
+web ThreeShaderMaterial  three.js's ShaderMaterial (GLSL) or node material (WGSL) as it is, run by raea's engine (docs/r3f.feature R3F11)
+raea FramePass       a full-screen pass over the camera's frame (docs/shaders.feature)
+raea Compute         a compute shader run once a frame before the cameras draw (docs/shaders.feature SH10)
+raea ShaderExtension raea's MaterialExtension running a surface shader (ExtendedMaterial's extension)
+raea GridExtension   raea's MaterialExtension drawing a grid (ExtendedMaterial's extension)
+raea PaintExtension  raea's MaterialExtension for the paint look (ExtendedMaterial's extension)
+raea WearExtension  raea's MaterialExtension that chips, grimes and rusts a StandardMaterial in the part's own space (systems/wear); Bevy has none
+raea ProceduralExtension  raea's MaterialExtension that draws wood, stone, brick, tiles and the rest on a StandardMaterial with dust, dirt and worn edges (systems/procmat); Bevy has none
+raea ToonExtension   raea's MaterialExtension for toon bands (ExtendedMaterial's extension)
+raea ToonMaterial    StandardMaterial with ToonExtension (S2a's table: raea's)
+raea Fisheye         a lens pass after tone mapping (raea-render's lens)
+raea Fire            raea's fire volume (raea-render's fire.rs)
+raea Splat           a Gaussian splat (raea-render's splat material)
+raea Screen          a live picture (a page, a game) on a quad in the scene
+raea ImagePlane      a picture on an unlit card in the scene
+raea Shape2D         a flat shape in frame px over the 3D (Mesh2d with a ColorMaterial, placed as the page places things)
+raea Refinish        the glTF materials of every <Model> inside re-covered
+raea RichText        3D text in runs (raea-render's text3d), as HTML's rich text reads
+raea Span            a run of a RichText (HTML's <span>, inside RichText only)
+raea Text3D          solid 3D letters as a mesh's geometry (Manifold's text3d)
+raea BufferMesh      a mesh from its own vertex buffers (Bevy's Mesh built from attributes, as JSX)
+raea Instances       one mesh or glTF drawn at many placements (Bevy batches the copies; it has no component of its own)
+raea Grass           a field of grass the engine makes in tiles by distance from a few grids of the ground (no Bevy component)
+raea MeshSequence    a baked simulation, one mesh a frame
+raea Daylight        the sun and sky at a place and time, lit through windows at true brightness
+raea WindowLight     a window's light as a wide soft lamp
+raea Echoes          copies trailing a part
+raea Goo             objects melting into goo (a bake)
+raea Body            a rigid body inside <Physics> (avian's RigidBody with its collider, drawn)
+raea Model           a loaded ML model (/ml; not Bevy's glTF, which is raea/scene's <Model>)
+
+# raea's own: solids (Manifold) and the App's TSX bridges to Bevy's reflection
+raea Solid           a native solid's handle (Manifold), freed when done
+raea CrossSection    a 2D shape (Manifold's CrossSection), by value
+raea Field           a signed distance field as text (raea-core-sdf), meshed into a Solid by .solid()
+raea BevyApp         Bevy's App as a TypeScript object for programs (App is its Bevy name, also exported)
+raea BevyComponent   any reflected Bevy component on an entity by its type path (the TypeRegistry)
+raea BevyResource    any reflected Bevy resource by its type path (the TypeRegistry)

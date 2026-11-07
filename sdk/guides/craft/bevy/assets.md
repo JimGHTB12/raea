@@ -28,7 +28,10 @@
   an unlit card, its height from the picture's shape unless you give `height`. For a picture on a solid's side, use
   `map` on its material (`bevy/materials`).
 - Models are loaded once before the first frame is drawn; there's no loading state to handle.
-- raea generates no imagery: models and pictures come from the brand, the person, or libraries they've given you.
+- Where a model comes from is the scene's routing (`bevy/scenes`): built in code when it's exact or architectural,
+  a library or the person's file when one exists, generated with `raea gen mesh` (Tripo) when it has character.
+  Generation costs money: quote it first (`raea gen plan`), and every generated mesh goes through `raea gen check`
+  (size, facing, pivot, triangles) before a scene uses it.
 
 ## Why
 

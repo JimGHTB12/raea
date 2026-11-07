@@ -200,7 +200,9 @@ pub fn shape_mesh(id: &str, expr: &str, uvs: bool, tangents: bool) -> Result<Mes
     let ball = raea_core_shape::sphere_of(expr).map(|s| match s {
         raea_core_shape::SphereOf::Ico { radius, subdivisions } => Sphere::new(radius).mesh().ico(subdivisions).map_err(|e| format!("mesh {id}: {e}")),
         raea_core_shape::SphereOf::Uv { radius, sectors, stacks } => Ok(Sphere::new(radius).mesh().uv(sectors, stacks)),
-    }).or_else(|| raea_core_shape::cuboid_of(expr).map(|[w, h, d]| Ok(Mesh::from(Cuboid::new(w, h, d)))));
+    }).or_else(|| raea_core_shape::cuboid_of(expr).map(|[w, h, d]| Ok(Mesh::from(Cuboid::new(w, h, d)))))
+        // a plane alone: Bevy's one face, facing its normal (a box of no depth has two)
+        .or_else(|| raea_core_shape::plane_of(expr).map(|(n, [w, h])| Ok(Mesh::from(Plane3d::new(Vec3::from(n), Vec2::new(w / 2.0, h / 2.0))))));
     if let Some(mut m) = ball.transpose()? {
         if tangents {
             m.generate_tangents().map_err(|e| format!("mesh {id}: normalMap: its tangents: {e}"))?;

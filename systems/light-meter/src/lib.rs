@@ -12,6 +12,8 @@
 //! outer and inner angles; an AmbientLight of 1 is 400 cd/m², an <Environment> of 1 its panorama's values x 1000
 //! cd/m², neither shadowed (the engine's ambient occlusion darkens them only in the picture).
 
+
+pub mod exposure;
 use std::collections::HashMap;
 use std::f32::consts::{PI, TAU};
 use std::sync::{Arc, Mutex, OnceLock};

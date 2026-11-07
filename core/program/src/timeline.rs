@@ -11,7 +11,7 @@ pub struct Timeline {
     pub frames: i64,
     pub base: Cols,
     /// per frame: the columns whose values differ from the base (whole columns)
-    written: Vec<HashMap<String, Col>>,
+    written: Vec<HashMap<String, std::sync::Arc<Col>>>,
     /// per row: true when no frame changes any of its values from the base, so a system that applies a row's values
     /// to the World each frame can apply a still row's once
     still: Vec<bool>,
@@ -24,11 +24,11 @@ impl Timeline {
 
     pub fn from_cols(prog: &Program, base: Cols) -> Result<Timeline, String> {
         let frames = prog.frames.max(0);
-        let per: Vec<(HashMap<String, Col>, Vec<usize>)> = parallel(frames as usize, |f| {
+        let per: Vec<(HashMap<String, std::sync::Arc<Col>>, Vec<usize>)> = parallel(frames as usize, |f| {
             let raw = eval::frame_cols(prog, &base, f as i64);
-            let w: HashMap<String, Col> = raw.cols.into_iter().filter(|(c, v)| base.cols.get(c) != Some(v)).collect();
+            let w: HashMap<String, std::sync::Arc<Col>> = raw.cols.into_iter().filter(|(c, v)| base.cols.get(c) != Some(v)).collect();
             // the rows this frame moves: a written column's value differing from the base's at that row
-            let moved = (0..base.len()).filter(|r| w.iter().any(|(c, col)| !col.same_at(base.cols.get(c), *r))).collect();
+            let moved = (0..base.len()).filter(|r| w.iter().any(|(c, col)| !col.same_at(base.cols.get(c).map(|b| &**b), *r))).collect();
             Ok((w, moved))
         })?;
         let mut still = vec![true; base.len()];
@@ -121,5 +121,20 @@ mod tests {
         assert!(!t.still(1));
         assert!(t.still(2));
         assert!(!t.still(3), "a row past the end is never still");
+    }
+
+    #[test]
+    fn a_frame_shares_its_columns_and_a_value_set_on_it_leaves_the_base_and_other_frames_as_they_were() {
+        let mut prog = Program { frames: 3, ..Default::default() };
+        prog.keys.insert(("moves".into(), "x".into()), vec![(0, 0.0, "linear".into()), (2, 2.0, "linear".into())]);
+        let t = Timeline::new(&prog, &[row("cube", 1.0), row("moves", 0.0)]).unwrap();
+        let (a, mut b) = (t.cols(1), t.cols(1));
+        // a column no frame writes is the base's own, not a copy (100 000 lights' columns were copied each frame)
+        assert!(std::sync::Arc::ptr_eq(&a.cols["x"], &b.cols["x"]) || a.cols["x"] == b.cols["x"]);
+        b.set(0, "x", V::N(9.0));
+        assert_eq!(b.get(0, "x"), Some(V::N(9.0)));
+        assert_eq!(a.get(0, "x"), Some(V::N(1.0)), "a value set on one frame's columns changed another's");
+        assert_eq!(t.cols(1).get(0, "x"), Some(V::N(1.0)), "a value set on a frame's columns changed the timeline");
+        assert_eq!(t.cols(1).get(1, "x"), Some(V::N(1.0)));
     }
 }

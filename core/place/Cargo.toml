@@ -1,0 +1,10 @@
+[package]
+name = "raea-core-place"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Placement by relations: boxes moved until on, against, beside, near, apart, facing, align and clear-zone rules hold and nothing on the same support overlaps; what can't hold is found, in scene lint's shape"
+
+[dependencies]
+serde_json = "1"

@@ -57,6 +57,7 @@ raea_plugin! {
     ScreenPlugin: super::screen::install, "Live pictures on surfaces, drawn as CRTs (screen.rs).";
     GridPlugin: super::grid::install, "Greybox surfaces: graph paper and outlines (grid.rs).";
     WearPlugin: raea_sys_wear::install, "Worn surfaces: chipped paint, grime and rust (systems/wear).";
+    ProcMatPlugin: raea_sys_procmat::install, "Procedural surfaces: wood, stone, brick, tiles and the rest, with dust and dirt (systems/procmat).";
     PaintPlugin: super::paint::install, "The paint and cartoon looks' surfaces (paint.rs).";
     PassesPlugin: super::passes::install, "Render passes per view (passes.rs).";
     TracedAoPlugin: super::traced_ao::install, "Traced ambient occlusion (raea-sys-rt's traced_ao.rs).";
@@ -111,7 +112,9 @@ pub fn scene3d_systems() -> ScheduleConfigs<ScheduleSystem> {
         super::scene3d::instance_models,
         super::scene3d::model_shadow_markers,
         super::scene3d::toon_models,
-        ((super::scene3d::sync_meshes, super::scene3d::sync_pictures, super::shader_ext::sync_shaded, raea_sys_sampler::arrays::sync_arrays, raea_sys_sampler::sync_samplers).chain(), super::toon::sync_toon, super::scene3d::sync_camera, super::motion_blur::sync_motion_blur, super::environment::sync_environment, super::scene3d::sync_lights, super::scene3d::sync_fog_volumes, super::scene3d::sync_fog_dither, super::scene3d::sync_models, super::scene3d::sync_morphs, super::scene3d::sync_attach, super::grid::grid_models, super::scene3d::sync_bones, super::look::sync_frame_look, super::look::sync_looks, super::compose::sync_passes, super::look::sync_flat, super::paint::sync_paint, super::decal::sync_decals, super::text3d::sync_texts).chain(),
+        ((super::scene3d::sync_meshes, super::scene3d::sync_pictures, super::shader_ext::sync_shaded, raea_sys_sampler::arrays::sync_arrays, raea_sys_sampler::sync_samplers).chain(), super::toon::sync_toon, super::scene3d::sync_camera, super::motion_blur::sync_motion_blur, (super::environment::sync_environment, super::environment::sync_prefiltered).chain(), super::scene3d::sync_lights, super::scene3d::sync_fog_volumes, super::scene3d::sync_fog_dither, super::scene3d::sync_models, super::scene3d::sync_morphs, super::scene3d::sync_attach, super::grid::grid_models, super::scene3d::sync_bones, super::look::sync_frame_look, super::look::sync_looks, super::compose::sync_passes, super::look::sync_flat, super::paint::sync_paint, super::decal::sync_decals, super::text3d::sync_texts).chain(),
+        // --clay and --review's clay half: every standard surface grey, after the rows set their colours
+        super::scene3d::clay::clay_materials,
     )
         .chain()
 }

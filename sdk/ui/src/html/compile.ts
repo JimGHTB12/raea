@@ -1,6 +1,6 @@
 // Portions ported from HyperFrames (Apache-2.0, https://github.com/heygen-com/hyperframes); see NOTICE.
 // A composition's compile step (docs/ts-native.feature P27), on the parsed tree before anything is built, as engine/
-// html's compile.rs did it after the composition format's compiler: sub-compositions (`data-composition-src`) inlined into their
+// html's compile.rs did it after the original compiler: sub-compositions (`data-composition-src`) inlined into their
 // host, recursively, their relative URLs rebased onto the project root, their styles scoped to the host and put in
 // <head>, their scripts at the end of <body> (a script of their own run with `document` and `gsap` scoped to their
 // root); the root composition's data-width/height sizing it, <html> and <body>.
@@ -30,7 +30,7 @@ function sibling(file: string, url: string): string {
   }
   return parts.join("/") + suffix;
 }
-/** A sub-composition's relative URL as a project-root path (the composition format's rewriteAssetPath): `../` resolves against
+/** A sub-composition's relative URL as a project-root path (the original rewriteAssetPath): `../` resolves against
  *  the file's folder, a plain relative path only when that sibling exists. */
 function rebase(exists: (p: string) => boolean, file: string, url: string): string {
   if (!isRelative(url)) return url;
@@ -58,7 +58,7 @@ function scopeSelector(sel: string, scope: string, ids: string[]): string {
   }
   return `${scope} ${t}`;
 }
-/** The composition format's scopeCssToComposition: each top-level rule prefixed with the scope; @keyframes / @font-face global,
+/** The original scopeCssToComposition: each top-level rule prefixed with the scope; @keyframes / @font-face global,
  *  @media and @supports scoped inside. */
 export function scopeCss(css: string, scope: string, ids: string[], map?: (s: string) => string): string {
   let out = "";

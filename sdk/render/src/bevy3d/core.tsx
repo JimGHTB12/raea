@@ -1,10 +1,11 @@
 // Quat, Transform, Mesh3d and Camera3d.
-import { Children, isValidElement, useId, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useId, type ReactNode } from "react";
 import { meshLayers } from "../layers";
-import { DepthOfField, dofOf, eulerOf, type DepthOfFieldProps, type Vec3 } from "../3d";
+import { BevyComponent, DepthOfField, Fog, dofOf, eulerOf, type DepthOfFieldProps, type FogProps, type Vec3 } from "../3d";
 import { AmbientLight as AmbientLight3, Mesh, OrthographicCamera, PerspectiveCamera, type MeshProps } from "../three";
 import { Transform as TransformComponent } from "@raea/app/bevy";
 import { AmbientLight, ambientOf, type AmbientLightProps } from "./all";
+import { cameraFog } from "./fog";
 
 /** A rotation as glam's Quat: [x, y, z, w]. */
 export type Quat = [number, number, number, number];
@@ -202,7 +203,11 @@ export function Camera3d({ transform, projection = { Perspective: {} }, layers, 
   let dof: DepthOfFieldProps | undefined;
   // Bevy 0.20's AmbientLight on the camera: its own ambient, over GlobalAmbientLight (the scene's other ambient lights)
   const ambient: ReactNode[] = [];
-  const rest = Children.toArray(kids).filter((c) => {
+  // a <Fog> on the camera is Bevy's DistanceFog on it, every one of Bevy's fields
+  let fogs = 0;
+  const own = Children.toArray(kids).map((c) => (isValidElement(c) && c.type === Fog ? (fogs++, cloneElement(cameraFog(c.props as FogProps), { key: c.key })) : c));
+  if (fogs > 1) throw new TypeError("Camera3d: one Fog");
+  const rest = own.filter((c) => {
     if (isValidElement(c) && c.type === AmbientLight) {
       ambient.push(<AmbientLight3 key={ambient.length} {...ambientOf(c.props as AmbientLightProps)} camera />);
       return false;
@@ -213,7 +218,7 @@ export function Camera3d({ transform, projection = { Perspective: {} }, layers, 
     return false;
   });
   const focus = dof ? { focus: dof.focal_distance ?? 10 } : {};
-  const children = dof || ambient.length ? rest : kids;
+  const children = dof || ambient.length || fogs ? rest : kids;
   // on the camera it is Bevy's component, so Bevy's f/1 unless the old aperture is given
   const bevy = dof && dof.aperture === undefined && dof.aperture_f_stops === undefined ? { aperture_f_stops: 1 } : {};
   const lens = dof ? <DepthOfField {...dofOf("Camera3d", { ...dof, ...bevy, focal_distance: undefined })} /> : null;
@@ -244,4 +249,11 @@ export function Camera3d({ transform, projection = { Perspective: {} }, layers, 
       {ambient}
     </>
   );
+}
+
+/** Bevy's Hdr: put it inside the <Camera3d> to render it to a float target, tone-mapped after, as Bevy's Hdr camera
+ *  is (a Skybox's or an emissive's light above 1 then rolls off in the tone mapping instead of clipping).
+ *  @bevy bevy_camera::components::Hdr */
+export function Hdr() {
+  return <BevyComponent type="bevy_camera::components::Hdr" value={{}} />;
 }

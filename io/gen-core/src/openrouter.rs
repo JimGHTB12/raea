@@ -1,7 +1,7 @@
 //! OpenRouter (openrouter.ai/api/v1): its image-output models (`openrouter:google/gemini-3.1-flash-image`,
 //! `openrouter:black-forest-labs/flux-3-image`, …) for image.generate and image.edit, and any of its text models for
 //! text.generate (the prompt-writing LLM nodes ComfyUI workflows use). One chat completion: the prompt and any images
-//! as the founder's message, `modalities` asking for images back, which arrive as data URIs. The key is
+//! as the user's message, `modalities` asking for images back, which arrive as data URIs. The key is
 //! OPENROUTER_API_KEY.
 
 use std::path::{Path, PathBuf};

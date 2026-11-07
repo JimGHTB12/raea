@@ -1,0 +1,1 @@
+examples/games/animated-character.tsx: EXCLUDED  a 3D game (no page) whose model, media/RobotExpressive.glb, is not in the checkout; P26 is the page

@@ -9,7 +9,7 @@ impl Live {
     }
 
     /// `open`, laid out at the stage's size only when `may_respond` and the composition lays out from useVideoConfig.
-    /// The rule (the founder, 2026-10-18): only games may be responsive. Video and everything played like it (timelines,
+    /// The rule (the user, 2026-10-18): only games may be responsive. Video and everything played like it (timelines,
     /// motion, decks, scenes; open_baked too) keep the composition's own layout at its own size, never re-flowed to the
     /// window's box; the legacy app's stage only scales that page uniformly (paint_texture_fit). Don't flip this per kind.
     pub fn open_with(tsx: &Path, stage: (u32, u32), may_respond: bool) -> R<Live> {

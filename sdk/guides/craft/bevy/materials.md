@@ -142,6 +142,33 @@ registerRoot(() => <Composition id="toon" component={Toon} width={1280} height={
 - Graph paper for a greybox (`GridExtension`) and the paint look's breakup (`PaintExtension`) go in `extension` the
   same way; two extensions nest, an ExtendedMaterial as the base of another.
 
+## Procedural surfaces: wood, stone, brick, tiles and use over them
+
+- `<ExtendedMaterial base={<StandardMaterial />} extension={<ProceduralExtension pattern="brick" dirt={0.3} />} />`
+  draws the surface on the GPU in place of a flat colour. The patterns are `noise`, `wood`, `marble`, `stone`
+  (concrete too), `brick`, `tiles`, `fabric`, `brushed` (metal) and `plaster`. Each has its own colours, roughness and
+  scale by default, so `pattern` alone already looks like the thing.
+- Tune it with these fields:
+  - `colors` (two colours) and `rough_a`/`rough_b`, one per colour.
+  - `scale`, how many metres one feature spans: a wood ring band, a marble vein, a stone mottle.
+  - `bump`, the surface's relief (0.5; 0 for flat).
+  - `seed`, so that two copies don't match.
+  - For brick and tiles: `tile` [width, height] in metres (brick 0.215 x 0.065, tiles 0.3 x 0.3), `gap` (the joint's
+    width, 0.01 m) and `gap_color`.
+- Use goes on top, each 0-1, and is 0 by default:
+  - `dust` settles on what faces up.
+  - `dirt` collects in joints, hollows, undersides and along the floor line.
+  - `edges` wears corners lighter and smoother.
+
+  Give every surface in a scene the same three at different strengths. That one shared recipe is what makes a room
+  read as lived in.
+- The pattern overrides the base's colour and roughness; the base's lighting, shadows and transparency stay. Like
+  wear, it is fixed in the part's own space, so it moves with the part. Brick, tiles, fabric and brushed metal lie on
+  each face's dominant plane, so a box's sides each get a straight course.
+- It goes in `extension` alone, with no WearExtension or GridExtension. On raea/3d's MeshStandardMaterial, the same
+  thing is the `procedural` prop, with camelCase fields (`roughA`, `gapColor`, ...).
+- `raea render --clay` and the clay half of `--review` draw it plain grey, the same as every other surface.
+
 ## Re-covering a model's materials
 
 - `<Model src={CHAIR}><StandardMaterial material="Fabric" base_color="#7a3b2e" /></Model>` changes one glTF material

@@ -11,6 +11,8 @@ use crate::run::{Local, Run};
 
 pub const USAGE: &str = "raea gen models [--kind image|video|audio] [--query WORDS] | balance | types [-o FILE] | flow FLOW.ts [-o FLOW.json]
        raea gen image|video|music|sfx|speech|mesh|text \"PROMPT\" [--model M] [--image FILE]... [--seconds S] [--aspect W:H] [-o DIR] [--max-cents N] [--plan]   (mesh: --model tripo:H3.1|tripo:P2|fal:<endpoint>)
+       raea gen mesh \"PROMPT\" [--image FILE] [--h METRES] [--dims W,D,H] [--turn DEG]   (the model checked and fitted: its real height, origin at the bottom centre)
+       raea gen check MODEL.glb [--h METRES] [--dims W,D,H] [--turn DEG] [--faces N | --seen METRES] [--parts a,b] [--rig] [--solid] [-o FIXED.glb] [--json]
        raea gen plan FLOW.json|FLOW.ts [--exact] | raea gen run FLOW.json|FLOW.ts [-o DIR] [--max-cents N] [--exact] [--comfy-on-replicate] [--no-local] [--no-tripo]
        raea gen comfy import WORKFLOW.json [-o FLOW.json] | comfy export FLOW.json|FLOW.ts [-o WORKFLOW.json] | comfy needs WORKFLOW.json [-o NEEDS.json]
        raea gen comfy run WORKFLOW.json [-o DIR]   (any workflow as it is, on the ComfyUI server: its input files uploaded, every output fetched)
@@ -106,7 +108,12 @@ pub fn command(args: &[String], local: Option<&dyn Local>) -> Result<String, Str
             let flow = read_flow(path)?;
             let base = Path::new(path).parent().map(Path::to_path_buf).unwrap_or_default();
             let r = runner(args, &base, local);
-            write_or_print(&if verb == "plan" { r.plan(&flow)? } else { r.run(&flow)? }, None)
+            if verb == "plan" {
+                return write_or_print(&r.plan(&flow)?, None);
+            }
+            let mut done = r.run(&flow)?;
+            crate::fit::after_run(&flow, &mut done);
+            write_or_print(&done, None)
         }
         "image" | "video" | "music" | "sfx" | "speech" | "mesh" | "text" => {
             let prompt = args.get(1).filter(|p| !p.starts_with("--")).ok_or(USAGE)?;
@@ -133,6 +140,25 @@ pub fn command(args: &[String], local: Option<&dyn Local>) -> Result<String, Str
             if let Some(a) = flag(args, "--aspect") {
                 inputs["aspect_ratio"] = json!(a);
             }
+            // a mesh's fit: its real height and box, and a turn to face +z (raea gen check, after it's made)
+            if verb == "mesh" {
+                let mut fit = serde_json::Map::new();
+                for k in ["h", "turn", "faces"] {
+                    if let Some(v) = flag(args, &format!("--{k}")) {
+                        fit.insert(k.into(), json!(v.parse::<f64>().map_err(|_| format!("--{k} takes a number, got {v:?}"))?));
+                    }
+                }
+                if let Some(d) = flag(args, "--dims") {
+                    let v: Vec<f64> = d.split(',').filter_map(|x| x.trim().parse().ok()).collect();
+                    if v.len() != 3 {
+                        return Err(format!("--dims takes W,D,H in metres, got {d:?}"));
+                    }
+                    fit.insert("dims".into(), json!(v));
+                }
+                if !fit.is_empty() {
+                    inputs["size"] = J::Object(fit);
+                }
+            }
             let mut step = Step::new(op, inputs);
             step.model = flag(args, "--model").map(|m| if m.contains(':') { m.to_string() } else { format!("made:{m}") });
             flow.steps.insert("out".into(), step);
@@ -140,8 +166,14 @@ pub fn command(args: &[String], local: Option<&dyn Local>) -> Result<String, Str
             flow.check()?;
             let cwd = std::env::current_dir().map_err(|e| e.to_string())?;
             let r = runner(args, &cwd, local);
-            write_or_print(&if args.iter().any(|a| a == "--plan") { r.plan(&flow)? } else { r.run(&flow)? }, None)
+            if args.iter().any(|a| a == "--plan") {
+                return write_or_print(&r.plan(&flow)?, None);
+            }
+            let mut done = r.run(&flow)?;
+            crate::fit::after_run(&flow, &mut done);
+            write_or_print(&done, None)
         }
+        "check" => crate::fit::command(args),
         "comfy" => comfy_verb(&args[1..]),
         "flow" => write_or_print(&read_flow(args.get(1).ok_or(USAGE)?)?.to_json(), flag(args, "-o")),
         "types" => {

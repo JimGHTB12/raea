@@ -1,7 +1,7 @@
 //! Generation flows' ground. A flow (flow.rs) names generation steps by what they make (image.generate,
 //! video.generate, audio.sfx, mesh.generate, …), its ops in one table (types.rs writes it as raea/gen's TypeScript);
 //! the hosted backends a step runs on are here too: made.app (one key for 118 image, video and audio models at the
-//! provider's price), fal, Replicate, OpenRouter, Modal endpoints, Fish Audio's speech and Tripo 3D (its own CLI, the founder's key). ComfyUI is raea-io-gen-comfy; routing and running
+//! provider's price), fal, Replicate, OpenRouter, Modal endpoints, Fish Audio's speech and Tripo 3D (its own CLI, the user's key). ComfyUI is raea-io-gen-comfy; routing and running
 //! are raea-io-gen.
 
 pub mod direct;

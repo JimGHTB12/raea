@@ -1,0 +1,16 @@
+[package]
+name = "raea-sys-procmat"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "Procedural surfaces: the standard material with wood, marble, stone, brick, tiles, fabric, brushed metal or plaster made on the GPU, bumped, with dust, dirt and worn edges over it"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_pbr"] }
+# a mesh row's values
+raea-core-program = { path = "../../core/program" }
+# a row's numbers, read as every system reads them
+raea-sys-frame = { path = "../frame" }
+# a material's `procedural` prop, as the SDK sends it
+serde_json = "1"

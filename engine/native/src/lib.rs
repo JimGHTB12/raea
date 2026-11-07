@@ -1,5 +1,5 @@
 //! raea's one native-call layer. TypeScript running on JavaScriptCore (raea render, run and test, the iPhone
-//! probes, HostCore's composition scripts) reaches Rust through one function, `__raea_call(name, json) -> json`; every
+//! probes, the host app's composition scripts) reaches Rust through one function, `__raea_call(name, json) -> json`; every
 //! name it can call is registered here once, with the TypeScript types of its arguments and answer, by whichever crate
 //! implements it (raea-runtime-react's solids, worlds and coders; the sandbox's commands; the web shims' own calls below). A
 //! host links the crates it wants and calls their `register()`; `typescript()` writes the types the SDK imports, so a

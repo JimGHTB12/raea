@@ -1,4 +1,4 @@
-//! HTML compositions' page-independent part (docs/ts-native.feature P27): a the HTML composition format-format page (HTML, CSS, GSAP and
+//! HTML compositions' page-independent part (docs/ts-native.feature P27): an HTML composition page (HTML, CSS, GSAP and
 //! its own scripts) prepared for @raea/ui's HTML runtime (sdk/ui/src/html.ts), its probe and its videos read from what
 //! the runtime reports. raea-page's HtmlPage (engine/page/src/html.rs) mounts it on a Blitz document; the bevy_ui
 //! page that did went with docs/blitz-bevy.feature B5d.
@@ -145,7 +145,7 @@ pub fn prepare(file: &Path, fps: f64, fonts: Option<&Path>, size: Option<(u32, u
         }
     };
     let (w, h) = size.unwrap_or_else(|| size_of(&source));
-    // the bundled faces the composition format's deterministic fonts stand in for system families with (html/fonts.ts)
+    // the bundled faces the deterministic font set stands in for system families with (html/fonts.ts)
     let font_files: Vec<String> = fonts
         .and_then(|d| std::fs::read_dir(d).ok())
         .map(|rd| rd.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".woff2")).collect())

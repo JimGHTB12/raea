@@ -19,6 +19,7 @@ fn ty(name: &str) -> &'static str {
         "nodes" => "Record<string, { class_type: string; inputs: Record<string, unknown> }>",
         "bind" => "Record<string, Ref>",
         "slots" => "number[]",
+        "size" => "{ h?: number; dims?: [number, number, number]; turn?: number; faces?: number }",
         _ => "unknown",
     }
 }

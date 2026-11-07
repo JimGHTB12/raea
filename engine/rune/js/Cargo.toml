@@ -1,0 +1,21 @@
+[package]
+name = "raea-rune-js"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The native target's JS (docs/targets.feature): a bundled TSX app run by raea-runtime-jsengine against a Rune page, its op batches, asks and host calls"
+
+[dependencies]
+raea-rune-page = { path = "../page" }
+raea-core-wire = { path = "../../../core/wire" }
+# the net.* host calls, answered as the web target answers them (docs/targets.feature T2a)
+raea-io-net-calls = { path = "../../../io/net/calls" }
+# os.open, the clipboard, files and dialogs, answered as the web target answers them (docs/targets.feature T2d)
+raea-io-os = { path = "../../../io/os" }
+raea-runtime-jsengine = { path = "../../../runtime/jsengine" }
+serde_json = "1"
+
+[features]
+# QuickJS beside JavaScriptCore on a Mac (BEVY_TSX_ENGINE=quickjs picks it)
+portable = ["raea-runtime-jsengine/portable"]

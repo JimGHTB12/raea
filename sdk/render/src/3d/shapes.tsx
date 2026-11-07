@@ -156,9 +156,13 @@ export function Plane3d(props: Plane3dProps) {
   return args.length === 2 ? <Plane {...rest} args={args as [number, number]} /> : <Box {...rest} args={args as [number, number, number]} />;
 }
 
+// plane(nx, ny, nz, w, h): one face, as Bevy's PlaneMeshBuilder makes it (systems/material mesh.rs), where a box with no
+// depth has two (mesh_ray_cast's box of inward planes, seen from outside, drew its near walls); its Manifold is that box
 GEOMETRY_SHAPES.set(Plane3d, (props) => {
-  const a = planeArgs(props as Plane3dProps);
-  return a.length === 2 ? `box(${list(a)}, 0)` : `box(${list(a)})`;
+  const p = props as Plane3dProps;
+  planeArgs(p);
+  const [hx, hy] = p.half_size ?? [0.5, 0.5];
+  return `plane(${list([...(p.normal ?? [0, 1, 0]), 2 * hx, 2 * hy])})`;
 });
 
 GEOMETRY_BOUNDS.set(Plane3d, (props) => {

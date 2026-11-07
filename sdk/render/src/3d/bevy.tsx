@@ -21,13 +21,37 @@ export function BevyComponent(props: BevyComponentProps) {
   return node3d("BevyComponent", { type: props.type, value: props.value ?? null, ...(props.from ? { from: props.from } : {}) });
 }
 
+/** a gizmo point's colour: "#rrggbb", linear [r, g, b, a], or Bevy's LinearRgba / Srgba (bevy3d's colours) */
+export type GizmoColor = string | [number, number, number, number] | { red: number; green: number; blue: number; alpha?: number };
+
+/** bevy_color's sRGB to linear for one channel (at or below 0 kept, as Bevy's gamma function does) */
+const toLinear = (c: number) => (c <= 0 ? c : c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+
+/** what fields.rs's gizmo_asset reads: the hex as it is, anything else linear [r, g, b, a] */
+function gizmoColour(c: GizmoColor): string | number[] {
+  if (typeof c === "string") {
+    if (!/^#?[0-9a-f]{6}([0-9a-f]{2})?$/i.test(c)) throw new TypeError(`Gizmo: a colour string is "#rrggbb", got ${JSON.stringify(c)}`);
+    return c;
+  }
+  if (Array.isArray(c)) {
+    if (c.length !== 4 || !c.every(Number.isFinite)) throw new TypeError(`Gizmo: a colour array is linear [r, g, b, a], got ${JSON.stringify(c)}`);
+    return c;
+  }
+  if (!c || ![c.red, c.green, c.blue].every(Number.isFinite)) throw new TypeError(`Gizmo: a colour is "#rrggbb", [r, g, b, a] or a LinearRgba / Srgba, got ${JSON.stringify(c)}`);
+  // Srgba (it has to_hex) is gamma-encoded; LinearRgba is as the gizmo takes it
+  const srgb = typeof (c as { to_hex?: unknown }).to_hex === "function";
+  const ch = srgb ? [toLinear(c.red), toLinear(c.green), toLinear(c.blue)] : [c.red, c.green, c.blue];
+  return [...ch, c.alpha ?? 1];
+}
+
 export interface GizmoProps {
   /** segments, each [from, to] */
   lines?: [Vec3, Vec3][];
   /** one line through these points (null breaks it) */
   strip?: (Vec3 | null)[];
-  /** "#rrggbb" for every point, or one per point of `lines` (two per segment) then `strip` */
-  color?: string | string[];
+  /** one colour for every point, or one per point of `lines` (two per segment) then `strip`: "#rrggbb", Bevy's
+   * LinearRgba (above 1 for HDR, as bevy_gizmos takes it) or Srgba, or linear [r, g, b, a] */
+  color?: GizmoColor | GizmoColor[];
   /** line width in pixels (Bevy's default 2) */
   width?: number;
   /** -1 always in front of geometry, 0 depth-tested as it is (Bevy's GizmoLineConfig and depth_bias) */
@@ -50,12 +74,14 @@ export function Gizmo({ lines = [], strip = [], color = "#ffffff", width, depthB
   if (width !== undefined && !(width > 0 && Number.isFinite(width))) throw new RangeError(`Gizmo: width is in pixels, above 0, got ${width}`);
   if (depthBias !== undefined && !(depthBias >= -1 && depthBias <= 1)) throw new RangeError(`Gizmo: depthBias is -1 to 1, got ${depthBias}`);
   const n = lines.length * 2;
-  const colours = typeof color === "string" ? null : color;
+  // one colour, or a list of them (an array of numbers is one linear colour)
+  const list = Array.isArray(color) && !color.every((x) => typeof x === "number");
+  const colours = list ? (color as GizmoColor[]).map(gizmoColour) : null;
   if (colours && colours.length !== n + strip.length) throw new RangeError(`Gizmo: color lists one colour per point (${n + strip.length}), got ${colours.length}`);
   const handle: Record<string, unknown> = {
     list_positions: lines.flat(),
     strip_positions: strip,
-    ...(colours ? { list_colors: colours.slice(0, n), strip_colors: colours.slice(n) } : { color }),
+    ...(colours ? { list_colors: colours.slice(0, n), strip_colors: colours.slice(n) } : { color: gizmoColour(color as GizmoColor) }),
   };
   const value: Record<string, unknown> = { handle };
   if (width !== undefined) value.line_config = { width };

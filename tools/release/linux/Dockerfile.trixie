@@ -1,0 +1,2 @@
+FROM --platform=linux/amd64 debian:trixie-slim
+RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends libasound2t64 libfontconfig1 libvulkan1 mesa-vulkan-drivers >/dev/null && rm -rf /var/lib/apt/lists/*

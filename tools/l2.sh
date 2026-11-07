@@ -1,0 +1,121 @@
+#!/bin/bash
+# L2, the orchestrator's post-landing suites (docs/agents.md "Check levels"), run one way every time:
+#
+#   tools/l2.sh [SHA]        # default: origin/main when it starts
+#
+# - It tests one commit, fixed at the start. Landings go on while it runs; they never restart it. The next run
+#   takes whatever landed since.
+# - It runs in its own checkout ($RAEA_L2_DIR, default ~/raea-trial/a), never in ~/raea's shared tree, so no
+#   lane's uncommitted edit reaches it. That checkout keeps its target/: a release build without incremental (the
+#   reference build), so a new commit rebuilds only the crates that changed.
+# - It resumes: results go to $RAEA_L2_OUT/<sha> (default ~/Library/Caches/raea/l2), and a composition already
+#   compared for that commit is skipped. A run that was stopped is started again with the same SHA.
+# - P26 runs one composition at a time and prints a line for each, so an antsy --stall sees progress.
+# - The checkout gets what git doesn't track (media, fonts, solves, node_modules) as links to ~/raea's copies,
+#   made once. A link is never made through a linked folder, so nothing is written into ~/raea.
+# - Before building, it sweeps ~/raea's stale debug caches if disk is short, and refuses under 8 GB.
+#
+# Output: one line per step ("L2 <step>: ..."), then "L2 <sha>: P26 a/b, ui-parity c/d, conformance e/f" and
+# $OUT/summary.json. Run it under antsy with a stall of 20 minutes or more (a heavy composition prints after
+# rendering all its frames).
+set -uo pipefail
+ROOT=$HOME/raea
+T=${RAEA_L2_DIR:-$HOME/raea-trial/a}
+git -C "$T" rev-parse --git-dir > /dev/null 2>&1 || { echo "L2: no checkout at $T (git clone ~/raea's origin there)"; exit 2; }
+git -C "$T" fetch -q origin || exit 2
+SHA=$(git -C "$T" rev-parse --short=8 "${1:-origin/main}") || exit 2
+OUT=${RAEA_L2_OUT:-$HOME/Library/Caches/raea/l2}/$SHA
+mkdir -p "$OUT/bin" "$OUT/p26"
+free() { df -g / | awk 'NR==2{print $4}'; }
+say() { echo "L2 $*"; }
+
+# the commit, and the app at that commit's pointer
+git -C "$T" checkout -q -f "$SHA" || exit 2
+[ -z "$(git -C "$T" status --porcelain --untracked-files=no -- . ':!apps/app')" ] || { say "checkout has tracked changes"; exit 2; }
+app=$(git -C "$T" ls-tree HEAD apps/app | awk '{print $3}')
+[ -d "$T/apps/app/.git" ] || { rmdir "$T/apps/app" 2>/dev/null; git clone -q "$ROOT/apps/app" "$T/apps/app" || exit 2; }
+git -C "$T/apps/app" fetch -q "$ROOT/apps/app" && git -C "$T/apps/app" checkout -q -f "$app" || exit 2
+say "commit: $(git -C "$T" log --oneline -1 | cut -c1-90) | app ${app:0:8}"
+
+# what git doesn't track, linked from ~/raea (once; never through a link, never trimming a name)
+links=0; TREAL=$(cd "$T" && pwd -P)
+while IFS= read -r -d '' p; do
+  p=${p%/}
+  case $p in target|target/*|*/target|*/target/*|*.DS_Store) continue ;; esac
+  { [ -e "$T/$p" ] || [ -L "$T/$p" ]; } && continue
+  # the nearest folder of it that exists must resolve inside the checkout (else mkdir or ln writes into ~/raea)
+  up=$(dirname "$p"); while [ "$up" != . ] && [ ! -d "$T/$up" ]; do up=$(dirname "$up"); done
+  case $(cd "$T/$up" && pwd -P)/ in "$TREAL"/*) ;; *) continue ;; esac
+  mkdir -p "$T/$(dirname "$p")" && ln -s "$ROOT/$p" "$T/$p" && links=$((links + 1))
+done < <(git -C "$ROOT" status --porcelain=v1 -z --ignored -- content sdk bench engine 2>/dev/null | tr '\0' '\n' | sed -n 's/^!! //p' | tr '\n' '\0')
+# the app's packages (apps/app is a submodule: its own ignored files aren't in ~/raea's status)
+[ -e "$T/apps/app/node_modules" ] || ln -s "$ROOT/apps/app/node_modules" "$T/apps/app/node_modules"
+# a tracked relative link that climbs out of ~/raea (media/assets/residential -> ../../../../../Assets) resolves
+# from the checkout's parent: give that parent the same folders
+for d in Assets; do [ -e "$(dirname "$T")/$d" ] || [ ! -e "$HOME/$d" ] || ln -s "$HOME/$d" "$(dirname "$T")/$d"; done
+say "links: $links new"
+
+# disk
+if [ "$(free)" -lt 15 ]; then bash "$ROOT/tools/target-sweep.sh" --debug --delete --age 60 --target "$ROOT/target" | tail -1; fi
+[ "$(free)" -ge 8 ] || { say "refused: $(free) GB free (needs 8)"; exit 1; }
+
+# builds (lane stops a hold at 15 minutes; a stopped cargo build resumes where it left off)
+build() {
+  local n=$1; shift
+  for _ in 1 2 3 4 5 6 7 8; do
+    # every 25th crate compiled is a line on stdout: a full release build prints nothing else for half an hour, and
+    # an antsy --stall would stop a compiler that's working (10-27)
+    (cd "$T" && lane build -- env CARGO_INCREMENTAL=0 cargo build --release -j 6 "$@") 2>&1 </dev/null | tee "$OUT/$n.log" |
+      awk -v n="$n" '/^ *Compiling / && ++c % 25 == 0 { print "L2 " n ": " c " crates compiled"; fflush() }'
+    grep -q '^ *Finished' "$OUT/$n.log" && { say "$n: $(grep '^ *Finished' "$OUT/$n.log" | sed 's/^ *//' | cut -c1-90)"; return 0; }
+    grep -qE '^error(\[|:)' "$OUT/$n.log" && { say "$n: FAILED $(grep -m1 -E '^error' "$OUT/$n.log" | cut -c1-120)"; return 1; }
+    say "$n: lane hold ended, resuming"
+  done
+  return 1
+}
+build build-raea -p raea-cli || exit 1
+cp "$T/target/release/raea" "$T/target/release/libraea_bundle.dylib" "$OUT/bin/" || exit 1
+build build-host -p raea-page-host || exit 1
+build build-conformance --manifest-path sdk/ui/conformance/Cargo.toml --target-dir target || exit 1
+build build-parity --manifest-path sdk/ui/parity/Cargo.toml --target-dir target || exit 1
+for b in raea-page-host conformance ui-parity; do cp "$T/target/release/$b" "$OUT/bin/" || exit 1; done
+# P26, one composition at a time, skipping those already compared for this commit
+cd "$T" || exit 2
+# the plugin build's rows go last, after their binary is built, so a long plugin build doesn't hold up the rest
+jq -r 'select(.binary | test("bevy-plugins|bin-avian") | not) | .composition' bench/p26-baseline/manifest.jsonl | awk '!s[$0]++' > "$OUT/p26/all"
+jq -r 'select(.binary | test("bevy-plugins|bin-avian")) | .composition' bench/p26-baseline/manifest.jsonl | awk '!s[$0]++' > "$OUT/p26/plugin"
+p26_rows() { # LIST
+while IFS= read -r c; do
+  n=$(echo "$c" | tr '/#' '__')
+  [ -s "$OUT/p26/$n/results.jsonl" ] && continue
+  rm -rf "$OUT/p26/$n"
+  RAEA_HOME="$T" ONLY="$c" P26_PLUGIN_BIN="$OUT/bin/plugin.sh" P26_OUT="$OUT/p26/$n" \
+    bash bench/p26-baseline/compare.sh "$OUT/bin/raea" </dev/null > "$OUT/p26/$n.log" 2>&1
+  grep -hE '^(ok|MISS)' "$OUT/p26/$n.log" | sed 's/^/L2 p26 /' | cut -c1-200
+  rm -rf "$OUT/p26/$n/frames"
+done < "$1"
+}
+p26_rows "$OUT/p26/all"
+cd "$ROOT" || exit 2
+# the plugin rows' binary, as tools/bevy-plugins.sh builds it for bench/bevy-plugins (motion.sh)
+feats=$(cd "$T" && bash tools/bevy-plugins.sh features sdk/raea/bench/bevy-plugins) || { say "plugin features: failed"; exit 1; }
+build build-plugins -p raea-cli --bin raea-bevy-sdk --features "$feats" || exit 1
+cp "$T/target/release/raea-bevy-sdk" "$OUT/bin/" || exit 1
+printf '#!/bin/sh\nexec %s motion "$@"\n' "$OUT/bin/raea-bevy-sdk" > "$OUT/bin/plugin.sh" && chmod +x "$OUT/bin/plugin.sh"
+cd "$T" || exit 2
+p26_rows "$OUT/p26/plugin"
+# a composition ONLY matched by substring also ran its longer-named neighbours: keep one row per frame
+cat "$OUT"/p26/*/results.jsonl | jq -s 'unique_by(.composition, .frame)' > "$OUT/p26.json"
+p26=$(jq -r '"\(map(select(.pass)) | length)/\(length)"' "$OUT/p26.json")
+jq -r 'map(select(.pass | not)) | .[] | "L2 p26 miss: \(.composition) @\(.frame) \(.ssim)"' "$OUT/p26.json"
+
+# ui-parity full (calib's off-* cases fail by design) and conformance full, on the page host
+RAEA_TS_NATIVE_RESULTS="$OUT/ui-parity/latest.json" "$OUT/bin/ui-parity" run --tier full --jobs 2 --bevy "$OUT/bin/raea-page-host" --out "$OUT/ui-parity" </dev/null > "$OUT/ui-parity.log" 2>&1
+parity=$(jq -rs '"\(map(select(.area != "CALIB" and .pass)) | length)/\(map(select(.area != "CALIB")) | length)"' "$OUT/ui-parity/results.jsonl" 2>/dev/null || echo "no results")
+say "ui-parity: $parity (calibration cases left out)"
+RAEA_FEED_AGENT=echo "$OUT/bin/conformance" --bin "$OUT/bin/raea-page-host" --substrate blitz --tier full --out "$OUT/conformance" </dev/null > "$OUT/conformance.log" 2>&1
+conf=$(jq -r '"\(.pass)/\(.cases)"' "$OUT/conformance/summary.json" 2>/dev/null || echo "no results")
+say "conformance: $conf"
+
+jq -n --arg sha "$SHA" --arg p26 "$p26" --arg parity "$parity" --arg conf "$conf" '{sha: $sha, p26: $p26, ui_parity: $parity, conformance: $conf}' > "$OUT/summary.json"
+echo "L2 $SHA: P26 $p26, ui-parity $parity, conformance $conf"

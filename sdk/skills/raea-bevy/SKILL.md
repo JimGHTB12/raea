@@ -19,14 +19,16 @@ the topic files here link to those, except `rows.md` and `plugins.md`, which onl
 | setting up the camera, camera moves, entities, 2D under and over 3D | `scene.md` |
 | lighting: sun, bulbs, spots, ambient, shadows, brightness | `lights.md` |
 | surfaces: colour, metal, glass, glow, clearcoat, picture maps, toon (cel) shading and ink outlines (`ToonMaterial`), wear (`WearExtension`), decals (`Decal`), a model's materials re-covered (a material inside its `Model`) | `materials.md` |
-| shapes: primitives, Manifold solids, Text3D | `meshes.md` |
+| a whole scene to build and make believable: brief, routing (which tool makes which object: solid, field, generator, Tripo HD or Smart Mesh, stock), build order, review sheets (`raea render --review`), the judge, stall rules | `scenes.md` |
+| the words to paste for a whole scene: the brief template, the builder prompt, the fresh-context judge prompt | `prompts.md` |
+| shapes: primitives, Manifold solids, blended organic bodies (`sdf`), trees, terrain, rocks, plants, lofts (`grow`), Text3D | `meshes.md` |
 | people: Anny bodies posed by goals (a hand on a point, feet, gaze, a seat), motion capture clips, motion matching along routes round the furniture (`Character`, `perform`) | `characters.md` |
 | interiors: rooms, runs of units, windows and bays, seats turned to tables (`faceToward`), layout checks, wall decor (`hang`), the garden outside, daylight, 3D sound (`Sound3D`) | `rooms.md` |
 | motion: spins, springs, Sequences, model clips | `animation.md` |
 | a 3D game: state, input, entities, collisions, state machines | `games.md` |
 | a game's sound: one-shots on transitions (`<Tone.Sfx>`), buses, a bed ducked under a voice (Tone.js on raea) | `games.md` (Sound), then `raea guide motion/music` |
 | glTF models, pictures in space, media files | `assets.md` |
-| an asset to fix before it goes in: scale and pivot, a heavy mesh, FBX/OBJ/.blend to .glb, a rig, a bake (Blender, `raea blender run`; never a whole scene) | `blender.md` |
+| a check names a Blender script (`fix: raea blender run blender/X.py`): convert, decimate, repair, split, bake, rig, cloth; one saved script per asset step, never the scene | `blender.md` |
 | gaussian splats: a real scene or object trained from footage (`raea splat train`), `<Splat>` and its reveal, assemble, disperse, explode, wave, twist, morph, pulse | `splats.md` |
 | liquids and goo: coffee dumped from a mug, a tap's stream, honey, things melting (`<Goo>`, sph or mpm, baked) | `liquids.md` |
 | bloom, fog, tone mapping, exposure, fisheye and lens distortion, motion blur, fire (`<Fire>`), frame looks (pixel, ink, painted illustration `<Look mode="paint">`, cartoon `<Look mode="cartoon">`) | `post.md` |

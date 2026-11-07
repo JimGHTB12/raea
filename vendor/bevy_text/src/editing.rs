@@ -295,7 +295,7 @@ impl EditableText {
     /// Is the IME currently composing text for this input?
     ///
     /// Some behavior (e.g. "submit on Enter") may want to be suppressed while the IME is active
-    /// to avoid interrupting the founder's composition.
+    /// to avoid interrupting the user's composition.
     pub fn is_composing(&self) -> bool {
         self.editor.is_composing()
     }

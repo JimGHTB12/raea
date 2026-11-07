@@ -66,3 +66,24 @@ fn world_save_and_load() {
     let d = raea_bevy_world::call(w, "raea/diagnostics", json!({})).unwrap();
     assert!(d.get("entity_count").is_some() && d.get("fps").is_some(), "{d}");
 }
+
+#[test]
+fn keyed_components_land_on_their_frame_forwards_backwards_and_jumping() {
+    let mut app = app();
+    let w = app.world_mut();
+    let (a, b) = (w.spawn_empty().id(), w.spawn_empty().id());
+    let ty = "bevy_transform::components::transform::Transform".to_string();
+    let at = |x: f64| json!({"translation": [x, 0.0, 0.0]});
+    // a keyed every frame 0-8; b at 0 and 5 only: in frame order, as apply_rows leaves them
+    let mut rows: Vec<_> = (0..=8).map(|f| (Some(a), ty.clone(), at(f as f64), f)).collect();
+    rows.extend([(Some(b), ty.clone(), at(100.0), 0), (Some(b), ty.clone(), at(105.0), 5)]);
+    rows.sort_by_key(|r| r.3);
+    w.insert_resource(Keyed { rows, ..default() });
+    w.insert_resource(Error(None));
+    let x = |w: &World, e: Entity| w.get::<Transform>(e).map(|t| t.translation.x);
+    for (f, want_a, want_b) in [(0, 0.0, 100.0), (1, 1.0, 100.0), (2, 2.0, 100.0), (6, 6.0, 105.0), (3, 3.0, 100.0), (8, 8.0, 105.0)] {
+        w.insert_resource(Clock(f));
+        keyed_rows(w);
+        assert_eq!((x(w, a), x(w, b)), (Some(want_a), Some(want_b)), "frame {f}");
+    }
+}

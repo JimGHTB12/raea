@@ -5,7 +5,7 @@ use super::*;
 
 pub(crate) const CONFIRM_NOTE: &str = "a face is visible once seen twice in a row at confidence 0.8 or more, stays through gaps of up to 0.5 s, and goes after 0.5 s under 0.5; its box is the median of its last three sightings";
 
-/// Faces confirmed over time (the founder, 2026-10-15: "faces are confirmed with confidence"; raea-9f's proposal): each
+/// Faces confirmed over time (2026-10-15: "faces are confirmed with confidence"): each
 /// sample's faces matched to the tracks by overlap or by centre distance and size (best first); per track, per sample, the raw
 /// confidence (0 where unseen), `visible` with hysteresis (on at 0.8 or more, off after 0.5 s under 0.5, gaps up to
 /// 0.5 s held) and a smoothed box (the median of the last three sightings, held through gaps). Rules that read faces
@@ -183,7 +183,7 @@ pub fn camera(path: &Path, shots: &[(f64, f64)], backend: &str, v: &dyn Vision) 
     Ok(out)
 }
 
-/// The sound steps of ingest (docs/the roadmap Track H), for any file with sound: `vad` (Silero's speech spans, and the
+/// The sound steps of ingest (docs/goal.feature Track H), for any file with sound: `vad` (Silero's speech spans, and the
 /// level of the talking and of the floor between it), `beats` (Beat This! on the whole sound), `stems` (HTDemucs:
 /// each stem's level 20 times a second, and Beat This! on the music stem: drums, bass and other), and `denoise`
 /// (DeepFilterNet3, only on speech whose floor between words is above -40 dB and flat like noise: it reshapes a clean
@@ -297,7 +297,7 @@ pub fn ingest_sound(path: &Path, dir: &Path, backend: &str, m: &mut Manifest) ->
     Ok(())
 }
 
-/// The person, the depth and what's in focus through a clip (docs/the roadmap G5's depth touches: text behind the head, a
+/// The person, the depth and what's in focus through a clip (docs/goal.feature G5's depth touches: text behind the head, a
 /// focus blur), `fps` times a second on a grid of 96 rows (columns by the picture's shape): matte.bin, the person mask
 /// (0-255), depth.bin, Depth Anything 3's inverse depth over the sample's largest (0-255, bigger = nearer), and
 /// sharp.bin, the mean absolute Laplacian of the grey picture (640 px) in each cell (x4, at most 255), one grid per
@@ -347,7 +347,7 @@ pub fn matte_track(path: &Path, dir: &Path, backend: &str, v: &dyn Vision, fps: 
     std::fs::write(dir.join("matte.json"), serde_json::json!({"fps": fps, "w": gw, "h": gh, "frames": frames}).to_string()).map_err(|e| e.to_string())
 }
 
-/// Where the eye goes through a clip (docs/the roadmap G1), `fps` times a second, as attention.json: {"fps", "frames":
+/// Where the eye goes through a clip (docs/goal.feature G1), `fps` times a second, as attention.json: {"fps", "frames":
 /// [{"t", "centre": [x, y], "peak": [x, y], "focus"}]}: the saliency map's weighted centre and its peak (0..1 of the
 /// picture, from the top left), and focus = 1 - the map's entropy over the largest it can be (1: one place, 0: spread);
 /// "rival": the strongest place (the map's mass in a disc of 0.1) at least 0.25 of the picture away from the strongest
@@ -389,7 +389,7 @@ pub fn attention_track(path: &Path, dir: &Path, backend: &str, v: &dyn Vision, f
     std::fs::write(dir.join("attention.json"), serde_json::json!({"fps": fps, "frames": frames}).to_string()).map_err(|e| e.to_string())
 }
 
-/// The focal point's rival in a saliency map (docs/the roadmap G's catalogue): the map's mass above its median in a disc
+/// The focal point's rival in a saliency map (docs/goal.feature G's catalogue): the map's mass above its median in a disc
 /// of 0.1 of the picture around each cell; the strongest disc 0.25 or more from the strongest, as (its place, its mass
 /// over the strongest's). Vision's maps are smooth blobs, so a single cell's maximum says little: mass does.
 pub fn rival(m: &[f32], mw: usize, mh: usize) -> Option<([f64; 2], f64)> {
@@ -420,7 +420,7 @@ pub fn rival(m: &[f32], mw: usize, mh: usize) -> Option<([f64; 2], f64)> {
     Some((at(i), masses[i] / masses[top]))
 }
 
-/// The light through a clip (docs/the roadmap G4), `fps` times a second, as light.json: {"fps", "frames": [{"t", "luma",
+/// The light through a clip (docs/goal.feature G4), `fps` times a second, as light.json: {"fps", "frames": [{"t", "luma",
 /// "warmth", "light", "face_level", "backlit_stops", "key_fill_stops", "mixed"}]}: the frame's mean luma (0..1) and
 /// warmth ((R - B) / (R + G + B)), and the framing coach's read of the light on the face (vision::coach) when there is one.
 pub fn light_track(path: &Path, dir: &Path, backend: &str, v: &dyn Vision, fps: f64) -> Result<(), String> {

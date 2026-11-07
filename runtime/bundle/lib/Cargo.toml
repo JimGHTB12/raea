@@ -10,4 +10,6 @@ description = "raea-bundle's library (engine/bundle: Rolldown) loaded at run tim
 # never a Cargo dependency on raea-bundle itself: Rolldown's crates turn on serde_json's preserve_order and
 # arbitrary_precision, and features unify across a binary (f60e0b7)
 libloading = "0.8"
+# paths without Windows' verbatim \\?\ prefix, which Rolldown's resolver can't open (T1f)
+raea-io-home = { path = "../../../io/home" }
 serde_json = "1"

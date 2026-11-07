@@ -1,4 +1,4 @@
-// bun tw.ts COMP.tsx: the CSS for the Tailwind classes a component uses (Tailwind 4.3.3, the host app's kit's version), for
+// bun tw.ts COMP.tsx: the CSS for the Tailwind classes a component uses (Tailwind 4.3.3), for
 // void's `component` tool to put in a <style> beside it (raea-runtime-react's Blitz honours inline <style>, not <link>).
 // Class candidates are every whitespace-separated token in the file's string literals; Tailwind ignores the rest.
 import { compile } from "tailwindcss";

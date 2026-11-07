@@ -1,4 +1,4 @@
-//! Visible cuts (docs/the roadmap A4): the signals the current detector reads from ffmpeg, computed in Rust from raea-media's
+//! Visible cuts (docs/goal.feature A4): the signals the current detector reads from ffmpeg, computed in Rust from raea-media's
 //! NV12 frames, and the detector itself (engine/html/src/measure.rs › sensitive_shot_changes before f1b4a17e deleted it, fitted on Buddy's renders).
 //!
 //! The signals, per frame, at 480 pixels wide as the ffmpeg command scales them (`scale=480:-2`):

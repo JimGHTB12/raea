@@ -246,7 +246,7 @@ pub fn master_gained(a: &Audio, target: f64, ceiling: f64) -> (Audio, f64) {
 
 /// `master`, held to its ceiling after the encoder: the mastered sound is put through `encode` (an AAC round trip) and,
 /// if its true peak comes back over the ceiling, mastered again with the ceiling lowered by the overshoot (twice at
-/// most). AAC adds a few tenths of a dB to a limited true peak (an agent session's -1.5 ceiling gave -1.1 to -1.4 in the file).
+/// most). AAC adds a few tenths of a dB to a limited true peak (a -1.5 ceiling gave -1.1 to -1.4 in the file).
 pub fn master_for(a: &Audio, target: f64, ceiling: f64, encode: &dyn Fn(&Audio) -> crate::R<Audio>) -> Audio {
     let mut c = ceiling;
     let mut out = master(a, target, c);

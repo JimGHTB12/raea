@@ -58,5 +58,5 @@ pub fn frames(out: &Path, size: (u32, u32), fps: f64, quality: Option<f32>, audi
         None => None,
     };
     let stats = enc.finish(sound.as_ref())?;
-    Ok(json!({"wrote": out, "frames": frames, "seconds": round3(secs), "width": w, "height": h, "fps": round3(fps), "bytes": stats.bytes, "sound": sound.is_some(), "credentials": if raea_io_media::SIGNS { "signed" } else { "unsigned" }}))
+    Ok(json!({"wrote": out, "frames": frames, "seconds": round3(secs), "width": w, "height": h, "fps": round3(fps), "bytes": stats.bytes, "sound": sound.is_some(), "credentials": if raea_io_media::signs() { "signed" } else { "unsigned" }}))
 }

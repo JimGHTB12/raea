@@ -43,7 +43,7 @@ pub const OPS: &[(&str, Kind, &[&str], &[&str])] = &[
     ("audio.music", Kind::Audio, &["prompt"], &["seconds", "seed", "weights"]),
     ("audio.sfx", Kind::Audio, &["prompt"], &["seconds", "video", "seed", "weights"]),
     ("audio.speech", Kind::Audio, &["text"], &["voice", "speed"]),
-    ("mesh.generate", Kind::Mesh, &[], &["prompt", "image", "refs", "seed", "texture"]),
+    ("mesh.generate", Kind::Mesh, &[], &["prompt", "image", "refs", "seed", "texture", "size"]),
     ("text.generate", Kind::Text, &["prompt"], &["system", "image", "refs"]),
     ("media.load", Kind::Any, &[], &["path", "url"]),
     ("comfy", Kind::Any, &["nodes", "output"], &["bind", "slots"]),
@@ -188,7 +188,8 @@ impl Flow {
         let mut keys = BTreeMap::new();
         for id in self.order()? {
             let s = &self.steps[&id];
-            let inputs = J::Object(s.inputs.clone());
+            // a mesh's `size` is fitted after the model is made (raea gen check), so it doesn't make another model
+            let inputs = J::Object(s.inputs.iter().filter(|(k, _)| !(s.op == "mesh.generate" && k.as_str() == "size")).map(|(k, v)| (k.clone(), v.clone())).collect());
             let resolved = substitute(&inputs, &|r| keys.get(r).map(|k: &String| format!("key:{k}")));
             let text = format!("{}\u{0}{}\u{0}{}", s.op, s.model.as_deref().unwrap_or(""), canonical(&resolved));
             keys.insert(id, format!("{:x}", Sha256::digest(text.as_bytes()))[..24].to_string());

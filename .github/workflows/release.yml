@@ -1,0 +1,91 @@
+# A release, built here where anyone can read how (public #6; docs/public-first.feature PF5): for a v* tag, macOS on
+# Apple Silicon and Linux on x86_64 are built from the tag on GitHub's runners, packed by tools/release.sh, checked by
+# tools/release-check.sh, attested (anyone can check a download with
+# `gh attestation verify raea-VERSION-macos-arm64.tar.gz -R shinyobjectz/raea`) and attached to the tag's release.
+# Windows builds in windows.yml's release mode. The release's notes and whether it's a pre-release are set by hand.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: the tag to build (v0.1.0-canary.4)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_INCREMENTAL: "0"
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            lib: libraea_bundle.dylib
+            extra: raea-perceive
+          - os: ubuntu-24.04
+            lib: libraea_bundle.so
+            extra: ""
+    runs-on: ${{ matrix.os }}
+    # a cold thin-LTO build of raea-cli with the plugin catalog is the long part; GitHub's own limit is 6 hours
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          submodules: true
+          lfs: false
+      - name: Linux libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build libasound2-dev libfontconfig1-dev libvulkan-dev libudev-dev mesa-vulkan-drivers xvfb
+      - name: macOS tools
+        if: runner.os == 'macOS'
+        run: brew install cmake ninja
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: The runtime's packages
+        run: for d in sdk/react/js sdk/react/tw; do (cd "$d" && bun install --frozen-lockfile); done
+      - name: Models (pinned by URL and sha256 in tools/release/models.tsv)
+        run: |
+          while IFS=$'\t' read -r path url sha; do
+            case $path in ''|'#'*) continue ;; esac
+            mkdir -p "$HOME/.local/share/raea-models/$(dirname "$path")"
+            curl -fsSL "$url" -o "$HOME/.local/share/raea-models/$path"
+            echo "$sha  $HOME/.local/share/raea-models/$path" | shasum -a 256 -c -
+          done < tools/release/models.tsv
+      - name: Build
+        run: |
+          feat=$(bash tools/bevy-plugins.sh features sdk/raea/bench/bevy-plugins)
+          cargo build --profile dist --locked -p raea-cli --bin raea --no-default-features --features "$feat"
+          cargo build --profile dist --locked -p raea-rune-host
+          cargo build --profile dist --locked -p raea-page-host --features window
+          if [ -n "${{ matrix.extra }}" ]; then cargo build --profile dist --locked -p ${{ matrix.extra }}; fi
+          mkdir ship
+          cp target/dist/raea target/dist/${{ matrix.lib }} target/dist/raea-rune-host target/dist/raea-page-host ship/
+          if [ -n "${{ matrix.extra }}" ]; then cp target/dist/${{ matrix.extra }} ship/; fi
+      - name: Pack and check (tools/release.sh)
+        run: |
+          v=${TAG#v}
+          if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a -s "-screen 0 1280x1024x24" bash tools/release.sh "$v" ship HEAD
+          else bash tools/release.sh "$v" ship HEAD; fi
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/raea-*.tar.gz
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --prerelease --title "raea ${TAG#v}" --notes "Built by .github/workflows/release.yml; notes follow."
+          gh release upload "$TAG" dist/raea-*.tar.gz dist/raea-*.tar.gz.sha256 --clobber

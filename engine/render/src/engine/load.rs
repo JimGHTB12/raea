@@ -119,7 +119,7 @@ impl Engine {
             world.remove_non_send::<Rows2d>();
         }
         let base = store::gather(world);
-        let ix: HashMap<Entity, usize> = store::rows(world).iter().enumerate().map(|(r, &e)| (e, r)).collect();
+        let ix: bevy::ecs::entity::EntityHashMap<usize> = store::rows(world).iter().enumerate().map(|(r, &e)| (e, r)).collect();
         let media = inserted.iter().filter(|t| t.kind == "media").cloned().collect();
         let timeline = match timeline {
             Some(t) => t,

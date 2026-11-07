@@ -17,6 +17,10 @@ pub struct Surface {
     /// the spec's columns made into a material (its textures loaded); only the parts the spec gives are used
     made: StandardMaterial,
     given: Vec<String>,
+    /// the further fields it gives (fields.rs), by name
+    fields: Vec<String>,
+    /// a <Lightmap>'s bake instead of a material (lightmap.rs)
+    baked: Option<super::lightmap::Baked>,
 }
 
 /// The row's `surfaces` column, each made into a material now (its pictures read as a mesh's are).
@@ -33,16 +37,26 @@ pub fn of(world: &mut World, t: &Tup, inserted: &[Tup], dir: &Path) -> Result<Ve
                 _ => None,
             };
         }
+        let material = spec.get("material").and_then(serde_json::Value::as_str).map(str::to_string);
+        if let Some(b) = super::lightmap::of(world, t, &vals, inserted, dir)? {
+            out.push(Surface { material, made: StandardMaterial::default(), given: Vec::new(), fields: Vec::new(), baked: Some(b) });
+            continue;
+        }
         let given: Vec<String> = vals.keys().cloned().collect();
+        let fields = match vals.get("fields") {
+            Some(V::S(f)) => serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(f).map(|o| o.keys().cloned().collect()).unwrap_or_default(),
+            _ => Vec::new(),
+        };
         let made = maps::material(world, &Tup { kind: "mesh".into(), id: t.id.clone(), vals }, inserted, dir)?;
-        out.push(Surface { material: spec.get("material").and_then(serde_json::Value::as_str).map(str::to_string), made, given });
+        out.push(Surface { material, made, given, fields, baked: None });
     }
     Ok(out)
 }
 
-/// The spec for a glTF material by name: the one naming it, else the one naming none.
+/// The spec for a glTF material by name: the one naming it, else the one naming none (bakes aren't materials).
 fn spec_for<'a>(specs: &'a [Surface], name: Option<&str>) -> Option<(usize, &'a Surface)> {
-    specs.iter().enumerate().find(|(_, s)| s.material.is_some() && s.material.as_deref() == name).or_else(|| specs.iter().enumerate().find(|(_, s)| s.material.is_none()))
+    let mut mats = specs.iter().enumerate().filter(|(_, s)| s.baked.is_none());
+    mats.clone().find(|(_, s)| s.material.is_some() && s.material.as_deref() == name).or_else(|| mats.find(|(_, s)| s.material.is_none()))
 }
 
 /// A glTF material with what a spec gives laid over it.
@@ -99,7 +113,7 @@ fn over(base: &StandardMaterial, s: &Surface) -> StandardMaterial {
         m.depth_map = s.made.depth_map.clone();
     }
     if has("fields") {
-        super::fields::copy(&mut m, &s.made);
+        super::fields::copy(&mut m, &s.made, &s.fields);
     }
     for (k, f) in [("clearcoat", 0), ("clearcoat_rough", 1), ("reflectance", 2)] {
         if has(k) {
@@ -130,6 +144,11 @@ pub fn apply_to_model(world: &mut World, root: Entity, specs: &[Surface]) -> boo
     if found.is_empty() {
         return false;
     }
+    let baked: Vec<&super::lightmap::Baked> = specs.iter().filter_map(|s| s.baked.as_ref()).collect();
+    if !baked.is_empty() {
+        let meshes: Vec<(Entity, Option<String>)> = found.iter().map(|(x, ..)| (*x, world.get::<bevy::gltf::GltfMeshName>(*x).map(|n| n.0.clone()))).collect();
+        super::lightmap::apply(world, &meshes, &baked);
+    }
     let mut made: HashMap<(AssetId<StandardMaterial>, usize), Handle<StandardMaterial>> = HashMap::new();
     for (x, mat, name) in found {
         let Some((k, spec)) = spec_for(specs, name.as_deref()) else { continue };
@@ -145,4 +164,24 @@ pub fn apply_to_model(world: &mut World, root: Entity, specs: &[Surface]) -> boo
         world.entity_mut(x).insert(MeshMaterial3d(h));
     }
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bevy::pbr::Lightmap;
+
+    fn spec(material: Option<&str>, baked: bool) -> Surface {
+        let made = Lightmap { image: Handle::default(), uv_rect: Rect::new(0.0, 0.0, 1.0, 1.0), bicubic_sampling: false };
+        Surface { material: material.map(str::to_string), made: StandardMaterial::default(), given: Vec::new(), fields: Vec::new(), baked: baked.then(|| super::super::lightmap::Baked { mesh: "box".into(), made }) }
+    }
+
+    #[test]
+    fn a_bake_is_never_the_material_a_glb_material_takes() {
+        // a <Lightmap> names no material: it isn't the fallback for every material either
+        let specs = [spec(None, true), spec(Some("red"), false), spec(None, false)];
+        assert_eq!(spec_for(&specs, Some("red")).map(|(k, _)| k), Some(1));
+        assert_eq!(spec_for(&specs, Some("green")).map(|(k, _)| k), Some(2));
+        assert!(spec_for(&specs[..1], Some("green")).is_none());
+    }
 }

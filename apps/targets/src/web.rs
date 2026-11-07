@@ -22,7 +22,7 @@ pub struct Built {
 /// `app` bundled into `dir` (made if missing): app.js and app.css (Tailwind's, for the classes the app's folder uses, after
 /// any CSS the app imports)
 pub fn build(app: &Path, dir: &Path) -> Result<Built, String> {
-    let app = app.canonicalize().map_err(|e| format!("{}: {e}", app.display()))?;
+    let app = raea_io_home::plain(app.canonicalize().map_err(|e| format!("{}: {e}", app.display()))?);
     std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let (js, imported) = raea_runtime_bundle::inproc::app::bundle(&app, &raea_io_home::home())?;
     let folder = app.parent().unwrap_or(Path::new("."));

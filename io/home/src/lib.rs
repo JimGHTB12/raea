@@ -70,7 +70,7 @@ fn user_dir(apple: &str, xdg: &str, xdg_default: &str, windows: &str) -> Option<
     Some(base.join("raea"))
 }
 
-/// A path an environment variable names, else `under_home` in the founder's home folder: RAEA_GEN_CACHE's
+/// A path an environment variable names, else `under_home` in the user's home folder: RAEA_GEN_CACHE's
 /// ~/.cache/raea-gen, RAEA_ENV_FILE's ~/.raea/env. An empty variable counts as unset.
 pub fn env_path(var: &str, under_home: &str) -> std::path::PathBuf {
     match std::env::var_os(var).filter(|v| !v.is_empty()) {

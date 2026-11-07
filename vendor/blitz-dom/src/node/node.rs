@@ -999,6 +999,12 @@ impl NodeData {
         self.downcast_element()?.attr(name)
     }
 
+    /// raea: a bevy_ui <Text>'s block (sdk/render's `data-raea-bevy-text`): laid out, filled and drawn as bevy_text
+    /// does (its size in whole pixels, a run's box over the line box)
+    pub fn is_bevy_text(&self) -> bool {
+        self.attr(LocalName::from("data-raea-bevy-text")).is_some()
+    }
+
     pub fn has_attr(&self, name: impl PartialEq<LocalName>) -> bool {
         self.downcast_element()
             .is_some_and(|elem| elem.has_attr(name))
@@ -1052,6 +1058,11 @@ impl TextNodeData {
 // }
 
 impl Node {
+    /// raea: this node is a bevy_ui <Text>'s block (NodeData::is_bevy_text)
+    pub fn is_bevy_text(&self) -> bool {
+        self.data.is_bevy_text()
+    }
+
     pub fn tree(&self) -> &crate::NodeTree {
         unsafe { &*self.tree }
     }
@@ -1859,6 +1870,9 @@ impl Node {
             }
         };
 
+        // raea: in a bevy_ui <Text>'s block (data-raea-bevy-text, layout/inline.rs) a run's box is bevy_text's run
+        // bounds (pipeline.rs RunGeometry): its whole advance across the line box, as TextBackgroundColor fills it
+        let bevy = inline_root.is_bevy_text();
         let root_layout = inline_root.unrounded_layout();
         let content_box_inset = root_layout.padding + root_layout.border;
         let origin_x = content_box_inset.left;
@@ -1928,6 +1942,10 @@ impl Node {
                         // ▌ from Hiragino Sans is as tall as its Helvetica text
                         let (ascent, descent) = glyph_run.style_content_area();
                         let (y0, y1) = (glyph_run.baseline() - ascent.round(), glyph_run.baseline() + descent.round());
+                        let (x1, y0, y1) = match bevy {
+                            true => (x0 + glyph_run.advance(), line_metrics.block_min_coord, line_metrics.block_max_coord),
+                            false => (x1, y0, y1),
+                        };
                         let grow = |a: &mut Option<(f32, f32)>| *a = Some(a.map_or((y0, y1), |(p, q)| (p.min(y0), q.max(y1))));
                         if brush == target {
                             grow(&mut own_y);

@@ -21,7 +21,9 @@ pieces; then write the file. Each file's example is a complete composition you c
 | surfaces: colour, metal, glass, glow, clearcoat, pictures on surfaces, toon (cel) shading and ink outlines, decals (labels, stains, tiles), a model's materials repainted | `bevy/materials` |
 | people: bodies posed by goals (a hand on the mouse, sat, looking at the screen), motion capture, walking round the furniture to a spot | `bevy/characters` |
 | interiors: rooms, cabinets along walls, windows and bays, chairs turned to tables, layout checks, wall decor, the garden outside, daylight, sounds placed in the scene | `bevy/rooms` |
-| shapes: boxes to modelled solids, 3D letters | `bevy/meshes` |
+| a whole scene to build and make believable: the brief, which tool makes which object, build order, review sheets, the judge, when to stop | `bevy/scenes` |
+| the words to paste for a whole scene: the brief template, the builder prompt, the judge prompt | `bevy/prompts` |
+| shapes: boxes to modelled solids, blended organic bodies (`sdf`), trees, terrain, rocks and plants (`grow`), 3D letters | `bevy/meshes` |
 | moving things: spins, springs, reveals, things arriving later, model clips | `bevy/animation` |
 | a 3D game: state, input, many entities, collisions, state machines | `bevy/games` |
 | glTF models, pictures in space, where files go | `bevy/assets` |

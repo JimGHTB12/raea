@@ -1,5 +1,5 @@
 //! Optical flow without Apple Vision: pyramidal Lucas-Kanade on a grid of points (plain Rust, no model), reduced per
-//! frame pair exactly as flow.rs reduces Vision's dense flow (docs/the roadmap Track L, the FLOW slot): the 3x3 grid's
+//! frame pair exactly as flow.rs reduces Vision's dense flow (docs/goal.feature Track L, the FLOW slot): the 3x3 grid's
 //! mean magnitude, dx dy, zoom and mag, each as a share of the frame's width.
 
 #[derive(Clone, Debug, Default)]

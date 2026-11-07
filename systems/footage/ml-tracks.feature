@@ -1,6 +1,6 @@
 Feature: On-device models: which licences ship, and the tracks they write
   Restored 2026-10-24 from engine/html/docs/ml-tracks.feature (deleted with engine/html in f1b4a17e) because
-  perception.feature, meaning.feature and the roadmap rely on its licence rule and its track contract. Its parts about
+  perception.feature, meaning.feature and goal.feature rely on its licence rule and its track contract. Its parts about
   the old HTML engine (fx.js markup, the renderer's mask-image and feImage work, the 10-09 owners) are left out; git
   history has them. The licence facts are as surveyed on 2026-10-09.
 
@@ -11,10 +11,10 @@ Feature: On-device models: which licences ship, and the tracks they write
     Scenario: The bundled constructs
       Given the constructs the apps ship
         | Construct                        | Model                                     | Weights licence | Size                                                                                         | Runtime |
-        | Face landmarks + blendshapes     | MediaPipe face landmarker                 | Apache-2.0      | 4.8 MB (detector 0.29 + landmarks 2.61 + blendshapes 1.86)                                   | converted 2026-10-10: ~/the host app/models/mediapipe-face-landmarker (validated vs the .tflite: landmarks r 0.9999996). In the apps 2026-10-10: Perception.swift `face` track (weighted NMS, rotated crop, followed from the last frame's points); vs MediaPipe on reference/ 0.34–0.42% of face width (bar 0.6%); ~8 ms/frame on M4 |
-        | Hair / part segmentation         | MediaPipe hair (+ multiclass selfie later) | Apache-2.0      | 0.62 MB                                                                                      | converted 2026-10-10: ~/the host app/models/mediapipe-hair-segmenter (mask IoU 0.998–0.999 vs MediaPipe). In the apps 2026-10-10: Perception.swift `hair` track; reference/ masks reproduced to 0 levels, IoU 0.9977–0.9989 vs MediaPipe; ~26 ms/frame on M4 |
-        | Depth                            | Depth Anything 3 Small (Base later)       | Apache-2.0      | 50.8 MB fp16                                                                                 | converted 2026-10-09: ~/the host app/models/depth-anything-3-small (r ≥ 0.999998) |
-        | Tracked object masks             | EdgeTAM                                   | Apache-2.0      | 36.7 MB (image encoder 10.0, mask decoder 11.0, memory encoder 8.8 fp32, memory attention 6.9) | converted 2026-10-10 incl. the memory parts: ~/the host app/models/edgetam (Core ML-only tracking vs Meta's predictor: mean IoU 0.996 click / 0.995 box; ~86 ms/frame on M4). In the apps 2026-10-10: Perception.swift `object-<name>` track from a box or point at `at` s, forward only; vs the official predictor on reference/ mean IoU 0.992–0.993, min 0.98 (bar 0.99/0.97), judged at the video's size (half-size mattes cost ~1% on the small bird); ~150–280 ms/frame on a busy M4 |
+        | Face landmarks + blendshapes     | MediaPipe face landmarker                 | Apache-2.0      | 4.8 MB (detector 0.29 + landmarks 2.61 + blendshapes 1.86)                                   | converted 2026-10-10: the models folder: mediapipe-face-landmarker (validated vs the .tflite: landmarks r 0.9999996). In the apps 2026-10-10: Perception.swift `face` track (weighted NMS, rotated crop, followed from the last frame's points); vs MediaPipe on reference/ 0.34–0.42% of face width (bar 0.6%); ~8 ms/frame on M4 |
+        | Hair / part segmentation         | MediaPipe hair (+ multiclass selfie later) | Apache-2.0      | 0.62 MB                                                                                      | converted 2026-10-10: the models folder: mediapipe-hair-segmenter (mask IoU 0.998–0.999 vs MediaPipe). In the apps 2026-10-10: Perception.swift `hair` track; reference/ masks reproduced to 0 levels, IoU 0.9977–0.9989 vs MediaPipe; ~26 ms/frame on M4 |
+        | Depth                            | Depth Anything 3 Small (Base later)       | Apache-2.0      | 50.8 MB fp16                                                                                 | converted 2026-10-09: the models folder: depth-anything-3-small (r ≥ 0.999998) |
+        | Tracked object masks             | EdgeTAM                                   | Apache-2.0      | 36.7 MB (image encoder 10.0, mask decoder 11.0, memory encoder 8.8 fp32, memory attention 6.9) | converted 2026-10-10 incl. the memory parts: the models folder: edgetam (Core ML-only tracking vs Meta's predictor: mean IoU 0.996 click / 0.995 box; ~86 ms/frame on M4). In the apps 2026-10-10: Perception.swift `object-<name>` track from a box or point at `at` s, forward only; vs the official predictor on reference/ mean IoU 0.992–0.993, min 0.98 (bar 0.99/0.97), judged at the video's size (half-size mattes cost ~1% on the small bird); ~150–280 ms/frame on a busy M4 |
         | Person matte, pose, box tracking | Apple Vision                              | OS              | 0                                                                                            | Vision  |
       Then the apps bundle the first four models and use Apple Vision for the rest
 
@@ -61,7 +61,7 @@ Feature: On-device models: which licences ship, and the tracks they write
     is `takes/<id>/video.mov`, so bare file names would collide): `tracks/takes-take-20261009-1100-video.mov/person/`,
     `tracks/IMG_0412.mov/object-mug/`. Each folder holds `track.json` plus the data; `source` in it is the clip's
     project path. Writers: Perception.track in the apps and `ugc-perceive track <video> <kind> <dir> <source>`
-    (the host app-a2); the Agent asks for a track with the `footage` action "track".
+    (an earlier footage track); the Agent asks for a track with the `footage` action "track".
 
     Frame sequences (mattes and depth) are PNG files rather than alpha video. No alpha codec works in Chrome, WebKit
     and ffmpeg alike (VP9-alpha needs libvpx and doesn't play in WebKit; HEVC-alpha doesn't play in Chrome), but a

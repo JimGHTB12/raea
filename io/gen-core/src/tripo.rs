@@ -1,4 +1,4 @@
-//! Tripo 3D through Tripo's own CLI (`npm install -g tripo-cli`, the `tripo` binary), on the founder's own key: a step
+//! Tripo 3D through Tripo's own CLI (`npm install -g tripo-cli`, the `tripo` binary), on the user's own key: a step
 //! whose model is `tripo:<model>` (`tripo:` alone is Tripo's default, P2; `tripo:H3.1` the denser, cheaper H series).
 //! The CLI does the upload, the polling and the download, and prints one JSON line (`model_file`, `preview`,
 //! `credits_consumed`), so raea reads that and nothing else.
@@ -79,7 +79,8 @@ fn command() -> Command {
 
 /// `tripo make`'s arguments for a step: its inputs (a prompt, or 1 image, or 2-4 views as `image` + `refs`, as local
 /// paths or URLs), the model, seed, and every x_<name> as `-p name=value` (Tripo's own parameter names:
-/// x_texture_quality=detailed, x_face_limit=8000, x_pbr=true). `texture: false` asks for bare geometry.
+/// x_texture_quality=detailed, x_face_limit=8000, x_pbr=true), then `defaults` for what the step left out.
+/// `texture: false` asks for bare geometry.
 pub fn args(model: &str, inputs: &Map<String, J>, media: &[String], out: &Path, dry: bool) -> Vec<String> {
     let mut a: Vec<String> = vec!["make".into()];
     if media.is_empty() {
@@ -90,9 +91,8 @@ pub fn args(model: &str, inputs: &Map<String, J>, media: &[String], out: &Path, 
     if !model.is_empty() {
         a.extend(["--model".into(), model.to_string()]);
     }
-    if let Some(s) = inputs.get("seed").and_then(|s| s.as_u64()) {
-        a.extend(["--seed".into(), s.to_string()]);
-    }
+    let seed = inputs.get("seed").and_then(|s| s.as_u64()).unwrap_or_else(|| seed_of(inputs, media));
+    a.extend(["--seed".into(), seed.to_string()]);
     if inputs.get("texture") == Some(&J::Bool(false)) {
         a.extend(["-p".into(), "texture=false".into()]);
     }
@@ -102,6 +102,9 @@ pub fn args(model: &str, inputs: &Map<String, J>, media: &[String], out: &Path, 
             a.extend(["-p".into(), format!("{name}={v}")]);
         }
     }
+    for (name, v) in defaults(model, inputs, media, seed) {
+        a.extend(["-p".into(), format!("{name}={v}")]);
+    }
     a.extend(["--json".into(), "--yes".into(), "--no-open".into(), "--quiet".into()]);
     if dry {
         a.push("--dry-run".into());
@@ -109,6 +112,49 @@ pub fn args(model: &str, inputs: &Map<String, J>, media: &[String], out: &Path, 
         a.extend(["-o".into(), out.display().to_string()]);
     }
     a
+}
+
+/// The settings a step gets when it doesn't name its own (an `x_<name>` always wins), from what scenes found
+/// generated props need (docs/handoff/solids.md, the 11-06 research):
+/// - `orientation=align_image` for an image or views: the model faces the way the picture does, where Tripo's own
+///   default turns it to +X (every H3.1 prop came out facing sideways);
+/// - `face_limit=30000` on the H series, whose own default is adaptive up to 1.5-2M triangles (40-68 MB a prop); the P
+///   series (clean low topology) keeps its own;
+/// - `auto_size=true` (real metres) and `pbr=true` on a textured model;
+/// - `texture_seed` equal to the geometry's seed, so a rerun of the same step makes the same model (raea's flows are
+///   deterministic; change `seed` for another candidate).
+pub fn defaults(model: &str, inputs: &Map<String, J>, media: &[String], seed: u64) -> Vec<(&'static str, String)> {
+    let has = |k: &str| inputs.contains_key(&format!("x_{k}"));
+    let textured = inputs.get("texture") != Some(&J::Bool(false));
+    let h_series = { let m = model.to_ascii_lowercase(); m.starts_with('h') || m.starts_with("tripo-v3") || m.starts_with("v3") };
+    let mut d = Vec::new();
+    if !media.is_empty() && !has("orientation") {
+        d.push(("orientation", "align_image".to_string()));
+    }
+    if h_series && !has("face_limit") {
+        d.push(("face_limit", "30000".to_string()));
+    }
+    if textured && !has("auto_size") {
+        d.push(("auto_size", "true".to_string()));
+    }
+    if textured && !has("pbr") {
+        d.push(("pbr", "true".to_string()));
+    }
+    if textured && !has("texture_seed") {
+        d.push(("texture_seed", seed.to_string()));
+    }
+    d
+}
+
+/// A step's own seed when it names none: from its prompt and its pictures' names, so the same step asks for the
+/// same model every run (FNV-1a, kept under 2^31 for Tripo's int field).
+fn seed_of(inputs: &Map<String, J>, media: &[String]) -> u64 {
+    let mut h: u64 = 0xcbf29ce484222325;
+    let prompt = inputs.get("prompt").and_then(|p| p.as_str()).unwrap_or("");
+    for b in prompt.bytes().chain(media.iter().flat_map(|m| Path::new(m).file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default().into_bytes())) {
+        h = (h ^ b as u64).wrapping_mul(0x100000001b3);
+    }
+    h % 0x7fff_ffff
 }
 
 fn last_json(stdout: &[u8]) -> Option<J> {

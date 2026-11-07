@@ -74,5 +74,5 @@ raea-bevy-plugins = { path = "../../engine/bevy-plugins", optional = true }
 raea-sys-bake = { path = "../../systems/bake" }
 
 [package.metadata.cargo-shear]
-# raea-io-media is here for its features (h264, provenance), which the platform decoders raea-render reads take
+# raea-io-media is here for its features (h264), which the platform decoders raea-render reads take
 ignored = ["raea-io-media"]

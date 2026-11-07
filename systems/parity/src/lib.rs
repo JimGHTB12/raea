@@ -116,7 +116,14 @@ fn no_input(
     scroll: Option<ResMut<bevy::input::mouse::AccumulatedMouseScroll>>,
     buttons: Option<ResMut<ButtonInput<MouseButton>>>,
     keys: Option<ResMut<ButtonInput<KeyCode>>>,
+    mut windows: Query<&mut Window>,
 ) {
+    // and no cursor in the window: the Mac's pointer resting over it turned rotate_to_cursor's ship (11-07)
+    for mut w in &mut windows {
+        if w.cursor_position().is_some() {
+            w.set_cursor_position(None);
+        }
+    }
     if let Some(mut m) = motion {
         *m = default();
     }
@@ -217,6 +224,14 @@ fn world_file(out: &str) -> PathBuf {
 fn dump(world: &mut World) {
     let Some(p) = world.get_resource::<Probe>() else { return };
     let f = p.frame.saturating_sub(1);
+    // which entities there are, by archetype (RAEA_PARITY_ARCHETYPES=1, at the probed frames): what a growing entity
+    // count is made of (mesh_ray_cast's grew by one a frame per moving gizmo)
+    if std::env::var_os("RAEA_PARITY_ARCHETYPES").is_some() && p.frames.as_ref().is_none_or(|s| s.contains(&f)) {
+        for a in world.archetypes().iter().filter(|a| a.len() > 20) {
+            let names: Vec<String> = a.components().iter().filter_map(|c| world.components().get_name(*c)).map(|n| n.shortname().to_string()).collect();
+            eprintln!("archetypes frame {f}: {} x [{}]", a.len(), names.join(", "));
+        }
+    }
     if p.types.is_empty() || p.frames.as_ref().is_some_and(|s| !s.contains(&f)) {
         return;
     }

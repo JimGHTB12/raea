@@ -1,0 +1,5 @@
+# The models a release packs, downloaded by .github/workflows/release.yml into ~/.local/share/raea-models (path, URL,
+# sha256; tab-separated). The URL is an asset of the public repository's models-1 release, uploaded once at the cutover
+# (docs/public-first.feature PF5); the sha256 is of the copy tools/release.sh packs on the release Mac.
+# Beat This! small0 (MIT, github.com/CPJKU/beat_this), converted to ONNX for raea song
+beat-this/beat_this_small0.onnx	https://github.com/shinyobjectz/raea/releases/download/models-1/beat_this_small0.onnx	3f650a9f36d708d575808220a2874b0b84cf402db645b7eac2d9069a53642d4b

@@ -1,0 +1,3 @@
+[submodule "tools/rask"]
+	path = tools/rask
+	url = https://github.com/shinyobjectz/rask.git

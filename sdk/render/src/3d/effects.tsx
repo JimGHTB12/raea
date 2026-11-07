@@ -130,20 +130,43 @@ export function Bloom(props: BloomProps) {
   return node3d("Bloom", props as Record<string, unknown>);
 }
 
+/** a fog colour: "#rrggbb" (or #rrggbbaa), or Bevy's Srgba or LinearRgba (raea/color) */
+export type FogColor = string | { red: number; green: number; blue: number; alpha: number };
+
+/** bevy_pbr's FogFalloff as it reflects; FogFalloff's constructors (raea/pbr) make one from a visibility distance */
+export type FogFalloff =
+  | { Linear: { start: number; end: number } }
+  | { Exponential: { density: number } }
+  | { ExponentialSquared: { density: number } }
+  | { Atmospheric: { extinction: [number, number, number]; inscattering: [number, number, number] } };
+
 export interface FogProps {
-  /** hex; match the background so far things fade into it */
-  color?: string;
-  /** linear fog from `near` to `far` (5 and 20 by default) */
+  /** what far things fade into: match the background */
+  color?: FogColor;
+  /** linear fog from `near` to `far` (in the Canvas3D 5 and 20 by default; on the camera Bevy's 0 and 100) */
   near?: number;
   far?: number;
   /** or exponential fog of this density (0.05-0.3), instead of near and far */
   density?: number;
+  /** on the camera: Bevy's FogFalloff, in place of near, far and density (Bevy's default Linear 0 to 100) */
+  falloff?: FogFalloff;
+  /** on the camera: the sun's colour in the fog looking towards it, its alpha its strength (Bevy's default none) */
+  directional_light_color?: FogColor;
+  /** on the camera: how tight the sun's glow is (Bevy's default 8) */
+  directional_light_exponent?: number;
 }
 
-/** Distance fog: far things fade into `color`. Put it inside the Canvas3D.
+/** Distance fog: far things fade into `color`. Inside the <Camera3d> it is Bevy's DistanceFog on that camera, with all of
+ * Bevy's fields (an atmospheric falloff, the sun's colour); inside the Canvas3D it fogs the scene's camera by near, far
+ * or density.
  * @bevy bevy_pbr::fog::DistanceFog */
 export function Fog(props: FogProps) {
-  return node3d("Fog", colours("Fog", props as Record<string, unknown>, ["color"]));
+  const bevy = (["falloff", "directional_light_color", "directional_light_exponent"] as const).filter((k) => props[k] !== undefined);
+  if (bevy.length) throw new TypeError(`Fog: ${bevy.join(", ")} need the <Fog> inside the <Camera3d> it fogs, where it is Bevy's DistanceFog`);
+  const c = props.color;
+  // Bevy's colours to the hex the scene's fog reads: an Srgba as its to_hex, a LinearRgba through its to_srgba
+  const color = c === undefined || typeof c === "string" ? c : (("to_srgba" in c ? (c as { to_srgba(): { to_hex(): string } }).to_srgba() : c) as { to_hex(): string }).to_hex();
+  return node3d("Fog", colours("Fog", (color === undefined ? props : { ...props, color }) as Record<string, unknown>, ["color"]));
 }
 
 export interface ToneMappingProps {
@@ -226,7 +249,7 @@ export interface EnvironmentProps {
  * frame; its src, intensity, rotation and background may change from frame to frame (a cut from a hall to a street).
  * Bevy's EnvironmentMapLight with maps already filtered is <EnvironmentMapLight>.
  * Its panorama is filtered by Bevy's generator and, with `background`, drawn as the sky (engine/render
- * environment.rs): @bevy bevy_light::probe::GeneratedEnvironmentMapLight @bevy bevy_light::probe::Skybox */
+ * environment.rs): @bevy bevy_light::probe::GeneratedEnvironmentMapLight. Bevy's Skybox from its own cubemap is <Skybox>. */
 export function Environment(props: EnvironmentProps) {
   if (typeof props.src !== "string" || props.src === "") throw new TypeError(`Environment: src must be a panorama's path, staticFile("sky.hdr"), got ${JSON.stringify(props.src)}`);
   if (!/\.(hdr|exr|png|jpe?g)$/i.test(props.src.split("?")[0])) throw new TypeError(`Environment: src must be an equirectangular .hdr, .exr, .png or .jpg, got ${JSON.stringify(props.src)}`);
@@ -245,6 +268,14 @@ export interface EnvironmentMapLightProps {
   specular_map: string;
   /** cd/m² (Bevy's default 1) */
   intensity?: number;
+  /** its turn, glam's Quat [x, y, z, w] (Bevy's identity): Quat.from_rotation_y(0.2 * t) turns it each frame */
+  rotation?: [number, number, number, number];
+}
+
+/** a rotation as glam's Quat, unit length */
+function checkQuat(who: string, q: unknown) {
+  if (q === undefined) return;
+  if (!(Array.isArray(q) && q.length === 4 && q.every((x) => typeof x === "number" && Number.isFinite(x)) && Math.abs(Math.hypot(...q) - 1) < 1e-3)) throw new TypeError(`${who}: rotation is a unit Quat [x, y, z, w], got ${JSON.stringify(q)}`);
 }
 
 /** Bevy's EnvironmentMapLight with its own prefiltered maps, as Bevy's examples put one on the camera (docs/control.feature
@@ -256,7 +287,29 @@ export function EnvironmentMapLight(props: EnvironmentMapLightProps) {
     if (typeof props[k] !== "string" || !/\.ktx2$/i.test(props[k])) throw new TypeError(`EnvironmentMapLight: ${k} is a prefiltered cubemap's .ktx2 file, got ${JSON.stringify(props[k])}`);
   }
   if (props.intensity !== undefined && !(typeof props.intensity === "number" && props.intensity >= 0 && Number.isFinite(props.intensity))) throw new RangeError(`EnvironmentMapLight: intensity is cd/m², 0 or more, got ${props.intensity}`);
-  return node3d("Environment", { diffuse_map: assetPath(props.diffuse_map), specular_map: assetPath(props.specular_map), intensity: props.intensity ?? 1 });
+  checkQuat("EnvironmentMapLight", props.rotation);
+  return node3d("Environment", { diffuse_map: assetPath(props.diffuse_map), specular_map: assetPath(props.specular_map), intensity: props.intensity ?? 1, ...(props.rotation ? { rotation: props.rotation } : {}) });
+}
+
+export interface SkyboxProps {
+  /** the sky's cubemap, a .ktx2 file (Bevy's examples use the specular map: environment_maps/pisa_specular_rgb9e5_zstd.ktx2) */
+  image: string;
+  /** cd/m² (Bevy's default 0, a black sky: Bevy's examples give it 1000 to 5000) */
+  brightness?: number;
+  /** its turn, glam's Quat [x, y, z, w] (Bevy's identity) */
+  rotation?: [number, number, number, number];
+}
+
+/** Bevy's Skybox: a cubemap drawn behind everything, as Bevy's examples put one on the camera. Put it inside the
+ *  Canvas3D, once; its brightness and rotation may change each frame (an <Environment>'s `background` is the sky of
+ *  a panorama raea filters).
+ *  @bevy bevy_light::probe::Skybox */
+export function Skybox(props: SkyboxProps) {
+  if (typeof props.image !== "string" || !/\.ktx2$/i.test(props.image)) throw new TypeError(`Skybox: image is a cubemap's .ktx2 file, got ${JSON.stringify(props.image)}`);
+  const b = props.brightness ?? 0;
+  if (!(typeof b === "number" && b >= 0 && Number.isFinite(b))) throw new RangeError(`Skybox: brightness is cd/m², 0 or more, got ${b}`);
+  checkQuat("Skybox", props.rotation);
+  return node3d("Skybox", { image: assetPath(props.image), brightness: b, ...(props.rotation ? { rotation: props.rotation } : {}) });
 }
 
 export interface AmbientOcclusionProps {

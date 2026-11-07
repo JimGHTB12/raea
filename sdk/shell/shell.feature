@@ -1,9 +1,10 @@
 @spec
 Feature: @raea/shell, the agent's shell
   just-bash (vercel-labs, Apache-2.0, pinned at 3.6.0 and used unmodified as a dependency) runs the bash: parsing,
-  pipes, redirections, functions, loops and its ~80 text tools, in TypeScript on JavaScriptCore (raea-native's runtime, the
+  pipes, redirections, functions, loops and its ~80 text tools, in TypeScript on raea's V8 (raea-native's runtime, the
   same on the Mac and the iPhone). Under it the filesystem is the project folder through raea-native, and raea's own
-  tools are commands that call the engine natively. The shell is the agent's hands in a space.
+  tools are commands that call the engine natively. The shell is the agent's hands in a space; docs/media.feature's
+  "sandbox boundary and the action rows" is the rule it keeps.
 
   Rule: The project folder is the filesystem, and nothing else
     Scenario: Paths
@@ -55,7 +56,7 @@ Feature: @raea/shell, the agent's shell
         -markdown, -tabs, -quote, -html, -ascii, with -header, -separator, -newline, -nullvalue, -readonly, -echo, -cmd
       And an error ends the script with exit 1 and "Error: ..." on stderr
     Scenario: js-exec
-      Then `js-exec -c CODE | FILE [ARGS]` runs JavaScript or TypeScript as an ES module in a fresh JavaScriptCore context on its own
+      Then `js-exec -c CODE | FILE [ARGS]` runs JavaScript or TypeScript as an ES module in a fresh V8 isolate on its own
         thread (transpiled in process by raea-modules, deno_ast: no bun, so the same on the iPhone), with console to
         stdout and stderr, process.argv, env, exit and stdin.text, and timers
       And imports resolve only to files in the project; native calls are limited to the web shims' (no filesystem, no
@@ -78,7 +79,7 @@ Feature: @raea/shell, the agent's shell
   Rule: just-bash and wsx split the work
     Scenario: Who runs what
       Then just-bash is the shell and its text tools (ls, cat, grep, sed, awk, jq, sort, find, ...): one implementation
-        of each, in TypeScript on JavaScriptCore, on RaeaFs
+        of each, in TypeScript on V8, on RaeaFs
       And wsx keeps anything compiled to WASI (Wasmtime, Pulley on the iPhone): each of its tools the shell lacks (jaq)
         is a command run with only the project folder visible, under its fuel and memory limits; a WASI tool never
         shadows a just-bash or raea command of the same name
@@ -90,6 +91,6 @@ Feature: @raea/shell, the agent's shell
         every command's stdout and exit equal probe-golden.json (recorded on the Mac) on both machines
         (sdk/react/ios/test.sh runs it on the iPhone)
     Scenario: just-bash's own suite
-      Then sdk/shell/tools/upstream.sh runs just-bash's tests at the pinned tag on raea's JavaScriptCore runtime, bundled as upstream bundles its
+      Then sdk/shell/tools/upstream.sh runs just-bash's tests at the pinned tag on raea's V8, bundled as upstream bundles its
         browser build; the parts that need Node by design (python3, sqlite3 and js-exec's workers, the real-disk
         filesystems, the CLI, curl's mocked transport) are listed, not run

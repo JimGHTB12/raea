@@ -13,9 +13,10 @@ export interface MixProps {
   children?: ReactNode;
 }
 
-// Which Mix (by its React id) each rendered composition already has. Keyed by the Clock's state object, so each
-// rendered frame starts fresh; the id lets a repeated render of the same Mix through without counting it twice.
-const claimed = new WeakMap<ClockState, string>();
+// Which Mix (by its React id) each rendered composition already has, and on which frame: keyed by the Clock's state
+// (one object across frames, its frame moved on), so each rendered frame starts fresh; the id lets a repeated render
+// of the same Mix through without counting it twice.
+const claimed = new WeakMap<ClockState, { id: string; frame: number }>();
 
 export function Mix({ lufs = -14, ceiling = -1.5, children }: MixProps) {
   const clock = useClockState("Mix");
@@ -25,10 +26,10 @@ export function Mix({ lufs = -14, ceiling = -1.5, children }: MixProps) {
   }
   if (ceiling > 0) throw new RangeError(`Mix: ceiling is in dBTP and must be at most 0, got ${ceiling}`);
   const owner = claimed.get(clock);
-  if (owner !== undefined && owner !== id) {
+  if (owner !== undefined && owner.frame === clock.frame && owner.id !== id) {
     throw new Error("Mix: a composition has one Mix, and this tree already has one; remove the extra <Mix>");
   }
-  claimed.set(clock, id);
+  claimed.set(clock, { id, frame: clock.frame });
   // its children beside its marker, not inside it: written around the soundtrack, every sound inside was dropped (a
   // 20 s ad rendered with no audio track, 2026-10-18)
   return (

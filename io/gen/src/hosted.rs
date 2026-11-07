@@ -30,6 +30,10 @@ fn media(done: &BTreeMap<String, Made1>, v: &J, up: Upload) -> Result<Option<Str
 fn split(s: &Step, done: &BTreeMap<String, Made1>, up: Upload) -> Result<(Map<String, J>, Vec<(String, String)>), String> {
     let (mut lit, mut med) = (Map::new(), Vec::new());
     for (k, v) in &s.inputs {
+        // a mesh's size is raea's to fit afterwards (fit.rs), never a model's setting
+        if s.op == "mesh.generate" && k == "size" {
+            continue;
+        }
         let vals: Vec<&J> = match v { J::Array(a) if a.iter().any(|x| reference(x).is_some()) => a.iter().collect(), _ => vec![v] };
         let mut any = false;
         for x in vals {

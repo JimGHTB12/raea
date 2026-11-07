@@ -3,15 +3,24 @@
 // origin, +Y up, a unit a pixel, turns counterclockwise. It draws as <Shape2D> does (raea-sys-sprite).
 import { Children, isValidElement, type ReactNode } from "react";
 import { useVideoConfig } from "@raea/app/clock";
-import { Shape2D, type Place2dProps, type Shape2DProps } from "../3d/sprite";
+import { Shape2D, type AlphaMode2d, type Place2dProps, type Shape2DProps } from "../3d/sprite";
 import { eulerOf } from "../3d";
-import { type TransformValue } from "./all";
+import { LinearRgba, Srgba, type TransformValue } from "./all";
 
-export interface CircleProps { radius?: number }
-export interface RectangleProps { half_size?: [number, number] }
-export interface EllipseProps { half_size?: [number, number] }
-export interface RegularPolygonProps { circumcircle?: { radius: number }; sides?: number }
-export interface ColorMaterialProps { color?: string }
+/** a primitive's mesh attributes: its Mesh::ATTRIBUTE_COLOR, one linear colour per vertex (as mesh.insert_attribute) */
+export interface MeshAttributes { vertex_colors?: (LinearRgba | [number, number, number, number])[] }
+export interface CircleProps extends MeshAttributes { radius?: number }
+export interface RectangleProps extends MeshAttributes { half_size?: [number, number] }
+export interface EllipseProps extends MeshAttributes { half_size?: [number, number] }
+export interface RegularPolygonProps extends MeshAttributes { circumcircle?: { radius: number }; sides?: number }
+export interface ColorMaterialProps {
+  /** white by default; it tints the texture, and its alpha is the material's (Bevy's Srgba or LinearRgba, or a hex) */
+  color?: string | Srgba | LinearRgba;
+  /** a picture, by the mesh's UVs */
+  texture?: string;
+  /** Bevy's AlphaMode2d, "Blend" by default */
+  alpha_mode?: AlphaMode2d;
+}
 
 const inMesh2d = (name: string) => (): ReactNode => {
   throw new TypeError(`${name} goes in a Mesh2d: <Mesh2d><${name} /><ColorMaterial color="#c84" /></Mesh2d>`);
@@ -24,7 +33,7 @@ export const Rectangle = inMesh2d("Rectangle") as (p: RectangleProps) => ReactNo
 export const Ellipse = inMesh2d("Ellipse") as (p: EllipseProps) => ReactNode;
 /** bevy_math's RegularPolygon (circumradius 0.5, 6 sides by default) */
 export const RegularPolygon = inMesh2d("RegularPolygon") as (p: RegularPolygonProps) => ReactNode;
-/** bevy_sprite_render's ColorMaterial: one colour (white by default) */
+/** bevy_sprite_render's ColorMaterial: a colour (white by default), a texture it tints, and its AlphaMode2d */
 export const ColorMaterial = inMesh2d("ColorMaterial") as (p: ColorMaterialProps) => ReactNode;
 
 export interface Mesh2dProps extends Omit<Place2dProps, "x" | "y" | "rotation" | "scale" | "z"> {
@@ -34,8 +43,17 @@ export interface Mesh2dProps extends Omit<Place2dProps, "x" | "y" | "rotation" |
   children?: ReactNode;
 }
 
-/** The primitive's Shape2D: its shape, size in px and sides. */
-function shapeOf(el: { type: unknown; props: unknown }): Pick<Shape2DProps, "shape" | "size" | "sides"> {
+type ShapeOf = Pick<Shape2DProps, "shape" | "size" | "sides" | "vertex_colors">;
+
+/** The primitive's Shape2D, with its vertex colours as linear [r, g, b, a]. */
+function shapeOf(el: { type: unknown; props: unknown }): ShapeOf {
+  const vc = (el.props as MeshAttributes).vertex_colors;
+  const s = primitiveOf(el);
+  return vc === undefined ? s : { ...s, vertex_colors: vc.map((c) => (c instanceof LinearRgba ? [c.red, c.green, c.blue, c.alpha] : c)) };
+}
+
+/** The primitive's shape, size in px and sides. */
+function primitiveOf(el: { type: unknown; props: unknown }): ShapeOf {
   if (el.type === Circle) {
     const d = 2 * ((el.props as CircleProps).radius ?? 0.5);
     return { shape: "circle", size: [d, d] };
@@ -52,10 +70,10 @@ function shapeOf(el: { type: unknown; props: unknown }): Pick<Shape2DProps, "sha
 /** Bevy's Mesh2d with its Transform, a primitive and a ColorMaterial: <Shape2D> in Bevy's 2D world. */
 export function Mesh2d({ transform, visibility, children, ...rest }: Mesh2dProps) {
   const { width, height } = useVideoConfig();
-  let shape: Pick<Shape2DProps, "shape" | "size" | "sides"> | undefined, color: string | undefined;
+  let shape: ShapeOf | undefined, material: ColorMaterialProps | undefined;
   for (const c of Children.toArray(children)) {
     if (!isValidElement(c)) continue;
-    if (c.type === ColorMaterial) color = (c.props as ColorMaterialProps).color ?? "#ffffff";
+    if (c.type === ColorMaterial) material = c.props as ColorMaterialProps;
     else if (c.type === Circle || c.type === Rectangle || c.type === Ellipse || c.type === RegularPolygon) {
       if (shape) throw new TypeError("Mesh2d: one primitive");
       shape = shapeOf(c);
@@ -67,5 +85,10 @@ export function Mesh2d({ transform, visibility, children, ...rest }: Mesh2dProps
   const [sx, sy] = transform?.scale ?? [1, 1, 1];
   // Bevy turns counterclockwise about +Z; Shape2D's rotation is clockwise, as the page's
   const turn = transform?.rotation ? -eulerOf(transform.rotation)[2] : 0;
-  return <Shape2D {...rest} {...shape} color={color ?? "#ffffff"} x={width / 2 + tx} y={height / 2 - ty} z={tz} rotation={turn} scale={sx === sy ? sx : [sx, sy]} />;
+  // the material's colour as Shape2D's hex, and its alpha as Shape2D's opacity (raea-sys-sprite's ColorMaterial alpha)
+  const c = material?.color ?? "#ffffff";
+  const s = typeof c === "string" ? undefined : c instanceof LinearRgba ? c.to_srgba() : c;
+  const color = s ? new Srgba(s.red, s.green, s.blue, 1).to_hex() : c as string;
+  const opacity = (rest.opacity ?? 1) * (s ? s.alpha : 1);
+  return <Shape2D {...rest} {...shape} color={color} {...(s || rest.opacity !== undefined ? { opacity } : {})} {...(material?.texture ? { texture: material.texture } : {})} {...(material?.alpha_mode ? { alpha_mode: material.alpha_mode } : {})} x={width / 2 + tx} y={height / 2 - ty} z={tz} rotation={turn} scale={sx === sy ? sx : [sx, sy]} />;
 }

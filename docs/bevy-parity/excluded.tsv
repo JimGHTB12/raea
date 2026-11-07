@@ -1,0 +1,17 @@
+# path	reason (docs/control.feature FC0a: a no_std or window-manager-only example is out, the way WPT exclusions are kept)
+no_std/library	a no_std library crate, no app: nothing runs or draws
+app/no_renderer	no renderer: draws no frame (its behaviour is a schedule, the world check's, not a picture)
+app/headless	no window or renderer: draws no frame
+app/without_winit	no window: the app runs its schedule once and draws no frame
+app/drag_and_drop	the OS's file drops: window-manager-only
+window/monitor_info	lists the OS's monitors: window-manager-only
+window/multiple_windows	several OS windows: window-manager-only
+window/window_drag_move	the OS moving and resizing the window: window-manager-only
+window/custom_cursor_image	the OS cursor's image: window-manager-only
+window/low_power	winit's power-saving update modes: window-manager-only
+window/scale_factor_override	the OS window's scale factor: window-manager-only
+window/transparent_window	the compositor showing through a transparent window: window-manager-only
+window/persisting_window_settings	the OS window's position and size saved between runs: window-manager-only
+window/resizing	(a test) the OS resizing the window: window-manager-only
+window/minimizing	(a test) the OS minimizing the window: window-manager-only
+window/desktop_request_redraw	(a test) the OS asking for redraws: window-manager-only

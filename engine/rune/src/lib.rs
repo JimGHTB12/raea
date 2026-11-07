@@ -5,7 +5,11 @@
 pub use raea_rune_look::{dump, look};
 pub use raea_rune_page::{css, events, images, input, kit, layout, measure, motion, page, report, runeprops, session, state, tailwind, tree, variants, view};
 
-pub mod js;
+/// Rune over Bevy (docs/targets.feature T6c): the app in a Bevy window, and the check's frames drawn by Bevy's device
+#[cfg(feature = "bevy")]
+pub mod on_bevy;
+/// the app's JS against its page, in raea-rune-js (kept under this name)
+pub use raea_rune_js as js;
 pub mod macapp;
 pub mod script;
 pub mod shot;

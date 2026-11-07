@@ -1,0 +1,17 @@
+#!/bin/bash
+# Field coverage (docs/control.feature FC0b): each tier-1 Bevy type's reflected fields against the typed props that name
+# them (tools/sdk-fields.ts), written to docs/control/fields.tsv, and the totals.
+#   tools/sdk-fields     needs target/release/raea-bevy-sdk (the plugin build's) for the schema
+set -euo pipefail
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+cd "$ROOT"
+T=${TMPDIR:-/tmp}/raea-sdk-fields
+mkdir -p "$T" docs/control
+tools/sdk-coverage --rows > "$T/rows.tsv"
+args=()
+while IFS=$'\t' read -r area item _ tier _; do
+  [ "$area" = bevy ] && [ "$tier" = 1 ] && args+=(--type "$item")
+done < "$T/rows.tsv"
+target/release/raea-bevy-sdk "${args[@]}" --schema "$T/schema.json" -o "$T/schema.ts" > "$T/sdk.log" 2>&1
+bun tools/sdk-fields.ts "$T/rows.tsv" "$T/schema.json" > docs/control/fields.tsv
+tail -1 docs/control/fields.tsv

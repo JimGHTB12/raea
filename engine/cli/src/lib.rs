@@ -22,3 +22,23 @@ pub use cli::cli;
 use guide::*;
 use usage::*;
 use verbs::*;
+
+/// The `raea` process after its allocator (main.rs, and a build that installs a signer first): its exit code.
+pub fn main() -> i32 {
+    raea_core_alloc::init();
+    raea_core_alloc::init_sites();
+    raea_runtime_react::startup_mark("main");
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    match args.first().map(String::as_str) {
+        // `check VIDEO.mp4 …`: the floor's measurable lines on an export, ranked P0-P3
+        // (with --taste or --quick, through the engine, which evaluates the taste.ts files or renders stills: `check` here)
+        Some("check") if !args.iter().any(|a| a == "--taste" || a == "--quick") => raea_app_check::cli_with(&args[1..], Vec::new()),
+        // `ci …`: the gates' sound measurements and lightspeed's process measurements
+        Some("ci") => raea_app_ci::cli(&args[1..]),
+        _ => {
+            raea_runtime_react::CLI.get_or_init(|| cli);
+            raea_runtime_react::start();
+            cli(&args)
+        }
+    }
+}

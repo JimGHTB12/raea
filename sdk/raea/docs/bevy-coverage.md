@@ -1,4 +1,4 @@
-# Bevy through raea: what's reachable
+# Bevy through raea: what's reachable (2026-10-18)
 
 raea draws 3D with Bevy **0.20** (pinned, with its features, in `engine/render/Cargo.toml`). Agents never write Rust: they write
 TSX against `raea` and `raea/3d`, which compiles to raea-render rows (a table per kind, a column per component
@@ -17,7 +17,7 @@ The path, end to end:
 
 ## Summary
 
-59 features: **28 covered, 10 partial, 21 missing**. Three of the covered ones (2D text, UI, audio) are covered by the page and raea's mixer rather than by Bevy.
+59 features: **28 covered, 10 partial, 21 missing**. Three of the covered ones (2D text, UI, audio) are covered by the page and raea's mixer rather than by Bevy. This work moved 12 rows to covered: visibility, transforms, hierarchy, the perspective camera, point and spot lights, the standard material, bloom, tonemapping, fog, glTF models and their clips.
 
 The top gaps, in the order a game or ad agent would hit them:
 
@@ -190,11 +190,12 @@ export declare function stepBodies(bodies: Body[], dt: number, gravity?: Vec3): 
 ## Checks
 
 - `sdk/raea/bench/bevy/check.sh`: every fixture (`character`, `lights`, `materials`, `model`, `planes`) rendered and played baked
-  with its 3D on a layer, each at SSIM 1.000 at frames 0, 30 and 59.
-- `sdk/react/bench/timelines/check.sh` (titles: 1.000), raea-render's tests (41 pass), `sdk/raea/tools/golden.sh` 3D cases 04-06 against their frozen references (all pass),
+  with its 3D on a layer; on 2026-10-18 all four at SSIM 1.000 at frames 0, 30 and 59.
+- `sdk/react/bench/timelines/check.sh` (titles: 1.000), `engine/html/bench/parity.sh` (93 exact, 75 ok, 2 fail, as before),
+  raea-render's tests (41 pass), `sdk/raea/tools/golden.sh` 3D cases 04-06 against their frozen references (all pass),
   `bun test conformance` (126 pass).
 
-## Existing Bevy knowledge packs
+## Existing Bevy knowledge packs (surveyed 2026-10-18)
 
 What the skills library (`sdk/guides/craft/bevy/`, mirrored in `sdk/skills/raea-bevy/`) took from each. Nothing was
 copied from a pack without a permissive license; the library is written for our SDK, so most packs informed its

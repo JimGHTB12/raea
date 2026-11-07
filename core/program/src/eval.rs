@@ -86,7 +86,8 @@ pub struct Cols {
     /// shared between a frame and the base it came from (cloning a frame copies no strings)
     pub kind: std::sync::Arc<Vec<String>>,
     pub id: std::sync::Arc<Vec<String>>,
-    pub cols: HashMap<String, Col>,
+    /// each column shared too, written on copy: a frame was the base cloned, every column of 100 000 lights copied (FC1b)
+    pub cols: HashMap<String, std::sync::Arc<Col>>,
 }
 
 impl Cols {
@@ -114,11 +115,11 @@ impl Cols {
     pub fn set(&mut self, r: usize, c: &str, v: V) {
         let n = self.id.len();
         match self.cols.get_mut(c) {
-            Some(col) => col.set(r, v),
+            Some(col) => std::sync::Arc::make_mut(col).set(r, v),
             None => {
                 let mut col = Col::empty_for(&v, n);
                 col.set(r, v);
-                self.cols.insert(c.to_string(), col);
+                self.cols.insert(c.to_string(), std::sync::Arc::new(col));
             }
         }
     }

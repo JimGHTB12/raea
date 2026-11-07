@@ -1,6 +1,6 @@
 // The clock: which frame of which composition is being rendered, and the hooks that read it
 // (spec: "A composition is a component rendered once per frame", "The clock renderers use").
-import { createContext, useContext, useRef, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useReducer, useRef, version, type ReactNode } from "react";
 
 export interface TimelineWord {
   text: string;
@@ -74,6 +74,57 @@ export interface LocalTime {
 }
 
 export const ClockContext = createContext<ClockState | null>(null);
+
+// A Clock's state is one object while its settings, words, perception and input hold, its frame moved on in place: a
+// new object each frame changed the context, and React looked through every part under it for a reader (10 000 cubes
+// beside one turning camera, 1.5 ms a frame; docs/control.feature FC1b). What reads the frame subscribes instead.
+interface Ticker {
+  v: number;
+  /** told by tickClocks ahead of this frame's render, so the Clock's commit doesn't tell them again */
+  pre: boolean;
+  subs: Set<() => void>;
+}
+const TICKERS = new WeakMap<ClockState, Ticker>();
+// the mounted Clocks' tickers, for tickClocks
+const MOUNTED = new Set<Ticker>();
+function ticker(): Ticker {
+  const t: Ticker = { v: 0, pre: false, subs: new Set() };
+  return t;
+}
+// its readers called: each re-renders unless it already rendered at the version now
+function tell(t: Ticker) {
+  for (const cb of [...t.subs]) cb();
+}
+/** Tells every mounted Clock's frame readers that the frame is about to move on, in the same batch as the update that
+ * moves it, so they render in that one commit. A host that steps frames back to back calls it with its frame update:
+ * else each Clock tells them as its frame commits, a second commit each frame, and React stops a chain of more than 50
+ * (raea's bake steps a range of frames as one chain: many_cubes stalled at frame 26). */
+export function tickClocks(): void {
+  for (const t of MOUNTED) {
+    t.pre = true;
+    t.v++;
+    tell(t);
+  }
+}
+// raea's live runtime (sdk/react/js/lite) re-renders by the contexts read, so it keeps a new state each frame, as before
+const LITE = version.endsWith("-raea-lite");
+/** Re-renders the caller when its Clock's frame moves on. A state not a Clock's own (a copy given to a subtree, as
+ * InputRegion's and R3F's) is a new object each frame, so its readers hear of it through the context as before. */
+export function useClockTick(clock: ClockState | null): void {
+  const t = clock ? TICKERS.get(clock) : undefined;
+  // the version it rendered at: told of a frame it already rendered (its parent re-rendered it), it isn't rendered again
+  // (useSyncExternalStore's own record moves on only in a passive effect, after the Clock tells, so every reader
+  // rendered twice a frame)
+  const [, force] = useReducer((n: number) => n + 1, 0);
+  const seen = useRef(-1);
+  if (t) seen.current = t.v;
+  useLayoutEffect(() => {
+    if (!t) return;
+    const cb = () => void (seen.current !== t.v && force());
+    t.subs.add(cb);
+    return () => void t.subs.delete(cb);
+  }, [t]);
+}
 export const LocalTimeContext = createContext<LocalTime | null>(null);
 
 /** Where a subtree sits in time, as data that changes only when its place does (not every frame): the composition
@@ -116,6 +167,8 @@ const rootTimes = new WeakMap<ClockState, LocalTime>();
 export function useLocalTime(caller: string): LocalTime {
   const clock = useClockState(caller);
   const local = useContext(LocalTimeContext);
+  // inside a Sequence its time is a new object each frame; outside one, the frame is the Clock's own
+  useClockTick(local ? null : clock);
   if (local) return local;
   let t = rootTimes.get(clock);
   if (!t || t.frame !== clock.frame || t.width !== clock.config.width || t.height !== clock.config.height) {
@@ -178,16 +231,44 @@ export function Clock(props: ClockProps) {
     k && k.id === id && k.width === width && k.height === height && k.fps === fps && k.durationInFrames === durationInFrames && k.defaultProps === defaultProps
       ? k
       : (kept.current = { id, width, height, fps, durationInFrames, defaultProps });
-  const state: ClockState = {
-    config,
-    frame,
-    words,
-    perception,
-    input,
-  };
+  // the state kept while what it holds holds (perception compared shallowly: the host's is a new {} each frame when
+  // there's none), its frame moved on in place and its readers told once the frame commits
+  const st = useRef<ClockState | null>(null);
+  let state = st.current;
+  if (LITE || !state || state.config !== config || state.words !== words || state.input !== input || !samePerception(state.perception, perception)) {
+    state = st.current = { config, frame, words, perception, input };
+    TICKERS.set(state, ticker());
+  } else if (state.frame !== frame) {
+    // the version moved on as the frame does, so a reader rendering in this pass (its parent re-rendered) isn't
+    // rendered again when the commit tells the rest
+    state.frame = frame;
+    TICKERS.get(state)!.v++;
+  }
+  const told = useRef<{ state: ClockState; frame: number } | null>(null);
+  useLayoutEffect(() => {
+    const s = st.current!;
+    const t = TICKERS.get(s)!;
+    const pre = t.pre;
+    t.pre = false;
+    if (told.current?.state === s && told.current.frame === s.frame) return;
+    const fresh = told.current?.state !== s;
+    if (fresh && told.current) MOUNTED.delete(TICKERS.get(told.current.state)!);
+    MOUNTED.add(t);
+    told.current = { state: s, frame: s.frame };
+    if (!fresh && !pre) tell(t);
+  });
+  useLayoutEffect(() => () => void (told.current && MOUNTED.delete(TICKERS.get(told.current.state)!)), []);
+  // no LocalTime at the root: useLocalTime makes the root's from the Clock (a new one each frame changed the context)
+  if (!LITE) return <ClockContext.Provider value={state}>{props.children}</ClockContext.Provider>;
   return (
     <ClockContext.Provider value={state}>
       <LocalTimeContext.Provider value={{ frame, origin: 0, width, height }}>{props.children}</LocalTimeContext.Provider>
     </ClockContext.Provider>
   );
+}
+
+function samePerception(a: Perception, b: Perception): boolean {
+  if (a === b) return true;
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length && ka.every((k) => (a as Record<string, unknown>)[k] === (b as Record<string, unknown>)[k]);
 }

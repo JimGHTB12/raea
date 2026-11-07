@@ -1,0 +1,10 @@
+[package]
+name = "raea-core-meshcheck"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A model file measured before a scene uses it (size, pivot, facing, triangles, holes, loose pieces, textures) and a fixed copy written: scaled to its real height, its origin at the bottom centre"
+
+[dependencies]
+serde_json = "1"

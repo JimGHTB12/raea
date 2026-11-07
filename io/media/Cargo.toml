@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "FSL-1.1-ALv2"
 publish = false
-description = "raea's media plane under one name: the backends compiled in (ffmpeg, portable software, Apple hardware, AV1), each encoder signing what it finishes"
+description = "raea's media plane under one name: the backends compiled in (ffmpeg, portable software, Apple hardware, AV1), each wrapped by a signer when one is installed"
 
 [features]
 default = ["soft", "av1", "apple"]

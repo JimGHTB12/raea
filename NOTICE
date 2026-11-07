@@ -17,3 +17,426 @@ muxide: vendor/muxide, MIT OR Apache-2.0 (its LICENSE-MIT and LICENSE-APACHE).
 
 animato (MIT OR Apache-2.0), usvg and resvg (Apache-2.0 OR MIT), mediabunny (MPL-2.0, used unmodified), manifold-rust
 (Apache-2.0), Bevy (MIT OR Apache-2.0) and the other crates and packages in each Cargo.lock and package.json, each under its own licence.
+
+The Windows build (docs/ports.feature PT20) adds: junction 1.4.2 (MIT, node_modules' links in io/npm) and windows-sys
+0.61.2 (Microsoft, MIT OR Apache-2.0, in io/trace); every build has dunce 1.0.5 (CC0-1.0 OR MIT-0 OR Apache-2.0, plain
+paths for Windows in runtime/bundle). It ships none of Microsoft's C runtime or SDK files: the runtime comes from the
+Microsoft Visual C++ Redistributable, installed on the machine.
+The native target (engine/rune, docs/targets.feature) builds on Rune (https://github.com/anomalyco/rune, Copyright
+2026 Anomaly, MIT; LICENSES/rune-0.0.1/repository-LICENSE): rune, rune-kit and their crates, by a pinned rev.
+
+---- the plugin catalog's crates (tools/licenses.sh; don't edit by hand) ----
+The plugin catalog (engine/bevy-plugins, built with tools/bevy-plugins.sh) and the native target's host (engine/rune,
+raea-rune-host) bring in these crates beyond raea's own build. Each is under its own licence, its files in
+LICENSES/<crate>-<version>/.
+  accesskit_atspi_common 0.21.1: MIT OR Apache-2.0
+  accesskit_consumer 0.39.2: MIT OR Apache-2.0
+  accesskit_macos 0.27.2: MIT OR Apache-2.0
+  accesskit_unix 0.24.1: MIT OR Apache-2.0
+  accesskit_windows 0.35.2: MIT OR Apache-2.0
+  accesskit 0.25.2: MIT OR Apache-2.0
+  aead 0.5.2: MIT OR Apache-2.0
+  aeronet_io 0.22.0-rc.1: MIT OR Apache-2.0
+  aeronet_steam 0.22.0-rc.1: MIT OR Apache-2.0
+  aeronet_tokio_runtime 0.22.0-rc.1: MIT OR Apache-2.0
+  aeronet_websocket 0.22.0-rc.1: MIT OR Apache-2.0
+  aeronet_webtransport 0.22.0-rc.1: MIT OR Apache-2.0
+  anes 0.1.6: MIT OR Apache-2.0
+  ansi-parser 0.9.1: MPL-2.0
+  any_vec 0.15.0: MIT OR Apache-2.0
+  arbitrary-chunks 0.4.1: Apache-2.0 OR MIT
+  ariadne 0.6.0: MIT
+  aseprite-loader 0.4.2: MIT OR Apache-2.0
+  asn1-rs-derive 0.6.0: MIT OR Apache-2.0
+  asn1-rs-impl 0.2.0: MIT/Apache-2.0
+  asn1-rs 0.7.2: MIT OR Apache-2.0
+  async-process 2.5.0: Apache-2.0 OR MIT
+  async-recursion 1.2.0: MIT OR Apache-2.0
+  async-signal 0.2.14: Apache-2.0 OR MIT
+  atomic-arena 0.1.2: MIT OR Apache-2.0
+  atomic-polyfill 1.0.3: MIT OR Apache-2.0
+  atspi-common 0.13.0: Apache-2.0 OR MIT
+  atspi-proxies 0.13.0: Apache-2.0 OR MIT
+  atspi 0.29.0: Apache-2.0 OR MIT
+  atterate 0.0.2: MIT OR Apache-2.0
+  avian_derive 0.2.3: MIT OR Apache-2.0
+  avian2d 0.8.0: MIT OR Apache-2.0
+  avian3d 0.8.0: MIT OR Apache-2.0
+  aws-lc-rs 1.18.2: ISC AND (Apache-2.0 OR ISC)
+  aws-lc-sys 0.46.0: ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0)
+  az 1.3.0: MIT/Apache-2.0
+  basis-universal-sys 0.3.1: MIT OR Apache-2.0
+  basis-universal 0.3.1: MIT OR Apache-2.0
+  better-bae-macros 0.1.9: MIT
+  better-bae 0.1.9: MIT
+  bevy_aseprite_ultra 0.10.0: MIT
+  bevy_asset_loader_derive 0.28.1: MIT OR Apache-2.0
+  bevy_asset_loader 0.28.1: MIT OR Apache-2.0
+  bevy_common_assets 0.18.0: MIT OR Apache-2.0
+  bevy_console_derive 0.6.0: MIT
+  bevy_console 0.19.0: MIT
+  bevy_easings 0.20.0: MIT OR Apache-2.0
+  bevy_ecs_ldtk_macros 0.16.0: MIT OR Apache-2.0
+  bevy_ecs_ldtk 0.16.0: MIT OR Apache-2.0
+  bevy_ecs_tiled 0.14.0: MIT
+  bevy_ecs_tilemap 0.20.0: MIT
+  bevy_egui 0.43.1: MIT
+  bevy_enhanced_input_macros 0.27.0: MIT OR Apache-2.0
+  bevy_enhanced_input 0.27.0: MIT OR Apache-2.0
+  bevy_enoki 0.8.0: MIT
+  bevy_flair_core_macros 0.9.0: MIT OR Apache-2.0
+  bevy_flair_core 0.9.0: MIT OR Apache-2.0
+  bevy_flair_css_parser 0.9.0: MIT OR Apache-2.0
+  bevy_flair_style 0.9.0: MIT OR Apache-2.0
+  bevy_flair 0.9.0: MIT OR Apache-2.0
+  bevy_flipbook 0.1.0: MIT
+  bevy_ghx_grid 0.10.0: MIT OR Apache-2.0
+  bevy_ghx_proc_gen 0.10.0: MIT OR Apache-2.0
+  bevy_hanabi 0.20.0-dev: MIT OR Apache-2.0
+  bevy_heavy 0.6.0: MIT OR Apache-2.0
+  bevy_http_client 0.12.0: MIT OR Apache-2.0
+  bevy_hui 0.8.0: MIT OR Apache-2.0
+  bevy_kira_audio 0.27.1: MIT OR Apache-2.0
+  bevy_light_2d 0.11.0: MIT
+  bevy_lookup_curve 0.13.0: MIT OR Apache-2.0
+  bevy_materialize 0.12.0: MIT OR Apache-2.0
+  bevy_mod_debugdump 0.17.0: MIT OR Apache-2.0
+  bevy_northstar 0.8.0: MIT
+  bevy_obj 0.20.0: MIT OR Apache-2.0
+  bevy_pancam 0.22.0: MIT OR Apache-2.0
+  bevy_panorbit_camera 0.36.0: MIT OR Apache-2.0
+  bevy_prng 0.16.0: MIT OR Apache-2.0
+  bevy_quinnet 0.22.0: MIT OR Apache-2.0
+  bevy_rand 0.16.0: MIT OR Apache-2.0
+  bevy_rapier2d 0.37.0: Apache-2.0
+  bevy_rapier3d 0.37.0: Apache-2.0
+  bevy_replicon 0.45.2: MIT OR Apache-2.0
+  bevy_simple_tilemap 0.21.0: MIT/Apache-2.0
+  bevy_skein 0.7.0-rc.1: MIT OR Apache-2.0
+  bevy_smud 0.15.0: MIT OR Apache-2.0
+  bevy_sprite3d 10.1.0: MIT
+  bevy_spritesheet_animation 8.0.1: MIT
+  bevy_time_runner 0.8.0: MIT OR Apache-2.0
+  bevy_transform_interpolation 0.6.0: MIT OR Apache-2.0
+  bevy_trauma_shake 0.9.0: MIT OR Apache-2.0
+  bevy_trenchbroom_macros 0.15.0: MIT OR Apache-2.0
+  bevy_trenchbroom 0.15.0: MIT OR Apache-2.0
+  bevy_tween 0.14.1: MIT OR Apache-2.0
+  bevy_tweening 0.16.0: MIT OR Apache-2.0
+  bevy_vector_shapes 0.14.0: MIT OR Apache-2.0
+  bevy_vox_scene 0.23.0: MIT
+  bevy-inspector-egui-derive 0.38.0: MIT OR Apache-2.0
+  bevy-inspector-egui 0.38.0: MIT OR Apache-2.0
+  bevy-settings 0.20.0: MIT OR Apache-2.0
+  bevy-tnua-avian3d 0.13.0: MIT OR Apache-2.0
+  bevy-tnua-macros 0.3.0: MIT OR Apache-2.0
+  bevy-tnua-physics-integration-layer 0.14.0: MIT OR Apache-2.0
+  bevy-tnua 0.33.0: MIT OR Apache-2.0
+  bevy-yoleck-macros 0.10.0: MIT OR Apache-2.0
+  bevy-yoleck 0.34.0: MIT OR Apache-2.0
+  big_space 0.14.0-rc.0: MIT OR Apache-2.0
+  bitfield-macros 0.19.5: MIT OR Apache-2.0
+  bitfield 0.19.5: MIT OR Apache-2.0
+  block-mesh 0.2.0: MIT OR Apache-2.0
+  block-pseudorand 0.1.2: Apache-2.0 OR MIT
+  cast 0.3.0: MIT OR Apache-2.0
+  chacha20 0.9.1: Apache-2.0 OR MIT
+  chacha20poly1305 0.10.1: Apache-2.0 OR MIT
+  chiapos-chacha8 0.1.0: Apache-2.0 OR MIT
+  ciborium-io 0.2.2: Apache-2.0
+  ciborium-ll 0.2.2: Apache-2.0
+  ciborium 0.2.2: Apache-2.0
+  cipher 0.4.4: MIT OR Apache-2.0
+  claxon 0.4.3: Apache-2.0
+  convert_case 0.11.0: MIT
+  copyless 0.1.5: MIT OR Apache-2.0
+  criterion-plot 0.5.0: MIT/Apache-2.0
+  criterion 0.5.1: Apache-2.0 OR MIT
+  cssparser-color 0.5.0: MPL-2.0
+  cssparser 0.37.0: MPL-2.0
+  csv-core 0.1.13: Unlicense/MIT
+  csv 1.4.0: Unlicense/MIT
+  ctt-astcenc 0.5.0: (MIT OR Apache-2.0 OR Zlib) AND Apache-2.0
+  ctt-bc7enc-rdo-prebuilt 0.5.0: (MIT OR Apache-2.0) AND Apache-2.0
+  ctt-bc7enc-rdo 0.5.0: (MIT OR Apache-2.0 OR Zlib) AND Apache-2.0
+  ctt-compressonator 0.5.0: (MIT OR Apache-2.0 OR Zlib) AND MIT
+  ctt-etcpak 0.5.0: (MIT OR Apache-2.0 OR Zlib) AND BSD-3-Clause
+  ctt-intel-texture-compressor-prebuilt 0.5.0: (MIT OR Apache-2.0) AND MIT
+  ctt-intel-texture-compressor 0.5.0: (MIT OR Apache-2.0) AND MIT
+  ctt 0.5.0: MIT OR Apache-2.0 OR Zlib
+  dashmap 6.2.1: MIT
+  default-struct-builder 0.5.1: MIT OR Apache-2.0
+  deluxe-core 0.5.0: MIT
+  deluxe-macros 0.5.0: MIT
+  deluxe 0.5.0: MIT
+  der_derive 0.8.0: Apache-2.0 OR MIT
+  der-parser 10.0.0: MIT OR Apache-2.0
+  deranged 0.5.9: MIT OR Apache-2.0
+  derive-getters 0.5.0: MIT
+  deterministic-hash 1.0.2: MIT
+  disjoint-sets 0.4.2: MIT/Apache-2.0
+  dot_vox 5.2.0: MIT
+  dyn-clone 1.0.20: MIT OR Apache-2.0
+  dyn-eq 0.1.3: MPL-2.0
+  dyn-hash 1.0.0: MIT OR Apache-2.0
+  earcut 0.4.5: ISC
+  ecolor 0.36.2: MIT OR Apache-2.0
+  egui 0.36.2: MIT OR Apache-2.0
+  ehttp 0.5.0: MIT OR Apache-2.0
+  emath 0.36.2: MIT OR Apache-2.0
+  endi 1.1.1: MIT
+  endian-type 0.1.2: MIT
+  enumflags2_derive 0.7.12: MIT OR Apache-2.0
+  enumflags2 0.7.12: MIT OR Apache-2.0
+  epaint_default_fonts 0.36.2: (MIT OR Apache-2.0) AND OFL-1.1 AND Ubuntu-font-1.0
+  epaint 0.36.2: MIT OR Apache-2.0
+  fast_image_resize 6.1.0: MIT OR Apache-2.0
+  fastbloom 0.17.0: MIT OR Apache-2.0
+  fastnoise-lite 1.1.1: MIT
+  fearless_simd 0.4.1: Apache-2.0 OR MIT
+  fid-rs 0.2.0: MIT OR Apache-2.0
+  file-id 0.2.3: MIT OR Apache-2.0
+  fixed 1.31.0: MIT/Apache-2.0
+  flagset 0.4.7: Apache-2.0
+  float_next_after 2.0.0: MIT
+  float-cmp 0.10.0: MIT
+  float-ord 0.3.2: MIT / Apache-2.0
+  fs_extra 1.3.0: MIT
+  fsevent-sys 4.1.0: MIT
+  futures-timer 3.0.4: MIT/Apache-2.0
+  fuzzy-matcher 0.3.7: MIT
+  geo-types 0.7.20: MIT OR Apache-2.0
+  geo 0.33.1: MIT OR Apache-2.0
+  geographiclib-rs 0.2.7: MIT
+  ghx_grid 0.10.0: MIT OR Apache-2.0
+  ghx_proc_gen 0.10.0: MIT OR Apache-2.0
+  glam_matrix_extras 0.4.0: MIT OR Apache-2.0
+  glam 0.19.0: MIT OR Apache-2.0
+  glifo 0.2.0: Apache-2.0 OR MIT
+  gloo-timers 0.3.0: MIT OR Apache-2.0
+  governor 0.10.4: MIT
+  hash32 0.2.1: MIT OR Apache-2.0
+  heapless 0.7.17: MIT OR Apache-2.0
+  heck 0.4.1: MIT OR Apache-2.0
+  httlib-huffman 0.3.4: MIT
+  i_float 1.16.0: MIT
+  i_key_sort 0.10.3: MIT
+  i_overlay 4.5.2: MIT OR Apache-2.0
+  i_shape 1.18.0: MIT
+  i_tree 0.18.0: MIT
+  ilattice 0.1.0: MIT OR Apache-2.0
+  imagesize 0.13.0: MIT
+  inout 0.1.4: MIT OR Apache-2.0
+  interpolation 0.3.0: MIT
+  is-terminal 0.4.17: MIT
+  ispc-build-utils 0.5.0: MIT OR Apache-2.0 OR Zlib
+  itertools 0.10.5: MIT/Apache-2.0
+  iyes_progress 0.18.0: MIT OR Apache-2.0
+  jzon 0.12.5: MIT/Apache-2.0
+  kira 0.12.1: MIT OR Apache-2.0
+  kqueue-sys 1.1.2: MIT
+  kqueue 1.2.1: MIT
+  kurbo 0.11.3: Apache-2.0 OR MIT
+  leafwing_input_manager_macros 0.17.0: MIT OR Apache-2.0
+  leafwing-input-manager 0.22.0: MIT OR Apache-2.0
+  lightyear_aeronet 0.31.0: MIT OR Apache-2.0
+  lightyear_avian2d 0.31.0: MIT OR Apache-2.0
+  lightyear_avian3d 0.31.0: MIT OR Apache-2.0
+  lightyear_connection 0.31.0: MIT OR Apache-2.0
+  lightyear_core 0.31.0: MIT OR Apache-2.0
+  lightyear_crossbeam 0.31.0: MIT OR Apache-2.0
+  lightyear_deterministic_replication 0.31.0: MIT OR Apache-2.0
+  lightyear_frame_interpolation 0.31.0: MIT OR Apache-2.0
+  lightyear_inputs_bei 0.31.0: MIT OR Apache-2.0
+  lightyear_inputs_leafwing 0.31.0: MIT OR Apache-2.0
+  lightyear_inputs_native 0.31.0: MIT OR Apache-2.0
+  lightyear_inputs 0.31.0: MIT OR Apache-2.0
+  lightyear_interpolation 0.31.0: MIT OR Apache-2.0
+  lightyear_link 0.31.0: MIT OR Apache-2.0
+  lightyear_messages 0.31.0: MIT OR Apache-2.0
+  lightyear_metrics 0.31.0: MIT OR Apache-2.0
+  lightyear_netcode 0.31.0: MIT OR Apache-2.0
+  lightyear_p2p 0.31.0: MIT OR Apache-2.0
+  lightyear_prediction 0.31.0: MIT OR Apache-2.0
+  lightyear_raw_connection 0.31.0: MIT OR Apache-2.0
+  lightyear_replication 0.31.0: MIT OR Apache-2.0
+  lightyear_serde 0.31.0: MIT OR Apache-2.0
+  lightyear_steam 0.31.0: MIT OR Apache-2.0
+  lightyear_sync 0.31.0: MIT OR Apache-2.0
+  lightyear_tools 0.31.0: MIT OR Apache-2.0
+  lightyear_transport 0.31.0: MIT OR Apache-2.0
+  lightyear_udp 0.31.0: MIT OR Apache-2.0
+  lightyear_utils 0.31.0: MIT OR Apache-2.0
+  lightyear_web 0.31.0: MIT OR Apache-2.0
+  lightyear_websocket 0.31.0: MIT OR Apache-2.0
+  lightyear_webtransport 0.31.0: MIT OR Apache-2.0
+  lightyear 0.31.0: MIT OR Apache-2.0
+  linked-hash-map 0.5.6: MIT/Apache-2.0
+  louds-rs 0.7.0: MIT OR Apache-2.0
+  lz4_flex 0.13.1: MIT
+  memoffset 0.9.1: MIT
+  meshopt 0.6.2: MIT OR Apache-2.0
+  metis-sys 0.3.2: MIT OR Apache-2.0
+  metis 0.2.2: MIT OR Apache-2.0
+  metrics-util 0.20.4: MIT
+  metrics 0.24.6: MIT
+  mint 0.5.9: MIT
+  mock_instant 0.6.1: 0BSD
+  moonshine-save 0.8.0: MIT
+  moonshine-util 0.6.0: MIT
+  nanorand 0.6.1: Zlib
+  ndarray 0.15.6: MIT OR Apache-2.0
+  ndcopy 0.3.0: MIT OR Apache-2.0
+  ndshape 0.3.0: MIT OR Apache-2.0
+  nibble_vec 0.1.0: MIT
+  nohash-hasher 0.2.0: Apache-2.0 OR MIT
+  noise 0.9.0: Apache-2.0/MIT
+  noisy_bevy 0.15.0: MIT
+  nonzero_ext 0.3.0: Apache-2.0
+  notify-debouncer-full 0.7.0: MIT OR Apache-2.0
+  notify-types 2.1.0: MIT OR Apache-2.0
+  notify 8.2.0: CC0-1.0
+  ntapi 0.4.3: Apache-2.0 OR MIT
+  num-conv 0.2.2: MIT OR Apache-2.0
+  obvhs 0.4.0: MIT OR Apache-2.0
+  octets 0.3.7: BSD-2-Clause
+  oid-registry 0.8.1: MIT OR Apache-2.0
+  oneshot 0.1.13: MIT OR Apache-2.0
+  oorandom 11.1.5: MIT
+  opaque-debug 0.3.1: MIT OR Apache-2.0
+  opuscule 0.2.2: MPL-2.0
+  ordered-stream 0.2.0: MIT OR Apache-2.0
+  owo-colors 4.4.0: MIT
+  parry2d-f64 0.31.1: Apache-2.0
+  parry2d 0.31.1: Apache-2.0
+  parry3d-f64 0.31.1: Apache-2.0
+  partition 0.1.2: MIT OR Apache-2.0
+  path-slash 0.2.1: MIT
+  pem 3.0.6: MIT
+  pem 4.0.0: MIT
+  plotters-backend 0.3.7: MIT
+  plotters-svg 0.3.7: MIT
+  plotters 0.3.7: MIT
+  pollster 1.0.1: Apache-2.0/MIT
+  poly1305 0.8.0: Apache-2.0 OR MIT
+  polyanya 0.18.0: MIT OR Apache-2.0
+  postcard-derive 0.2.2: MIT OR Apache-2.0
+  powerfmt 0.2.1: MIT OR Apache-2.0
+  proc-macro-crate 1.3.1: MIT OR Apache-2.0
+  proc-macro-error-attr 1.0.4: MIT OR Apache-2.0
+  proc-macro-error-attr3 3.1.1: MIT OR Apache-2.0
+  proc-macro-error 1.0.4: MIT OR Apache-2.0
+  proc-macro-error3 3.1.1: MIT OR Apache-2.0
+  quake-map 0.6.1: CC0-1.0 OR MIT OR Apache-2.0
+  quanta 0.12.6: MIT
+  quick-xml 0.31.0: MIT
+  quick-xml 0.38.4: MIT
+  radix_trie 0.2.1: MIT
+  rand_xorshift 0.3.0: MIT OR Apache-2.0
+  rand_xoshiro 0.7.0: MIT OR Apache-2.0
+  rapidhash 4.5.1: MIT OR Apache-2.0
+  rapier2d 0.36.1: Apache-2.0
+  rcgen 0.14.10: MIT OR Apache-2.0
+  rdst 0.20.14: Apache-2.0 OR MIT
+  rerecast 0.5.0: MIT OR Apache-2.0
+  resvg 0.45.1: Apache-2.0 OR MIT
+  ringbuffer 0.16.0: MIT
+  rmp-serde 1.3.1: MIT
+  rmp 0.8.15: MIT
+  rstar 0.12.2: MIT OR Apache-2.0
+  rtrb 0.3.5: MIT OR Apache-2.0
+  rune-kit 0.0.1: MIT
+  rune-motion 0.1.0: MIT
+  rune-staging 0.0.1: MIT
+  rune-taffy 0.0.1: MIT
+  rune 0.0.1: MIT
+  rusticata-macros 4.1.0: MIT/Apache-2.0
+  rustls-native-certs 0.8.5: Apache-2.0 OR ISC OR MIT
+  rustls-pemfile 2.2.0: Apache-2.0 OR ISC OR MIT
+  rustls-platform-verifier-android 0.2.0: MIT OR Apache-2.0
+  rustls-platform-verifier 0.7.1: MIT OR Apache-2.0
+  seahash 4.1.0: MIT
+  selectors 0.38.0: MPL-2.0
+  serde_arrays 0.2.0: MIT OR Apache-2.0
+  serde_flexitos 0.2.2: Apache-2.0
+  serde_regex 1.2.0: MIT OR Apache-2.0
+  serde_repr 0.1.21: MIT OR Apache-2.0
+  serde_yaml 0.9.34+deprecated: MIT OR Apache-2.0
+  servo_arc 0.4.3: MIT OR Apache-2.0
+  sha2 0.11.1: MIT OR Apache-2.0
+  sif-itree 0.4.1: MIT OR Apache-2.0
+  sketches-ddsketch 0.3.1: Apache-2.0
+  smart-default 0.7.1: MIT
+  spinning_top 0.3.0: MIT/Apache-2.0
+  spki 0.8.1: Apache-2.0 OR MIT
+  steamworks-sys 0.13.0: MIT / Apache-2.0
+  steamworks 0.13.1: MIT / Apache-2.0
+  strip-ansi-escapes 0.2.1: Apache-2.0/MIT
+  strsim 0.10.0: MIT
+  strum_macros 0.27.2: MIT
+  strum 0.27.2: MIT
+  svgtypes 0.15.3: Apache-2.0 OR MIT
+  symphonia-codec-alac 0.5.5: MPL-2.0
+  symphonia-format-caf 0.5.5: MPL-2.0
+  syn 1.0.109: MIT OR Apache-2.0
+  sysinfo 0.39.6: MIT
+  tikv-jemalloc-sys 0.5.4+5.3.0-patched: MIT/Apache-2.0
+  tikv-jemallocator 0.5.4: MIT/Apache-2.0
+  tiled 0.16.0: MIT
+  time-core 0.1.9: MIT OR Apache-2.0
+  time-macros 0.2.32: MIT OR Apache-2.0
+  time 0.3.55: MIT OR Apache-2.0
+  tinytemplate 1.2.1: Apache-2.0 OR MIT
+  tls_codec_derive 0.4.2: Apache-2.0 OR MIT
+  tls_codec 0.4.2: Apache-2.0 OR MIT
+  tokio-tungstenite 0.30.0: MIT
+  toml_datetime 0.6.11: MIT OR Apache-2.0
+  toml_edit 0.19.15: MIT OR Apache-2.0
+  trie-rs 0.4.2: MIT OR Apache-2.0
+  uds_windows 1.2.1: MIT
+  unicode-general-category 1.1.0: Apache-2.0
+  universal-hash 0.5.1: MIT OR Apache-2.0
+  unsafe-libyaml 0.2.11: MIT
+  urlencoding 2.1.3: MIT
+  usvg 0.45.1: Apache-2.0 OR MIT
+  vello_common 0.1.0: Apache-2.0 OR MIT
+  vello_cpu 0.1.0: Apache-2.0 OR MIT
+  vleue_navigator 0.17.0: MIT OR Apache-2.0
+  voracious_radix_sort 1.2.0: MIT
+  vox_bake 0.1.0: MIT
+  vte 0.14.1: Apache-2.0 OR MIT
+  web-sys-async-io 0.6.0: MIT
+  web-sys-stream-utils 0.2.6: MIT
+  web-wt-sys 0.3.1: MIT
+  winnow 0.5.40: MIT
+  wobj 0.3.1: MIT OR Apache-2.0
+  wtransport-proto 0.7.2: MIT OR Apache-2.0
+  wtransport 0.7.2: MIT OR Apache-2.0
+  wyrand 0.5.0: Apache-2.0 OR MIT
+  x509-cert 0.3.0: Apache-2.0 OR MIT
+  x509-parser 0.18.1: MIT OR Apache-2.0
+  xkbcommon 0.9.0: MIT
+  xwt-core 0.10.0: MIT
+  xwt-web 0.22.1: MIT
+  xwt-wtransport 0.20.1: MIT
+  xxhash-rust 0.8.19: BSL-1.0
+  yansi 1.0.1: MIT OR Apache-2.0
+  yasna 0.6.0: MIT OR Apache-2.0
+  zbus_macros 5.19.0: MIT
+  zbus_macros 6.2.1: MIT
+  zbus_names 4.3.4: MIT
+  zbus_utils 6.1.0: MIT
+  zbus_xml 5.2.1: MIT
+  zbus-lockstep-macros 0.5.2: MIT
+  zbus-lockstep 0.5.2: MIT
+  zbus 5.19.0: MIT
+  zbus 6.2.1: MIT
+  zcheapstr 1.1.0: MIT
+  zruntime 0.2.2: MIT
+  zstd-safe 7.4.0: BSD-3-Clause
+  zstd-sys 2.1.2+zstd.1.5.7: BSD-3-Clause
+  zstd 0.13.4: BSD-3-Clause
+  zvariant_derive 5.15.0: MIT
+  zvariant_utils 4.2.0: MIT
+  zvariant 5.15.0: MIT
+---- end of the plugin catalog's crates ----

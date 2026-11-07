@@ -5,6 +5,7 @@ import { InModel } from "../3d/all";
 import { LinearRgba, MADE_FROM, baseOf, emissiveOf, type Affine2, type Srgba } from "./all";
 import { samplerSpec, surfaceShader, type SamplerSpec, type SurfaceShaderSpec, type SurfaceDrawProps, type ToonBand, type ToonHighlight, type ToonOutline, type ToonRim } from "../3d";
 import { MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, MeshToonMaterial, type MeshStandardMaterialProps } from "../three";
+import { ProceduralExtension, proceduralOf, type ProceduralExtensionProps } from "./procedural";
 
 /** A picture read with its own sampler: Bevy's load_with_settings, whose ImageLoaderSettings give the Image its
  *  ImageSamplerDescriptor ({ path: "checker.png", sampler: { filter: "nearest" } } for hard pixels). */
@@ -49,9 +50,9 @@ export interface StandardMaterialProps {
   reflectance?: number;
   clearcoat?: number;
   clearcoat_perceptual_roughness?: number;
-  specular_transmission?: number;
-  ior?: number;
-  thickness?: number;
+  /** the clearcoat layer's own normal map, read as data (not sRGB), as Bevy's examples load it with is_srgb false */
+  clearcoat_normal_texture?: Tex;
+  specular_transmission?: number; ior?: number; thickness?: number;
   unlit?: boolean;
   alpha_mode?: AlphaMode;
   double_sided?: boolean;
@@ -81,8 +82,8 @@ export interface StandardMaterialProps {
   depth_bias?: number;
   /** "Forward" or "Deferred" (in the deferred pass, with a camera that has one) */
   opaque_render_method?: "Forward" | "Deferred";
-  /** light passed through and scattered (leaves, paper, wax), 0..1 */
-  diffuse_transmission?: number;
+  /** light passed through and scattered (leaves, paper, wax), 0..1; lightmap_exposure: a <Lightmap>'s bake times this */
+  diffuse_transmission?: number; lightmap_exposure?: number;
   /** its fields' tracks, sampled by the engine from the frame clock: { base_color: track({ 0: "#3060ff", 30: "#ff4070" }) } */
   animate?: StandardMaterialAnimate;
 }
@@ -183,7 +184,7 @@ function further(p: StandardMaterialProps): Record<string, unknown> {
     if (p.opaque_render_method !== "Forward" && p.opaque_render_method !== "Deferred") throw new TypeError(`StandardMaterial: opaque_render_method is "Forward" or "Deferred", got ${JSON.stringify(p.opaque_render_method)}`);
     out.renderMethod = p.opaque_render_method.toLowerCase();
   }
-  if (p.diffuse_transmission !== undefined) out.diffuseTransmission = p.diffuse_transmission;
+  for (const [k, o] of [["diffuse_transmission", "diffuseTransmission"], ["lightmap_exposure", "lightmapExposure"]] as const) if (p[k] !== undefined) out[o] = p[k];
   return out;
 }
 
@@ -193,9 +194,9 @@ function draw(p: StandardMaterialProps): SurfaceDrawProps {
     a === undefined || a === "Opaque" ? {} : typeof a === "object" ? { alphaMode: "mask" as const, alphaCutoff: a.Mask } : { alphaMode: a === "AlphaToCoverage" ? ("coverage" as const) : (a.toLowerCase() as "opaque" | "blend" | "premultiplied" | "add" | "multiply") };
   // no culling draws both faces; culling the front draws the inside (double_sided is the lighting, cull_mode the faces)
   const side: SurfaceDrawProps["side"] = p.cull_mode === null ? "double" : p.cull_mode === "Front" ? "back" : undefined;
-  // Bevy's Blend is the old material's `transparent`, its opacity the base colour's alpha (Opaque ignores the alpha, as
-  // Bevy's does)
-  const out: SurfaceDrawProps & { transparent?: boolean; opacity?: number } = a === "Blend" ? { transparent: true, opacity: baseOf(p.base_color).alpha } : { ...alpha };
+  // Bevy's Blend is the old material's `transparent`; every mode but Opaque reads the base colour's alpha as its
+  // opacity (a Mask cuts by it, AlphaToCoverage dithers by it), and Opaque ignores it, as Bevy's do
+  const out: SurfaceDrawProps & { transparent?: boolean; opacity?: number } = a === "Blend" ? { transparent: true, opacity: baseOf(p.base_color).alpha } : a === undefined || a === "Opaque" ? {} : { ...alpha, opacity: baseOf(p.base_color).alpha };
   if (side) out.side = side;
   return out;
 }
@@ -219,10 +220,10 @@ export const StandardMaterial = memo(function StandardMaterial<A>(p: StandardMat
 }) as unknown as <A>(p: StandardMaterialProps & { animate?: Only<A, StandardMaterialAnimate> }) => ReactElement;
 
 // raea's extensions an ExtendedMaterial puts on its StandardMaterial, as the old material's props
-type Extended = { grid?: GridExtensionProps; paint?: PaintExtensionProps; wear?: MeshStandardMaterialProps["wear"]; shader?: Record<string, unknown> };
+type Extended = { grid?: GridExtensionProps; paint?: PaintExtensionProps; wear?: MeshStandardMaterialProps["wear"]; procedural?: ReturnType<typeof proceduralOf>; shader?: Record<string, unknown> };
 
 // the texture fields as the old material's maps, and each one's sampler by the map's name
-const MAPS = { base_color_texture: "map", emissive_texture: "emissiveMap", metallic_roughness_texture: "metallicRoughnessMap", normal_map_texture: "normalMap", occlusion_texture: "aoMap", depth_map: "depthMap" } as const;
+const MAPS = { base_color_texture: "map", emissive_texture: "emissiveMap", metallic_roughness_texture: "metallicRoughnessMap", normal_map_texture: "normalMap", occlusion_texture: "aoMap", depth_map: "depthMap", clearcoat_normal_texture: "clearcoatNormalMap" } as const;
 
 function maps(p: StandardMaterialProps): { maps: Record<string, string | null>; samplers?: Record<string, SamplerSpec> } {
   const out: Record<string, string | null> = {};
@@ -252,8 +253,8 @@ function maps(p: StandardMaterialProps): { maps: Record<string, string | null>; 
 
 function standard(p: StandardMaterialProps, ext: Extended) {
   const color = baseOf(p.base_color).color;
-  if (p.unlit && (ext.grid || ext.paint || ext.wear || ext.shader)) throw new TypeError("ExtendedMaterial: an unlit StandardMaterial takes no GridExtension, PaintExtension, WearExtension or ShaderExtension");
-  if (ext.shader && (ext.grid || ext.paint || ext.wear)) throw new TypeError("ExtendedMaterial: a ShaderExtension goes alone over its StandardMaterial (no other extension with it)");
+  if (p.unlit && (ext.grid || ext.paint || ext.wear || ext.procedural || ext.shader)) throw new TypeError("ExtendedMaterial: an unlit StandardMaterial takes no GridExtension, PaintExtension, WearExtension or ShaderExtension");
+  if (ext.shader && (ext.grid || ext.paint || ext.wear || ext.procedural)) throw new TypeError("ExtendedMaterial: a ShaderExtension goes alone over its StandardMaterial (no other extension with it)");
   const m = maps(p);
   if (p.unlit && p.animate) throw new TypeError("StandardMaterial: an unlit material takes no animate yet");
   if (p.unlit) return <MeshBasicMaterial color={color} {...(m.maps.map ? { map: m.maps.map } : {})} {...(m.samplers?.map ? { sampler: m.samplers.map } : {})} {...draw(p)} />;
@@ -466,7 +467,9 @@ export function ExtendedMaterial(p: ExtendedMaterialProps) {
       if (ext.shader) throw new TypeError("ExtendedMaterial: two ShaderExtensions on one material");
       ext.shader = surfaceShader("ShaderExtension", extension.props as ShaderExtensionProps);
     } else {
-      if (extension.type === WearExtension) {
+      if (extension.type === ProceduralExtension) {
+        ext.procedural = proceduralOf(extension.props as ProceduralExtensionProps);
+      } else if (extension.type === WearExtension) {
         if (ext.wear) throw new TypeError("ExtendedMaterial: two WearExtensions on one material");
         ext.wear = wearOf(extension.props as WearExtensionProps);
       } else {

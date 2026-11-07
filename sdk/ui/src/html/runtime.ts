@@ -1,6 +1,6 @@
 // Portions ported from HyperFrames (Apache-2.0, https://github.com/heygen-com/hyperframes); see NOTICE.
-// The parts of the the HTML composition format runtime a render depends on (docs/ts-native.feature P27), as engine/html's runtime.rs
-// ported them from the composition format's packages/core/src/runtime (startResolver.ts, timeline.ts, clipWindow.ts): `data-start`
+// The parts of the original HTML-composition runtime a render depends on (docs/ts-native.feature P27), as engine/html's runtime.rs
+// ported them from its packages/core/src/runtime (startResolver.ts, timeline.ts, clipWindow.ts): `data-start`
 // expressions (absolute, `id`, `id + 2`, `id - 0.5`) offset by the host composition, durations from data-duration /
 // data-end / media / sub-timelines, frame-snapped clip windows, the ancestor chain rule, and display:none for hidden
 // in-flow leaf clips.
