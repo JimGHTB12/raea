@@ -174,7 +174,10 @@ impl Engine {
     #[cfg(feature = "native")]
     pub(crate) fn black_checked(&mut self, f: i64, px: Vec<u8>) -> Result<Vec<u8>, String> {
         if self.nv12 {
-            return raea_gpu_device::check::refused().map_or(Ok(px), |why| Err(format!("frame {f}: {why}")));
+            if let Some(why) = raea_gpu_device::check::refused() {
+                return Err(format!("frame {f}: {why}"));
+            }
+            return raea_gpu_device::check::skip_checked(f, px, raea_sys_page::redraw_full, || self.frame(f));
         }
         let (px, black) = raea_gpu_device::check::black_checked(f, px, raea_sys_page::redraw_full, || self.frame(f))?;
         if black {

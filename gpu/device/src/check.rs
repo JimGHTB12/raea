@@ -108,6 +108,58 @@ pub fn refused() -> Option<String> {
     REFUSED.lock().unwrap_or_else(|e| e.into_inner()).take()
 }
 
+/// A page draw Vello skipped (raea-page skipped.rs: past its bump buffers, with no error), found as its read back came
+/// in, with what it says if Vello's own sizes skip it too.
+static SKIPPED: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+/// Frames still to draw again since a skipped draw was found: its answer comes in with the wait for some frame's
+/// pixels, which may be that frame's or one drawn ahead of it (a render keeps up to 3 in flight: raea-render output.rs
+/// frames_run), so the frame being read back and the 3 after it are drawn again.
+static REDRAW_LEFT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+const IN_FLIGHT: u32 = 3;
+
+/// A page draw was skipped: `why` says so if it's skipped at Vello's own sizes too (the first one's kept until read).
+pub fn skipped_draw(why: String) {
+    SKIPPED.lock().unwrap_or_else(|e| e.into_inner()).get_or_insert(why);
+}
+
+/// What makes the draws' read backs that are done answer (raea-page's non-blocking poll of its device, `on_settle`).
+static SETTLE: std::sync::OnceLock<fn()> = std::sync::OnceLock::new();
+
+/// Called before each frame's check: by then the frame's draws are done on the GPU, so their read backs answer.
+pub fn on_settle(settle: fn()) {
+    let _ = SETTLE.set(settle);
+}
+
+fn take_skipped() -> Option<String> {
+    if let Some(settle) = SETTLE.get() {
+        settle();
+    }
+    SKIPPED.lock().unwrap_or_else(|e| e.into_inner()).take()
+}
+
+/// Frame `f`'s pixels, drawn again (`again`, every page with Vello's own sizes: `redraw_full`) when a page draw was skipped since the last
+/// frame read back or in the frames just before it; Err naming the frame when the redraw is skipped too (#23). Every
+/// render's readback calls it, through `black_checked` or (NV12) on its own.
+pub fn skip_checked(f: i64, px: Vec<u8>, redraw_full: fn(bool), again: impl FnOnce() -> Result<Vec<u8>, String>) -> Result<Vec<u8>, String> {
+    use std::sync::atomic::Ordering::Relaxed;
+    if take_skipped().is_some() {
+        REDRAW_LEFT.store(IN_FLIGHT + 1, Relaxed);
+    }
+    if REDRAW_LEFT.load(Relaxed) == 0 {
+        return Ok(px);
+    }
+    REDRAW_LEFT.fetch_sub(1, Relaxed);
+    // every page drawn again (a page painted as before isn't, else)
+    redraw_full(true);
+    let redrawn = again();
+    redraw_full(false);
+    let redrawn = redrawn?;
+    if let Some(why) = take_skipped() {
+        return Err(format!("frame {f}: {why}"));
+    }
+    Ok(redrawn)
+}
+
 /// Vello's seven bump buffers for a render of `w` x `h`, in bytes, at the sizes the render has (vello_encoding's
 /// bump_sizes_for: grown with the target past 1080p).
 pub fn bump_bytes(w: u32, h: u32) -> [(&'static str, u64); 7] {
@@ -171,6 +223,32 @@ mod tests {
         assert!(e.contains("15360x8640") && e.contains("isn't drawn"), "{e}");
     }
 
+    // a skipped page draw (#23): the frame read back and the 3 in flight after it drawn again with every page redrawn;
+    // a redraw skipped too refuses the frame by its number. One test, as the state is the process's.
+    #[test]
+    fn skipped_draws_are_drawn_again_or_refused() {
+        static FULL: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        fn full(on: bool) {
+            if on {
+                FULL.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
+        assert_eq!(skip_checked(1, vec![1], full, || panic!("no draw skipped")).unwrap(), vec![1]);
+        skipped_draw("past even Vello's sizes".into());
+        for f in 2..6 {
+            assert_eq!(skip_checked(f, vec![1], full, || Ok(vec![2])).unwrap(), vec![2], "frame {f} drawn again");
+        }
+        assert_eq!(FULL.load(std::sync::atomic::Ordering::Relaxed), 4, "every page redrawn each time");
+        assert_eq!(skip_checked(6, vec![1], full, || panic!("past the frames in flight")).unwrap(), vec![1]);
+        skipped_draw("past even Vello's sizes".into());
+        let e = skip_checked(7, vec![1], full, || {
+            skipped_draw("a page (1920x1080) wasn't drawn".into());
+            Ok(vec![2])
+        })
+        .unwrap_err();
+        assert_eq!(e, "frame 7: a page (1920x1080) wasn't drawn");
+    }
+
     #[test]
     fn render_memory_fits_or_refuses() {
         let cap = Some(24 << 30);
@@ -188,10 +266,11 @@ mod tests {
 /// a Vello overflow or a GPU fault (wgpu-hal's Metal backend doesn't report a command buffer that ended in error) draws
 /// a frame black and says nothing. kitchen/water.tsx came out so under a loaded GPU, 10-26. Black again too, or black
 /// once the render knows its scene draws black (`scene_black`), (true): the caller asks the GPUs (`black_twice`).
-pub fn black_checked(f: i64, px: Vec<u8>, redraw_full: fn(bool), again: impl FnOnce() -> Result<Vec<u8>, String>) -> Result<(Vec<u8>, bool), String> {
+pub fn black_checked(f: i64, px: Vec<u8>, redraw_full: fn(bool), mut again: impl FnMut() -> Result<Vec<u8>, String>) -> Result<(Vec<u8>, bool), String> {
     if let Some(why) = refused() {
         return Err(format!("frame {f}: {why}"));
     }
+    let px = skip_checked(f, px, redraw_full, &mut again)?;
     let px = injected(px, false);
     if !black(&px) {
         return Ok((px, false));

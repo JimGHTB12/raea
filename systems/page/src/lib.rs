@@ -17,6 +17,7 @@
 //! raea-runtime-input (pointer and keys) and raea-page (a composition's page).
 
 mod draw;
+mod skipped;
 /// a page's loads (raea-sys-page-net: FileNet, FrameNet, the page's fetch, the image decoder)
 pub use raea_sys_page_net as net;
 /// Blitz's extension points as Bevy resources (S6d)
@@ -206,7 +207,8 @@ static REDRAW_FULL: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBoo
 /// so a scene past raea's sizes draws whole the second time.
 pub fn redraw_full(on: bool) {
     REDRAW_FULL.store(on, std::sync::atomic::Ordering::Relaxed);
-    vello::low_level::vello_encoding::set_bump_full(on);
+    // (once a scene overflowed raea's sizes, Vello's own stay on: skipped.rs)
+    vello::low_level::vello_encoding::set_bump_full(on || skipped::STAY_FULL.load(std::sync::atomic::Ordering::Relaxed));
 }
 
 /// RAEA_VELLO_BUMP_USE: a line per scene drawn, its bump buffers' use against the sizes its render has (raea_gpu_device::bump).
@@ -245,6 +247,7 @@ impl Plugin for PaintPlugin {
         #[cfg(target_vendor = "apple")]
         parley::set_fallback_hook(raea_sys_fonts::coretext_fallback);
         parley::set_missing_hook(raea_sys_fonts::missing);
+        raea_gpu_device::check::on_settle(skipped::settle);
         providers::defaults(app);
         widgets::install_page_plugins(app);
         app.init_non_send::<Docs>()

@@ -174,7 +174,7 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>, device: Re
             for before in &layers[..i] {
                 renderer.mark_override_image_dirty(&before.image);
             }
-            let drawn = passes.texture(device, layer.size, TextureFormat::Rgba8Unorm, TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT);
+            let drawn = passes.texture(device, layer.size, TextureFormat::Rgba8Unorm, TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT | skipped::USAGE);
             let mut passes_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("raea-page filters") });
             match &layer.linear {
                 // a pattern tile's gradient, drawn exactly (filters.rs Linear)
@@ -187,8 +187,8 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>, device: Re
                     if let Err(why) = bump_guard(device, layer.size.0, layer.size.1) {
                         error!("raea-page: {why}");
                         raea_gpu_device::check::refuse(why);
-                    } else if let Err(err) = renderer.render_to_texture(device, &queue, &layer.scene, &drawn.create_view(&default()), &params) {
-                        error!("raea-page: vello, a filtered layer: {err}");
+                    } else if let Err(err) = skipped::render(renderer, device, &queue, &layer.scene, &drawn, &params, "a filtered layer") {
+                        error!("raea-page: {err}");
                     }
                 }
             }
@@ -203,7 +203,6 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>, device: Re
                 *at = px;
             }
         }).or_insert_with(|| (storage(device, px), px));
-        let view = tex.create_view(&default());
         let params = vello::RenderParams { base_color: vello::peniko::Color::TRANSPARENT, width: px.x, height: px.y, antialiasing_method: vello::AaConfig::Area };
         if std::env::var_os("RAEA_VELLO_BUMP_USE").is_some() {
             bump_use("page", scene, px.x, px.y);
@@ -221,15 +220,16 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>, device: Re
         for layer in layers {
             renderer.mark_override_image_dirty(&layer.image);
         }
-        let drew = renderer.render_to_texture(device, &queue, &scene, &view, &params);
+        let drew = skipped::render(renderer, device, &queue, scene, tex, &params, "a page");
+        let view = tex.create_view(&default());
         for layer in layers {
             renderer.override_image(&layer.image, None);
         }
         if std::env::var_os("RAEA_TRACE").is_some() {
-            eprintln!("trace raea-page: page drawn {}x{}, full bump {}, {}", px.x, px.y, REDRAW_FULL.load(std::sync::atomic::Ordering::Relaxed), drew.as_ref().map_or_else(|e| e.to_string(), |_| "ok".into()));
+            eprintln!("trace raea-page: page drawn {}x{}, full bump {}, {}", px.x, px.y, REDRAW_FULL.load(std::sync::atomic::Ordering::Relaxed), drew.as_ref().map_or_else(Clone::clone, |_| "ok".into()));
         }
         if let Err(err) = drew {
-            error!("raea-page: vello: {err}");
+            error!("raea-page: {err}");
             continue;
         }
         let bind = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -276,7 +276,7 @@ pub fn storage(device: &wgpu::Device, px: UVec2) -> wgpu::Texture {
         sample_count: 1,
         dimension: TextureDimension::D2,
         format: TextureFormat::Rgba8Unorm,
-        usage: TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING,
+        usage: TextureUsages::STORAGE_BINDING | TextureUsages::TEXTURE_BINDING | skipped::USAGE,
         view_formats: &[],
     })
 }

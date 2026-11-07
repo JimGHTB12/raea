@@ -41,3 +41,10 @@ libraries (pianos, General MIDI instruments, orchestral and percussion samples, 
 |---|---|
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | The checks' judge model (clef-omni on Workers AI) |
 | `RAEA_GUIDES` | A folder of craft references for the agent's `guide` tool (`captions.md`, `motion-rules.md`, ...) |
+
+## Rendering
+
+| Setting | What |
+|---|---|
+| `RAEA_VELLO_BUMP=full` | Pages are drawn with Vello's own buffer sizes from the first frame, instead of raea's smaller ones (about 100 MB less GPU memory). A page past raea's sizes is found and drawn again at Vello's anyway, with a line on stderr, so this only saves that redraw |
+| `RAEA_PAGE_DRAWN_CHECK=0` | Pages are drawn without checking that Vello drew them. For measuring what the check costs (about 2% in one test): a page past Vello's buffers then shows the frame before it again, or nothing |
