@@ -6,7 +6,7 @@ import { LinearRgba, Srgba } from "./colors";
 /** A bevy_ui Val as CSS: px(12) is "12px", percent(50) "50%", auto "auto". */
 export type Val = string;
 
-const VAL = /^(auto|-?\d+(\.\d+)?(e-?\d+)?(px|%|vw|vh|vmin|vmax))$/;
+const VAL = /^(auto|-?\d+(\.\d+)?(e[-+]?\d+)?(px|%|vw|vh|vmin|vmax))$/;
 const num = (what: string, n: number) => {
   if (!Number.isFinite(n)) throw new RangeError(`${what}: a finite number, got ${n}`);
   return n;
@@ -49,21 +49,56 @@ export function rectCss(who: string, k: string, r: UiRect): string {
   return (["top", "right", "bottom", "left"] as const).map((s) => checkVal(who, `${k}.${s}`, r[s])).join(" ");
 }
 
-/** Bevy's BorderRadius: a Val for each corner (0 by default). */
-export interface BorderRadius { top_left: Val; top_right: Val; bottom_right: Val; bottom_left: Val }
+/** Bevy's CornerRadius: a corner's x and y radii, an elliptical corner (a Val alone is a circular one). */
+export interface CornerRadius { x: Val; y: Val }
+export const CornerRadius = {
+  new: (x: Val, y: Val): CornerRadius => ({ x, y }),
+  all: (v: Val): CornerRadius => ({ x: v, y: v }),
+  circular: (v: Val): CornerRadius => ({ x: v, y: "auto" }),
+};
+type Corner = Val | CornerRadius;
+
+/** Bevy's BorderRadius: a Val (circular) or a CornerRadius (elliptical) for each corner (0 by default). */
+export interface BorderRadius { top_left: Corner; top_right: Corner; bottom_right: Corner; bottom_left: Corner }
 export const BorderRadius = {
-  all: (v: Val): BorderRadius => ({ top_left: v, top_right: v, bottom_right: v, bottom_left: v }),
-  new: (top_left: Val, top_right: Val, bottom_right: Val, bottom_left: Val): BorderRadius => ({ top_left, top_right, bottom_right, bottom_left }),
-  top: (v: Val): BorderRadius => ({ top_left: v, top_right: v, bottom_right: Z, bottom_left: Z }),
-  bottom: (v: Val): BorderRadius => ({ top_left: Z, top_right: Z, bottom_right: v, bottom_left: v }),
-  left: (v: Val): BorderRadius => ({ top_left: v, top_right: Z, bottom_right: Z, bottom_left: v }),
-  right: (v: Val): BorderRadius => ({ top_left: Z, top_right: v, bottom_right: v, bottom_left: Z }),
+  all: (v: Corner): BorderRadius => ({ top_left: v, top_right: v, bottom_right: v, bottom_left: v }),
+  new: (top_left: Corner, top_right: Corner, bottom_right: Corner, bottom_left: Corner): BorderRadius => ({ top_left, top_right, bottom_right, bottom_left }),
+  /** each corner circular, in px (f32::MAX's a corner as round as the node allows) */
+  px: (top_left: number, top_right: number, bottom_right: number, bottom_left: number): BorderRadius => ({ top_left: px(top_left), top_right: px(top_right), bottom_right: px(bottom_right), bottom_left: px(bottom_left) }),
+  top: (v: Corner): BorderRadius => ({ top_left: v, top_right: v, bottom_right: Z, bottom_left: Z }),
+  bottom: (v: Corner): BorderRadius => ({ top_left: Z, top_right: Z, bottom_right: v, bottom_left: v }),
+  left: (v: Corner): BorderRadius => ({ top_left: v, top_right: Z, bottom_right: Z, bottom_left: v }),
+  right: (v: Corner): BorderRadius => ({ top_left: Z, top_right: v, bottom_right: v, bottom_left: Z }),
   MAX: { top_left: "9999px", top_right: "9999px", bottom_right: "9999px", bottom_left: "9999px" } as BorderRadius,
 };
 
-export function radiusCss(who: string, r: BorderRadius): string {
+/** A Val in px of `of` px (a percent of it), or undefined for a viewport unit, which the page resolves. */
+const pxOf = (v: Val, of: number) => (v.endsWith("%") ? (parseFloat(v) / 100) * of : v.endsWith("px") ? parseFloat(v) : undefined);
+
+/** CSS border-radius as Bevy resolves the corners (CornerRadius::resolve): a circular one of the node's shorter side,
+ *  clamped to half of it, an elliptical one's x of its width and y of its height, each clamped to half that. With the
+ *  node's size in px (`size`, its border box), they're resolved so: CSS would instead shrink every corner together
+ *  when two overlap (a round corner beside a square one, which Bevy draws half the node wide). */
+export function radiusCss(who: string, r: BorderRadius, size?: [number, number]): string {
   if (typeof r !== "object" || r === null) throw new TypeError(`${who}: border_radius is a BorderRadius (BorderRadius.all(px(8))), got ${JSON.stringify(r)}`);
-  return (["top_left", "top_right", "bottom_right", "bottom_left"] as const).map((s) => checkVal(who, `border_radius.${s}`, r[s])).join(" ");
+  const at = (v: Val, of: number) => {
+    const n = pxOf(v, of);
+    return n === undefined ? v : `${Math.min(Math.max(n, 0), of / 2)}px`;
+  };
+  const corners = (["top_left", "top_right", "bottom_right", "bottom_left"] as const).map((s): [string, string] => {
+    const c = r[s];
+    const k = `border_radius.${s}`;
+    const [x, y] = typeof c === "object" && c !== null ? [checkVal(who, `${k}.x`, c.x), checkVal(who, `${k}.y`, c.y)] : [checkVal(who, k, c), "auto"];
+    if (x === "auto" && y === "auto") return [Z, Z];
+    if (x === "auto" || y === "auto") {
+      const v = x === "auto" ? y : x;
+      const m = size ? at(v, Math.min(...size)) : v;
+      return [m, m];
+    }
+    return size ? [at(x, size[0]), at(y, size[1])] : [x, y];
+  });
+  const xs = corners.map((c) => c[0]).join(" "), ys = corners.map((c) => c[1]).join(" ");
+  return xs === ys ? xs : `${xs} / ${ys}`;
 }
 
 /** A Bevy enum variant as CSS's keyword (FlexStart: flex-start, SpaceBetween: space-between); Default is CSS's

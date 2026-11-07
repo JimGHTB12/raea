@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { BorderRadius, FontVariationTag, ImageNode, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { BorderRadius, CornerRadius, FontVariationTag, ImageNode, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { renderFrame } from "../src/test";
 import { Transform } from "raea/transform";
@@ -181,6 +181,17 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
   test("a centred or right-justified Text's block fills its node, so its lines are justified within the node's width", () => {
     expect(html(<Text justify="Right" width={percent(100)}>hi</Text>)).toContain('white-space:pre-wrap;flex-grow:1');
     expect(html(<Text justify="Left" width={percent(100)}>hi</Text>)).not.toContain("flex-grow:1");
+  });
+  test("corners resolve as Bevy's do with the node's px size: circular ones clamped to half its shorter side, elliptical ones per axis", () => {
+    const out = html(<Node width={px(50)} height={px(40)} border_radius={BorderRadius.px(3.4e38, 0, 10, 0)} />);
+    expect(out).toContain("border-radius:20px 0px 10px 0px");
+    const ell = html(<Node width={px(50)} height={px(40)} border_radius={BorderRadius.all(CornerRadius.new(percent(50), percent(20)))} />);
+    expect(ell).toContain("border-radius:25px 25px 25px 25px / 8px 8px 8px 8px");
+    expect(html(<Node border_radius={BorderRadius.all(px(8))} />)).toContain("border-radius:8px 8px 8px 8px");
+  });
+  test("BorderColor takes a colour per side", () => {
+    const out = html(<Node border={UiRect.all(px(2))} border_color={{ top: new Srgba(1, 0, 0), right: new Srgba(0, 0, 1), bottom: new Srgba(1, 1, 0), left: new Srgba(0, 1, 0) }} />);
+    expect(out).toContain("border-color:rgba(255, 0, 0, 1) rgba(0, 0, 255, 1) rgba(255, 255, 0, 1) rgba(0, 255, 0, 1)");
   });
   test("LetterSpacing is CSS letter-spacing, Rem of bevy_text's 20 px", () => {
     expect(html(<Text letter_spacing={{ Px: 3 }}>hi</Text>)).toContain("letter-spacing:3px");

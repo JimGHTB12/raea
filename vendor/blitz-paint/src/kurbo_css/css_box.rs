@@ -38,6 +38,8 @@ pub struct CssBox {
     pub padding_width: Insets,
     pub border_width: Insets,
     pub outline_width: f64,
+    /// raea: outline-offset, in device px (0 unless set after `new`)
+    pub outline_offset: f64,
 
     pub border_radii: NonUniformRoundedRectRadii,
 }
@@ -80,6 +82,7 @@ impl CssBox {
             content_box,
             outline_box,
             outline_width,
+            outline_offset: 0.0,
             padding_width: padding,
             border_width: border,
             border_radii,
@@ -197,17 +200,20 @@ impl CssBox {
     }
 
     /// Construct a bezpath drawing the outline
+    /// raea: the ring `outline_offset` to `outline_offset + outline_width` outside the border box, each corner the
+    /// border's radius grown by its distance out and square where the border's is (css-ui-4 §3.3, and bevy_ui's
+    /// ComputedNode::outline_radius); it's filled even-odd (Blitz drew it from the border box, ignoring the offset,
+    /// and rounded a square corner by the width)
     pub fn outline(&self) -> BezPath {
-        // raea: two boxes' corners sized up front
         let mut path = BezPath::with_capacity(32);
-
-        // TODO: this has been known to produce quirky outputs with hugely rounded edges
-        self.shape(&mut path, CssBoxKind::OutlineBox, Direction::Clockwise);
-        path.move_to(self.corner(Corner::TopLeft, CssBoxKind::BorderBox));
-
-        self.shape(&mut path, CssBoxKind::BorderBox, Direction::Anticlockwise);
-        path.move_to(self.corner(Corner::TopLeft, CssBoxKind::BorderBox));
-
+        let o = self.outline_offset;
+        let r = &self.border_radii;
+        let grown = |by: f64| {
+            let g = |c: Vec2| if c.x > 0.0 && c.y > 0.0 { Vec2::new((c.x + by).max(0.0), (c.y + by).max(0.0)) } else { Vec2::ZERO };
+            [g(r.top_left), g(r.top_right), g(r.bottom_right), g(r.bottom_left)]
+        };
+        rounded_rect(&mut path, self.border_box.inset(o + self.outline_width), grown(o + self.outline_width));
+        rounded_rect(&mut path, self.border_box.inset(o), grown(o));
         path
     }
 
@@ -1046,4 +1052,26 @@ impl kurbo::Shape for BoxShape {
             Self::Path(p) => Some(p.elements()),
         }
     }
+}
+
+/// raea: a rect with elliptical corners ([top left, top right, bottom right, bottom left], each (rx, ry), zero
+/// square), traced clockwise from the top left corner's end as one closed subpath of `path`
+fn rounded_rect(path: &mut BezPath, rect: Rect, radii: [Vec2; 4]) {
+    let Rect { x0, y0, x1, y1 } = rect;
+    let [tl, tr, br, bl] = radii;
+    let mut corner = |path: &mut BezPath, center: Point, radii: Vec2, start: f64| {
+        if radii.x > 0.0 && radii.y > 0.0 {
+            path.line_to(center + Vec2::new(radii.x * start.cos(), radii.y * start.sin()));
+            let arc = Arc { center, radii, start_angle: start, sweep_angle: FRAC_PI_2, x_rotation: 0.0 };
+            path.extend(arc.append_iter(0.1));
+        } else {
+            path.line_to(center);
+        }
+    };
+    path.move_to((x0 + tl.x, y0));
+    corner(path, Point::new(x1 - tr.x, y0 + tr.y), tr, -FRAC_PI_2);
+    corner(path, Point::new(x1 - br.x, y1 - br.y), br, 0.0);
+    corner(path, Point::new(x0 + bl.x, y1 - bl.y), bl, FRAC_PI_2);
+    corner(path, Point::new(x0 + tl.x, y0 + tl.y), tl, PI);
+    path.close_path();
 }

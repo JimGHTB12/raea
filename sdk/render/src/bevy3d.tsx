@@ -28,5 +28,6 @@ export { Hdr } from "./bevy3d/core";
 // Lightmap (bevy_pbr::lightmap): a bake on a <Model>'s glTF meshes by name (docs/control.feature FC0a)
 export { Lightmap, type LightmapProps } from "./bevy3d/lightmap";
 // bevy_ui's Node, Text and TextSpan, and their values, drawn by the page (docs/control.feature FC0a)
-export { Node, Text, TextSpan, TextShadow, Text2d, UiScale, ImageNode, type TextureSlicer, type SliceScaleMode, ImagePlugin, FontVariationTag, TextureAtlasLayout, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type Text2dProps, type ImageNodeProps } from "./bevy3d/ui";
-export { px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, Overflow, OverflowClipMargin, type Val } from "./bevy3d/ui-val";
+export { Node, Text, TextSpan, TextShadow, Text2d, UiScale, FontVariationTag, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type Text2dProps } from "./bevy3d/ui";
+export { ImageNode, ImagePlugin, TextureAtlasLayout, type TextureSlicer, type SliceScaleMode, type ImageNodeProps } from "./bevy3d/ui-image";
+export { px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadius, Overflow, OverflowClipMargin, type Val } from "./bevy3d/ui-val";

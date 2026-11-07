@@ -842,6 +842,7 @@ impl ElementCx<'_, '_> {
             | BorderStyle::Double => self.frame.outline(),
         };
 
-        scene.fill(Fill::NonZero, self.transform, color, None, &path);
+        // raea: even-odd, the ring between its two rounded rects (CssBox::outline)
+        scene.fill(Fill::EvenOdd, self.transform, color, None, &path);
     }
 }

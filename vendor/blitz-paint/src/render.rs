@@ -2343,7 +2343,10 @@ fn create_css_rect(style: &ComputedValues, layout: &Layout, scale: f64) -> CssBo
         bottom_left: resolve_radii(&s_border.border_bottom_left_radius),
     };
 
-    CssBox::new(border_box, border, padding, outline_width, border_radii)
+    // raea: outline-offset, which the outline is drawn out by
+    let mut frame = CssBox::new(border_box, border, padding, outline_width, border_radii);
+    frame.outline_offset = style.get_outline().outline_offset.to_f64_px() * scale;
+    frame
 }
 
 /// raea: what an overflow clip clips to: overflow-clip-margin's visual box (the padding box by default), grown by its
