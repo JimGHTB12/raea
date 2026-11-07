@@ -73,6 +73,8 @@ pub fn add_svg_font(bytes: Vec<u8>, family: Option<&str>) {
 pub enum ImageLayerKind {
     Background,
     Mask,
+    /// raea: border-image-source, one layer (bevy_ui's NodeImageMode::Sliced)
+    Border,
 }
 
 impl ImageLayerKind {
@@ -80,6 +82,7 @@ impl ImageLayerKind {
         match self {
             Self::Background => ImageType::Background(idx),
             Self::Mask => ImageType::Mask(idx),
+            Self::Border => ImageType::Border(idx),
         }
     }
 }
@@ -89,6 +92,8 @@ pub enum ImageType {
     Image,
     Background(usize),
     Mask(usize),
+    /// raea: the border-image-source
+    Border(usize),
 }
 
 /// A point

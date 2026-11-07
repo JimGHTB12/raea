@@ -15474,6 +15474,8 @@ dependencies = [
  "bevy",
  "raea-core-program",
  "raea-sys-frame",
+ "raea-sys-sampler",
+ "serde_json",
 ]
 
 [[package]]

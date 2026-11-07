@@ -7,9 +7,13 @@ import { Children, createContext, useContext, type CSSProperties, type ReactNode
 import { BEVY_FONT_FAMILY, bevyFontFace } from "./fonts/default";
 import {
   ALIGN_CONTENT, ALIGN_ITEMS, ALIGN_SELF, DISPLAY, FLEX_DIRECTION, FLEX_WRAP, JUSTIFY_CONTENT, JUSTIFY_ITEMS, JUSTIFY_SELF, OVERFLOW_AXIS, POSITION_TYPE,
-  checkVal, keyword, over, px, radiusCss, rectCss, type Backdrop, type BorderRadius, type Overflow, type UiRect, type Val,
+  checkVal, keyword, over, px, radiusCss, rectCss, type Backdrop, type BorderRadius, type Overflow, type OverflowClipMargin, type UiRect, type Val,
 } from "./ui-val";
 import type { LinearRgba, Srgba } from "./colors";
+import type { TransformValue } from "./core";
+import { eulerOf } from "../3d/model";
+import { samplerSpec, type SamplerSpec } from "../3d/materials";
+import { useVideoConfig } from "@raea/app/clock";
 
 type Color = Srgba | LinearRgba | string;
 
@@ -34,6 +38,8 @@ export interface NodeProps {
   margin?: UiRect; padding?: UiRect; border?: UiRect;
   border_radius?: BorderRadius;
   overflow?: Overflow;
+  /** the box its overflow clip clips to, grown by a margin (OverflowClipMargin.border_box().with_margin(25)) */
+  overflow_clip_margin?: OverflowClipMargin;
   row_gap?: Val; column_gap?: Val;
   background_color?: Color;
   border_color?: Color;
@@ -108,15 +114,21 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
     s.overflowX = o.x.toLowerCase();
     s.overflowY = o.y.toLowerCase();
   }
+  const m = p.overflow_clip_margin;
+  if (m !== undefined) {
+    if (!["BorderBox", "PaddingBox", "ContentBox"].includes(m?.visual_box) || !(Number.isFinite(m.margin) && m.margin >= 0)) throw new TypeError(`${who}: overflow_clip_margin is OverflowClipMargin.border_box(), padding_box() or content_box(), with_margin(px >= 0), got ${JSON.stringify(m)}`);
+    // CSS's overflow-clip-margin, which raea's Blitz honours for every clipping overflow, as Bevy does
+    (s as Record<string, string>).overflowClipMargin = `${m.visual_box.replace("Box", "").toLowerCase()}-box ${m.margin}px`;
+  }
   return { css: s as CSSProperties, back };
 }
 
 // a root's implicit viewport (bevy_ui ui_surface.rs): a grid the window's size, its one item at the start of both axes
 const VIEWPORT: CSSProperties = { position: "absolute", left: 0, top: 0, width: "100%", height: "100%", display: "grid", alignItems: "start", justifyItems: "start" };
 
-function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, root: boolean | "fixed", font?: ReactNode) {
+function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, root: boolean | "fixed", font?: ReactNode, attrs?: Record<string, string>) {
   const inner = (
-    <div style={css}>
+    <div style={css} {...attrs}>
       <InUi.Provider value={{ back }}>{children}</InUi.Provider>
     </div>
   );
@@ -276,15 +288,25 @@ export function TextSpan({ children, underline, strikethrough, underline_color, 
 }
 
 export interface ImageNodeProps extends NodeProps {
-  /** the picture: staticFile("branding/icon.png") */
-  image: string;
+  /** the picture: staticFile("branding/icon.png"), or one with its own sampler ({ path, sampler: { filter: "nearest" } }, Bevy's load_with_settings) */
+  image: string | { path: string; sampler: SamplerSpec };
   /** its tint: white (none) by default; only white or a grey multiplies here yet (a picture's brightness) */
   color?: Srgba;
   flip_x?: boolean;
   flip_y?: boolean;
   /** TextureAtlas: the one cell of a sheet laid out by a TextureAtlasLayout to draw (the picture is the sheet) */
   texture_atlas?: { layout: TextureAtlasLayout; index: number };
+  /** NodeImageMode: Sliced cuts the picture in nine by a TextureSlicer (its corners kept, its sides and centre
+   *  stretched or tiled), drawn as CSS border-image with bevy_ui's scale; a sliced ImageNode holds children */
+  image_mode?: { Sliced: TextureSlicer };
 }
+
+/** bevy_ui's SliceScaleMode: a side or the centre stretched, or tiled every slice x stretch_value px from its start */
+export type SliceScaleMode = "Stretch" | { Tile: { stretch_value: number } };
+
+/** bevy_sprite's TextureSlicer: the slices' insets in the picture's px, how the sides and centre scale (Stretch by
+ *  default), and the corners' most scale (1 by default) */
+export interface TextureSlicer { border: { left: number; right: number; top: number; bottom: number }; center_scale_mode?: SliceScaleMode; sides_scale_mode?: SliceScaleMode; max_corner_scale?: number }
 
 /** bevy_image's TextureAtlasLayout: a sheet's size and its cells' rects in px. @bevy bevy_image::TextureAtlasLayout */
 export interface TextureAtlasLayout { size: [number, number]; textures: { x: number; y: number; w: number; h: number }[] }
@@ -304,7 +326,16 @@ export const TextureAtlasLayout = {
 /** bevy_ui's ImageNode: a Node showing a picture stretched over its content box (inside its padding and border),
  *  sized by the picture when its width or height is auto, as bevy_ui's ImageNodeSize measures it. No children (an
  *  <img>). @bevy bevy_ui::widget::image::ImageNode */
-export function ImageNode({ image, color, flip_x, flip_y, children, fixed, texture_atlas, ...p }: ImageNodeProps) {
+export function ImageNode({ image, color, flip_x, flip_y, children, fixed, texture_atlas, image_mode, ...p }: ImageNodeProps) {
+  // a picture with its own sampler: its filter is how it's drawn here (a UI picture is never wrapped or mipmapped)
+  const outer = useContext(Sampler);
+  if (typeof image === "object" && image !== null) {
+    const s = samplerSpec("ImageNode: image", image.sampler);
+    if (s.wrap !== undefined || s.anisotropy !== undefined) throw new TypeError("ImageNode: an image's sampler takes filter (and mipmap) here; a UI picture isn't wrapped");
+    const filter = s.filter === "nearest" ? "Nearest" : s.filter === "linear" ? "Linear" : outer;
+    return <Sampler.Provider value={filter}><ImageNode image={image.path} color={color} flip_x={flip_x} flip_y={flip_y} fixed={fixed} texture_atlas={texture_atlas} image_mode={image_mode} {...p}>{children}</ImageNode></Sampler.Provider>;
+  }
+  if (image_mode !== undefined) return SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atlas, image_mode, ...p });
   if (texture_atlas !== undefined) return AtlasNode({ image, color, flip_x, flip_y, children, fixed, texture_atlas, ...p });
   if (typeof image !== "string" || image === "") throw new TypeError(`ImageNode: image is a picture file (staticFile("x.png")), got ${JSON.stringify(image)}`);
   if (children !== undefined && children !== null && children !== false) throw new TypeError("ImageNode: takes no children here (a picture on a Node with children: put the ImageNode beside them)");
@@ -354,4 +385,79 @@ const RENDERING = { Linear: undefined, Nearest: "pixelated" } as const;
 export function ImagePlugin({ default_sampler, children }: { default_sampler?: "Linear" | "Nearest"; children?: ReactNode }) {
   if (default_sampler !== undefined && !(default_sampler in RENDERING)) throw new TypeError(`ImagePlugin: default_sampler is Linear or Nearest, got ${JSON.stringify(default_sampler)}`);
   return <Sampler.Provider value={default_sampler ?? "Linear"}>{children}</Sampler.Provider>;
+}
+
+export interface Text2dProps extends TextStyleProps, TextRunProps {
+  /** its place in Bevy's 2D world: the frame's centre the origin, +Y up, a unit a pixel, turns counterclockwise */
+  transform?: TransformValue;
+  /** how its lines line up with each other (TextLayout's Justify, Left by default) */
+  justify?: TextProps["justify"];
+  children?: ReactNode;
+}
+
+/** Text in Bevy's 2D world, its block's centre at its Transform (Text2d with Bevy's default Anchor::CENTER). bevy_text
+ *  lays it out as a <Text>'s, so this is that Text, placed on the frame. Put it after the <Canvas3D> in the
+ *  <AbsoluteFill>: it draws over the 2D and 3D parts, where Bevy orders it with the 2D ones by z.
+ * @bevy bevy_sprite::text2d::Text2d */
+export function Text2d({ transform, justify, children, ...text }: Text2dProps) {
+  const { width, height } = useVideoConfig();
+  const [tx, ty] = transform?.translation ?? [0, 0, 0];
+  const [sx, sy] = transform?.scale ?? [1, 1, 1];
+  const turn = transform?.rotation ? -eulerOf(transform.rotation)[2] : 0;
+  const place: CSSProperties = { position: "absolute", left: width / 2 + tx, top: height / 2 - ty, transform: `translate(-50%, -50%) rotate(${turn}rad) scale(${sx}, ${sy})` };
+  return (
+    <div style={VIEWPORT}>
+      <div style={place}>
+        <InUi.Provider value={{ back: undefined }}>
+          <Text {...text} justify={justify}>{children}</Text>
+        </InUi.Provider>
+      </div>
+    </div>
+  );
+}
+
+// an ImageNode cut in nine (NodeImageMode::Sliced): CSS border-image with its slices and `fill`, and bevy_ui's own
+// corner scale and tiling on data-raea-bevy-slice (raea's Blitz, render/border_image.rs). It holds children, as a
+// sliced button's label. A flipped one draws on a layer behind them (z-index -1 in the node's own stacking context,
+// over its background, as Bevy draws the picture), mirrored there, so the flip doesn't turn the label.
+function SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atlas, image_mode, ...p }: ImageNodeProps) {
+  if (typeof image !== "string" || image === "") throw new TypeError(`ImageNode: image is a picture file (staticFile("x.png")), got ${JSON.stringify(image)}`);
+  const sl = image_mode?.Sliced;
+  const b = sl?.border;
+  if (!sl || !b || ![b.left, b.right, b.top, b.bottom].every((v) => Number.isFinite(v) && v >= 0)) throw new TypeError(`ImageNode: image_mode is { Sliced: { border: { left, right, top, bottom } } } (px >= 0), got ${JSON.stringify(image_mode)}`);
+  if (texture_atlas !== undefined) throw new TypeError("ImageNode: a sliced picture takes no texture_atlas here yet");
+  if (color !== undefined && !(color.red === 1 && color.green === 1 && color.blue === 1 && color.alpha === 1)) throw new TypeError("ImageNode: a sliced picture is untinted here yet (color white)");
+  const max = sl.max_corner_scale ?? 1;
+  if (!(Number.isFinite(max) && max > 0)) throw new RangeError(`ImageNode: max_corner_scale is above 0, got ${max}`);
+  const mode = (m: SliceScaleMode | undefined, which: string) => {
+    if (m === undefined || m === "Stretch") return "s";
+    const v = typeof m === "object" ? m.Tile?.stretch_value : undefined;
+    if (!(typeof v === "number" && Number.isFinite(v) && v > 0)) throw new TypeError(`ImageNode: ${which} is "Stretch" or { Tile: { stretch_value } } (above 0), got ${JSON.stringify(m)}`);
+    return `t${v}`;
+  };
+  const marker = { "data-raea-bevy-slice": `${max} ${mode(sl.sides_scale_mode, "sides_scale_mode")} ${mode(sl.center_scale_mode, "center_scale_mode")}` };
+  const ui = useContext(InUi);
+  const n = nodeCss("ImageNode", p, ui?.back);
+  const rendering = RENDERING[useContext(Sampler)];
+  const slices: CSSProperties = {
+    borderImageSource: `url("${image}")`,
+    borderImageSlice: `${b.top} ${b.right} ${b.bottom} ${b.left} fill`,
+    // CSS's own widths (the slices at max_corner_scale); Blitz scales them as bevy_ui does by the marker
+    borderImageWidth: `${b.top * max}px ${b.right * max}px ${b.bottom * max}px ${b.left * max}px`,
+    ...(rendering ? { imageRendering: rendering } : {}),
+  };
+  const root = fixed ? "fixed" : ui === null;
+  if (!flip_x && !flip_y) return boxOf({ ...n.css, ...slices }, n.back, children, root, undefined, marker);
+  const flips = [flip_x && "scaleX(-1)", flip_y && "scaleY(-1)"].filter(Boolean).join(" ");
+  const layer = <div key="raea-slices" style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", zIndex: -1, transform: flips, ...slices }} {...marker} />;
+  return boxOf({ ...n.css, position: n.css.position ?? "relative", zIndex: 0 }, n.back, [layer, ...Children.toArray(children)], root);
+}
+
+/** bevy_ui's UiScale: every UI length inside times `value` (2 draws a 16 px node 32 px). Its roots lay out in a window
+ *  of the frame's size over `value`, which is then scaled up from its top left, as Bevy lays out in logical px and
+ *  draws in physical ones. Text2d and the 2D and 3D parts aren't UI, so they stay as they are.
+ * @bevy bevy_ui::UiScale */
+export function UiScale({ value, children }: { value: number; children?: ReactNode }) {
+  if (!(Number.isFinite(value) && value > 0)) throw new RangeError(`UiScale: value is above 0, got ${value}`);
+  return <div style={{ position: "absolute", left: 0, top: 0, width: `${100 / value}%`, height: `${100 / value}%`, transform: `scale(${value})`, transformOrigin: "0 0" }}>{children}</div>;
 }

@@ -1,9 +1,11 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { BorderRadius, FontVariationTag, ImageNode, ImagePlugin, Node, TextureAtlasLayout, Overflow, Text, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { BorderRadius, FontVariationTag, ImageNode, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { renderFrame } from "../src/test";
+import { Transform } from "raea/transform";
+import { Quat } from "raea/transform";
 
 const html = (el: React.ReactElement) => renderFrame(el, { frame: 0, width: 320, height: 240, fps: 30, durationInFrames: 30 });
 
@@ -143,5 +145,52 @@ describe("ImageNode, Underline and Strikethrough", () => {
     expect(html(<ImagePlugin default_sampler="Nearest"><Node><ImageNode image="a.png" /></Node></ImagePlugin>)).toContain("image-rendering:pixelated");
     expect(html(<ImagePlugin><Node><ImageNode image="a.png" /></Node></ImagePlugin>)).not.toContain("image-rendering");
     expect(() => html(<ImagePlugin default_sampler={"Bilinear" as never} />)).toThrow(/Linear or Nearest/);
+  });
+});
+
+describe("Text2d: a Text in Bevy's 2D world", () => {
+  test("its block's centre is at its Transform (Anchor::CENTER), the frame's centre the origin, +Y up", () => {
+    const out = html(<Text2d transform={Transform.fromXyz(-100, 50, 0)} font_size={30}>Repeat On</Text2d>);
+    for (const s of ["left:60px", "top:70px", "transform:translate(-50%, -50%) rotate(0rad) scale(1, 1)", "font-size:30px", "data-raea-bevy-text", "Repeat On"]) expect(out).toContain(s);
+    // its Text is placed by the Text2d, not made a root of its own that fills the frame
+    expect(out.match(/width:100%;height:100%/g)?.length).toBe(1);
+    const turned = html(<Text2d transform={Transform.fromXyz(0, 0, 0).withRotation(Quat.fromRotationZ(0.5)).withScale([2, 3, 1])}>x</Text2d>);
+    expect(turned).toContain("rotate(-0.5rad) scale(2, 3)");
+  });
+});
+
+describe("OverflowClipMargin: the box an overflow clip clips to", () => {
+  test("its visual box and margin as overflow-clip-margin, Bevy's constructors, and a bad one refused", () => {
+    expect(html(<Node overflow={Overflow.clip()} overflow_clip_margin={OverflowClipMargin.border_box().with_margin(25)} />)).toContain("overflow-clip-margin:border-box 25px");
+    expect(html(<Node overflow={Overflow.clip()} overflow_clip_margin={OverflowClipMargin.content_box()} />)).toContain("overflow-clip-margin:content-box 0px");
+    expect(OverflowClipMargin.DEFAULT).toEqual({ visual_box: "PaddingBox", margin: 0 });
+    expect(html(<Node overflow={Overflow.clip()} />)).not.toContain("overflow-clip-margin");
+    expect(() => html(<Node overflow_clip_margin={{ visual_box: "MarginBox" as never, margin: 0 }} />)).toThrow(/overflow_clip_margin is/);
+    expect(() => html(<Node overflow_clip_margin={{ visual_box: "BorderBox", margin: -1 }} />)).toThrow(/px >= 0/);
+  });
+});
+
+describe("A sliced ImageNode, a sampled picture and UiScale", () => {
+  const slicer = { border: { left: 16, right: 8, top: 4, bottom: 2 }, sides_scale_mode: { Tile: { stretch_value: 1.5 } }, max_corner_scale: 2 } as const;
+  test("NodeImageMode::Sliced is CSS border-image with fill, and bevy_ui's scale modes on data-raea-bevy-slice", () => {
+    const out = html(<ImageNode image="p.png" image_mode={{ Sliced: slicer }} width={px(100)} height={px(50)}><Text>hi</Text></ImageNode>);
+    for (const s of ['border-image-source:url(&quot;p.png&quot;)', "border-image-slice:4 8 2 16 fill", "border-image-width:8px 16px 4px 32px", 'data-raea-bevy-slice="2 t1.5 s"', "hi"]) expect(out).toContain(s);
+    expect(() => html(<ImageNode image="p.png" image_mode={{ Sliced: { ...slicer, center_scale_mode: { Tile: { stretch_value: 0 } } } }} />)).toThrow(/center_scale_mode is/);
+    expect(() => html(<ImageNode image="p.png" image_mode={{ Sliced: { border: { left: -1, right: 0, top: 0, bottom: 0 } } }} />)).toThrow(/px >= 0/);
+  });
+  test("a flipped one draws its slices on a mirrored layer behind its children", () => {
+    const out = html(<ImageNode image="p.png" flip_x image_mode={{ Sliced: slicer }}><Text>hi</Text></ImageNode>);
+    for (const s of ["z-index:-1", "transform:scaleX(-1)", "position:relative", "z-index:0"]) expect(out).toContain(s);
+    expect(out.indexOf("scaleX(-1)")).toBeLessThan(out.indexOf("hi"));
+  });
+  test("an image with its own sampler is drawn by its filter, and a wrap is refused", () => {
+    expect(html(<ImageNode image={{ path: "p.png", sampler: { filter: "nearest" } }} />)).toContain("image-rendering:pixelated");
+    expect(html(<ImageNode image={{ path: "p.png", sampler: {} }} />)).not.toContain("image-rendering");
+    expect(() => html(<ImageNode image={{ path: "p.png", sampler: { wrap: "repeat" } }} />)).toThrow(/isn't wrapped/);
+  });
+  test("UiScale lays its roots out in a window 1/value of the frame and scales it up from the top left", () => {
+    const out = html(<UiScale value={2}><Node width={px(16)} /></UiScale>);
+    for (const s of ["width:50%", "height:50%", "transform:scale(2)", "transform-origin:0 0"]) expect(out).toContain(s);
+    expect(() => html(<UiScale value={0} />)).toThrow(/above 0/);
   });
 });

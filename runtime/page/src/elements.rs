@@ -213,8 +213,11 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
     let Some(p) = props else { return out };
     for (k, v) in p {
         // (a <Sequence>'s data-raea-start kept: its CSS animations run from there, raea-runtime-js's src/anim.rs; a bevy_ui
-        // <Text>'s data-raea-bevy-text kept: Blitz measures its block as bevy_text does, vendor/blitz-dom layout/inline.rs)
-        if k == "children" || k == "key" || (k.starts_with("data-raea") && k != "data-raea-start" && k != "data-raea-bevy-text") || k == "data-props" || k == "data-shape" || k == "data-anim" || v.is_null() {
+        // <Text>'s data-raea-bevy-text kept: Blitz measures its block as bevy_text does, vendor/blitz-dom layout/inline.rs;
+        // a sliced ImageNode's data-raea-bevy-slice kept: Blitz scales and tiles its border-image as bevy_ui does,
+        // vendor/blitz-paint render/border_image.rs;
+        // the source stamps data-raea-loc and data-raea-use kept for the render manifest, engine/bundle stamp.rs)
+        if k == "children" || k == "key" || (k.starts_with("data-raea") && k != "data-raea-start" && k != "data-raea-bevy-text" && k != "data-raea-bevy-slice" && k != "data-raea-loc" && k != "data-raea-use") || k == "data-props" || k == "data-shape" || k == "data-anim" || v.is_null() {
             continue;
         }
         if k.starts_with("on") && k.chars().nth(2).is_some_and(|c| c.is_ascii_uppercase()) {
@@ -225,7 +228,9 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
         }
         if k == "style" {
             if let Value::Object(st) = v {
-                out.insert(k.clone(), Value::Object(st.iter().filter(|(_, v)| !v.is_null()).map(|(k, v)| (k.clone(), v.clone())).collect()));
+                // a url("x.png") in a value (a background, a border-image, a mask) found as an img's src is
+                let kept = st.iter().filter(|(_, v)| !v.is_null()).map(|(k, v)| (k.clone(), v.as_str().filter(|s| s.contains("url(")).map_or_else(|| v.clone(), |s| Value::String(css_urls(dir, s)))));
+                out.insert(k.clone(), Value::Object(kept.collect()));
             }
             continue;
         }
@@ -245,4 +250,43 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
         out.insert(k.clone(), v.clone());
     }
     out
+}
+
+/// A CSS value with each `url(..)` that names a media file (not a URL with a scheme, nor a data: URI) turned into
+/// that file's path, as an img's src is (a background or a border-image of staticFile("x.png")).
+fn css_urls(dir: &Path, s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(at) = rest.find("url(") {
+        out.push_str(&rest[..at + 4]);
+        rest = &rest[at + 4..];
+        let Some(end) = rest.find(')') else { break };
+        let inner = rest[..end].trim();
+        let quote = inner.chars().next().filter(|c| *c == '"' || *c == '\'');
+        let path = quote.map_or(inner, |q| inner.trim_matches(q));
+        if path.contains("://") || path.starts_with("data:") || path.is_empty() {
+            out.push_str(&rest[..end]);
+        } else {
+            let file = raea_runtime_react::scene::media_path(dir, path);
+            if !file.exists() {
+                REFUSED.with(|c| c.borrow_mut().push(format!("missing image: {}", file.display())));
+            }
+            out.push_str(&format!("\"{}\"", raea_io_home::src(&file)));
+        }
+        rest = &rest[end..];
+    }
+    out.push_str(rest);
+    out
+}
+
+#[cfg(test)]
+mod css_url_tests {
+    #[test]
+    fn a_media_url_becomes_its_path_and_others_stay() {
+        let dir = std::env::temp_dir();
+        let out = super::css_urls(&dir, r#"url("a.png") , url(https://x.io/b.png), url('data:image/png;base64,AA')"#);
+        let file = raea_io_home::src(&raea_runtime_react::scene::media_path(&dir, "a.png"));
+        assert_eq!(out, format!(r#"url("{file}") , url(https://x.io/b.png), url('data:image/png;base64,AA')"#));
+        assert_eq!(super::css_urls(&dir, "linear-gradient(red, blue)"), "linear-gradient(red, blue)");
+    }
 }

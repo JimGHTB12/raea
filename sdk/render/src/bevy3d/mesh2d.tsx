@@ -5,7 +5,7 @@ import { Children, isValidElement, type ReactNode } from "react";
 import { useVideoConfig } from "@raea/app/clock";
 import { Shape2D, type AlphaMode2d, type Place2dProps, type Shape2DProps } from "../3d/sprite";
 import { eulerOf } from "../3d";
-import { LinearRgba, Srgba, type TransformValue } from "./all";
+import { LinearRgba, Srgba, type Affine2, type SampledImage, type TransformValue } from "./all";
 
 /** a primitive's mesh attributes: its Mesh::ATTRIBUTE_COLOR, one linear colour per vertex (as mesh.insert_attribute) */
 export interface MeshAttributes { vertex_colors?: (LinearRgba | [number, number, number, number])[] }
@@ -16,8 +16,10 @@ export interface RegularPolygonProps extends MeshAttributes { circumcircle?: { r
 export interface ColorMaterialProps {
   /** white by default; it tints the texture, and its alpha is the material's (Bevy's Srgba or LinearRgba, or a hex) */
   color?: string | Srgba | LinearRgba;
-  /** a picture, by the mesh's UVs */
-  texture?: string;
+  /** a picture, by the mesh's UVs, or one with its own sampler ({ path, sampler }, Bevy's load_with_settings) */
+  texture?: string | SampledImage;
+  /** the texture's UVs scaled, turned and moved (glam's Affine2: Affine2.fromScale([2, 3])) */
+  uv_transform?: Affine2;
   /** Bevy's AlphaMode2d, "Blend" by default */
   alpha_mode?: AlphaMode2d;
 }
@@ -90,5 +92,5 @@ export function Mesh2d({ transform, visibility, children, ...rest }: Mesh2dProps
   const s = typeof c === "string" ? undefined : c instanceof LinearRgba ? c.to_srgba() : c;
   const color = s ? new Srgba(s.red, s.green, s.blue, 1).to_hex() : c as string;
   const opacity = (rest.opacity ?? 1) * (s ? s.alpha : 1);
-  return <Shape2D {...rest} {...shape} color={color} {...(s || rest.opacity !== undefined ? { opacity } : {})} {...(material?.texture ? { texture: material.texture } : {})} {...(material?.alpha_mode ? { alpha_mode: material.alpha_mode } : {})} x={width / 2 + tx} y={height / 2 - ty} z={tz} rotation={turn} scale={sx === sy ? sx : [sx, sy]} />;
+  return <Shape2D {...rest} {...shape} color={color} {...(s || rest.opacity !== undefined ? { opacity } : {})} {...(material?.texture ? { texture: material.texture } : {})} {...(material?.alpha_mode ? { alpha_mode: material.alpha_mode } : {})} {...(material?.uv_transform ? { uv_transform: material.uv_transform } : {})} x={width / 2 + tx} y={height / 2 - ty} z={tz} rotation={turn} scale={sx === sy ? sx : [sx, sy]} />;
 }

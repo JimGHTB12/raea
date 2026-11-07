@@ -323,7 +323,7 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
         "shape2d" => {
             // its ColorMaterial's texture, found and decoded as a sprite's picture
             let tex = match vals.get("texture") {
-                Some(V::S(s)) => { let pic = scene3d::panel_picture(s, inserted, dir).map_err(|e| format!("shape2d {}: {e}", t.id))?; let (pw, ph) = pic.dimensions(); Some(world.resource_mut::<Assets<Image>>().add(sprite2d::sprite_image(pw, ph, pic.into_raw()))) }
+                Some(V::S(s)) => { let pic = scene3d::panel_picture(s, inserted, dir).map_err(|e| format!("shape2d {}: {e}", t.id))?; let (pw, ph) = pic.dimensions(); Some(world.resource_mut::<Assets<Image>>().add(sprite2d::shape_image(pw, ph, pic.into_raw(), vals).map_err(|e| format!("shape2d {}: texture's {e}", t.id))?)) }
                 _ => None,
             };
             sprite2d::spawn_shape(world, e, t, tex)

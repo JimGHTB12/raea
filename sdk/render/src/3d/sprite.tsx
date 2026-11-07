@@ -1,6 +1,7 @@
 // 2D over the 3D: sprites and flat shapes, drawn over the Canvas3D's 3D by a 2D camera of its own (raea-sys-sprite).
 import { useId } from "react";
 import { node3d } from "./core";
+import { samplerSpec, type SamplerSpec } from "./materials";
 import { usePointer2d, type Flat, type PointerHandlers3d } from "../events3d";
 
 /** Where a 2D part is: composition px from the frame's top left, y down (as the page's), its centre there; and its
@@ -71,8 +72,11 @@ export interface Shape2DProps extends Place2dProps {
   sides?: number;
   /** a CSS colour (white by default); with a texture, it tints it */
   color?: string;
-  /** a picture on it, mapped by the mesh's UVs (Bevy's ColorMaterial texture) */
-  texture?: string;
+  /** a picture on it, mapped by the mesh's UVs (Bevy's ColorMaterial texture), or one with its own sampler (Bevy's
+   * load_with_settings: { path, sampler: { wrap: "repeat" } }) */
+  texture?: string | { path: string; sampler: SamplerSpec };
+  /** the texture's UVs scaled, turned and moved (ColorMaterial's uv_transform, glam's Affine2 as raea/transform's) */
+  uv_transform?: { scale: [number, number]; angle: number; translation: [number, number] };
   /** Bevy's AlphaMode2d: "Blend" (Bevy's default), "Opaque", or { Mask: cutoff } */
   alpha_mode?: AlphaMode2d;
   /** one linear [r, g, b, a] per vertex of the shape's mesh (Bevy's Mesh::ATTRIBUTE_COLOR): the material's colour and
@@ -95,7 +99,12 @@ export function Shape2D(props: Shape2DProps) {
   if (s !== undefined && !(Array.isArray(s) && s.length === 2 && s.every((n) => Number.isFinite(n) && n > 0))) throw new TypeError(`Shape2D: size is [width, height], two numbers above 0, got ${JSON.stringify(s)}`);
   if (props.sides !== undefined && !(Number.isInteger(props.sides) && props.sides >= 3)) throw new RangeError(`Shape2D: sides is a whole number of 3 or more, got ${props.sides}`);
   check2d("Shape2D", props);
-  if (props.texture !== undefined && !(typeof props.texture === "string" && props.texture !== "")) throw new TypeError(`Shape2D: texture is a picture's path, staticFile("icon.png"), got ${JSON.stringify(props.texture)}`);
+  const tx = props.texture;
+  const sampled = typeof tx === "object" && tx !== null && typeof tx.path === "string" && tx.path !== "";
+  if (sampled) samplerSpec("Shape2D: texture", tx.sampler);
+  const u = props.uv_transform;
+  if (u !== undefined && !(Array.isArray(u.scale) && u.scale.length === 2 && u.scale.every(Number.isFinite) && Number.isFinite(u.angle) && Array.isArray(u.translation) && u.translation.length === 2 && u.translation.every(Number.isFinite))) throw new TypeError(`Shape2D: uv_transform is an Affine2 ({ scale: [x, y], angle, translation: [x, y] }), got ${JSON.stringify(u)}`);
+  if (tx !== undefined && !sampled && !(typeof tx === "string" && tx !== "")) throw new TypeError(`Shape2D: texture is a picture's path, staticFile("icon.png"), or { path, sampler }, got ${JSON.stringify(props.texture)}`);
   const a = props.alpha_mode;
   if (a !== undefined && a !== "Opaque" && a !== "Blend" && !(typeof a === "object" && a !== null && typeof a.Mask === "number" && Number.isFinite(a.Mask))) throw new TypeError(`Shape2D: alpha_mode is "Opaque", "Blend" or { Mask: cutoff }, got ${JSON.stringify(a)}`);
   const vc = props.vertex_colors;

@@ -128,3 +128,13 @@ export function over(who: string, k: string, c: unknown, back: Backdrop): { css:
   const [r, g, b] = mixed.map(toSrgb);
   return { css: colorCss(who, k, new Srgba(r, g, b, 1)), back: mixed };
 }
+
+/** Bevy's OverflowClipMargin: the box an overflow clip clips to, grown by a margin in px (the padding box by default). */
+export interface OverflowClipMargin { visual_box: "BorderBox" | "PaddingBox" | "ContentBox"; margin: number }
+const clipMargin = (visual_box: OverflowClipMargin["visual_box"]) => ({ visual_box, margin: 0, with_margin(margin: number) { return { visual_box, margin }; } });
+export const OverflowClipMargin = {
+  DEFAULT: { visual_box: "PaddingBox", margin: 0 } as OverflowClipMargin,
+  border_box: () => clipMargin("BorderBox"),
+  padding_box: () => clipMargin("PaddingBox"),
+  content_box: () => clipMargin("ContentBox"),
+};

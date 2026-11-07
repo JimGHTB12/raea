@@ -66,6 +66,8 @@ pub struct ElementData {
     pub special_data: SpecialElementData,
 
     pub background_images: ThinVec<Option<ImageResourceData>>,
+    /// raea: the border-image-source's picture (one layer)
+    pub border_images: ThinVec<Option<ImageResourceData>>,
 
     pub mask_images: ThinVec<Option<ImageResourceData>>,
 
@@ -283,6 +285,7 @@ impl std::fmt::Debug for ElementData {
             .field("style_attribute", &self.style_attribute)
             .field("special_data", &self.special_data)
             .field("background_images", &self.background_images)
+            .field("border_images", &self.border_images)
             .field("mask_images", &self.mask_images)
             .field("inline_layout_data", &self.inline_layout_data)
             .field("list_item_data", &self.list_item_data)
@@ -308,6 +311,7 @@ impl Clone for ElementData {
             style_attribute: self.style_attribute.clone(),
             special_data: self.special_data.clone(),
             background_images: self.background_images.clone(),
+            border_images: self.border_images.clone(),
             mask_images: self.mask_images.clone(),
             inline_layout_data: self.inline_layout_data.clone(),
             list_item_data: self.list_item_data.clone(),
@@ -420,6 +424,7 @@ impl ElementData {
             special_data: SpecialElementData::None,
             template_contents: None,
             background_images: ThinVec::new(),
+            border_images: ThinVec::new(),
             mask_images: ThinVec::new(),
 
             stylo_element_data: Default::default(),
@@ -472,6 +477,11 @@ impl ElementData {
     pub fn attr(&self, name: impl PartialEq<LocalName>) -> Option<&str> {
         let attr = self.attrs.iter().find(|attr| name == attr.name.local)?;
         Some(&attr.value)
+    }
+
+    /// raea: a sliced bevy_ui ImageNode's slicer (`data-raea-bevy-slice`), which blitz-paint's border-image reads
+    pub fn bevy_slice(&self) -> Option<&str> {
+        self.attr(LocalName::from("data-raea-bevy-slice"))
     }
 
     pub fn attr_parsed<T: FromStr>(&self, name: impl PartialEq<LocalName>) -> Option<T> {

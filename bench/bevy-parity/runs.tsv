@@ -55,3 +55,8 @@ ui/text/strikethrough_and_underline	-	5,10
 ui/scroll_and_overflow/overflow	-	5,10
 ui/images/ui_texture_atlas	-	5,10
 2d/mesh2d_vertex_color_texture	-	10
+2d/mesh2d_repeated_texture	-	10
+ui/layout/flex_layout	-	10
+ui/scroll_and_overflow/overflow_clip_margin	-	10
+ui/images/ui_texture_slice	-	10
+ui/images/ui_texture_slice_flip_and_tile	-	10

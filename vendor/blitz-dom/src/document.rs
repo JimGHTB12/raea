@@ -1526,11 +1526,13 @@ impl BaseDocument {
                     node.clear_layout_cache();
                     node.insert_damage(ALL_DAMAGE);
                 }
-                ImageType::Background(idx) | ImageType::Mask(idx) => {
+                ImageType::Background(idx) | ImageType::Mask(idx) | ImageType::Border(idx) => {
                     let layer_image = node.element_data_mut().and_then(|el| {
                         let images = match image_type {
                             ImageType::Background(_) => &mut el.background_images,
                             ImageType::Mask(_) => &mut el.mask_images,
+                            // raea: the border-image-source's picture
+                            ImageType::Border(_) => &mut el.border_images,
                             ImageType::Image => unreachable!(),
                         };
                         images.get_mut(idx)

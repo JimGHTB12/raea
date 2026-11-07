@@ -1,5 +1,6 @@
 mod background;
 mod border;
+mod border_image;
 mod box_shadow;
 mod clip_path;
 mod form_controls;
@@ -1021,7 +1022,9 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                 cx.draw_outset_box_shadow(scene);
                 cx.draw_background(scene);
                 cx.draw_inset_box_shadow(scene);
-                cx.draw_border(scene);
+                if !cx.draw_border_image(scene) {
+                    cx.draw_border(scene);
+                }
                 cx.stroke_devtools(scene);
             }
             if phase == Phase::Inlines {
@@ -1042,6 +1045,7 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
         // raea: overflow clips each axis on its own: `overflow-x: clip` beside a visible y clips only x (as Chrome
         // does, and bevy_ui's Overflow::clip_x), so the box of a lone clipping axis reaches far along the other
         let (clips_x, clips_y) = (!matches!(overflow_x, Overflow::Visible), !matches!(overflow_y, Overflow::Visible));
+        let clip_margin = styles.get_margin().overflow_clip_margin.clone();
         let one_axis = clips_x != clips_y && !is_text_input && !is_image && !is_sub_doc && !contain_paint;
         let clip_shape = |b: crate::kurbo_css::BoxShape| match one_axis {
             true => {
@@ -1059,7 +1063,7 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
             let clip_box = if is_text_input {
                 cx.frame.content_box_path()
             } else {
-                clip_shape(cx.frame.padding_box_path())
+                clip_shape(overflow_clip_box(&cx.frame, &clip_margin))
             };
             clip_rect.intersect(screen_transform.transform_rect_bbox(clip_box.bounding_box()))
         } else {
@@ -1229,14 +1233,16 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                         cx.draw_table_row_backgrounds(scene);
                         cx.draw_table_borders(scene);
                         cx.draw_table_row_borders(scene);
-                        cx.draw_border(scene);
+                        if !cx.draw_border_image(scene) {
+                            cx.draw_border(scene);
+                        }
                         cx.stroke_devtools(scene);
 
                         // TODO: allow layers with opacity to be unclipped (overflow: visible)
                         let clip = if is_text_input {
                             &cx.frame.content_box_path()
                         } else {
-                            &clip_shape(cx.frame.padding_box_path())
+                            &clip_shape(overflow_clip_box(&cx.frame, &clip_margin))
                         };
 
                         // Clip layer if box requires clipping. Opacity set to 1.0
@@ -2338,4 +2344,20 @@ fn create_css_rect(style: &ComputedValues, layout: &Layout, scale: f64) -> CssBo
     };
 
     CssBox::new(border_box, border, padding, outline_width, border_radii)
+}
+
+/// raea: what an overflow clip clips to: overflow-clip-margin's visual box (the padding box by default), grown by its
+/// offset (bevy_ui's OverflowClipMargin, ComputedNode::resolve_clip_rect). A grown one is a rect, as Bevy's clip is.
+fn overflow_clip_box(frame: &CssBox, m: &style::values::computed::OverflowClipMargin) -> crate::kurbo_css::BoxShape {
+    use style::values::generics::box_::OverflowClipMarginBox as B;
+    let b = match m.visual_box {
+        B::BorderBox => frame.border_box_path(),
+        B::PaddingBox => frame.padding_box_path(),
+        B::ContentBox => frame.content_box_path(),
+    };
+    let grow = m.offset.0.px() as f64;
+    match grow > 0.0 {
+        true => crate::kurbo_css::BoxShape::Rect(b.bounding_box().inflate(grow, grow)),
+        false => b,
+    }
 }

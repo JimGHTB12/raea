@@ -398,6 +398,16 @@ describe("S2a's last Bevy names: Mesh2d with a primitive and a ColorMaterial, an
     expect(html(<Shape2D shape="circle" vertex_colors={[[1, 1, 1, 1]]} />)).toContain("vertex_colors");
     expect(() => html(<Shape2D vertex_colors={[[1, 0, 0]] as never} />)).toThrow(/one linear \[r, g, b, a\]/);
   });
+  test("a ColorMaterial's uv_transform and a texture with its own sampler reach the Shape2D (mesh2d_repeated_texture)", () => {
+    const tex = { path: "panel.png", sampler: { wrap: "repeat" as const } };
+    const uv = { scale: [2, 3] as [number, number], angle: 0, translation: [0, 0] as [number, number] };
+    expect(html(<Mesh2d><Rectangle /><ColorMaterial texture={tex} uv_transform={uv} /></Mesh2d>))
+      .toBe(html(<Shape2D shape="rect" size={[1, 1]} color="#ffffff" texture={tex} uv_transform={uv} x={160} y={120} z={0} rotation={0} scale={1} />));
+    expect(html(<Mesh2d><Rectangle /><ColorMaterial texture="panel.png" /></Mesh2d>)).not.toContain("uv_transform");
+    expect(() => html(<Shape2D texture={{ path: "panel.png", sampler: { wrap: "tile" as never } }} />)).toThrow(/sampler.wrap/);
+    expect(() => html(<Shape2D texture={{ path: "", sampler: {} }} />)).toThrow(/or \{ path, sampler \}/);
+    expect(() => html(<Shape2D uv_transform={{ scale: [2], angle: 0, translation: [0, 0] } as never} />)).toThrow(/uv_transform is an Affine2/);
+  });
   test("ToonMaterial is the StandardMaterial with ToonExtension", () => {
     expect(html(<Mesh3d><Cuboid /><ToonMaterial base_color="#c84" steps={3} rim /></Mesh3d>))
       .toBe(html(<Mesh3d><Cuboid /><ExtendedMaterial base={<StandardMaterial base_color="#c84" />} extension={<ToonExtension steps={3} rim />} /></Mesh3d>));

@@ -1585,6 +1585,8 @@ fn needs_style_image_flush(node: &Node, style: &ComputedValues) -> bool {
             &style.get_background().background_image.0,
             &el.background_images,
         ) || out_of_sync(&style.get_svg().mask_image.0, &el.mask_images)
+            // raea: and the border-image-source (blitz-paint's render/border_image.rs)
+            || out_of_sync(std::slice::from_ref(&style.get_border().border_image_source), &el.border_images)
     })
 }
 

@@ -73,6 +73,16 @@ pub fn sprite_image(w: u32, h: u32, rgba: Vec<u8>) -> Image {
     Image::new(size, bevy::render::render_resource::TextureDimension::D2, rgba, bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb, bevy::asset::RenderAssetUsages::default())
 }
 
+/// A shape's texture as a sprite's picture is made, read by the row's own sampler (`texture_sampler`, Bevy's
+/// load_with_settings: what it gives over the default, raea-sys-sampler).
+pub fn shape_image(w: u32, h: u32, rgba: Vec<u8>, v: &BTreeMap<String, V>) -> Result<Image, String> {
+    let mut image = sprite_image(w, h, rgba);
+    if let Some(s) = raea_sys_sampler::Sampling::col(v, "texture_sampler")? {
+        image.sampler = ImageSampler::Descriptor(s.over(raea_sys_sampler::descriptor_of(&image.sampler)));
+    }
+    Ok(image)
+}
+
 /// A sprite's entity from its row and its picture (`size` in px).
 pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>, size: UVec2) {
     let v = &t.vals;
@@ -104,6 +114,15 @@ pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>,
     world.entity_mut(e).insert((sprite, place_of(v), Visibility::default(), Part2d));
 }
 
+/// A ColorMaterial's uv_transform from the row's JSON Affine2 ({ scale: [x, y], angle, translation: [x, y] }, glam's
+/// from_scale_angle_translation), the identity without one.
+fn uv_of(v: &BTreeMap<String, V>) -> bevy::math::Affine2 {
+    let Some(V::S(s)) = v.get("uv_transform") else { return bevy::math::Affine2::IDENTITY };
+    let a: serde_json::Value = serde_json::from_str(s).unwrap_or_default();
+    let pair = |k: &str, d: f32| Vec2::new(a[k][0].as_f64().map_or(d, |x| x as f32), a[k][1].as_f64().map_or(d, |x| x as f32));
+    bevy::math::Affine2::from_scale_angle_translation(pair("scale", 1.0), a["angle"].as_f64().unwrap_or(0.0) as f32, pair("translation", 0.0))
+}
+
 /// A flat shape's entity from its row: its ColorMaterial the row's colour, its texture (decoded by the caller) and
 /// AlphaMode2d (`alpha`: "opaque", "mask" at `alpha_cutoff`, otherwise Bevy's default "blend").
 pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle<Image>>) {
@@ -118,9 +137,8 @@ pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle
     };
     // per-vertex linear colours (Mesh::ATTRIBUTE_COLOR), which ColorMaterial multiplies its colour and texture by
     if let Some(V::S(s)) = v.get("vertex_colors") {
-        // the row's JSON, [[r, g, b, a], ..]: its numbers in order, four to a vertex
-        let f: Vec<f32> = s.split([',', '[', ']']).filter_map(|x| x.trim().parse().ok()).collect();
-        let colors: Vec<[f32; 4]> = f.chunks_exact(4).filter_map(|c| c.try_into().ok()).collect();
+        // the row's JSON, [[r, g, b, a], ..]
+        let colors: Vec<[f32; 4]> = serde_json::from_str(s).unwrap_or_default();
         match colors.len() == mesh.count_vertices() {
             true => mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors),
             false => error!("Shape2D {}: vertex_colors has {} colours for a mesh of {} vertices; drawn without them", t.id, colors.len(), mesh.count_vertices()),
@@ -132,7 +150,8 @@ pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle
         Some(V::S(a)) if a == "mask" => AlphaMode2d::Mask(num(v, "alpha_cutoff", 0.5)),
         _ => AlphaMode2d::Blend,
     };
-    let mat = world.resource_mut::<Assets<ColorMaterial>>().add(ColorMaterial { color: color_of(v), alpha_mode, texture, ..default() });
+    let uv_transform = uv_of(v);
+    let mat = world.resource_mut::<Assets<ColorMaterial>>().add(ColorMaterial { color: color_of(v), alpha_mode, texture, uv_transform, ..default() });
     world.entity_mut(e).insert((Mesh2d(mesh), MeshMaterial2d(mat), place_of(v), Visibility::default(), Part2d));
 }
 

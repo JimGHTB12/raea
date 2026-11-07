@@ -531,6 +531,8 @@ impl BaseDocument {
             }
             self.flush_image_layers_from_style(node_id, ImageLayerKind::Background);
             self.flush_image_layers_from_style(node_id, ImageLayerKind::Mask);
+            // raea: border-image-source, a third layer (render/border_image.rs in blitz-paint)
+            self.flush_image_layers_from_style(node_id, ImageLayerKind::Border);
         }
     }
 
@@ -558,10 +560,12 @@ impl BaseDocument {
 
         let (style_images, elem_images) = match kind {
             ImageLayerKind::Background => (
-                &style.get_background().background_image.0,
+                &style.get_background().background_image.0[..],
                 &mut elem.background_images,
             ),
-            ImageLayerKind::Mask => (&style.get_svg().mask_image.0, &mut elem.mask_images),
+            ImageLayerKind::Mask => (&style.get_svg().mask_image.0[..], &mut elem.mask_images),
+            // raea: one border-image-source; the others as slices so the three arms agree
+            ImageLayerKind::Border => (std::slice::from_ref(&style.get_border().border_image_source), &mut elem.border_images),
         };
 
         let len = style_images.len();
