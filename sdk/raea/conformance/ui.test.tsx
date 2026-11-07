@@ -3,6 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import { BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
+import { Canvas3D } from "raea/3d";
 import { renderFrame } from "../src/test";
 import { Transform } from "raea/transform";
 import { Quat } from "raea/transform";
@@ -195,6 +196,17 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     const ell = html(<Node width={px(50)} height={px(40)} border_radius={BorderRadius.all(CornerRadius.new(percent(50), percent(20)))} />);
     expect(ell).toContain("border-radius:25px 25px 25px 25px / 8px 8px 8px 8px");
     expect(html(<Node border_radius={BorderRadius.all(px(8))} />)).toContain("border-radius:8px 8px 8px 8px");
+  });
+  test("every node is a stacking context, so a ZIndex ranks it among its siblings above their parent; a GlobalZIndex is marked for the root's", () => {
+    expect(html(<Node />)).toContain("z-index:0");
+    expect(html(<Node z_index={-1} />)).toContain("z-index:-1");
+    const g = html(<Node><Node global_z_index={-1} z_index={3} /></Node>);
+    expect(g).toMatch(/z-index:-1" data-raea-bevy-global-z=""/);
+    expect(html(<Node><Node z_index={2} /></Node>)).not.toContain("data-raea-bevy-global-z");
+  });
+  test("a layered Canvas3D cleared to a colour lies under the whole page, as a Bevy camera's output under all its UI", () => {
+    expect(html(<Canvas3D layered clearColor="rgb(0, 0, 0)" />)).toContain("z-index:-2147483648");
+    expect(html(<Canvas3D layered />)).not.toContain("z-index");
   });
   test("BorderColor takes a colour per side", () => {
     const out = html(<Node border={UiRect.all(px(2))} border_color={{ top: new Srgba(1, 0, 0), right: new Srgba(0, 0, 1), bottom: new Srgba(1, 1, 0), left: new Srgba(0, 1, 0) }} />);

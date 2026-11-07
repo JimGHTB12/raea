@@ -70,16 +70,19 @@ pub fn hoisted_child_position(tree: &NodeTree, sc_root_id: NodeId, child_id: Nod
 pub struct HoistedPaintChild {
     pub node_id: NodeId,
     pub z_index: i32,
+    /// raea: a bevy_ui GlobalZIndex (`data-raea-bevy-global-z`): hoisted on past every stacking context to the root's
+    pub global: bool,
     /// `(geometry generation, offset from the stacking-context root)`, see
     /// [`Self::position`]. Generation `0` is never current.
     position: Cell<(u64, Point<f32>)>,
 }
 
 impl HoistedPaintChild {
-    fn new(node_id: NodeId, z_index: i32) -> Self {
+    fn new(node_id: NodeId, z_index: i32, global: bool) -> Self {
         Self {
             node_id,
             z_index,
+            global,
             position: Cell::new((0, Point::ZERO)),
         }
     }
@@ -109,6 +112,8 @@ pub struct StackingContext {
     pub children: ThinVec<HoistedPaintChild>,
     /// The number of hoisted point children with negative z_index
     pub negative_z_count: u32,
+    /// raea: the GlobalZIndex entries from inside it, which its parent takes on up (the root paints them)
+    pub globals: ThinVec<HoistedPaintChild>,
     /// `(geometry generation, bounding box of the hoisted children)`, see
     /// [`Self::hoisted_content_bbox`].
     hoisted_content_bbox: Cell<(u64, Rect<f32>)>,
@@ -116,10 +121,13 @@ pub struct StackingContext {
 
 impl StackingContext {
     /// Build a sorted stacking context from the hoisted entries collected for it.
-    fn from_children(children: ThinVec<HoistedPaintChild>) -> Self {
+    fn from_children(mut children: ThinVec<HoistedPaintChild>) -> Self {
+        let globals = children.iter().filter(|c| c.global).cloned().collect();
+        children.retain(|c| !c.global);
         let mut sc = Self {
             children,
             negative_z_count: 0,
+            globals,
             hoisted_content_bbox: Cell::new((0, Rect::ZERO)),
         };
         sc.sort();
@@ -214,6 +222,19 @@ impl BaseDocument {
     /// enclosing stacking context are replayed from `Node::sc_contribution_cache`.
     pub(crate) fn build_paint_tree(&mut self, root_id: NodeId) {
         self.build_paint_tree_impl(root_id, None);
+        // raea: the root paints the GlobalZIndex entries, by their z among its own
+        if let Some(sc) = self.nodes[root_id].stacking_context.as_mut() {
+            let globals = std::mem::take(&mut sc.globals);
+            sc.children.extend(globals);
+            sc.sort();
+        }
+    }
+
+    /// raea: a stacking-context child's GlobalZIndex entries, on into the entries of the context it's in
+    fn take_globals(&self, child_id: NodeId, entries: &mut ThinVec<HoistedPaintChild>) {
+        if let Some(sc) = &self.nodes[child_id].stacking_context {
+            entries.extend(sc.globals.iter().cloned());
+        }
     }
 
     /// `stacking_context` is the entry list of the nearest ancestor stacking
@@ -337,9 +358,13 @@ impl BaseDocument {
                     // Only stacking contexts with a non-zero z-index are lifted
                     // out of tree order into the enclosing stacking context's
                     // z-sorted list (CSS 2.1 Appendix E).
+                    // raea: and the GlobalZIndex entries from inside a stacking context go on up past it
+                    if is_sc_root {
+                        self.take_globals(child_id, &mut entries);
+                    }
                     let z_index = self.nodes[child_id].z_index();
                     if is_sc_root && z_index != 0 {
-                        entries.push(HoistedPaintChild::new(child_id, z_index))
+                        entries.push(HoistedPaintChild::new(child_id, z_index, self.nodes[child_id].is_bevy_global_z()))
                     } else {
                         paint_children.push(child_id);
                     }
@@ -399,17 +424,15 @@ impl BaseDocument {
         paint_children: &mut ThinVec<NodeId>,
         entries: &mut ThinVec<HoistedPaintChild>,
     ) {
-        self.build_paint_tree_impl(
-            child_id,
-            match self.nodes[child_id].is_stacking_context_root(false) {
-                true => None,
-                false => Some(entries),
-            },
-        );
+        let is_sc_root = self.nodes[child_id].is_stacking_context_root(false);
+        self.build_paint_tree_impl(child_id, if is_sc_root { None } else { Some(entries) });
+        if is_sc_root {
+            self.take_globals(child_id, entries);
+        }
 
         let z_index = self.nodes[child_id].z_index();
         if z_index != 0 {
-            entries.push(HoistedPaintChild::new(child_id, z_index));
+            entries.push(HoistedPaintChild::new(child_id, z_index, self.nodes[child_id].is_bevy_global_z()));
         } else {
             paint_children.push(child_id);
         }

@@ -215,9 +215,10 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
         // (a <Sequence>'s data-raea-start kept: its CSS animations run from there, raea-runtime-js's src/anim.rs; a bevy_ui
         // <Text>'s data-raea-bevy-text kept: Blitz measures its block as bevy_text does, vendor/blitz-dom layout/inline.rs;
         // a sliced ImageNode's data-raea-bevy-slice kept: Blitz scales and tiles its border-image as bevy_ui does,
-        // vendor/blitz-paint render/border_image.rs;
+        // vendor/blitz-paint render/border_image.rs; a GlobalZIndex node's data-raea-bevy-global-z kept: Blitz ranks it in the
+        // root's stacking context, vendor/blitz-dom layout/paint_tree.rs;
         // the source stamps data-raea-loc and data-raea-use kept for the render manifest, engine/bundle stamp.rs)
-        if k == "children" || k == "key" || (k.starts_with("data-raea") && k != "data-raea-start" && k != "data-raea-bevy-text" && k != "data-raea-bevy-slice" && k != "data-raea-loc" && k != "data-raea-use") || k == "data-props" || k == "data-shape" || k == "data-anim" || v.is_null() {
+        if k == "children" || k == "key" || (k.starts_with("data-raea") && k != "data-raea-start" && k != "data-raea-bevy-text" && k != "data-raea-bevy-slice" && k != "data-raea-bevy-global-z" && k != "data-raea-loc" && k != "data-raea-use") || k == "data-props" || k == "data-shape" || k == "data-anim" || v.is_null() {
             continue;
         }
         if k.starts_with("on") && k.chars().nth(2).is_some_and(|c| c.is_ascii_uppercase()) {

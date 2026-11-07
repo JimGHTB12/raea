@@ -67,7 +67,7 @@ export function ImageNode({ image, color, flip_x, flip_y, children, fixed, textu
   const flips = [flip_x && "scaleX(-1)", flip_y && "scaleY(-1)"].filter(Boolean).join(" ");
   const rendering = RENDERING[useContext(Sampler)];
   const css: CSSProperties = { ...n.css, objectFit: "fill", ...(rendering ? { imageRendering: rendering } : {}), ...(flips ? { transform: flips } : {}), ...(color && color.red !== 1 ? { filter: `brightness(${color.red})` } : {}) };
-  const img = <img src={image} style={css} />;
+  const img = <img src={image} style={css} {...n.attrs} />;
   const root = fixed ? "fixed" : ui === null;
   return root ? <div style={root === "fixed" ? { ...VIEWPORT, position: "fixed" } : VIEWPORT}>{img}</div> : img;
 }
@@ -92,7 +92,7 @@ function AtlasNode({ image, color, flip_x, flip_y, children, fixed, texture_atla
     ...(color && color.red !== 1 ? { filter: `brightness(${color.red})` } : {}),
   };
   const box: CSSProperties = { position: "relative", overflow: "hidden", width: "100%", height: "100%", ...(flips ? { transform: flips } : {}) };
-  const node = <div style={n.css}><div style={box}><img src={image} style={sheet} /></div></div>;
+  const node = <div style={n.css} {...n.attrs}><div style={box}><img src={image} style={sheet} /></div></div>;
   const root = fixed ? "fixed" : ui === null;
   return root ? <div style={root === "fixed" ? { ...VIEWPORT, position: "fixed" } : VIEWPORT}>{node}</div> : node;
 }
@@ -146,10 +146,10 @@ function SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atl
     ...(rendering ? { imageRendering: rendering } : {}),
   };
   const root = fixed ? "fixed" : ui === null;
-  if (!flip_x && !flip_y) return boxOf({ ...n.css, ...slices }, n.back, children, root, undefined, marker);
+  if (!flip_x && !flip_y) return boxOf({ ...n.css, ...slices }, n.back, children, root, undefined, { ...n.attrs, ...marker });
   const flips = [flip_x && "scaleX(-1)", flip_y && "scaleY(-1)"].filter(Boolean).join(" ");
   const layer = <div key="raea-slices" style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", zIndex: -1, transform: flips, ...slices }} {...marker} />;
-  return boxOf({ ...n.css, position: n.css.position ?? "relative", zIndex: 0 }, n.back, [layer, ...Children.toArray(children)], root);
+  return boxOf({ ...n.css, position: n.css.position ?? "relative" }, n.back, [layer, ...Children.toArray(children)], root, undefined, n.attrs);
 }
 
 /** bevy_ui's InlineImage: a picture in a <Text>'s line, as an inline box on its baseline (bevy_text's parley lays it

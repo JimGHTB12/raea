@@ -18,9 +18,10 @@ const FILL = { position: "absolute", left: 0, top: 0, width: "100%", height: "10
 export function Canvas3D(props: Canvas3DProps) {
   if (!props.layered) return <>{props.children}</>;
   // layered: a full-frame box in the page's flow, and the slot the 3D's frame is painted into (an <img> the renderer
-  // points at the 3D's texture), first so the 3D parts after it stay out of the page's paint
+  // points at the 3D's texture), first so the 3D parts after it stay out of the page's paint. Cleared to a colour, it
+  // is under every other part of the page (z-index the least there is), as a Bevy camera's output is under all its UI
   return (
-    <div data-3d="Canvas3D" data-props={JSON.stringify(serialisable(props))} style={FILL}>
+    <div data-3d="Canvas3D" data-props={JSON.stringify(serialisable(props))} style={props.clearColor === undefined ? FILL : { ...FILL, zIndex: -2147483648 }}>
       <img data-raea-scene="" data-clear={props.clearColor} alt="" style={{ ...FILL, objectFit: "fill" }} />
       {props.children}
     </div>

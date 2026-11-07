@@ -44,7 +44,7 @@ export interface Canvas3DProps {
   layered?: boolean;
   /** only with `layered`: the 3D clears to this CSS colour instead of transparent, so its translucent parts blend over
    * it in linear light, as Bevy's do over its ClearColor (a Bevy 2D scene's rgb(43, 44, 47)), not over the page in sRGB.
-   * The 3D then hides the page elements before it. */
+   * The 3D then lies under the whole page, as Bevy's camera output lies under all its UI (a GlobalZIndex(-1) too). */
   clearColor?: string;
   children?: ReactNode;
   [prop: string]: unknown;

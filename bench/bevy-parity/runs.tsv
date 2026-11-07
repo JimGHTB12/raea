@@ -66,3 +66,4 @@ ui/text/letter_spacing	-	10
 ui/styling/borders	-	10
 ui/window_fallthrough	-	10
 ui/text/inline_image	-	10
+ui/layout/z_index	-	10

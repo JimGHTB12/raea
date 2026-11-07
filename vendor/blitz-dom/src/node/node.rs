@@ -1005,6 +1005,11 @@ impl NodeData {
         self.attr(LocalName::from("data-raea-bevy-text")).is_some()
     }
 
+    /// raea: a bevy_ui GlobalZIndex (sdk/render's `global_z_index`): its z-index ranks it in the root's stacking context
+    pub fn is_bevy_global_z(&self) -> bool {
+        self.attr(LocalName::from("data-raea-bevy-global-z")).is_some()
+    }
+
     pub fn has_attr(&self, name: impl PartialEq<LocalName>) -> bool {
         self.downcast_element()
             .is_some_and(|elem| elem.has_attr(name))
@@ -1061,6 +1066,10 @@ impl Node {
     /// raea: this node is a bevy_ui <Text>'s block (NodeData::is_bevy_text)
     pub fn is_bevy_text(&self) -> bool {
         self.data.is_bevy_text()
+    }
+
+    pub fn is_bevy_global_z(&self) -> bool {
+        self.data.is_bevy_global_z()
     }
 
     pub fn tree(&self) -> &crate::NodeTree {

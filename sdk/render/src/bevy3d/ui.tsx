@@ -46,6 +46,8 @@ export interface NodeProps {
   /** Outline: a line outside the border box, `offset` from it (0 by default), white by default */
   outline?: { width: Val; offset?: Val; color?: Color };
   z_index?: number;
+  /** GlobalZIndex: ranked among the roots and every other GlobalZIndex instead (a non-zero one) */
+  global_z_index?: number;
   /** FixedNode: laid out as a root wherever it is in the tree (its own viewport, the window's), drawn with its parent */
   fixed?: boolean;
   children?: ReactNode;
@@ -63,7 +65,7 @@ const CSS_OF: Record<(typeof VALS)[number], keyof CSSProperties> = {
 /** A Node's props as the box's CSS: Bevy's defaults made explicit where CSS's differ (display flex, border-box,
  *  position relative, flex-shrink 1, min sizes auto; no font of the page's own), its colours blended as Bevy blends them over
  *  `back`, and the backdrop it leaves its content. */
-export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSProperties; back: Backdrop } {
+export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSProperties; back: Backdrop; attrs: Record<string, string> } {
   const s: Record<string, unknown> = { display: "flex", boxSizing: "border-box", position: "relative", flexShrink: 1, minWidth: "auto", minHeight: "auto" };
   const kw = (k: keyof NodeProps, css: string, allowed: readonly string[]) => {
     const v = p[k];
@@ -84,14 +86,17 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
   if (p.flex_wrap === "NoWrap") s.flexWrap = "nowrap";
   if (p.box_sizing !== undefined) s.boxSizing = keyword(who, "box_sizing", p.box_sizing, ["BorderBox", "ContentBox"]);
   for (const k of VALS) if (p[k] !== undefined) s[CSS_OF[k]] = checkVal(who, k, p[k]);
-  for (const k of ["flex_grow", "flex_shrink", "aspect_ratio", "z_index"] as const) {
+  for (const k of ["flex_grow", "flex_shrink", "aspect_ratio", "z_index", "global_z_index"] as const) {
     const v = p[k];
     if (v !== undefined && !Number.isFinite(v)) throw new RangeError(`${who}: ${k} is a number, got ${v}`);
   }
   if (p.flex_grow !== undefined) s.flexGrow = p.flex_grow;
   if (p.flex_shrink !== undefined) s.flexShrink = p.flex_shrink;
   if (p.aspect_ratio !== undefined) s.aspectRatio = p.aspect_ratio;
-  if (p.z_index !== undefined) s.zIndex = p.z_index;
+  // every node a stacking context, so a ZIndex ranks it among its siblings above their parent, as bevy_ui stacks
+  // them; a GlobalZIndex ranks it in the root's (raea's Blitz hoists it past every other, layout/paint_tree.rs)
+  s.zIndex = p.global_z_index ?? p.z_index ?? 0;
+  const attrs: Record<string, string> = p.global_z_index ? { "data-raea-bevy-global-z": "" } : {};
   if (p.margin !== undefined) s.margin = rectCss(who, "margin", p.margin);
   if (p.padding !== undefined) s.padding = rectCss(who, "padding", p.padding);
   if (p.border !== undefined) {
@@ -126,7 +131,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
     // CSS's overflow-clip-margin, which raea's Blitz honours for every clipping overflow, as Bevy does
     (s as Record<string, string>).overflowClipMargin = `${m.visual_box.replace("Box", "").toLowerCase()}-box ${m.margin}px`;
   }
-  return { css: s as CSSProperties, back };
+  return { css: s as CSSProperties, back, attrs };
 }
 
 // a root's implicit viewport (bevy_ui ui_surface.rs): a grid the window's size, its one item at the start of both axes
@@ -146,7 +151,7 @@ export function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, r
 export function Node({ children, fixed, ...p }: NodeProps) {
   const ui = useContext(InUi);
   const n = nodeCss("Node", p, ui?.back);
-  return boxOf(n.css, n.back, children, fixed ? "fixed" : ui === null);
+  return boxOf(n.css, n.back, children, fixed ? "fixed" : ui === null, undefined, n.attrs);
 }
 
 /** bevy_text's TextFont, TextColor, TextLayout and LineHeight, on a Text or a TextSpan. */
@@ -304,7 +309,7 @@ export function Text({ children, font, font_size, weight, style, color, line_hei
   // one as wide as its widest line (taffy sizes a flex container's min-content by its items' max-content, so a root
   // Text in its viewport grid never wrapped). Its lines are justified within the box
   if (css.display !== "none") css.display = "flow-root";
-  return boxOf({ ...css, ...BREAK[linebreak ?? "WordBoundary"] }, n.back, own, ui === null, <style>{t.face}</style>, { "data-raea-bevy-text": "" });
+  return boxOf({ ...css, ...BREAK[linebreak ?? "WordBoundary"] }, n.back, own, ui === null, <style>{t.face}</style>, { ...n.attrs, "data-raea-bevy-text": "" });
 }
 
 /** A run of a <Text> in a style of its own (Bevy's defaults, not its Text's, where left out). @bevy bevy_text::text::TextSpan */
