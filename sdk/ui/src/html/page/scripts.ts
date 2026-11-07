@@ -70,27 +70,36 @@ export function namedAccess() {
   }
 }
 
-export async function runScript(s: Script, i: number) {
+/** Runs one page script; what it threw (its message, which JavaScriptCore's stack leaves out), if it threw. */
+export async function runScript(s: Script, i: number): Promise<string | undefined> {
   let code = s.text;
   let origin = `inline #${i}`;
   if (s.src) {
     origin = s.src;
     const got = await read(isRemote(s.src) ? abs(s.src) : pagePath(s.src));
-    if (got?.text === undefined) return warn(`script ${s.src} not loaded`);
+    if (got?.text === undefined) {
+      warn(`script ${s.src} not loaded`);
+      return;
+    }
     code = got.text;
   }
   if (!code.trim()) return;
+  let threw: string | undefined;
   try {
     if (s.scope !== undefined) {
       g.__hfScope = scope;
       (0, eval)(`(function(){var __s=__hfScope(${JSON.stringify(s.scope)});(function(document,gsap){\n${code}\n}).call(window,__s.document,__s.gsap);})();`);
     } else (0, eval)(code);
   } catch (e) {
-    warn(`script ${origin} threw: ${(e as Error)?.stack ?? e}`);
+    const stack = (e as Error)?.stack ?? "";
+    threw = `script ${origin} threw: ${e}`;
+    // V8's stack starts with the message, JavaScriptCore's doesn't
+    warn(stack.includes(String(e)) ? `script ${origin} threw: ${stack}` : stack ? `${threw}\n${stack}` : threw);
   }
   // GSAP's ticker on the page clock, its jumps taken whole
   if (g.gsap?.ticker && !g.__hfLag) {
     g.__hfLag = true;
     g.gsap.ticker.lagSmoothing(0);
   }
+  return threw;
 }

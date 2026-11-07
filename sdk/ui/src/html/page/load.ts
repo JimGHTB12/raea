@@ -61,7 +61,11 @@ async function load() {
   // the registry a page's scripts put their timelines in (window.__timelines["main"] = tl), made before they run as
   // the original runtime makes it: without it every such script threw at that line and the page never moved
   g.__timelines ??= {};
-  for (let i = 0; i < compiled.scripts.length; i++) await runScript(compiled.scripts[i], i);
+  const threw: string[] = [];
+  for (let i = 0; i < compiled.scripts.length; i++) {
+    const e = await runScript(compiled.scripts[i], i);
+    if (e) threw.push(e);
+  }
   try {
     document.dispatchEvent(new g.Event("DOMContentLoaded", { bubbles: true }));
     g.dispatchEvent(new g.Event("load"));
@@ -71,6 +75,12 @@ async function load() {
   const comps = Array.from(document.querySelectorAll("[data-composition-id]"));
   const root = comps.find((e) => e.getAttribute("data-root") === "true") ?? comps[0] ?? null;
   setupTime(root, compiled.aliases);
+  // a script threw and no timeline registered: the video would be the first frame held, so the open fails (as the
+  // original runtime's render does); a page still on purpose says so with data-no-timeline
+  if (threw.length && !S.rootTl && !S.nested.length && !root?.hasAttribute("data-no-timeline")) {
+    const id = root?.getAttribute("data-composition-id");
+    throw new Error(`${threw.join("; ")}, and no timeline registered for the composition ${id ?? "(none)"} (window.__timelines${id ? `[${JSON.stringify(id)}]` : ""}), so nothing would move; a page that is still on purpose marks its root data-no-timeline`);
+  }
   await seek(0);
   const w = parseFloat(root?.getAttribute("data-width") ?? "") || g.innerWidth || 1920;
   const h = parseFloat(root?.getAttribute("data-height") ?? "") || g.innerHeight || 1080;
@@ -103,6 +113,7 @@ wire.on<{ t: number }>("html.seek", ({ t }) => {
 });
 
 S.queue = S.queue.then(load).catch((e) => {
-  warn(`load: ${(e as Error)?.stack ?? e}`);
-  wire.emit("html.ready", { error: String(e), warnings });
+  // the message on its own: JavaScriptCore's stack leaves it out
+  warn(`load: ${e}\n${(e as Error)?.stack ?? ""}`);
+  wire.emit("html.ready", { error: (e as Error)?.message ?? String(e), warnings });
 });
