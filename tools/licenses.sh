@@ -79,6 +79,8 @@ ZLIB
 
 out=$tmp/out
 mkdir -p "$out/LICENSES/texts"
+# texts NOTICE's hand-written section cites (not the catalog's): kept as they are
+for keep in Apache-2.0.txt; do [ -f "LICENSES/$keep" ] && cp "LICENSES/$keep" "$out/LICENSES/"; done
 {
   echo "$BEGIN"
   echo "The plugin catalog (engine/bevy-plugins, built with tools/bevy-plugins.sh) and the native target's host (engine/rune,"
