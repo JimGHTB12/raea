@@ -61,3 +61,5 @@ ui/scroll_and_overflow/overflow_clip_margin	-	10
 ui/images/ui_texture_slice	-	10
 ui/images/ui_texture_slice_flip_and_tile	-	10
 ui/images/ui_texture_atlas_slice	-	10
+ui/widgets/button	-	10
+ui/text/letter_spacing	-	10

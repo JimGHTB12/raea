@@ -9,7 +9,7 @@ import {
   ALIGN_CONTENT, ALIGN_ITEMS, ALIGN_SELF, DISPLAY, FLEX_DIRECTION, FLEX_WRAP, JUSTIFY_CONTENT, JUSTIFY_ITEMS, JUSTIFY_SELF, OVERFLOW_AXIS, POSITION_TYPE,
   checkVal, keyword, over, px, radiusCss, rectCss, type Backdrop, type BorderRadius, type Overflow, type OverflowClipMargin, type UiRect, type Val,
 } from "./ui-val";
-import type { LinearRgba, Srgba } from "./colors";
+import { LinearRgba, type Srgba } from "./colors";
 import type { TransformValue } from "./core";
 import { eulerOf } from "../3d/model";
 import { samplerSpec, type SamplerSpec } from "../3d/materials";
@@ -158,6 +158,8 @@ export interface TextStyleProps {
   line_height?: { Px: number } | { RelativeToFont: number };
   /** FontVariations: a variable font's axes by their four-letter tag, { [FontVariationTag.WEIGHT]: 300 } */
   font_variations?: Record<string, number>;
+  /** LetterSpacing: { Px } or { Rem } (of bevy_text's 20 px rem) after every glyph (none by default) */
+  letter_spacing?: { Px: number } | { Rem: number };
 }
 
 /** bevy_text's FontVariationTag: the registered axes' OpenType tags. @bevy bevy_text::FontVariationTag */
@@ -189,7 +191,16 @@ export interface TextProps extends TextStyleProps, TextRunProps, NodeProps {
   /** TextLayout's justify (Left by default) and linebreak (WordBoundary) */
   justify?: "Left" | "Center" | "Right" | "Justified" | "Start" | "End";
   linebreak?: "WordBoundary" | "AnyCharacter" | "WordOrCharacter" | "NoWrap";
+  /** TextShadow: the glyphs again, unblurred, `offset` px right and down, under the text (TextShadow.default()) */
+  shadow?: TextShadow;
 }
+
+/** bevy_ui's TextShadow. @bevy bevy_ui::widget::text::TextShadow */
+export interface TextShadow { offset: [number, number]; color: Color }
+export const TextShadow = {
+  /** 4 px right and down, black at 0.75 in linear alpha, as Bevy's default */
+  default: (): TextShadow => ({ offset: [4, 4], color: new LinearRgba(0, 0, 0, 0.75) }),
+};
 
 /** A section's glyphs in its lines and background: CSS carries a decoration to every element inside it, so a Text's
  *  own are on its strings alone (Bevy's Strikethrough on a Text leaves its spans unstruck). Two colours of line are
@@ -244,6 +255,12 @@ export function textCss(who: string, p: TextStyleProps, back?: Backdrop): { css:
   };
   const variations = variationsCss(who, p.font_variations);
   if (variations) css.fontVariationSettings = variations;
+  const ls = p.letter_spacing;
+  if (ls !== undefined) {
+    const [k, v] = Object.entries(ls)[0] ?? [];
+    if (!((k === "Px" || k === "Rem") && Number.isFinite(v))) throw new TypeError(`${who}: letter_spacing is { Px } or { Rem }, got ${JSON.stringify(ls)}`);
+    css.letterSpacing = `${k === "Px" ? v : (v as number) * 20}px`;
+  }
   const face = p.font === undefined ? bevyFontFace() : `@font-face { font-family: "${family}"; src: url("${p.font}"); font-weight: 1 1000; }`;
   return { css, face };
 }
@@ -257,10 +274,10 @@ const BREAK: Record<NonNullable<TextProps["linebreak"]>, CSSProperties> = {
 
 /** Bevy's UI text: a Node whose content is its string and its <TextSpan> children, in its TextFont, TextColor,
  *  TextLayout and LineHeight (Bevy's defaults when left out). @bevy bevy_ui::widget::text::Text */
-export function Text({ children, font, font_size, weight, style, color, line_height, font_variations, justify, linebreak, underline, strikethrough, underline_color, strikethrough_color, text_background_color, ...node }: TextProps) {
+export function Text({ children, font, font_size, weight, style, color, line_height, font_variations, letter_spacing, justify, linebreak, shadow, underline, strikethrough, underline_color, strikethrough_color, text_background_color, ...node }: TextProps) {
   const ui = useContext(InUi);
   const n = nodeCss("Text", node, ui?.back);
-  const t = textCss("Text", { font, font_size, weight, style, color, line_height, font_variations }, n.back);
+  const t = textCss("Text", { font, font_size, weight, style, color, line_height, font_variations, letter_spacing }, n.back);
   if (justify !== undefined && !["Left", "Center", "Right", "Justified", "Start", "End"].includes(justify)) throw new TypeError(`Text: justify is Left, Center, Right, Justified, Start or End, got ${JSON.stringify(justify)}`);
   if (linebreak !== undefined && !(linebreak in BREAK)) throw new TypeError(`Text: linebreak is WordBoundary, AnyCharacter, WordOrCharacter or NoWrap, got ${JSON.stringify(linebreak)}`);
   const textAlign = { Left: "left", Center: "center", Right: "right", Justified: "justify", Start: "start", End: "end" }[justify ?? "Left"] as CSSProperties["textAlign"];
@@ -270,8 +287,15 @@ export function Text({ children, font, font_size, weight, style, color, line_hei
   // inline root down, not from a block above it, as thick as the font says (bevy_text's underline_size, not em/10)
   const run = { underline, strikethrough, underline_color, strikethrough_color, text_background_color };
   const own = Children.map(children, (c) => (typeof c === "string" || typeof c === "number" ? runOf("Text", run, n.back, c) : c));
-  const css = { ...n.css, ...t.css, textAlign };
-  return boxOf(css, n.back, <span data-raea-bevy-text="" style={BREAK[linebreak ?? "WordBoundary"]}>{own}</span>, ui === null, <style>{t.face}</style>);
+  const css: CSSProperties = { ...n.css, ...t.css, textAlign };
+  if (shadow !== undefined) {
+    const [x, y] = shadow.offset ?? [];
+    if (!(Number.isFinite(x) && Number.isFinite(y))) throw new TypeError(`Text: shadow is { offset: [x, y], color } (TextShadow.default()), got ${JSON.stringify(shadow)}`);
+    css.textShadow = `${x}px ${y}px 0 ${over("Text", "shadow.color", shadow.color, n.back).css}`;
+  }
+  // the block fills a node wider than its lines, so a centred or right one is so within the node, as bevy_text justifies
+  const fill: CSSProperties = justify === "Center" || justify === "Right" || justify === "End" ? { flexGrow: 1 } : {};
+  return boxOf(css, n.back, <span data-raea-bevy-text="" style={{ ...BREAK[linebreak ?? "WordBoundary"], ...fill }}>{own}</span>, ui === null, <style>{t.face}</style>);
 }
 
 /** A run of a <Text> in a style of its own (Bevy's defaults, not its Text's, where left out). @bevy bevy_text::text::TextSpan */

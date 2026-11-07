@@ -62,3 +62,5 @@ ui/images/ui_texture_atlas
 ui/images/ui_texture_slice
 ui/images/ui_texture_atlas_slice
 ui/images/ui_texture_slice_flip_and_tile
+ui/widgets/button
+ui/text/letter_spacing

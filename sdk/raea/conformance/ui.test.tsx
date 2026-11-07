@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { BorderRadius, FontVariationTag, ImageNode, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { BorderRadius, FontVariationTag, ImageNode, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { renderFrame } from "../src/test";
 import { Transform } from "raea/transform";
@@ -177,6 +177,20 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     for (const s of ['border-image-source:url(&quot;p.png&quot;)', "border-image-slice:4 8 2 16 fill", "border-image-width:8px 16px 4px 32px", 'data-raea-bevy-slice="2 t1.5 s"', "hi"]) expect(out).toContain(s);
     expect(() => html(<ImageNode image="p.png" image_mode={{ Sliced: { ...slicer, center_scale_mode: { Tile: { stretch_value: 0 } } } }} />)).toThrow(/center_scale_mode is/);
     expect(() => html(<ImageNode image="p.png" image_mode={{ Sliced: { border: { left: -1, right: 0, top: 0, bottom: 0 } } }} />)).toThrow(/px >= 0/);
+  });
+  test("a centred or right-justified Text's block fills its node, so its lines are justified within the node's width", () => {
+    expect(html(<Text justify="Right" width={percent(100)}>hi</Text>)).toContain('white-space:pre-wrap;flex-grow:1');
+    expect(html(<Text justify="Left" width={percent(100)}>hi</Text>)).not.toContain("flex-grow:1");
+  });
+  test("LetterSpacing is CSS letter-spacing, Rem of bevy_text's 20 px", () => {
+    expect(html(<Text letter_spacing={{ Px: 3 }}>hi</Text>)).toContain("letter-spacing:3px");
+    expect(html(<Text>a<TextSpan letter_spacing={{ Rem: 0.5 }}>b</TextSpan></Text>)).toContain("letter-spacing:10px");
+    expect(() => html(<Text letter_spacing={{ Em: 1 } as never}>hi</Text>)).toThrow(/letter_spacing is/);
+  });
+  test("TextShadow is an unblurred text-shadow, its colour blended over the backdrop as Bevy blends in linear light", () => {
+    expect(html(<Text shadow={TextShadow.default()}>hi</Text>)).toContain("text-shadow:4px 4px 0 rgba(0, 0, 0, 0.75)");
+    expect(html(<Node background_color={new Srgba(0.15, 0.15, 0.15)}><Text shadow={{ offset: [2, -1], color: new LinearRgba(0, 0, 0, 0.75) }}>hi</Text></Node>)).toContain("text-shadow:2px -1px 0 rgba(15, 15, 15, 1)");
+    expect(() => html(<Text shadow={{ offset: [NaN, 0], color: new Srgba(0, 0, 0) } as never}>hi</Text>)).toThrow(/shadow is/);
   });
   test("a sliced atlas cell puts its rect in its layout on the marker, which Blitz slices", () => {
     const layout = TextureAtlasLayout.from_grid([50, 50], 6, 6, [2, 2]);
