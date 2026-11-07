@@ -1,5 +1,6 @@
 // Nodes: Node, the tree's mutations, attributes and props, and the style object.
 import * as wire from "../wire";
+import { isStyleName } from "./style-names";
 import { Document_, Element_, EventTarget_, MutationRecord_, body, cloneOf, connectedTree, disconnected, doc, htmlDoc, liveRanges, observers, query, queueRecord, rangesChildList, rangesSplit, rangesText, rootContainer, svgNs, syncListens, wireOf } from "./all";
 
 // ---------------------------------------------------------------- nodes
@@ -401,9 +402,10 @@ export function makeStyle(el: Element_): any {
     item: (i: number) => kebab(Object.keys(el._style)[i] ?? ""),
   };
   return new Proxy(api, {
-    // `"transform" in el.style`, as libraries feature-test a property (GSAP's CSSPlugin)
+    // `"transform" in el.style`, as libraries feature-test a property (GSAP's CSSPlugin): true for CSS properties only,
+    // so GSAP sets `textContent` on the element, not in its style (#17)
     has(t, p) {
-      return typeof p === "string" && (p in t || p === "cssText" || p.startsWith("--") || /^[a-z][a-zA-Z]*$/.test(p));
+      return typeof p === "string" && (p in t || p === "cssText" || p === "length" || isStyleName(p));
     },
     get(t, p) {
       if (typeof p !== "string") return undefined;
