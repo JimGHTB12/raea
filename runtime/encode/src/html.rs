@@ -40,7 +40,8 @@ fn local(dir: &Path, src: &str) -> Result<String, String> {
     Ok(dir.join(src).to_string_lossy().into_owned())
 }
 
-/// Lower an HTML composition: the page opened and probed for its length and sound.
+/// Lower an HTML composition: the page opened and probed for its length and sound, over a white canvas as a browser
+/// paints one (CSS Backgrounds 3, the canvas background: the root's or body's background covers it when set).
 pub fn lower(path: &Path) -> Result<Lowered, String> {
     let fps = fps_of(path);
     let page = HtmlPage::open(path, fps, Some(&raea_io_home::home().join("core/fonts")))?;
@@ -53,7 +54,7 @@ pub fn lower(path: &Path) -> Result<Lowered, String> {
     let frames = (duration * fps - 1e-6).ceil().max(1.0) as i64;
     let n = |x: f64| V::N(x);
     let s = |x: &str| V::S(x.to_string());
-    let mut rows = vec![row("camera", "cam", &[("bg", s("#000000"))])];
+    let mut rows = vec![row("camera", "cam", &[("bg", s("#ffffff"))])];
     // the first frame at or after t (a clip shows on frames whose time is inside its window)
     let frame = |t: f64| (t * fps - 1e-6).ceil();
     let num = |v: &serde_json::Value, k: &str, d: f64| v[k].as_f64().unwrap_or(d);
