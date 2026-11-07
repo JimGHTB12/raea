@@ -4,13 +4,14 @@
 // start), so a root's box sits in one. Text is Bevy's: its default font (Bevy's FiraMono subset), 20 px (bevy_text's
 // rem), white, line height 1.2, wrapped at words, drawn unsmoothed (bevy_text's coverage, not CoreText's growth).
 import { Children, createContext, useContext, type CSSProperties, type ReactNode } from "react";
-import { BEVY_FONT_FAMILY, bevyFontFace } from "./fonts/default";
+import { fontCss, type FontSource } from "./ui-font";
 import {
   ALIGN_CONTENT, ALIGN_ITEMS, ALIGN_SELF, DISPLAY, FLEX_DIRECTION, FLEX_WRAP, JUSTIFY_CONTENT, JUSTIFY_ITEMS, JUSTIFY_SELF, OVERFLOW_AXIS, POSITION_TYPE,
   checkVal, keyword, over, radiusCss, rectCss, type Backdrop, type BorderRadius, type Overflow, type OverflowClipMargin, type UiRect, type Val,
 } from "./ui-val";
 import { LinearRgba, type Srgba } from "./colors";
 import { gradientsCss, gradientsOpaque, type Gradient } from "./ui-gradient";
+import { gridCss, type GridAutoFlow, type GridPlacement, type GridTrack, type RepeatedGridTrack } from "./ui-grid";
 import type { TransformValue } from "./core";
 import { eulerOf } from "../3d/model";
 import { useVideoConfig } from "@raea/app/clock";
@@ -41,6 +42,12 @@ export interface NodeProps {
   /** the box its overflow clip clips to, grown by a margin (OverflowClipMargin.border_box().with_margin(25)) */
   overflow_clip_margin?: OverflowClipMargin;
   row_gap?: Val; column_gap?: Val;
+  /** the grid's tracks (display Grid): RepeatedGridTracks (RepeatedGridTrack.fr(3, 1)) or GridTracks */
+  grid_template_rows?: (RepeatedGridTrack | GridTrack)[]; grid_template_columns?: (RepeatedGridTrack | GridTrack)[];
+  /** the implicit tracks' sizes, and how items without a placement flow into them */
+  grid_auto_rows?: GridTrack[]; grid_auto_columns?: GridTrack[]; grid_auto_flow?: GridAutoFlow;
+  /** where a grid item sits: GridPlacement.start(2), .span(3), ... */
+  grid_row?: GridPlacement; grid_column?: GridPlacement;
   background_color?: Color;
   /** BackgroundGradient: gradients over the background colour, the first at the bottom, over the whole node */
   background_gradient?: Gradient[];
@@ -98,6 +105,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
   if (p.flex_grow !== undefined) s.flexGrow = p.flex_grow;
   if (p.flex_shrink !== undefined) s.flexShrink = p.flex_shrink;
   if (p.aspect_ratio !== undefined) s.aspectRatio = p.aspect_ratio;
+  gridCss(who, p, s);
   // every node a stacking context, so a ZIndex ranks it among its siblings above their parent, as bevy_ui stacks
   // them; a GlobalZIndex ranks it in the root's (raea's Blitz hoists it past every other, layout/paint_tree.rs)
   s.zIndex = p.global_z_index ?? p.z_index ?? 0;
@@ -180,8 +188,9 @@ export function Node({ children, fixed, ...p }: NodeProps) {
 
 /** bevy_text's TextFont, TextColor, TextLayout and LineHeight, on a Text or a TextSpan. */
 export interface TextStyleProps {
-  /** a font file (staticFile("fonts/FiraSans-Bold.ttf")); Bevy's default font when left out */
-  font?: string;
+  /** FontSource: a font file (staticFile("fonts/FiraSans-Bold.ttf")), FontSource.family(name) or a generic family
+   *  (FontSource.serif()); Bevy's default font when left out */
+  font?: FontSource;
   /** Bevy's FontSize: a number of px, or { Px }, { Rem } (of bevy_text's 20 px rem), { Vw }, { Vh }, { VMin }, { VMax } */
   font_size?: number | { Px: number } | { Rem: number } | { Vw: number } | { Vh: number } | { VMin: number } | { VMax: number };
   /** FontWeight: 100 to 900 (400 by default) */
@@ -251,7 +260,6 @@ function runOf(who: string, r: TextRunProps, back: Backdrop | undefined, text: R
   return <span style={outer}>{struck ? <span style={line("line-through", sc)}>{text}</span> : text}</span>;
 }
 
-const familyOf = (font: string) => `raea-font-${font.replace(/[^A-Za-z0-9]/g, "-")}`;
 
 function sizeCss(who: string, f: TextStyleProps["font_size"]): string {
   if (f === undefined) return "20px";
@@ -269,8 +277,7 @@ function checkSize(who: string, n: number) {
 /** A text style's CSS (every field Bevy's default when left out: a span takes nothing from its Text), and the
  *  @font-face its font needs. */
 export function textCss(who: string, p: TextStyleProps, back?: Backdrop): { css: CSSProperties; face: string } {
-  const family = p.font === undefined ? BEVY_FONT_FAMILY : familyOf(p.font);
-  if (p.font !== undefined && (typeof p.font !== "string" || p.font === "")) throw new TypeError(`${who}: font is a font file (staticFile("fonts/x.ttf")), got ${JSON.stringify(p.font)}`);
+  const { family, face } = fontCss(who, p.font);
   if (p.weight !== undefined && !(Number.isInteger(p.weight) && p.weight >= 1 && p.weight <= 1000)) throw new RangeError(`${who}: weight is 1 to 1000, got ${p.weight}`);
   const lh = p.line_height;
   let lineHeight: string | number = 1.2;
@@ -280,7 +287,7 @@ export function textCss(who: string, p: TextStyleProps, back?: Backdrop): { css:
     else throw new TypeError(`${who}: line_height is { Px } or { RelativeToFont }, got ${JSON.stringify(lh)}`);
   }
   const css: CSSProperties = {
-    fontFamily: `"${family}"`,
+    fontFamily: family,
     fontSize: sizeCss(who, p.font_size),
     fontWeight: p.weight ?? 400,
     fontStyle: (p.style ?? "Normal").toLowerCase(),
@@ -296,7 +303,6 @@ export function textCss(who: string, p: TextStyleProps, back?: Backdrop): { css:
     if (!((k === "Px" || k === "Rem") && Number.isFinite(v))) throw new TypeError(`${who}: letter_spacing is { Px } or { Rem }, got ${JSON.stringify(ls)}`);
     css.letterSpacing = `${k === "Px" ? v : (v as number) * 20}px`;
   }
-  const face = p.font === undefined ? bevyFontFace() : `@font-face { font-family: "${family}"; src: url("${p.font}"); font-weight: 1 1000; }`;
   return { css, face };
 }
 

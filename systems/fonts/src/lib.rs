@@ -4,6 +4,8 @@
 
 /// Google Fonts families a page names, fetched once into raea's cache
 pub mod google;
+/// fontique's own generic families under names of their own, for bevy_ui's generic FontSources
+pub mod bevy_generics;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -53,6 +55,7 @@ fn build(dir: &Path) -> (FontContext, Own) {
         .into_iter()
         .map(|g| (g, cx.collection.generic_families(g).collect()))
         .collect();
+    bevy_generics::register(&mut cx);
     let index: HashMap<String, (String, f32, bool)> = std::fs::read(dir.join("index.json"))
         .ok()
         .and_then(|b| serde_json::from_slice::<Vec<Value>>(&b).ok())

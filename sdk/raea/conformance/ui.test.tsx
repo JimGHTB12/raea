@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { AngularColorStop, UiRect as GradRect, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { AngularColorStop, UiRect as GradRect, FontSource, GridPlacement, GridTrack, RepeatedGridTrack, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { Canvas3D } from "raea/3d";
 import { renderFrame } from "../src/test";
@@ -231,6 +231,21 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     expect(out).toContain("background-clip:padding-box, border-box");
     expect(html(<Node border={GradRect.all(px(0))} background_gradient={own} border_gradient={g} />)).not.toContain("background-clip");
     expect(() => html(<Node border={GradRect.all(px(4))} background_gradient={[LinearGradient.to_top([ColorStop.auto(new Srgba(1, 0, 0, 0.5))])]} border_gradient={g} />)).toThrow(/translucent background_gradient/);
+  });
+  test("a grid's tracks and placements are CSS's: Bevy's fr is CSS's, its flex minmax(0, fr), repeats and spans kept", () => {
+    const out = html(<Node display="Grid" grid_template_columns={[RepeatedGridTrack.fr(3, 1), GridTrack.px(40), RepeatedGridTrack.flex("AutoFill", 2)]} grid_template_rows={[GridTrack.minmax({ Px: 10 }, "MaxContent"), GridTrack.fit_content_px(50), GridTrack.rem(2)]} grid_auto_flow="ColumnDense" />);
+    expect(out).toContain("grid-template-columns:repeat(3, 1fr) 40px repeat(auto-fill, minmax(0px, 2fr))");
+    expect(out).toContain("grid-template-rows:minmax(10px, max-content) fit-content(50px) 40px");
+    expect(out).toContain("grid-auto-flow:column dense");
+    expect(html(<Node grid_column={GridPlacement.span(3)} grid_row={GridPlacement.end_span(-1, 2)} />)).toMatch(/grid-column:span 3;.*grid-row:span 2 \/ -1|grid-row:span 2 \/ -1;.*grid-column:span 3/);
+    expect(html(<Node grid_column={GridPlacement.start(2)} />)).toContain("grid-column:2 / auto");
+    expect(() => html(<Node grid_column={{ start: 1, end: 3, span: 2 }} />)).toThrow(/at most two/);
+  });
+  test("a Text's FontSource: a file as its own face, a family by name, a generic family as CSS's", () => {
+    expect(html(<Text font={FontSource.fantasy()}>a</Text>)).toContain("font-family:&quot;raea-bevy fantasy&quot;, fantasy");
+    expect(html(<Text font={FontSource.family("Times")}>a</Text>)).toContain("font-family:&quot;Times&quot;");
+    expect(html(<Text font={FontSource.ui_rounded()}>a</Text>)).toContain("font-family:&quot;raea-bevy ui-rounded&quot;, ui-rounded");
+    expect(() => html(<Text font={{ Generic: "Gothic" } as never}>a</Text>)).toThrow(/FontSource/);
   });
   test("BorderColor takes a colour per side", () => {
     const out = html(<Node border={UiRect.all(px(2))} border_color={{ top: new Srgba(1, 0, 0), right: new Srgba(0, 0, 1), bottom: new Srgba(1, 1, 0), left: new Srgba(0, 1, 0) }} />);

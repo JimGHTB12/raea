@@ -41,6 +41,9 @@ export const UiRect = {
   right: (v: Val): UiRect => ({ left: Z, right: v, top: Z, bottom: Z }),
   top: (v: Val): UiRect => ({ left: Z, right: Z, top: v, bottom: Z }),
   bottom: (v: Val): UiRect => ({ left: Z, right: Z, top: Z, bottom: v }),
+  /** every side auto (UiRect::AUTO: a margin that centres) */
+  AUTO: { left: "auto", right: "auto", top: "auto", bottom: "auto" } as UiRect,
+  ZERO: { left: Z, right: Z, top: Z, bottom: Z } as UiRect,
 };
 
 /** A UiRect as CSS's four values (top right bottom left). */
