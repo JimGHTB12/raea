@@ -1,6 +1,7 @@
 // Images, media, style, iframe, canvas and SVG elements, and the tag-to-class table that makes elements.
 import * as wire from "../wire";
 import { canvasClass } from "../canvas";
+import { outline, pointAtLength, totalLength } from "./svg-length";
 import { DocumentFragment_, Element_, Event_, HTMLAnchorElement_, HTMLButtonElement_, HTMLDivElement_, HTMLElement_, HTMLFormElement_, HTMLInputElement_, HTMLLIElement_, HTMLLabelElement_, HTMLOptionElement_, HTMLSelectElement_, HTMLSpanElement_, HTMLTextAreaElement_, HTMLUListElement_, MediaNews, Node_, S, SVG_NS, SVG_TAGS, Text_, byWid, dispatchDirect, focusTo, g, pageUrl, transition } from "./all";
 
 export class HTMLImageElement_ extends HTMLElement_ {
@@ -137,6 +138,24 @@ export class SVGElement_ extends Element_ {
 
 export class SVGSVGElement_ extends SVGElement_ {}
 
+/** path, line, polyline, polygon, circle, ellipse and rect: their outline's length and a point along it (#16) */
+export class SVGGeometryElement_ extends SVGElement_ {
+  private _outline() {
+    const num = (n: string) => parseFloat(this.getAttribute(n) ?? "") || 0;
+    return outline(this.localName, num, () => this.getAttribute("d") ?? "", () => this.getAttribute("points") ?? "") ?? [];
+  }
+  getTotalLength(): number {
+    return totalLength(this._outline());
+  }
+  getPointAtLength(at: number) {
+    const [x, y] = pointAtLength(this._outline(), Number(at) || 0);
+    const P = g.DOMPoint;
+    return P ? new P(x, y) : { x, y, z: 0, w: 1 };
+  }
+}
+
+const GEOMETRY_TAGS = new Set(["path", "line", "polyline", "polygon", "circle", "ellipse", "rect"]);
+
 const TAG_CLASS: Record<string, typeof HTMLElement_> = {
   input: HTMLInputElement_,
   textarea: HTMLTextAreaElement_,
@@ -182,7 +201,7 @@ for (const [name, tags] of Object.entries(PLAIN)) {
 
 export function makeElement(tag: string, ns?: string): Element_ {
   const svg = ns === SVG_NS || (ns === undefined && SVG_TAGS.has(tag) && tag !== "text" && tag !== "image" && tag !== "title");
-  if (svg) return tag === "svg" ? new SVGSVGElement_(tag, SVG_NS) : new SVGElement_(tag, SVG_NS);
+  if (svg) return tag === "svg" ? new SVGSVGElement_(tag, SVG_NS) : GEOMETRY_TAGS.has(tag) ? new SVGGeometryElement_(tag, SVG_NS) : new SVGElement_(tag, SVG_NS);
   const C = TAG_CLASS[tag.toLowerCase()] ?? HTMLElement_;
   return new C(tag);
 }
