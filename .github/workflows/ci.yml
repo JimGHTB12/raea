@@ -71,6 +71,9 @@ jobs:
         run: cargo shear --color never --deny-warnings
       - name: tasks
         run: bash tools/rask.sh check
+      - name: sdk packages
+        # sdk-coverage reads csstype and @types/react from them; node_modules aren't in git
+        run: cd sdk/raea && bun install --frozen-lockfile
       - name: sdk coverage
         run: bash tools/sdk-coverage --check
       - name: sdk props
