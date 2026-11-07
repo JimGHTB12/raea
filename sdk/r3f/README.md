@@ -31,8 +31,9 @@ loadShapes(await import("./raea_shape_web.js")); // solids, Text3D: from the rel
 Its camera, tone mapping (raea's default, TonyMcMapface, drawn with Bevy's own table), fog, environment and effects
 become the canvas's. Without React, `Scene3d` (`@raea/r3f/three`) draws a raea page into any three.js scene.
 
-The shape module, `raea_shape_web.js` and `raea_shape_web_bg.wasm`, is attached to each GitHub release from 0.1.0-canary.3
-(`https://github.com/shinyobjectz/raea/releases/download/vVERSION/raea_shape_web.js`). Serve the two files with
+The shape module, `raea_shape_web.js` and `raea_shape_web_bg.wasm`, is attached to the GitHub releases: each engine
+release from 0.1.0-canary.3 (`vVERSION`) and a `web-SHA` pre-release for public commits between them
+(`https://github.com/shinyobjectz/raea/releases/download/TAG/raea_shape_web.js`). Serve the two files with
 your app: GitHub sends them as downloads, so a page can't import them from there.
 
 What only raea's engine draws (WESL and WGSL shaders, Bevy components and resources, volumetric fog) isn't three.js's

@@ -183,7 +183,8 @@ export function Audio(props: AudioProps) {
     const rate = props.playbackRate ?? 1;
     if (rate > 0 && (startFrom + Math.max(0, frame) * rate) / fps >= asset.seconds) return null;
   }
-  const attrs = useMediaAttrs("Audio", props, asset ? asset.src : (props.src as string));
+  const file = asset ? asset.src : (props.src as string);
+  const attrs = useMediaAttrs("Audio", { ...props, src: file }, file);
   if (attrs["data-ended"]) attrs["data-volume"] = 0;
   if (asset) {
     attrs["data-generate"] = asset.kind;

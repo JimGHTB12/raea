@@ -68,10 +68,11 @@ Feature: React Three Fiber both ways: an R3F scene drawn by raea, a raea composi
       Then engine/shape-web compiles core/shape to wasm (tools/shape-wasm.sh, 2.6 MB) and loadShapes() brings it in:
         the solid's own triangles, the same as raea's engine meshes
       And until it loads, a solid waits (it isn't drawn as something else)
-      And each public release from 0.1.0-canary.3 carries the module, so an app needn't build Rust:
-        tools/release-web.sh attaches raea_shape_web.js and raea_shape_web_bg.wasm (and raea-web's raea_web.js and
-        raea_web_bg.wasm, with SHA256SUMS) to the GitHub release, at
-        https://github.com/shinyobjectz/raea/releases/download/vVERSION/raea_shape_web.js. GitHub serves them as
+      And the public repository's releases carry the module, so an app needn't build Rust: tools/release-web.sh builds
+        raea_shape_web.js and raea_shape_web_bg.wasm (and raea-web's raea_web.js and raea_web_bg.wasm, with SHA256SUMS)
+        from a commit and attaches them to its GitHub release: each engine release from 0.1.0-canary.3 (tag vVERSION),
+        and a pre-release web-SHA for a public commit between them (SHA the public commit's short hash), at
+        https://github.com/shinyobjectz/raea/releases/download/TAG/raea_shape_web.js. GitHub serves them as
         downloads (no CORS), so an app serves the two files itself and calls loadShapes("/raea_shape_web.js"), or
         imports the glue and passes the module: loadShapes(await import("./raea_shape_web.js"))
 
