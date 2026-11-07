@@ -84,12 +84,41 @@ mod tests {
         for n in keep.iter().chain(&go) {
             std::fs::create_dir_all(dir.join(n)).unwrap();
         }
-        crate::cache::sweep_stale_work_in(&dir);
+        crate::cache::sweep_stale_work_in(&dir, std::time::SystemTime::now());
         let left: Vec<bool> = keep.iter().chain(&go).map(|n| dir.join(n).exists()).collect();
         drop(live.stdin.take());
         live.wait().unwrap();
         let _ = std::fs::remove_dir_all(&dir);
         assert_eq!(left, [true, true, true, false, false], "kept: {keep:?}, removed: {go:?}");
+    }
+
+    /// Two hours untouched removes a folder only when its render isn't known to run: a long render stops touching its
+    /// folder's top level well before it ends (#31)
+    #[test]
+    fn the_age_rule_spares_a_running_render() {
+        let dir = std::env::temp_dir().join(format!("raea-pid-age-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let mut live = child();
+        let mut ended = child();
+        drop(ended.stdin.take());
+        ended.wait().unwrap();
+        let names = [
+            format!("raea-cli-b{}", live.id()),
+            format!("raea-cli-r{}-ThreadId(2)", std::process::id()),
+            format!("raea-cli-b{}", ended.id()),
+            "raea-cli-bx".to_string(),
+        ];
+        for n in &names {
+            std::fs::create_dir_all(dir.join(n)).unwrap();
+        }
+        // three hours from now, every folder is two hours untouched
+        crate::cache::sweep_stale_work_in(&dir, std::time::SystemTime::now() + std::time::Duration::from_secs(3 * 3600));
+        let left: Vec<bool> = names.iter().map(|n| dir.join(n).exists()).collect();
+        drop(live.stdin.take());
+        live.wait().unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        // a running render's (another process's, and this one's) stay; an ended one's and one naming no process go
+        assert_eq!(left, [true, true, false, false], "{names:?}");
     }
 
     #[test]

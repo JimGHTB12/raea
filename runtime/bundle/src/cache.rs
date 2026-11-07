@@ -234,22 +234,27 @@ impl Drop for Gone {
 /// render's pictures run to 14 GB; four killed in eight minutes filled the disk, 10-24), else when nothing has touched
 /// them for two hours.
 pub fn sweep_stale_work() {
-    sweep_stale_work_in(&std::env::temp_dir());
+    sweep_stale_work_in(&std::env::temp_dir(), std::time::SystemTime::now());
 }
 
-pub(crate) fn sweep_stale_work_in(dir: &Path) {
+/// The sweep of DIR as it would run at NOW (a test passes a later NOW to age every folder)
+pub(crate) fn sweep_stale_work_in(dir: &Path, now: std::time::SystemTime) {
     let Ok(rd) = std::fs::read_dir(dir) else { return };
-    let now = std::time::SystemTime::now();
     for e in rd.flatten() {
         let name = e.file_name().to_string_lossy().into_owned();
         if !["raea-cli-r", "raea-cli-b"].iter().any(|p| name.starts_with(p)) {
             continue;
         }
         let old = e.metadata().and_then(|m| m.modified()).ok().and_then(|t| now.duration_since(t).ok()).is_some_and(|d| d.as_secs() > 2 * 3600);
-        // raea-cli-r{pid}-ThreadId(n), raea-cli-b{pid}: gone only when the system says no such process is left
+        // raea-cli-r{pid}-ThreadId(n), raea-cli-b{pid}: gone only when the system says no such process is left, running
+        // when it says it runs (this process's own folders too)
         let pid = name.get(10..).and_then(|s| s.split('-').next()).and_then(|p| p.parse::<u32>().ok());
-        let gone = pid.is_some_and(|p| p != std::process::id() && crate::pid::running(p) == Some(false));
-        if old || gone {
+        let running = pid.map(|p| if p == std::process::id() { Some(true) } else { crate::pid::running(p) });
+        let gone = running == Some(Some(false));
+        // the age rule is for a folder whose process isn't known to run: a long render stops touching its folder's top
+        // level well before it ends (#31), and a killed render's PID handed to another process keeps its folder
+        // until that one ends
+        if gone || (old && running != Some(Some(true))) {
             let _ = std::fs::remove_dir_all(e.path());
         }
     }
