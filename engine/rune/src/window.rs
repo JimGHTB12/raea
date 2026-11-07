@@ -69,12 +69,17 @@ pub fn run(bundle: String, title: &str, size: (f32, f32)) -> Result<(), String> 
     })?;
     // the window can shrink below Rune's default floor (420x400) when the app asks for less
     let min_size = Some((size.0.min(420.0), size.1.min(400.0)));
-    let spec = AppSpec { setup: Some(setup), poll: Some(poll), on_key: Some(on_key), min_size, ..AppSpec::new(Box::leak(title.to_string().into_boxed_str()), size, Page::default, view) };
+    // the app's faces, registered at the start (raea-rune-media's fonts: Rune takes them only then)
+    let fonts = raea_rune_media::fonts::registered();
+    let spec = AppSpec { setup: Some(setup), poll: Some(poll), on_key: Some(on_key), min_size, fonts, ..AppSpec::new(Box::leak(title.to_string().into_boxed_str()), size, Page::default, view) };
     App::new(spec).on_frame_drawn(drawn).run();
     BESIDE.with_borrow_mut(|b| b.error.take()).map_or(Ok(()), Err)
 }
 
-fn setup(_: &mut Page, w: Waker) {
+fn setup(page: &mut Page, w: Waker) {
+    // a window's media: a decode or a URL's fetch wakes it, and a video streams its URL (T3d)
+    page.images = crate::images::Images::new(w.clone());
+    page.videos.window = true;
     BESIDE.with_borrow_mut(|b| b.waker = Some(w));
 }
 
@@ -118,6 +123,7 @@ fn poll(page: &mut Page, t: f64, tx: &mut Tx) -> bool {
         page.outbox.push(Out::Layout(String::new()));
     }
     page.follow_field_focus(tx);
+    page.media_news();
     if page.ticking {
         let n = BESIDE.with_borrow(|b| b.frames);
         page.outbox.push(Out::Deliver(named("frame", json!(n)).to_string()));

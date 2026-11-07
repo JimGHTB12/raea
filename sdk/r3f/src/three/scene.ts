@@ -23,6 +23,8 @@ interface Kept {
   geometry?: THREE.BufferGeometry;
   material?: THREE.Material;
   model?: ModelPart;
+  /** a Model's copies past the first (its `at`), each a model of its own */
+  copies?: ModelPart[];
   /** a solid waiting for the shape module */
   waiting?: boolean;
 }
@@ -30,6 +32,9 @@ interface Kept {
 /** what raea's settings make of the renderer: apply() sets them */
 export interface Settings {
   toneMapping: THREE.ToneMapping;
+  /** raea's default, TonyMcMapface: three has no such curve, so the composer draws it (effects.ts); toneMapping is
+   * AgX, its nearest, for a renderer drawing without the composer */
+  tony: boolean;
   exposure: number;
   shadows: boolean;
   shadowMap: number;
@@ -59,7 +64,7 @@ function panorama(src: string, done: () => void): THREE.Texture {
 export class Scene3d {
   readonly scene = new THREE.Scene();
   camera: THREE.Camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
-  settings: Settings = { toneMapping: THREE.AgXToneMapping, exposure: 1, shadows: true, shadowMap: 2048 };
+  settings: Settings = { toneMapping: THREE.AgXToneMapping, tony: true, exposure: 1, shadows: true, shadowMap: 2048 };
   /** the frame effects on the page (Bloom, DepthOfField, Outline ...), each kind's props: the app's composer draws them */
   effects: { kind: string; props: Props }[] = [];
   /** whether the page drew any 3D at the last sync */
@@ -184,8 +189,20 @@ export class Scene3d {
         const own = [...el.querySelectorAll(":scope > [data-3d$='Material']")].map((m) => JSON.parse(m.getAttribute("data-props") ?? "{}") as Props);
         const re = el.closest("[data-3d='Refinish']");
         const outer = re ? ((JSON.parse(re.getAttribute("data-props") ?? "{}") as Props).materials as Props[]) : [];
-        k.model.set(p, this.seconds, [...own, ...outer]);
-        if (Array.isArray(p.at)) this.warnOnce("Model at", "copies are drawn as one model at the first placement");
+        const mats = [...own, ...outer];
+        // `at`: a copy for each 9 numbers (position, rotation, scale), the same model, clips and materials
+        const at = Array.isArray(p.at) ? (p.at as number[]) : [];
+        const n = Math.floor(at.length / 9);
+        const placed = (i: number): Props => ({ ...p, at: undefined, position: at.slice(i * 9, i * 9 + 3), rotation: at.slice(i * 9 + 3, i * 9 + 6), quaternion: undefined, scale: at.slice(i * 9 + 6, i * 9 + 9) });
+        k.model.set(n ? placed(0) : p, this.seconds, mats);
+        k.copies ??= [];
+        while (k.copies.length > Math.max(0, n - 1)) k.copies.pop()!.dispose();
+        while (k.copies.length < n - 1) {
+          const c = new ModelPart(p.src as string, () => this.onLoad());
+          this.parentOf(el).add(c.root);
+          k.copies.push(c);
+        }
+        k.copies.forEach((c, i) => c.set(placed(i + 1), this.seconds, mats));
         return k;
       }
       case "Refinish":
@@ -209,6 +226,7 @@ export class Scene3d {
       }
       case "ToneMapping":
         this.settings.toneMapping = TONE[(p.mode as string) ?? "tony"] ?? THREE.AgXToneMapping;
+        this.settings.tony = ((p.mode as string) ?? "tony") === "tony";
         this.settings.exposure = 2 ** ((p.exposure as number) ?? 0);
         return k;
       case "Shadows":
@@ -221,6 +239,8 @@ export class Scene3d {
       case "Environment": {
         const src = p.src as string;
         const t = panorama(src, () => this.onLoad());
+        // for the source export (../export): the panorama as raea gave it
+        this.scene.userData.raeaEnvironment = { src, intensity: (p.intensity as number) ?? 1, rotation: (p.rotation as number) ?? 0, background: !!p.background, backgroundIntensity: (p.backgroundIntensity as number) ?? (p.intensity as number) ?? 1 };
         const intensity = ((p.intensity as number) ?? 1) * 1000 * EXPOSURE;
         this.scene.environment = intensity > 0 ? t : null;
         this.scene.environmentIntensity = intensity;
@@ -328,10 +348,14 @@ export class Scene3d {
     if (k.obj instanceof THREE.DirectionalLight || k.obj instanceof THREE.SpotLight) k.obj.target.removeFromParent();
     if (k.obj instanceof THREE.Mesh) this.flats.delete(k.obj);
     k.model?.dispose();
+    for (const c of k.copies ?? []) c.dispose();
     k.geometry?.dispose();
     k.material?.dispose();
     if (k.kind === "Fog") this.scene.fog = null;
-    if (k.kind === "Environment") this.scene.environment = this.scene.background = null;
+    if (k.kind === "Environment") {
+      this.scene.environment = this.scene.background = null;
+      delete this.scene.userData.raeaEnvironment;
+    }
   }
 
   /** the camera (and the 2D cards in front of it) fitted to a drawing of this size in pixels */

@@ -9,7 +9,7 @@ import { KINDS } from "../src/three/kinds";
 import { DRAWN_EFFECTS } from "../src/three/effects";
 import { CLASSES } from "../src/input/kinds";
 import { Scene3d } from "../src/three/scene";
-import { parse } from "./dom";
+import { parse } from "../src/export/dom";
 import { standInImages } from "../src/input/texture";
 
 // no DOM here: pictures are stand-ins carrying their url, as in a native render
@@ -75,6 +75,15 @@ describe("raea → three.js coverage", () => {
     host.sync(parse(`<div data-3d="Bloom" data-props="${esc(JSON.stringify({ intensity: 0.3 }))}"></div><div data-3d="Fisheye" data-props="{}"></div>`) as unknown as Element);
     expect(host.effects.map((e) => e.kind)).toEqual(["Bloom", "Fisheye"]);
     expect(host.effects[0].props).toEqual({ intensity: 0.3 });
+  });
+
+  test("a Model's `at` draws a copy at each placement", () => {
+    const host = new Scene3d();
+    const at = [0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 0, 0, 0, 0, 0, 1, 1, 1, 4, 0, 0, 0, 0, 0, 1, 1, 1];
+    host.sync(parse(div("Model", { src: "x.glb", at })) as unknown as Element);
+    const roots: number[] = [];
+    host.scene.traverse((o) => o.type === "Group" && o.parent === host.scene && roots.push(o.position.x));
+    expect(roots.sort()).toEqual([0, 2, 4]);
   });
 
   test("every effect row is one the composer draws", () => {

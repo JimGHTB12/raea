@@ -33,6 +33,10 @@ struct Args {
     audio: Option<PathBuf>,
     /// the window's title and the app's name (the file's name when left out)
     title: Option<String>,
+    /// the app's folder (its .tsx's), which relative media and fonts resolve against (T3d)
+    base: Option<PathBuf>,
+    /// the CSS the app's bundle imported, whose @font-face rules register (T3d)
+    css: Option<PathBuf>,
 }
 
 enum Mode {
@@ -46,7 +50,7 @@ fn args() -> Result<Args, String> {
     let mut it = std::env::args().skip(1);
     let (mut app, mut script, mut out, mut size, mut settle) = (None, None, PathBuf::from("out"), (800, 600), 12);
     let (mut headless, mut bundle, mut app_out) = (false, false, None);
-    let (mut video, mut audio, mut title) = (None, None, None);
+    let (mut video, mut audio, mut title, mut base, mut css) = (None, None, None, None, None);
     while let Some(a) = it.next() {
         let mut val = || it.next().ok_or_else(|| format!("{a} needs a value"));
         match a.as_str() {
@@ -64,6 +68,8 @@ fn args() -> Result<Args, String> {
                 size = (w.parse().map_err(|_| "--size is WxH")?, h.parse().map_err(|_| "--size is WxH")?);
             }
             "--title" => title = Some(val()?),
+            "--base" => base = Some(PathBuf::from(val()?)),
+            "--css" => css = Some(PathBuf::from(val()?)),
             "--settle" => settle = val()?.parse().map_err(|_| "--settle is a number of frames")?,
             "-h" | "--help" => return Err(USAGE.into()),
             other => return Err(format!("{other}?\n{USAGE}")),
@@ -80,7 +86,7 @@ fn args() -> Result<Args, String> {
     } else {
         Mode::Window
     };
-    Ok(Args { app, script, out, size, settle, mode, video, audio, title })
+    Ok(Args { app, script, out, size, settle, mode, video, audio, title, base, css })
 }
 
 const USAGE: &str = "usage: raea-rune-host run app.js [--size 800x600] [--title T]\n       raea-rune-host bundle app.js [-o App.app] [--size 800x600] [--title T]\n       raea-rune-host --headless app.js [--script steps.json] [--png out/] [--size 800x600] [--settle 12] [--video OUT.mp4 [--audio FILE]]";
@@ -106,6 +112,10 @@ fn run() -> Result<(), String> {
         let src = std::fs::read_to_string(&js).map_err(|e| format!("{}: {e}", js.display()))?;
         let size = std::fs::read_to_string(js.with_file_name("size")).ok().and_then(|s| s.trim().split_once('x').and_then(|(w, h)| Some((w.parse().ok()?, h.parse().ok()?)))).unwrap_or((800.0, 600.0));
         let name = std::env::current_exe().ok().and_then(|e| e.file_name().map(|n| n.to_string_lossy().into_owned())).unwrap_or_default();
+        // the .app's own faces (macapp.rs wrote them with fonts.css) and its folder for media
+        let res = js.parent().unwrap_or(Path::new("."));
+        raea_rune_media::set_base(res);
+        raea_rune_media::fonts::register(raea_rune_media::fonts::gather(res, ""));
         return raea_rune_host::window::run(src, &name, size);
     }
     let a = args()?;
@@ -114,11 +124,25 @@ fn run() -> Result<(), String> {
         None => Vec::new(),
     };
     let src = script_of(&a.app);
+    // the app's folder and fonts, before Rune starts (T3d): Rune takes its faces only then
+    let base = match (&a.base, a.app.parent()) {
+        (Some(b), _) => b.clone(),
+        (None, dir) => dir.unwrap_or(Path::new(".")).to_path_buf(),
+    };
+    raea_rune_media::set_base(&base);
+    let css = match &a.css {
+        Some(c) => std::fs::read_to_string(c).map_err(|e| format!("--css {}: {e}", c.display()))?,
+        None => String::new(),
+    };
+    let fonts = raea_rune_media::fonts::gather(&base, &format!("{}\n{css}", src.as_deref().unwrap_or("")));
     let title = a.title.clone().unwrap_or_else(|| a.app.file_stem().map_or("app".into(), |s| s.to_string_lossy().into_owned()));
     match &a.mode {
-        Mode::Window => return raea_rune_host::window::run(src?, &title, (a.size.0 as f32, a.size.1 as f32)),
+        Mode::Window => {
+            raea_rune_media::fonts::register(fonts);
+            return raea_rune_host::window::run(src?, &title, (a.size.0 as f32, a.size.1 as f32));
+        }
         Mode::Bundle(out) => {
-            for line in raea_rune_host::macapp::make(&src?, &title, a.size, out)? {
+            for line in raea_rune_host::macapp::make(&src?, &title, a.size, out, &fonts.faces)? {
                 println!("{line}");
             }
             println!("{}", out.display());
@@ -126,6 +150,7 @@ fn run() -> Result<(), String> {
         }
         Mode::Headless => {}
     }
+    raea_rune_media::fonts::register(fonts);
     std::fs::create_dir_all(&a.out).map_err(|e| format!("{}: {e}", a.out.display()))?;
     let mut app = App::new(&src?, (a.size.0 as f32, a.size.1 as f32))?;
     let film = a.video.as_deref().map(|v| raea_rune_host::video::start(&mut app.session, v, a.size, a.audio.as_deref())).transpose()?;

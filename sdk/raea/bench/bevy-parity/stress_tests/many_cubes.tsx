@@ -4,7 +4,7 @@
 // a camera at the centre turning 0.15 rad a frame-second about Z then X, an inside-out white box around it all and
 // Bevy's default DirectionalLight (10 000 lux) facing (0, -1, -1). Frame n here is the example's update n.
 import { Composition, registerRoot, useCurrentFrame } from "raea";
-import { Canvas3D } from "raea/3d";
+
 import { Transform, Quat } from "raea/transform";
 import { Camera3d } from "raea/camera";
 import { Cuboid, Mesh3d } from "raea/mesh";
@@ -32,7 +32,7 @@ function Shot() {
   let q = Quat.IDENTITY;
   for (let k = 0; k <= f; k++) q = Quat.mul(step, q);
   return (
-    <Canvas3D>
+    <>
       <Camera3d transform={{ translation: [0, 0, 0], rotation: q }} />
       <DirectionalLight transform={Transform.fromXyz(0, 0, 0).lookingAt([0, -1, -1])} />
       {places.map((p, i) => (
@@ -45,7 +45,7 @@ function Shot() {
         <Cuboid half_size={[RADIUS * 1.1, RADIUS * 1.1, RADIUS * 1.1]} />
         <StandardMaterial base_color="#ffffff" />
       </Mesh3d>
-    </Canvas3D>
+    </>
   );
 }
 

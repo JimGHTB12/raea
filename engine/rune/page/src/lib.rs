@@ -2,11 +2,11 @@
 //! view as Rune elements (raea-rune-style's props), the session that lays it out on Rune's virtual clock, and input and
 //! events back to the app.
 
+pub use raea_rune_media::images;
 pub use raea_rune_style::{css, motion, report, runeprops, tailwind, variants};
 
 pub mod dump;
 pub mod events;
-pub mod images;
 pub mod input;
 pub mod kit;
 pub mod layout;

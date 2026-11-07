@@ -56,14 +56,20 @@ pub fn host(args: &[String]) -> Result<String, String> {
     let host = bin()?;
     let work = std::env::temp_dir().join(format!("raea-rune-app-{}", std::process::id()));
     let mut handed = Vec::with_capacity(args.len());
+    let mut extra = Vec::new();
     for a in args {
         let p = Path::new(a);
         if p.extension().is_some_and(|x| x == "tsx" || x == "ts" || x == "jsx") && p.is_file() {
             std::fs::create_dir_all(&work).map_err(|e| format!("{}: {e}", work.display()))?;
-            let (js, _css) = raea_runtime_bundle::inproc::app::bundle(p, &raea_io_home::home())?;
+            let (js, css) = raea_runtime_bundle::inproc::app::bundle(p, &raea_io_home::home())?;
             let script = work.join(format!("{}.js", p.file_stem().unwrap_or_default().to_string_lossy()));
             std::fs::write(&script, js).map_err(|e| format!("{}: {e}", script.display()))?;
             handed.push(script.display().to_string());
+            // the app's folder (relative media and fonts) and the CSS it imported (its @font-face rules), T3d
+            let sheet = script.with_extension("css");
+            std::fs::write(&sheet, css).map_err(|e| format!("{}: {e}", sheet.display()))?;
+            let dir = p.canonicalize().ok().and_then(|c| c.parent().map(Path::to_path_buf)).unwrap_or_default();
+            extra.extend(["--base".to_string(), dir.display().to_string(), "--css".to_string(), sheet.display().to_string()]);
         } else {
             handed.push(a.clone());
         }
@@ -73,7 +79,7 @@ pub fn host(args: &[String]) -> Result<String, String> {
     if std::env::var_os("RAEA_BIN").is_none() && let Ok(me) = std::env::current_exe() {
         cmd.env("RAEA_BIN", me);
     }
-    let status = cmd.args(&handed).status().map_err(|e| format!("{}: {e}", host.display()));
+    let status = cmd.args(&handed).args(&extra).status().map_err(|e| format!("{}: {e}", host.display()));
     let _ = std::fs::remove_dir_all(&work);
     let status = status?;
     status.success().then(String::new).ok_or(format!("{HOST} exited with {status}"))

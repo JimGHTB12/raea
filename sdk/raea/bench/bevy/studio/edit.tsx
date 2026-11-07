@@ -7,11 +7,12 @@
 // https://polyhaven.com/a/studio_small_09 (dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_09_1k.hdr),
 // CC0 1.0, downloaded 2026-10-19.
 import { AbsoluteFill, Composition, interpolate, registerRoot, staticFile, useCurrentFrame } from "raea";
-import { AmbientOcclusion, Cylinder, DirectionalLight, Environment, Shadows, ToneMapping, manifold, Entity } from "raea/3d";
+import { AmbientOcclusion, Cylinder, Environment, Shadows, ToneMapping, manifold, Entity } from "raea/3d";
 import { StandardMaterial } from "raea/pbr";
 import { Cuboid, Mesh3d } from "raea/mesh";
 import { Quat, Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
+import { DirectionalLight } from "raea/light";
 
 const SOFT = true; // fx:soft
 const BANANA = manifold.sphere(1).smooth({ refine: 4 }).scale(1.1, 0.27, 0.27).refineToLength(0.05).warp((x, y, z) => {
@@ -30,7 +31,7 @@ function Studio() {
         <Camera3d transform={Transform.fromXyz(0, 1.6, 5.2).lookingAt([0, 0.45, 0])} projection={{ Perspective: { fov: 0.558505360638185 } }} />
         <ToneMapping mode="none" exposure={-2.55} />
         <Shadows bias={0.2} distance={30} mapSize={4096} />
-        <DirectionalLight position={[-3, 6, 3]} intensity={2.2} softShadow={SOFT ? 10 : false} />
+        <DirectionalLight transform={Transform.fromXyz(-3, 6, 3).lookingAt([0, 0, 0])} illuminance={2.2 * 8000} shadow_maps_enabled {...(SOFT ? { soft_shadow_size: 10 } : {})} />
         <Environment src={staticFile("studio_small_09_1k.hdr")} intensity={interpolate(f, [9, 20], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} rotation={0.6} />{/* fx:env */}
         <AmbientOcclusion quality="high" thickness={0.15} />{/* fx:ao */}
         <Mesh3d transform={Transform.fromXyz(0, -0.05, 0)} name="floor"><Cuboid half_size={[100, 0.05, 100]} /><StandardMaterial base_color="#f7f7f5" perceptual_roughness={1} reflectance={0} /></Mesh3d>

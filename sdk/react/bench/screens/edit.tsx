@@ -6,16 +6,19 @@
 //   2  a blue page behind a see-through one carrying a white card on its left half, no tone curve
 //   3  frame 2 with DepthOfField focused on the screens
 import { AbsoluteFill, Composition, registerRoot, useCurrentFrame } from "raea";
-import { DepthOfField, PerspectiveCamera, Screen, ToneMapping } from "raea/3d";
+import { DepthOfField, Screen, ToneMapping } from "raea/3d";
+import { Camera3d } from "raea/camera";
+import { Transform } from "raea/transform";
 
 function Scene() {
   const f = useCurrentFrame();
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <>
-        <PerspectiveCamera position={[0, 0, 4]} lookAt={[0, 0, 0]} fov={40} focus={4} />
+        <Camera3d transform={Transform.fromXyz(0, 0, 4).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: (40 * Math.PI) / 180 } }}>
+          {f === 3 && <DepthOfField focal_distance={4} aperture={2.8} />}
+        </Camera3d>
         {f !== 1 && <ToneMapping mode="none" />}
-        {f === 3 && <DepthOfField aperture={2.8} />}
         {f <= 1 ? (
           <Screen name="red" crt={false} resolution={[640, 360]} size={[2]} background="#ffffff">
             <AbsoluteFill style={{ background: "#ff3030", color: "#fff", fontSize: 80, padding: 20 }}>hello</AbsoluteFill>

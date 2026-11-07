@@ -36,6 +36,7 @@ members = [
     "engine/page/host",
     "engine/rune",
     "engine/rune/page",
+    "engine/rune/media",
     "engine/rune/style",
     "engine/page/stage",
     "engine/page/window",

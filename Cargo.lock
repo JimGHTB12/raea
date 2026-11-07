@@ -14427,6 +14427,7 @@ dependencies = [
  "raea-core-wire",
  "raea-io-net-calls",
  "raea-io-os",
+ "raea-rune-media",
  "raea-rune-page",
  "raea-runtime-bundle-lib",
  "raea-runtime-jsengine",
@@ -14436,11 +14437,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-rune-media"
+version = "0.1.0"
+dependencies = [
+ "raea-io-net",
+ "raea-rune-style",
+ "rune",
+ "serde_json",
+ "ttf-parser",
+ "wuff",
+]
+
+[[package]]
 name = "raea-rune-page"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
  "raea-core-wire",
+ "raea-rune-media",
  "raea-rune-style",
  "rune",
  "rune-kit",

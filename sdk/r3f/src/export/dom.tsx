@@ -1,4 +1,4 @@
-// Just enough DOM for the three.js host in a test: raea's components rendered to HTML (react-dom/server) and parsed
+// Just enough DOM for the three.js host outside a browser (the source export, the tests): raea's components rendered to HTML (react-dom/server) and parsed
 // into elements Scene3d reads (querySelectorAll, closest, children, attributes, inline style).
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -83,4 +83,32 @@ export function page(node: ReactNode, frame = 0, size: [number, number] = [640, 
     </Clock>,
   );
   return parse(html);
+}
+
+/** `fresh` laid over `old`, keeping old's elements where fresh has the same one (the same tag, and for a raea part the
+ * same kind and name, the nth such among its siblings): a host keeps its object for each kept element, as a browser's
+ * page keeps its nodes from frame to frame. Returns the tree to read. */
+export function reconcile(old: El, fresh: El): El {
+  const key = (e: El) => `${e.tagName}|${e.getAttribute("data-3d") ?? ""}|${nameOf(e)}`;
+  const pool = new Map<string, El[]>();
+  for (const k of old.kids) pool.set(key(k), [...(pool.get(key(k)) ?? []), k]);
+  old.attrs = fresh.attrs;
+  old.style = fresh.style;
+  old.kids = fresh.kids.map((f) => {
+    const had = pool.get(key(f))?.shift();
+    const e = had ? reconcile(had, f) : f;
+    e.parentElement = old.tagName === "root" ? null : old;
+    return e;
+  });
+  return old;
+}
+
+function nameOf(e: El): string {
+  const p = e.getAttribute("data-props");
+  if (!p || !p.includes('"name"')) return "";
+  try {
+    return String((JSON.parse(p) as { name?: unknown }).name ?? "");
+  } catch {
+    return "";
+  }
 }

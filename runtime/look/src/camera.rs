@@ -3,6 +3,9 @@
 use super::*;
 
 /// The camera row's 3D columns: where it is and looks (keyed), its lens, the ambient light, the post-processing.
+/// A frame without depth of field: an f-stop so large no circle of confusion reaches a pixel
+pub const NO_DOF: f64 = 1.0e6;
+
 pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>) {
     let cams: Vec<Option<Item>> = all.iter().map(|its| its.iter().find(|i| i.kind == "camera").cloned()).collect();
     let id = "cam";
@@ -128,7 +131,9 @@ pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>)
         }
     }
     if let Some(d) = first("dof") {
-        row.insert("dof_aperture".into(), V::N(n(&d, "aperture", 2.8)));
+        // keyed: a frame without a <DepthOfField> draws sharp (an f-stop past any blur), not the shot's first one
+        let ap: Vec<f64> = all.iter().map(|its| its.iter().find(|i| i.kind == "dof").map_or(NO_DOF, |i| n(&i.props, "aperture", 2.8))).collect();
+        column(p, row, "cam", "dof_aperture", &ap);
         row.insert("dof_max".into(), V::N(n(&d, "maxBlur", 64.0)));
         if d.get("mode").and_then(Value::as_str) == Some("gaussian") {
             row.insert("dof_mode".into(), V::S("gaussian".into()));

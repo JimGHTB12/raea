@@ -5,7 +5,8 @@
 // probe: 12 32 r>200 g<60
 // probe: 32 8 r<60
 import { AbsoluteFill, Composition, registerRoot } from "raea";
-import { Canvas3D, OrthographicCamera } from "raea/3d";
+import { Canvas3D } from "raea/3d";
+import { Camera3d } from "raea/camera";
 import { StandardMaterial } from "raea/pbr";
 import { Transform } from "raea/transform";
 import { Cuboid, Mesh3d } from "raea/mesh";
@@ -14,7 +15,7 @@ function Shot() {
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <Canvas3D layered>
-        <OrthographicCamera position={[0, 0, 10]} lookAt={[0, 0, 0]} height={4} />
+        <Camera3d transform={Transform.fromXyz(0, 0, 10).lookingAt([0, 0, 0])} projection={{ Orthographic: { scaling_mode: { FixedVertical: { viewport_height: 4 } } } }} />
         <Mesh3d transform={Transform.fromXyz(-1, 0, 0)} name="near"><Cuboid half_size={[0.5, 0.5, 0.5]} /><StandardMaterial base_color="#ff0000" unlit /></Mesh3d>
         <Mesh3d transform={Transform.fromXyz(1, 0, -6)} name="far"><Cuboid half_size={[0.5, 0.5, 0.5]} /><StandardMaterial base_color="#ff0000" unlit /></Mesh3d>
       </Canvas3D>

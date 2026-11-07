@@ -28,6 +28,8 @@ impl Shooter {
         let (w, h) = (self.target.width, self.target.height);
         self.renderer.upload_images(&self.gpu.device, &self.gpu.queue, &mut rt.images);
         self.renderer.prepare(&self.gpu.device, &self.gpu.queue, &mut rt.text.atlas, &rt.instances, (w, h));
+        // native surfaces: a <video>'s frame at the virtual clock (T3d)
+        self.renderer.prepare_surfaces(&self.gpu.device, &self.gpu.queue, &rt.surfaces, (w, h));
         let mut enc = self.gpu.device.create_command_encoder(&Default::default());
         // a browser's canvas: white under a page that paints nothing there (Chrome is R5's reference)
         self.renderer.draw(&mut enc, &self.target.view, [1.0, 1.0, 1.0, 1.0]);

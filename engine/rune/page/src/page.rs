@@ -25,6 +25,8 @@ pub enum Out {
 pub struct Page {
     pub tree: Tree,
     pub images: Images,
+    /// each drawn `<video>`'s player (T3d)
+    pub videos: raea_rune_media::video::Videos,
     pub report: RefCell<Report>,
     /// each text field's edit, by wire id, its text kept equal to the field's `value` prop
     pub edits: HashMap<u64, TextEdit>,
@@ -93,6 +95,21 @@ impl Page {
     pub fn take_out(&mut self) -> Vec<Out> {
         std::mem::take(&mut self.outbox)
     }
+
+    /// After a frame: what @raea/ui hears of the page's images and videos since the last (`media`: load, error,
+    /// loadedmetadata, loadeddata, seeked, ended), and the start's font notes in the report (T3d).
+    pub fn media_news(&mut self) {
+        let mut news = self.images.news_out();
+        news.extend(self.videos.news());
+        for (id, mut v) in news {
+            v["id"] = id.into();
+            self.outbox.push(Out::Deliver(raea_core_wire::named("media", v).to_string()));
+        }
+        let mut r = self.report.borrow_mut();
+        for (what, why) in raea_rune_media::fonts::notes() {
+            r.note("/", "font", what, why);
+        }
+    }
 }
 
 /// Rune's view of the page.
@@ -100,12 +117,15 @@ pub fn view(p: &Page, cx: &mut Cx<Page>) -> El {
     let mut report = p.report.borrow_mut();
     let mut boxes = p.boxes.borrow_mut();
     let live = p.live(cx.system_dark());
-    crate::view::build(&p.tree, &mut Ctx { report: &mut report, images: &p.images, edits: &p.edits, boxes: &mut boxes, measure: &p.measure, marks: 0, live })
+    p.images.unsee();
+    p.videos.unsee();
+    crate::view::build(&p.tree, &mut Ctx { report: &mut report, images: &p.images, videos: &p.videos, edits: &p.edits, boxes: &mut boxes, measure: &p.measure, marks: 0, live })
 }
 
-/// A headless Rune runtime for `page` at `viewport` points, with Rune's text (Inter, embedded) so text has its size.
+/// A headless Rune runtime for `page` at `viewport` points, with Rune's text (Inter, embedded) so text has its size,
+/// and the app's faces (raea-rune-media's fonts, registered at the start).
 pub fn headless(mut page: Page, viewport: (f32, f32)) -> Runtime<Page> {
     page.viewport = viewport;
-    let text = rune::text::TextSystem::new(&[], ("Inter", "Inter"));
+    let text = rune::text::TextSystem::new(raea_rune_media::fonts::registered(), ("Inter", "Inter"));
     Runtime::with_text(page, view, viewport, Env::new(false, 1.0), text)
 }

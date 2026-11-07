@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 
-use rune::{Color, El, Family, ScrollSpec, Shadow, Spring, TextEdit, TextStyle, Transition, col, el, row, text};
+use rune::{Color, El, ScrollSpec, Shadow, Spring, TextEdit, TextStyle, Transition, col, el, row, text};
 use serde_json::{Map, Value};
 
 use crate::css::{self, Align, Css, Display, Len, Overflow};
@@ -48,6 +48,7 @@ pub fn key(id: u64) -> String {
 pub struct Ctx<'a> {
     pub report: &'a mut Report,
     pub images: &'a Images,
+    pub videos: &'a raea_rune_media::video::Videos,
     /// the page's text fields' edits, by wire id
     pub edits: &'a HashMap<u64, TextEdit>,
     /// each element's padding and border widths as mapped (l t r b, l t r b): the layout snapshot's
@@ -84,7 +85,7 @@ fn kids(tree: &Tree, n: &Node, inh: &Inherit, path: &str, cx: &mut Ctx) -> Vec<E
 /// The display a tag has when its style doesn't say (Chrome's defaults, as preflight leaves them).
 fn default_display(kind: &str) -> Display {
     match kind {
-        "span" | "a" | "b" | "i" | "em" | "strong" | "label" | "code" | "small" | "button" | "editableText" | "img" | "text" => Display::Inline,
+        "span" | "a" | "b" | "i" | "em" | "strong" | "label" | "code" | "small" | "button" | "editableText" | "img" | "video" | "text" => Display::Inline,
         _ => Display::Block,
     }
 }
@@ -131,10 +132,16 @@ fn node(tree: &Tree, id: u64, n: &Node, inh: &Inherit, path: &str, cx: &mut Ctx)
     if display == Display::None {
         return None;
     }
+    if n.kind == "style" {
+        let css: String = n.children.iter().filter_map(|k| tree.get(*k)?.text.clone()).collect();
+        raea_rune_media::view::sheet(&css, path, cx.report);
+        return None;
+    }
+    raea_rune_media::view::check_family(c.font_family.as_deref(), path, cx.report);
     let mut inh = inherit(inh, &c);
     // a new strut where a block (or a flex item, or a button or field: inline-blocks) holds the lines; inline elements
     // keep their block's
-    if display != Display::Inline || inh.flex_parent || matches!(n.kind.as_str(), "button" | "editableText" | "img") {
+    if display != Display::Inline || inh.flex_parent || matches!(n.kind.as_str(), "button" | "editableText" | "img" | "video") {
         inh.strut = line_px(&inh);
     }
     inh.flex_parent = display == Display::Flex;
@@ -151,7 +158,8 @@ fn node(tree: &Tree, id: u64, n: &Node, inh: &Inherit, path: &str, cx: &mut Ctx)
     } else {
         match (n.kind.as_str(), display) {
         ("editableText", _) => field(id, n, &inh, cx),
-        ("img", _) => img(n, path, cx),
+        ("img", _) => raea_rune_media::view::img(id, &n.props, c.fit, path, cx.images, cx.report),
+        ("video", _) => raea_rune_media::view::video(&n.props, (id, c.fit), path, cx.videos, cx.report),
         ("button", _) => row().items_center().justify_center().children(kids(tree, n, &inh, path, cx)),
         (_, Display::Flex) => {
             let b = if c.column == Some(true) { col() } else { row() };
@@ -212,20 +220,6 @@ fn block(tree: &Tree, n: &Node, inh: &Inherit, path: &str, cx: &mut Ctx) -> El {
     b.children(kids(tree, n, inh, path, cx))
 }
 
-/// An image: its pixels when its source loads (images.rs), sized by its style or its own aspect, else an empty box and
-/// a report.
-fn img(n: &Node, path: &str, cx: &mut Ctx) -> El {
-    let src = n.props.get("src").and_then(Value::as_str).unwrap_or("");
-    match cx.images.get(src) {
-        Ok(image) => el().pixels(image.pixels()),
-        Err(why) => {
-            cx.report.note(path, "img src", src, "an image source the host can't load");
-            let _ = why;
-            el()
-        }
-    }
-}
-
 /// A text field (R3 makes it editable): its value, or its placeholder at half the text's colour (preflight's).
 fn field(id: u64, n: &Node, inh: &Inherit, cx: &mut Ctx) -> El {
     let blank = TextEdit::new(n.props.get("value").and_then(Value::as_str).unwrap_or(""));
@@ -247,11 +241,7 @@ fn line_px(inh: &Inherit) -> f32 {
 fn text_style(inh: &Inherit) -> TextStyle {
     // each line at least the strut tall, as a line box is
     let line = line_px(inh).max(inh.strut);
-    let family = match inh.family {
-        None | Some("Inter") | Some("sans-serif") | Some("ui-sans-serif") | Some("system-ui") => Family::Sans,
-        Some("monospace") | Some("ui-monospace") => Family::Mono,
-        Some(f) => Family::Named(f),
-    };
+    let family = raea_rune_media::view::family(inh.family);
     TextStyle { family, line_height: line, tracking: inh.tracking, italic: inh.italic, ..TextStyle::new(inh.size, inh.weight) }
 }
 
@@ -316,7 +306,7 @@ fn intern(s: &str) -> &'static str {
 /// Props other than `style` that the host reads, and a report for the rest.
 fn props(n: &Node, path: &str, report: &mut Report) {
     for k in n.props.keys() {
-        let known = k == "style" || k == "className" || k.starts_with("data-") || k.starts_with("aria-") || matches!(k.as_str(), "role" | "id" | "tabIndex" | "value" | "placeholder" | "disabled" | "type" | "name" | "src" | "alt");
+        let known = k == "style" || k == "className" || k.starts_with("data-") || k.starts_with("aria-") || matches!(k.as_str(), "role" | "id" | "tabIndex" | "value" | "placeholder" | "disabled" | "type" | "name" | "src" | "alt" | "autoplay" | "autoPlay" | "loop" | "muted" | "playsInline" | "playsinline" | "__seek");
         if !known {
             report.add(path, css::Unmapped { prop: k.clone(), value: n.props[k].to_string(), why: "a prop the Rune host doesn't read" });
         }

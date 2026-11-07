@@ -11,5 +11,5 @@ rune.workspace = true
 rune-kit.workspace = true
 raea-core-wire = { path = "../../../core/wire" }
 raea-rune-style = { path = "../style" }
+raea-rune-media = { path = "../media" }
 serde_json = "1"
-base64 = "0.22"

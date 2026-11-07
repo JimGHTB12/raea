@@ -2,7 +2,7 @@
 // flat, a 1 m cube of srgb(124, 144, 255) on it, a shadow-casting PointLight at (4, 8, 4) with Bevy's default
 // 1 000 000 lm, and the camera at (-2.5, 4.5, 9) looking at the origin, in Bevy's default 1280 x 720 window.
 import { Composition, registerRoot } from "raea";
-import { BevyComponent, Canvas3D, Entity } from "raea/3d";
+import { BevyComponent, Entity } from "raea/3d";
 import { Transform, Quat, eulerOf } from "raea/transform";
 import { Camera3d } from "raea/camera";
 import { Cuboid, Mesh3d } from "raea/mesh";
@@ -11,7 +11,7 @@ import { PointLight } from "raea/light";
 
 function Shot() {
   return (
-    <Canvas3D>
+    <>
       {/* a Circle in 3D: raea's typed Circle only goes in a Mesh2d (conventions C15), so through reflection */}
       <Entity rotation={eulerOf(Quat.fromRotationX(-Math.PI / 2))}>
         <BevyComponent type="bevy_mesh::components::Mesh3d" value={{ primitive: "Circle", radius: 4 }} />
@@ -23,7 +23,7 @@ function Shot() {
       </Mesh3d>
       <PointLight shadow_maps_enabled transform={Transform.fromXyz(4, 8, 4)} />
       <Camera3d transform={Transform.fromXyz(-2.5, 4.5, 9).lookingAt([0, 0, 0])} />
-    </Canvas3D>
+    </>
   );
 }
 

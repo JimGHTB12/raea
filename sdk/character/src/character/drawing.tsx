@@ -1,9 +1,9 @@
 // Placement in the scene, and drawing a body: <Character>.
 import type { ReactNode } from "react";
-import { MeshPhysicalMaterial, MeshStandardMaterial, Model, type Vec3 } from "@raea/render/3d";
+import { Model, type Vec3 } from "@raea/render/3d";
 import { HAIR_LOOK, HAIR_WESL, type HairLook } from "./hair";
 import { SKIN_LOOK, SKIN_SURFACE, SKIN_WESL, type SkinLook, type SkinSurface } from "./skin";
-import { LinearRgba, Srgba, StandardMaterial } from "@raea/render/bevy3d";
+import { ExtendedMaterial, LinearRgba, ShaderExtension, Srgba, StandardMaterial } from "@raea/render/bevy3d";
 import type { Glitch } from "@raea/physics/physics";
 import { staticFile } from "@raea/video/media";
 import { Goals, Pose, Side, Skeleton, add, eulerXYZ, faceWeights, pose, qmul, qrot, qyaw, rest, scale3, skinJoints, solve, sub, type Face } from "./all";
@@ -136,7 +136,8 @@ export interface CharacterGhost {
 /** the body's "hair" material shaded as hair (character/hair.ts) */
 function hairMaterial(h: CharacterProps["hair"]) {
   const { coverage, color, ...look } = typeof h === "object" ? h : ({} as { coverage?: boolean; color?: string });
-  return <MeshStandardMaterial material="hair" roughness={1} reflectance={0.04} {...(color ? { color } : {})} {...(coverage ? { alphaMode: "coverage" as const } : {})} shader={{ wesl: HAIR_WESL, uniforms: { ...HAIR_LOOK, ...look } as Record<string, number | number[]> }} />;
+  const base = <StandardMaterial material="hair" perceptual_roughness={1} reflectance={0.04} {...(color ? { base_color: color } : {})} {...(coverage ? { alpha_mode: "AlphaToCoverage" as const } : {})} />;
+  return <ExtendedMaterial base={base} extension={<ShaderExtension wesl={HAIR_WESL} uniforms={{ ...HAIR_LOOK, ...look } as Record<string, number | number[]>} />} />;
 }
 
 /** the body's "skin" material shaded as skin (character/skin.ts) */
@@ -148,15 +149,16 @@ function skinMaterial(sk: CharacterProps["skin"], src: string) {
   const mm = microMap === false ? undefined : (microMap ?? `${dir}/skin_micro.png`);
   const textures = { ...(m ? { mask: m } : {}), ...(dm ? { detail: dm } : {}), ...(mm ? { micro: mm } : {}) };
   const defs = { ...(m ? { SKIN_MASK: true } : {}), ...(dm ? { SKIN_DETAIL: true } : {}), ...(mm ? { SKIN_MICRO: true } : {}) };
-  const surface = { ...SKIN_SURFACE, ...(clearcoat !== undefined ? { clearcoat } : {}), ...(clearcoatRoughness !== undefined ? { clearcoatRoughness } : {}), ...(reflectance !== undefined ? { reflectance } : {}) };
-  return (
-    <MeshPhysicalMaterial
+  const base = (
+    <StandardMaterial
       material="skin"
-      {...surface}
-      diffuseTransmission={0}
-      shader={{ wesl: SKIN_WESL, uniforms: { ...SKIN_LOOK, ...look } as Record<string, number | number[]>, ...(m || dm || mm ? { textures, defs } : {}) }}
+      clearcoat={clearcoat ?? SKIN_SURFACE.clearcoat}
+      clearcoat_perceptual_roughness={clearcoatRoughness ?? SKIN_SURFACE.clearcoatRoughness}
+      reflectance={reflectance ?? SKIN_SURFACE.reflectance}
+      diffuse_transmission={0}
     />
   );
+  return <ExtendedMaterial base={base} extension={<ShaderExtension wesl={SKIN_WESL} uniforms={{ ...SKIN_LOOK, ...look } as Record<string, number | number[]>} {...(m || dm || mm ? { textures, defs } : {})} />} />;
 }
 
 export function Character(props: CharacterProps) {

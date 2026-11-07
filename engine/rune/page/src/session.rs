@@ -37,6 +37,7 @@ impl Session {
         let dt = if self.frames == 0 { 0.0 } else { FRAME };
         self.clock += dt;
         self.step(dt);
+        self.rt.state.media_news();
         // every frame reaches the page's `__ui_layout`, "" when its layout didn't change, as the page host's does
         // (runtime/dom elements.rs): it's where @raea/ui runs a frame's requestAnimationFrame callbacks, so a JS
         // animation that only moves transforms or opacity (Motion's) keeps its frames (T3c)

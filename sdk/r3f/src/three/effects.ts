@@ -13,6 +13,7 @@ import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
 import { AfterimagePass } from "three/examples/jsm/postprocessing/AfterimagePass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import type { Pass } from "three/examples/jsm/postprocessing/Pass.js";
+import { TONY_B64, TONY_N } from "./tony-lut";
 
 export interface Effect {
   kind: string;
@@ -82,6 +83,33 @@ void main() {
   vec4 c = texture2D(tDiffuse, vUv);
   gl_FragColor = vec4(c.rgb + under * (1.0 - clamp(c.a, 0.0, 1.0)), 1.0);
 }`;
+
+/** TonyMcMapface, Bevy's default tone mapping, in place of three's OutputPass: the scene's light (times the exposure)
+ * through Bevy's table, which holds the screen's sRGB values (bevy_core_pipeline tonemapping.wesl; sdk/playable's
+ * host draws it the same way) */
+const TONY = `
+precision highp sampler3D;
+uniform sampler2D tDiffuse; uniform sampler3D lut; uniform float exposure;
+varying vec2 vUv;
+void main() {
+  vec4 c = texture2D(tDiffuse, vUv);
+  vec3 x = max(c.rgb / max(c.a, 1e-5), vec3(0.0)) * exposure;
+  vec3 uv = (x / (x + 1.0)) * (${TONY_N - 1}.0 / ${TONY_N}.0) + 0.5 / ${TONY_N}.0;
+  gl_FragColor = vec4(texture(lut, clamp(uv, 0.0, 1.0)).rgb * c.a, c.a);
+}`;
+
+let tonyLut: THREE.Data3DTexture | undefined;
+function tonyTable(): THREE.Data3DTexture {
+  if (tonyLut) return tonyLut;
+  const bytes = Uint8Array.from(atob(TONY_B64), (ch) => ch.charCodeAt(0));
+  const n = TONY_N ** 3, rgba = new Uint8Array(n * 4);
+  for (let i = 0; i < n; i++) rgba.set([bytes[i * 3], bytes[i * 3 + 1], bytes[i * 3 + 2], 255], i * 4);
+  tonyLut = new THREE.Data3DTexture(rgba, TONY_N, TONY_N, TONY_N);
+  tonyLut.minFilter = tonyLut.magFilter = THREE.LinearFilter;
+  tonyLut.unpackAlignment = 1;
+  tonyLut.needsUpdate = true;
+  return tonyLut;
+}
 
 /** Bevy's bloom is energy-conserving: the frame is mixed toward its blur by the intensity, not added to (this keeps
  * 1 - k of the frame; UnrealBloomPass adds k of the blur) */
@@ -162,12 +190,15 @@ export class Effects {
     this.composer = new EffectComposer(gl, new THREE.WebGLRenderTarget(Math.max(1, size.x), Math.max(1, size.y), { type: THREE.HalfFloatType, samples: 4 }));
   }
 
-  /** set the effects for this frame; false when there are none to draw (the renderer draws as it would) */
-  set(effects: Effect[], scene: THREE.Scene, camera: THREE.Camera, width: number, height: number, focus = 10): boolean {
+  /** set the effects for this frame; false when there are none to draw and no Tony curve (the renderer draws as it
+   * would). `tony`: the scene's tone mapping is TonyMcMapface (Scene3d's settings.tony), drawn here */
+  set(effects: Effect[], scene: THREE.Scene, camera: THREE.Camera, width: number, height: number, focus = 10, tony = false): boolean {
     const list = effects.filter((e) => DRAWN_EFFECTS.includes(e.kind));
-    if (!list.length) return false;
-    const key = list.map((e) => e.kind).join(",");
-    if (key !== this.key) this.build(list, scene, camera, width, height);
+    if (!list.length && !tony) return false;
+    const key = list.map((e) => e.kind).join(",") + (tony ? "+tony" : "");
+    if (key !== this.key) this.build(list, scene, camera, width, height, tony);
+    const tp = this.passes.get("tony") as ShaderPass | undefined;
+    if (tp) tp.uniforms.exposure.value = this.gl.toneMappingExposure;
     this.composer.setPixelRatio(this.gl.getPixelRatio());
     this.composer.setSize(width, height);
     for (const p of this.composer.passes) {
@@ -194,11 +225,11 @@ export class Effects {
     }
   }
 
-  private build(list: Effect[], scene: THREE.Scene, camera: THREE.Camera, w: number, h: number) {
+  private build(list: Effect[], scene: THREE.Scene, camera: THREE.Camera, w: number, h: number, tony: boolean) {
     for (const p of this.composer.passes) p.dispose();
     this.composer.passes.length = 0;
     this.passes.clear();
-    this.key = list.map((e) => e.kind).join(",");
+    this.key = list.map((e) => e.kind).join(",") + (tony ? "+tony" : "");
     const has = (k: string) => list.some((e) => e.kind === k);
     const add = (k: string, p: Pass) => {
       this.passes.set(k, p);
@@ -215,7 +246,8 @@ export class Effects {
     }
     if (has("MotionBlur")) add("MotionBlur", new AfterimagePass(0.5));
     if (has("Grade")) add("Grade", shader(GRADE, { temperature: 0, tint: 0, aberration: 0, scale: 1, vig: new THREE.Vector4(), vigColor: new THREE.Color(), aspect: new THREE.Vector2(1, 1), sat: new THREE.Vector3(1, 1, 1), con: new THREE.Vector3(1, 1, 1), gam: new THREE.Vector3(1, 1, 1), gai: new THREE.Vector3(1, 1, 1), lif: new THREE.Vector3() }));
-    this.composer.addPass(new OutputPass());
+    if (tony) add("tony", shader(TONY, { lut: tonyTable(), exposure: 1 }));
+    else this.composer.addPass(new OutputPass());
     add("under", shader(UNDER, { under: new THREE.Color() }));
     if (has("Grade")) add("Grade:post", shader(SATURATE, { saturation: 1 }));
     if (has("Look")) add("Look", new ShaderPass({ uniforms: { tDiffuse: { value: null }, size: { value: new THREE.Vector2(w, h) }, cell: { value: 6 }, mode: { value: 0 }, keep: { value: 1 }, lift: { value: 0 }, gain: { value: 1 }, line: { value: 0 }, threshold: { value: 0.5 }, band: { value: 1 }, bands: { value: 3 }, ink: { value: new THREE.Color() }, paper: { value: new THREE.Color() }, light: { value: 0 } }, vertexShader: VERT, fragmentShader: LOOK }));

@@ -39,7 +39,14 @@ export class ModelPart {
   private refinish: Props[] = [];
   private seconds = 0;
 
-  constructor(src: string, done: () => void) {
+  /** what it shows at the last set(): the source export (../export) writes it as a <Model> of its own */
+  get state() {
+    const p = this.props;
+    return { src: this.src, time: typeof p.time === "number" ? p.time : this.seconds, loop: p.loop !== false, animation: p.animation, animations: p.animations, hide: p.hide, morphs: p.morphs, refinish: this.refinish };
+  }
+
+  constructor(readonly src: string, done: () => void) {
+    this.root.userData.raeaModel = this;
     void loadGltf(src).then(async (g) => {
       const { clone } = await import("three/examples/jsm/utils/SkeletonUtils.js");
       this.model = clone(g.scene);

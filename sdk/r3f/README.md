@@ -28,10 +28,21 @@ loadShapes(await import("./raea_shape_web.js")); // solids, Text3D: tools/shape-
 <Canvas shadows><Raea component={Edit} fps={30} /></Canvas>
 ```
 
-Its camera, tone mapping, fog, environment and effects become the canvas's. Without React, `Scene3d` (`@raea/r3f/three`)
-draws a raea page into any three.js scene.
+Its camera, tone mapping (raea's default, TonyMcMapface, drawn with Bevy's own table), fog, environment and effects
+become the canvas's. Without React, `Scene3d` (`@raea/r3f/three`) draws a raea page into any three.js scene.
+
+**raea as R3F source.** Write a composition out as a plain R3F module, with no raea needed to run it:
+
+```sh
+bun sdk/r3f/tools/export.ts edit.tsx intro Intro.tsx --all   # or toR3FSource() from @raea/r3f/export
+```
+
+`Intro.tsx` needs only react, three and @react-three/fiber: the scene as JSX, what moves as a table a frame, and a
+default export that is a `<Canvas>`. Solids are written as their triangles. When the scene has frame effects or Tony,
+`raea-effects.ts` is written beside it (the composer `<Raea>` uses, three only).
 
 **Measured.** `bun test` checks that every raea kind and every three.js class has a row in `src/three/kinds.ts` and
 `src/input/kinds.ts`, which say what is drawn exactly, near (and what differs) or left to raea's engine.
-`tools/parity.sh` renders each case in `test/parity` with raea and with three.js in Chrome and compares them by SSIM
-(at least 0.92).
+`tools/parity.sh` renders each case in `test/parity` with raea and with three.js in headless Chrome (it serves the page
+itself, tools/serve.ts) and compares them by SSIM (at least 0.92): R3F scenes in raea, raea in R3F, and raea exported
+as R3F source.

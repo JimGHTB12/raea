@@ -106,7 +106,7 @@ export function Raea<P extends object>({ component: C, props, width, height, fps
   // a priority makes the canvas this one's to draw)
   useFrame((state, dt) => {
     const cam = state.camera;
-    const on = drawEffects && composer.set(host.effects, state.scene, cam, size.width, size.height, (cam.userData.focus as number) ?? 10);
+    const on = drawEffects && composer.set(host.effects, state.scene, cam, size.width, size.height, (cam.userData.focus as number) ?? 10, settings && host.settings.tony);
     if (on) composer.render(state.scene, dt);
     else state.gl.render(state.scene, cam);
   }, 1);

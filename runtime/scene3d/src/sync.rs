@@ -218,10 +218,13 @@ pub fn sync_camera(frame: Res<FrameRows>, edit: Option<Res<Edit>>, mut placed: L
                 *l = want;
             }
         }
-        if let (Some(d), Some(mut dof)) = (v.get("focus"), dof) {
-            let d = d.num() as f32;
-            if dof.focal_distance != d {
+        if let Some(mut dof) = dof {
+            if let Some(d) = v.get("focus").map(|d| d.num() as f32).filter(|d| dof.focal_distance != *d) {
                 dof.focal_distance = d;
+            }
+            // a frame without a <DepthOfField> keys its aperture shut (runtime/look NO_DOF)
+            if let Some(a) = v.get("dof_aperture").map(|a| a.num() as f32).filter(|a| dof.aperture_f_stops != *a) {
+                dof.aperture_f_stops = a;
             }
         }
         // a <Grade>'s fringes, keyed: this frame's own, never one left by an earlier frame

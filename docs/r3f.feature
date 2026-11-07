@@ -51,6 +51,9 @@ Feature: React Three Fiber both ways: an R3F scene drawn by raea, a raea composi
       And three/kinds.ts has a row for every kind raea's SDK renders (58): 26 drawn, 11 near, 4 settings, 9 effects
         and 8 that are Bevy's own (a WESL shader or frame pass, a compute pass, a Bevy component or resource, an ECS
         world read from the engine's tables, volumetric fog and fog volumes)
+      And a Model with `at` is a copy of the model at each placement, as raea's engine draws it
+      And raea's default tone mapping, TonyMcMapface, is drawn with Bevy's own LUT (sdk/playable's tony.bin) in a
+        pass in place of three's output pass; ACES, AgX, Reinhard and none are three's own
 
     @done
     Scenario: R3F5. raea's solids on the web
@@ -74,22 +77,51 @@ Feature: React Three Fiber both ways: an R3F scene drawn by raea, a raea composi
         three/kinds.ts, draws every kind three.js draws and fails on a warning, and fails on an effect row the
         composer doesn't draw
       And it walks three's exports and fails on an Object3D or Material class missing from input/kinds.ts
-      And `bun test` in sdk/r3f runs these with the input and round-trip tests (22 tests)
+      And `bun test` in sdk/r3f runs these with the input, round-trip and source-export tests (26 tests)
+      And the one class read with nothing drawn on purpose is ShadowMaterial: raea has no shadow-catching surface (a
+        surface that shows only the shadows on it) to read it into, which is the engine's gap, not the reader's
 
     @done
     Scenario: R3F8. Each way held to the other renderer
-      Given test/parity/fixtures.tsx: R3F scenes (in-*) and raea compositions (out-*) at 640x360
+      Given test/parity/fixtures.tsx: R3F scenes (in-*), raea compositions (out-*) and the same compositions written
+        as R3F source (src-*, R3F9), at 640x360
       When tools/parity.sh renders each with `raea render` (native.tsx) and with three.js in headless Chrome
-        (test/parity/page.tsx, served by a Vite host), and compares the two by SSIM
+        (test/parity/page.tsx, which tools/serve.ts builds and serves itself, with the wasm tools/shape-wasm.sh builds),
+        and compares the two by SSIM
       Then every case is at least 0.92 (measured 11-06)
         | case        | what                                                                 | SSIM   |
         | in-basic    | a spinning box (useFrame), PBR and clearcoat, shadows, a point light | 0.9911 |
-        | in-lights   | spot, hemisphere and area lights, fog, Lambert and flat Phong        | 0.9793 |
+        | in-lights   | spot, hemisphere and area lights, fog, Lambert and flat Phong        | 0.9792 |
         | in-things   | InstancedMesh, multi-material, edge lines, a sprite                  | 0.9908 |
         | out-basic   | a raea scene, ACES, a moving box                                     | 0.9958 |
+        | out-tony    | the same scene in raea's default tone mapping, TonyMcMapface         | 0.9960 |
         | out-lights  | spot and area lights, fog, Text3D (a solid)                          | 0.9627 |
         | out-bloom   | <Bloom intensity={2}>                                                | 0.9444 |
         | out-grade   | <Grade> saturation, contrast, vignette                               | 0.9748 |
         | out-lens    | <LensDistortion k1={0.15}>                                           | 0.9933 |
+        | src-basic   | out-basic exported as R3F source, drawn by a plain <Canvas>          | 0.9957 |
+        | src-tony    | out-tony exported (Tony through raea-effects.ts)                     | 0.9960 |
+        | src-lights  | out-lights exported as R3F source (Text3D as its triangles)          | 0.9628 |
+        | src-bloom   | out-bloom exported (raea-effects.ts)                                 | 0.9444 |
+        | src-grade   | out-grade exported                                                   | 0.9748 |
+        | src-lens    | out-lens exported                                                    | 0.9933 |
       And three's ACES scales its input by 1/0.6 where Bevy's doesn't: the host's exposure takes 0.6 under ACES, and
         an R3F canvas's ACES reads as 0.74 stops more (measured: out-lights 0.927 to 0.963, in-lights 0.927 to 0.979)
+
+  Rule: raea written as R3F
+
+    @done
+    Scenario: R3F9. A raea composition exported as React Three Fiber source
+      Given a raea composition
+      When `bun sdk/r3f/tools/export.ts EDIT.tsx COMPOSITION OUT.tsx [--from N] [--frames N | --all]` runs, or
+        toR3FSource(component, options) from @raea/r3f/export
+      Then OUT.tsx is a TSX module that needs only react, three and @react-three/fiber: the scene as JSX (meshes with
+        three's geometry and materials, lights, fog, background, environment, models by url), what moves as a table a
+        frame (position, rotation, scale, visibility, materials, lights, the camera) applied in useFrame, and a default
+        export that is a <Canvas> with raea's camera, tone mapping, exposure and shadows
+      And a solid (minus, hull, extrude, Text3D) is written as its triangles, meshed by core/shape's wasm
+      And when the scene has frame effects or raea's Tony tone mapping, raea-effects.ts is written beside it: the
+        composer <Raea> draws them with (three/effects.ts and Bevy's Tony table, needing only three), run by the module
+        after each frame's updates; effects that only raea's engine draws (three/kinds.ts "engine") are named in the
+        header
+      And test/export.test.tsx checks what is written; the src-* cases (R3F8) draw it against raea's render

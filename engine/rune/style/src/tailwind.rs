@@ -148,6 +148,7 @@ fn utility(u: &str) -> Option<Props> {
         "shrink-0" => return one("flexShrink", json!(0)),
         "absolute" | "relative" | "static" => return one("position", s(u)),
         "italic" => return one("fontStyle", s("italic")),
+        "object-contain" | "object-cover" | "object-fill" => return one("objectFit", s(&u[7..])),
         "not-italic" => return one("fontStyle", s("normal")),
         "text-left" | "text-center" | "text-right" => return one("textAlign", s(&u[5..])),
         "border" => return one("borderWidth", json!(1)),

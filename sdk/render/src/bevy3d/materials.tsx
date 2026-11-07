@@ -24,7 +24,7 @@ export interface MetallicRoughnessMaps {
 }
 
 /** Bevy's AlphaMode, as it reflects. */
-export type AlphaMode = "Opaque" | "Blend" | "Premultiplied" | "Add" | "Multiply" | { Mask: number };
+export type AlphaMode = "Opaque" | "Blend" | "Premultiplied" | "Add" | "Multiply" | "AlphaToCoverage" | { Mask: number };
 
 /** Bevy's StandardMaterial fields (colours as CSS colours, textures as file paths), with Bevy's defaults. */
 export interface StandardMaterialProps {
@@ -189,7 +189,7 @@ function further(p: StandardMaterialProps): Record<string, unknown> {
 function draw(p: StandardMaterialProps): SurfaceDrawProps {
   const a = p.alpha_mode;
   const alpha =
-    a === undefined || a === "Opaque" ? {} : typeof a === "object" ? { alphaMode: "mask" as const, alphaCutoff: a.Mask } : { alphaMode: a.toLowerCase() as "opaque" | "blend" | "premultiplied" | "add" | "multiply" };
+    a === undefined || a === "Opaque" ? {} : typeof a === "object" ? { alphaMode: "mask" as const, alphaCutoff: a.Mask } : { alphaMode: a === "AlphaToCoverage" ? ("coverage" as const) : (a.toLowerCase() as "opaque" | "blend" | "premultiplied" | "add" | "multiply") };
   // no culling draws both faces; culling the front draws the inside (double_sided is the lighting, cull_mode the faces)
   const side: SurfaceDrawProps["side"] = p.cull_mode === null ? "double" : p.cull_mode === "Front" ? "back" : undefined;
   // Bevy's Blend is the old material's `transparent`, its opacity the base colour's alpha (Opaque ignores the alpha, as

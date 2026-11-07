@@ -1,0 +1,17 @@
+[package]
+name = "raea-rune-media"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2 AND OFL-1.1"
+publish = false
+description = "The native target's media (docs/targets.feature T3d): <img> and <video> sources by path, data URL or URL (through raea's URL cache), and the app's fonts registered with Rune's text system at start"
+
+[dependencies]
+rune.workspace = true
+raea-rune-style = { path = "../style" }
+raea-io-net = { path = "../../../io/net" }
+serde_json = "1"
+# WOFF and WOFF2 faces to the TrueType Rune's text system reads (raea-core-fonts uses the same)
+wuff = "0.2"
+# a face's own family name, which Rune's text system knows it by
+ttf-parser = "0.25"

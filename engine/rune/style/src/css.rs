@@ -88,6 +88,8 @@ pub struct Css {
     pub radius: [Option<f32>; 4],
     pub shadows: Vec<ShadowCss>,
     pub opacity: Option<f32>,
+    /// objectFit on an img or video (T3d): contain letterboxes, cover crops; `fill` (CSS's default) stretches
+    pub fit: Option<Option<rune::SurfaceFit>>,
     // inherited by text
     pub color: Option<Color>,
     pub font_size: Option<f32>,
@@ -229,6 +231,7 @@ fn prop(c: &mut Css, k: &str, v: &Value) -> Result<(), &'static str> {
         "borderBottomLeftRadius" => edges4(&mut c.radius, Some(3))?,
         "boxShadow" => c.shadows = shadows(text(v)?).ok_or(BAD_VALUE)?,
         "opacity" => c.opacity = Some(num(v)?),
+        "objectFit" => c.fit = Some(match text(v)? { "contain" => Some(rune::SurfaceFit::Fit), "cover" => Some(rune::SurfaceFit::Fill), "fill" => None, _ => return Err(BAD_VALUE) }),
         "color" => c.color = Some(color(text(v)?).ok_or(BAD_VALUE)?),
         "fontSize" => c.font_size = Some(px()?),
         "fontWeight" => c.font_weight = Some(weight(v)?),

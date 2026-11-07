@@ -11,7 +11,7 @@ import { Scene3d } from "../src/three/scene";
 import { convert } from "../src/input/scene";
 import { stepTo, end, standInRenderer } from "../src/input/session";
 import { elementsOf, type Part } from "../src/parts";
-import { page } from "./dom";
+import { page } from "../src/export/dom";
 
 const near = (a: number, b: number, eps = 1e-4) => Math.abs(a - b) <= eps * Math.max(1, Math.abs(a), Math.abs(b));
 const nearAll = (a: number[], b: number[], eps = 1e-4) => a.length === b.length && a.every((x, i) => near(x, b[i], eps));

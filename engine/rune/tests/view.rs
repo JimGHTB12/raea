@@ -54,6 +54,9 @@ fn collect(t: &raea_rune_host::tree::Tree, id: u64, out: &mut Vec<u64>) {
 
 #[test]
 fn an_image_draws_its_pixels_at_its_aspect() {
+    // an http src is fetched through raea's URL cache: offline, one that isn't cached fails, and is reported
+    // SAFETY: set before this test reads it; no other test here fetches
+    unsafe { std::env::set_var("RAEA_OFFLINE", "1") };
     const PNG: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
     let mut page = Page::default();
     let batch = format!(
@@ -61,11 +64,12 @@ fn an_image_draws_its_pixels_at_its_aspect() {
         {{"op":"create","id":2,"kind":"img","props":{{"src":"https://example.com/a.png"}}}},{{"op":"append","parent":0,"child":1}},{{"op":"append","parent":0,"child":2}}]}}"#
     );
     page.apply(&batch).unwrap();
-    page.images.get(&format!("data:image/png;base64,{PNG}")).unwrap().wait().unwrap();
+    let raea_rune_host::images::Load::Image(i) = page.images.get(&format!("data:image/png;base64,{PNG}")) else { panic!("the data URL loads") };
+    i.wait().unwrap();
     let mut rt = headless(page, (400.0, 300.0));
     rt.frame(0.0);
     rt.frame(1.0 / 60.0);
     let r = rt.elements().into_iter().find(|e| e.key.as_deref() == Some("w1")).unwrap().target;
     assert_eq!([r[2], r[3]], [40.0, 40.0], "the height from the image's 1:1 aspect");
-    assert!(rt.state.report.borrow().all().any(|(p, s)| p == "img src" && s.value.starts_with("https://")), "an http src is reported");
+    assert!(rt.state.report.borrow().all().any(|(p, s)| p == "img src" && s.value.starts_with("https://")), "an http src that doesn't load (offline) is reported");
 }

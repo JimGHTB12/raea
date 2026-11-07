@@ -125,12 +125,12 @@ export const INPUTS: Record<string, InputCase> = {
 };
 
 // ---- raea compositions ----
-function OutBasic() {
+function OutBasic({ tone = "aces" }: { tone?: "aces" | "tony" }) {
   const f = useCurrentFrame();
   return (
     <AbsoluteFill style={{ background: "#1d2330" }}>
       <PerspectiveCamera position={[3, 2.5, 4]} lookAt={[0, 0.5, 0]} fov={45} />
-      <ToneMapping mode="aces" />
+      {tone === "aces" && <ToneMapping mode="aces" />}
       <AmbientLight intensity={0.4} />
       <DirectionalLight position={[3, 5, 2]} target={[0, 0, 0]} intensity={2.5} />
       <PointLight position={[-2, 1.5, 1]} intensity={6} color="#58a6ff" />
@@ -208,7 +208,9 @@ function OutEffects({ fx }: { fx: "bloom" | "grade" | "lens" }) {
 }
 
 export const OUTPUTS: Record<string, { component: () => ReactNode; frame: number }> = {
-  basic: { component: OutBasic, frame: 24 },
+  basic: { component: () => <OutBasic />, frame: 24 },
+  // raea's default tone mapping, TonyMcMapface
+  tony: { component: () => <OutBasic tone="tony" />, frame: 24 },
   lights: { component: OutLights, frame: 0 },
   // one effect a case: each pass measured on its own
   bloom: { component: () => <OutEffects fx="bloom" />, frame: 0 },
