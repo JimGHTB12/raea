@@ -254,9 +254,9 @@ ${Array.from({ length: 40 }, (_, i) => `.u${i} { margin: ${i}px; }`).join("\n")}
     }
   });
 
-  // a stock talking take (fixtures/CREDITS.md): the face branch of frame and perception.json. In raea-dev a missing
-  // fixture fails here; the public export leaves it out (tools/publish/rules.toml, itself private), so it skips there
-  test.skipIf(!existsSync(join(raea, "tools/publish")))("raea frame and raea cut find the face in a talking take", () => {
+  // a stock talking take (fixtures/CREDITS.md): the face branch of frame and perception.json. The footage fixtures are
+  // the maintainers' (tools/public-first/private.paths), so a checkout without them skips this
+  test.skipIf(!existsSync(join(raea, "engine/media/fixtures")))("raea frame and raea cut find the face in a talking take", () => {
     const dir = mkdtempSync(join(tmpdir(), "raea-face-"));
     const run = (...a: string[]) => spawnSync("bun", [join(here, "src/native.ts"), bin, ...a], { cwd: dir, encoding: "utf8" });
     try {

@@ -15,6 +15,6 @@ How 0.1.0-canary.2 and canary.3 were built and checked beyond `tools/release.sh`
 - `rl3-mac.sh TARBALL [PONG_DIR]`: RL3 on the Mac, the tarball as a fresh user would run it, sandboxed.
 - `../release-web.sh VERSION REF --upload TAG`: the web modules built from REF (core/shape's for @raea/r3f's loadShapes,
   raea-web's for @raea/web) with their SHA256SUMS, attached to the GitHub release TAG: vVERSION beside the archives
-  for every release (canary.1 and canary.2 got theirs by hand on 11-06, built from their own shape sources), and between releases a pre-release web-SHA on the public commit SHA that
-  publish.sh made from REF (`gh release create web-SHA -R shinyobjectz/raea --target SHA --prerelease` first),
+  for every release (canary.1 and canary.2 got theirs by hand on 11-06, built from their own shape sources), and between releases a pre-release web-SHA on the public commit SHA
+  (`gh release create web-SHA -R shinyobjectz/raea --target SHA --prerelease` first),
   when core/shape, engine/shape-web or engine/web changed (docs/r3f.feature R3F5).
