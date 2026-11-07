@@ -92,9 +92,10 @@ pub(crate) fn lights_rows(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
                 }
             }
         }
-        if kind != "directional" {
-            if let Some(d) = num(first, "distance").filter(|d| *d > 0.0) {
-                row.insert("range".into(), V::N(d));
+        // a bulb's or spot's reach, and its size (Bevy's radius: a spherical area light's highlight, 3d/spherical_area_lights)
+        for (prop, col) in [("distance", "range"), ("radius", "radius")].iter().filter(|_| kind != "directional") {
+            if let Some(d) = num(first, prop).filter(|d| *d > 0.0) {
+                row.insert(col.to_string(), V::N(d));
             }
         }
         // a rectangle of light: its face's size
@@ -144,7 +145,7 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         column(p, &mut row, &id, "metal", &mats.iter().map(|m| n(m, "metalness", metal0)).collect::<Vec<_>>());
         if let Some(e) = hex(m0.get("emissive")).filter(|e| e != "#000000") {
             row.insert("emissive".into(), V::S(e));
-            column(p, &mut row, &id, "emissive_k", &mats.iter().map(|m| n(m, "emissiveIntensity", 1.0)).collect::<Vec<_>>());
+            column(p, &mut row, &id, "emissive_k", &mats.iter().map(|m| emissive_power(m)).collect::<Vec<_>>());
         }
         let see_through = mats.iter().any(|m| m.get("transparent") == Some(&Value::Bool(true)) || num(m, "opacity").is_some_and(|o| o < 1.0));
         if see_through {
@@ -193,6 +194,12 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         // a shader over its lit surface (docs/shaders.feature SH1), from the first frame
         if let Some(sh) = m0.get("shader").filter(|v| v.is_object()) {
             row.insert("shader".into(), V::S(sh.to_string()));
+        }
+        // a three.js shader (<ThreeShaderMaterial>, docs/r3f.feature R3F11): its spec from the first frame, unlit in its
+        // colour where it can't run; its uniforms keyed frame by frame (three_uniforms)
+        if its[0].material.as_ref().is_some_and(|m| &*m.kind == "ThreeShaderMaterial") {
+            row.insert("three".into(), V::S(Value::Object((**m0).clone()).to_string()));
+            row.insert("unlit".into(), V::N(1.0));
         }
         if its[0].material.as_ref().is_some_and(|m| &*m.kind == "MeshToonMaterial") {
             // a toon surface: its bands, rim, highlight and outline from the first frame; what animates, keyed
@@ -248,6 +255,7 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         p.spawns.push(("mesh".into(), vec![row]));
         components(p, &id, &its);
         material_fields(p, &id, &its);
+        three_uniforms(p, &id, &its);
     }
 }
 
@@ -283,13 +291,13 @@ pub(crate) fn texts_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         if let Some(w) = num(first, "maxWidth").filter(|w| *w > 0.0) {
             row.insert("max_width".into(), V::N(r6(w)));
         }
-        for (prop, col) in [("roughness", "rough"), ("metalness", "metal"), ("emissiveIntensity", "emissive_k")] {
+        for (prop, col) in [("roughness", "rough"), ("metalness", "metal")] {
             if let Some(v) = num(first, prop) {
                 row.insert(col.into(), V::N(r6(v)));
             }
         }
         if let Some(e) = hex(first.get("emissive")).filter(|e| e != "#000000") {
-            row.insert("emissive".into(), V::S(e));
+            row.extend([("emissive".into(), V::S(e)), ("emissive_k".into(), V::N(r6(emissive_power(first))))]);
         }
         for (prop, col) in [("unlit", "unlit"), ("castShadow", "shadow"), ("receiveShadow", "receive")] {
             if let Some(Value::Bool(b)) = first.get(prop) {

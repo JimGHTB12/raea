@@ -59,6 +59,12 @@ async fn resolve_from(ctx: &PluginContext, spec: &str, dir: &Path) -> anyhow::Re
     }
 }
 
+/// Packages a composition's bundle takes from raea in place of their own, by the stand-in module under raea's home:
+/// ones that need what a native render's JS hasn't (a DOM, web workers) to do what raea's engine does itself.
+/// troika-three-text (drei's <Text>) lays text out in a worker onto a canvas; raea's R3F reader draws its Text as
+/// raea's own text (sdk/r3f/src/input/troika.ts, text.ts; docs/r3f.feature R3F13).
+const STAND_INS: &[(&str, &str)] = &[("troika-three-text", "sdk/r3f/src/input/troika.ts")];
+
 impl Plugin for EditResolve {
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed("raea:edit")
@@ -72,6 +78,15 @@ impl Plugin for EditResolve {
         let e = &self.0;
         let spec = args.specifier;
         let Some(imp) = args.importer else { return Ok(None) };
+        // raea's home is sdk/react/js's grandparent's parent
+        if let Some((_, own)) = STAND_INS.iter().find(|(p, _)| *p == spec) {
+            if let Some(home) = e.js.ancestors().nth(3) {
+                let f = home.join(own);
+                if f.is_file() {
+                    return Ok(Some(HookResolveIdOutput::from_id(f.to_string_lossy().as_ref())));
+                }
+            }
+        }
         let bare = spec.starts_with('@') || spec.starts_with(|c: char| c.is_ascii_lowercase());
         if !bare || spec.starts_with("@raea/") || spec.contains(':') {
             return Ok(None);

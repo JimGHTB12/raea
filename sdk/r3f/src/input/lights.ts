@@ -78,12 +78,26 @@ function lightOf(l: THREE.Light, shadows: boolean, name: string): Part | Part[] 
     return [amb, dir];
   }
   if ((l as THREE.LightProbe).isLightProbe) {
-    // its spherical harmonics' constant band: the light it gives from every way on average
+    // three lights a surface by the probe's irradiance at its normal (shGetIrradianceAt): the constant band gives
+    // 0.886227 c0 from every way, the linear band 1.023328 (c3, c1, c2) . n. As the hemisphere light above: an ambient
+    // light of the first and a directional light along the second, exact for surfaces facing it or sideways (the
+    // quadratic band, a probe's finer shading, is left out)
     const p = l as THREE.LightProbe;
-    const c = p.sh.coefficients[0].clone().multiplyScalar(0.282095 * p.intensity);
-    const m = Math.max(c.x, c.y, c.z, 1e-6);
-    warnOnce("LightProbe", "is lit as an ambient light of its average colour");
-    return { type: "AmbientLight", props: { name, color: hex(new THREE.Color(c.x / m, c.y / m, c.z / m)), intensity: toRaea("AmbientLight", m) } };
+    const [c0, c1, c2, c3] = p.sh.coefficients;
+    const a = c0.clone().multiplyScalar(0.886227 * p.intensity);
+    const ch = (k: "x" | "y" | "z") => new THREE.Vector3(c3[k], c1[k], c2[k]).multiplyScalar(1.023328 * p.intensity);
+    const [br, bg, bb] = [ch("x"), ch("y"), ch("z")];
+    const axis = br.clone().multiplyScalar(0.2126).add(bg.clone().multiplyScalar(0.7152)).add(bb.clone().multiplyScalar(0.0722));
+    const m = Math.max(a.x, a.y, a.z, 1e-6);
+    const amb: Part = { type: "AmbientLight", props: { name, color: hex(new THREE.Color(a.x / m, a.y / m, a.z / m)), intensity: toRaea("AmbientLight", m) } };
+    if (p.sh.coefficients.slice(4).some((c) => c.lengthSq() > 1e-8)) warnOnce("LightProbe", "is lit by its first two bands (an ambient light and a light along its linear band): its finer shading is left out");
+    if (axis.lengthSq() < 1e-10) return amb;
+    axis.normalize();
+    const d = new THREE.Color(Math.max(0, br.dot(axis)), Math.max(0, bg.dot(axis)), Math.max(0, bb.dot(axis)));
+    const dm = Math.max(d.r, d.g, d.b);
+    if (dm < 1e-5) return amb;
+    const dir: Part = { type: "DirectionalLight", props: { name: `${name}~band`, position: axis.toArray(), target: [0, 0, 0], color: hex(new THREE.Color(d.r / dm, d.g / dm, d.b / dm)), intensity: toRaea("DirectionalLight", dm) } };
+    return [amb, dir];
   }
   if ((l as THREE.AmbientLight).isAmbientLight) return { type: "AmbientLight", props: { name, color, intensity: toRaea("AmbientLight", l.intensity) } };
   return undefined;
@@ -118,14 +132,36 @@ export function fogOf(f: THREE.Fog | THREE.FogExp2 | null): Part | undefined {
   return { type: "Fog", props: { color: hex(l.color), near: l.near, far: l.far } };
 }
 
+/** three's own tone curve on a linear colour (ToneMappingFunctions), undefined for one not written here */
+function threeTone(c: THREE.Color, mode: THREE.ToneMapping, exposure: number): THREE.Color | undefined {
+  const [r, g, b] = [c.r * exposure, c.g * exposure, c.b * exposure];
+  if (mode === THREE.NoToneMapping) return c.clone();
+  if (mode === THREE.LinearToneMapping) return new THREE.Color(Math.min(r, 1), Math.min(g, 1), Math.min(b, 1));
+  if (mode === THREE.ReinhardToneMapping) return new THREE.Color(r / (1 + r), g / (1 + g), b / (1 + b));
+  if (mode !== THREE.ACESFilmicToneMapping) return undefined;
+  const k = 1 / 0.6;
+  const [x, y, z] = [r * k, g * k, b * k];
+  const i = [0.59719 * x + 0.35458 * y + 0.04823 * z, 0.076 * x + 0.90834 * y + 0.01566 * z, 0.0284 * x + 0.13383 * y + 0.83777 * z];
+  const f = i.map((v) => (v * (v + 0.0245786) - 0.000090537) / (v * (0.983729 * v + 0.432951) + 0.238081));
+  const o = [1.60475 * f[0] - 0.53108 * f[1] - 0.07367 * f[2], -0.10208 * f[0] + 1.10813 * f[1] - 0.00605 * f[2], -0.00327 * f[0] - 0.07276 * f[1] + 1.07602 * f[2]];
+  const clamp = (v: number) => Math.min(Math.max(v, 0), 1);
+  return new THREE.Color(clamp(o[0]), clamp(o[1]), clamp(o[2]));
+}
+
 const PANORAMA = /\.(hdr|exr|png|jpe?g)(\?.*)?$/i;
 
 /** the scene's environment (and a panorama behind it) as raea's <Environment>, or the background colour */
-export function skyOf(scene: THREE.Scene): { parts: Part[]; background?: string } {
+export function skyOf(scene: THREE.Scene, gl?: THREE.WebGLRenderer, webgpu = false): { parts: Part[]; background?: string } {
   const parts: Part[] = [];
   let background: string | undefined;
   const bg = scene.background;
-  if (bg instanceof THREE.Color) background = hex(bg);
+  if (bg instanceof THREE.Color) {
+    // three's WebGPURenderer draws the clear colour through its tone mapping (WebGLRenderer doesn't): the page shows
+    // the colour it ends as
+    const toned = webgpu && gl ? threeTone(bg, gl.toneMapping, gl.toneMappingExposure) : undefined;
+    if (webgpu && !toned) warnOnce("scene.background", "is tone-mapped by three's WebGPURenderer with a curve raea doesn't copy for it: drawn as given");
+    background = hex(toned ?? bg);
+  }
   const env = srcOf(scene.environment);
   const sky = bg instanceof THREE.Texture ? srcOf(bg) : undefined;
   if (scene.environment && !(env && PANORAMA.test(env))) warnOnce("scene.environment", "isn't a panorama file raea can load (.hdr, .exr, .png, .jpg): left out");

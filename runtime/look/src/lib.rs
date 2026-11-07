@@ -82,6 +82,10 @@ pub fn surface_spec(p: &Map<String, Value>) -> Value {
             o.insert(col.into(), Value::from(v));
         }
     }
+    // a new glow in Bevy's units (core/scene emissive_power); an intensity alone scales the glTF's own emissive, as written
+    if p.contains_key("emissive_nits") || hex(p.get("emissive")).is_some() {
+        o.insert("emissive_k".into(), Value::from(emissive_power(p)));
+    }
     for (prop, col) in [("map", "map"), ("normalMap", "normal_map"), ("roughnessMap", "rough_map"), ("metalnessMap", "metal_map"), ("metallicRoughnessMap", "mr_map"), ("aoMap", "ao_map"), ("emissiveMap", "emissive_map"), ("depthMap", "depth_map")] {
         if let Some(src) = p.get(prop).and_then(Value::as_str) {
             o.insert(col.into(), Value::String(src_path(src)));
@@ -417,6 +421,20 @@ pub fn material_fields(p: &mut Program, id: &str, its: &[Item]) {
         (!o.is_empty()).then(|| (f, serde_json::json!({ "type": "material:bevy_pbr::pbr_material::StandardMaterial", "value": o })))
     }).collect();
     keyed(p, "component", Some(id), "m", each.iter().map(|(f, v)| (*f, v)));
+}
+
+/// A three.js shader's uniforms and time (a <ThreeShaderMaterial>'s, docs/r3f.feature R3F11), sent as keyed
+/// `three:uniforms` rows from each frame they change, which raea-sys-three-shader's `patch` writes into its slots.
+pub fn three_uniforms(p: &mut Program, id: &str, its: &[Item]) {
+    let each: Vec<(usize, Value)> = its.iter().enumerate().filter_map(|(f, it)| {
+        let m = it.material.as_ref().filter(|m| &*m.kind == "ThreeShaderMaterial")?;
+        let v = serde_json::json!({ "uniforms": m.props.get("uniforms").cloned().unwrap_or(Value::Null), "time": m.props.get("time").cloned().unwrap_or(Value::Null) });
+        Some((f, serde_json::json!({ "type": "three:uniforms", "value": v })))
+    }).collect();
+    if each.is_empty() {
+        return;
+    }
+    keyed(p, "component", Some(id), "u", each.iter().map(|(f, v)| (*f, v)));
 }
 
 /// A sampled value as reflect's JSON takes it: `#rrggbb` (or `#rrggbbaa`) as a Color's Srgba, the rest as it is

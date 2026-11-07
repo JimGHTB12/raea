@@ -29,7 +29,7 @@ mod glyphs;
 mod mesh;
 mod parse;
 mod sphere;
-pub use sphere::{SphereOf, sphere_of};
+pub use sphere::{SphereOf, cuboid_of, sphere_of};
 
 pub use mesh::{export, from_mesh, read_glb, read_obj, to_mesh};
 

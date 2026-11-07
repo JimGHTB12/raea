@@ -14,3 +14,4 @@ export * from "./shapes";
 export * from "./sprite";
 export * from "./instances";
 export * from "./grass";
+export * from "./three-shader";

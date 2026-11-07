@@ -39,6 +39,8 @@ raea-sys-compute = { path = "../../systems/compute" }
 raea-sys-sampler = { path = "../../systems/sampler" }
 raea-sys-parity = { path = "../../systems/parity" }
 raea-sys-shader = { path = "../../systems/shader" }
+# three.js's shaders: a ShaderMaterial's GLSL and a node material's WGSL (docs/r3f.feature R3F11)
+raea-sys-three-shader = { path = "../../systems/three-shader" }
 raea-sys-post = { path = "../../systems/post" }
 raea-sys-fog = { path = "../../systems/fog" }
 raea-sys-fog-half = { path = "../../systems/fog-half" }
@@ -88,3 +90,8 @@ network = ["native"]
 bevy-all = ["bevy/bevy_gilrs", "bevy/gamepad", "bevy/area_light_luts", "bevy/experimental_pbr_pcss", "bevy/dfg_lut", "bevy/smaa_luts", "bevy/tonemapping_luts", "bevy/bluenoise_texture", "bevy/bevy_gizmos", "bevy/bevy_gizmos_render", "bevy/bevy_dev_tools", "bevy/debug", "bevy/bevy_ui_debug", "bevy/file_watcher", "bevy/embedded_watcher", "bevy/asset_processor", "bevy/png", "bevy/jpeg", "bevy/ktx2", "bevy/zstd_rust", "bevy/basis-universal", "bevy/exr", "bevy/hdr", "bevy/webp", "bevy/dds", "bevy/tga", "bevy/bmp", "bevy/gif", "bevy/ico", "bevy/qoi", "bevy/pnm", "bevy/tiff", "bevy/compressed_image_saver", "bevy/picking", "bevy/bevy_picking", "bevy/mesh_picking", "bevy/sprite_picking", "bevy/ui_picking", "bevy/meshlet", "bevy/meshlet_processor", "bevy/bevy_solari", "bevy/bevy_animation", "bevy/gltf_animation", "bevy/morph", "bevy/morph_animation", "bevy/bevy_gltf", "bevy/bevy_sprite", "bevy/bevy_sprite_render", "bevy/2d_bevy_render", "bevy/3d_bevy_render", "bevy/ui_bevy_render", "bevy/bevy_ui_widgets", "bevy/bevy_feathers", "bevy/custom_cursor", "bevy/bevy_input_focus", "bevy/bevy_camera_controller", "bevy/free_camera", "bevy/pan_camera", "bevy/bevy_text", "bevy/system_font_discovery", "bevy/scene", "bevy/bevy_state", "bevy/serialize", "bevy/reflect_functions", "bevy/reflect_documentation", "bevy/sysinfo_plugin", "bevy/bevy_clipboard", "bevy/system_clipboard", "bevy/clipboard_image", "bevy/ghost_nodes", "bevy/bevy_settings", "bevy/shader_format_spirv", "bevy/bevy_debug_stepping", "bevy/bevy_world_serialization", "bevy/bevy_audio", "bevy/mp3", "bevy/flac", "bevy/vorbis", "bevy/wav", "bevy/aac", "bevy/mp4", "bevy/http", "bevy/https", "bevy/web_asset_cache", "bevy/bevy_curve", "bevy/complex_script_segmentation", "bevy/compressed_image_saver_universal", "bevy/pan_orbit_camera", "bevy/pan_orbit_gizmo", "bevy/render_dev_tools"]
 # per-system spans as a chrome trace (RUST_LOG=info, trace-*.json in the working directory)
 trace = ["bevy/trace", "bevy/trace_chrome"]
+
+[package.metadata.cargo-shear]
+# raea-core-shape is unused since a mesh row's shape went to raea_sys_material::mesh::shape_mesh. Its line sits beside
+# an unlanded branch's (scene-loop: raea-sys-procmat), so it goes, with this table, once that branch lands
+ignored = ["raea-core-shape"]

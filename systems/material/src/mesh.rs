@@ -23,10 +23,7 @@ pub fn buffer_colors(json: &str) -> Result<Option<Vec<[f32; 4]>>, String> {
     if per.len() != n {
         return Err(format!("a buffer mesh's colors: one for each of its {n} vertices, got {}", per.len()));
     }
-    let idx: Vec<usize> = match v.get("indices").and_then(|i| i.as_array()) {
-        Some(i) => i.iter().map(|x| x.as_f64().unwrap_or(0.0) as usize).collect(),
-        None => (0..n).collect(),
-    };
+    let idx = buffer_corners(&v, n);
     Ok(Some(idx.iter().map(|&i| per[i.min(n.saturating_sub(1))]).collect()))
 }
 
@@ -158,6 +155,14 @@ pub fn buffer_tris(json: &str) -> Result<(raea_core_shape::Tris, Option<Vec<[f32
     Ok((t, uv))
 }
 
+/// A buffer mesh's triangle corners: the vertex each one is (its `indices`, or each of its `verts` vertices in turn).
+pub fn buffer_corners(v: &serde_json::Value, verts: usize) -> Vec<usize> {
+    match v.get("indices").and_then(serde_json::Value::as_array) {
+        Some(i) => i.iter().map(|x| x.as_f64().unwrap_or(0.0) as usize).collect(),
+        None => (0..verts).collect(),
+    }
+}
+
 /// Texture coordinates for a Manifold mesh (it has none): each vertex projected along its face's main axis onto the
 /// mesh's bounds, so a picture map covers each side of a box once, the right way round seen from outside.
 pub fn box_uvs(pos: &[[f32; 3]], nor: &[[f32; 3]]) -> Vec<[f32; 2]> {
@@ -186,3 +191,42 @@ pub fn box_uvs(pos: &[[f32; 3]], nor: &[[f32; 3]]) -> Vec<[f32; 2]> {
     }).collect()
 }
 
+
+/// A mesh row's shape as a Bevy Mesh (docs/media.feature M2): a sphere alone is Bevy's Sphere::mesh() (icosphere or UV
+/// sphere) and a cuboid alone its Cuboid's (UVs a face each), as a Bevy Mesh3d's; a <BufferMesh> ("buffer:{positions,
+/// indices, normals, uvs, colors}") its own vertex buffers; anything else Manifold's, flat-shaded. `uvs` gives it
+/// texture coordinates (a picture map, a grid's outline) and `tangents` tangents made from them (a normal map).
+pub fn shape_mesh(id: &str, expr: &str, uvs: bool, tangents: bool) -> Result<Mesh, String> {
+    let ball = raea_core_shape::sphere_of(expr).map(|s| match s {
+        raea_core_shape::SphereOf::Ico { radius, subdivisions } => Sphere::new(radius).mesh().ico(subdivisions).map_err(|e| format!("mesh {id}: {e}")),
+        raea_core_shape::SphereOf::Uv { radius, sectors, stacks } => Ok(Sphere::new(radius).mesh().uv(sectors, stacks)),
+    }).or_else(|| raea_core_shape::cuboid_of(expr).map(|[w, h, d]| Ok(Mesh::from(Cuboid::new(w, h, d)))));
+    if let Some(mut m) = ball.transpose()? {
+        if tangents {
+            m.generate_tangents().map_err(|e| format!("mesh {id}: normalMap: its tangents: {e}"))?;
+        }
+        return Ok(m);
+    }
+    let (tris, own_uvs, own_colors) = match expr.strip_prefix("buffer:") {
+        Some(b) => {
+            let c = buffer_colors(b).map_err(|e| format!("mesh {id}: {e}"))?;
+            let (t, u) = buffer_tris(b).map_err(|e| format!("mesh {id}: {e}"))?;
+            (std::sync::Arc::new(t), u, c)
+        }
+        None => (raea_core_shape::cached(expr).map_err(|e| format!("mesh {id}: {e}"))?, None, None),
+    };
+    let mut m = Mesh::new(bevy::render::render_resource::PrimitiveTopology::TriangleList, bevy::asset::RenderAssetUsages::default());
+    m.insert_attribute(Mesh::ATTRIBUTE_POSITION, tris.positions.clone());
+    m.insert_attribute(Mesh::ATTRIBUTE_NORMAL, tris.normals.clone());
+    // a <BufferMesh colors>: per-vertex colours, which StandardMaterial multiplies its colour by
+    if let Some(c) = own_colors {
+        m.insert_attribute(Mesh::ATTRIBUTE_COLOR, c);
+    }
+    if own_uvs.is_some() || uvs {
+        m.insert_attribute(Mesh::ATTRIBUTE_UV_0, own_uvs.unwrap_or_else(|| box_uvs(&tris.positions, &tris.normals)));
+        if tangents {
+            m.generate_tangents().map_err(|e| format!("mesh {id}: normalMap: its tangents: {e}"))?;
+        }
+    }
+    Ok(m)
+}

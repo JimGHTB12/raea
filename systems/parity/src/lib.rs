@@ -67,8 +67,68 @@ pub fn install(app: &mut App) {
         let _ = std::fs::write(world_file(&out), "");
     }
     let _ = std::fs::write(&out, "");
+    if png.is_some() {
+        app.add_systems(First, offscreen);
+        app.add_systems(PreUpdate, no_input.after(bevy::input::InputSystems));
+    }
     app.insert_resource(Probe { out: out.into(), frames, png, exit, types, frame: 0, since: Instant::now(), ticks: 0 });
     app.add_systems(Last, (probe, dump).chain());
+}
+
+/// The picture the window's cameras draw into instead of its swapchain, when the example's pictures are taken
+/// (RAEA_PARITY_PNG): a window shows black once macOS stops compositing it (an unattended Mac mini's display asleep,
+/// 2026-11-07: frames after the first second came back black), an image never does. Same size and format the window
+/// would have; the first camera is the UI's, as the window's would be.
+#[derive(Resource)]
+struct Offscreen(Handle<Image>);
+
+fn offscreen(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    window: Query<&Window, With<bevy::window::PrimaryWindow>>,
+    cams: Query<(Entity, &bevy::camera::RenderTarget), Added<bevy::camera::RenderTarget>>,
+    held: Option<Res<Offscreen>>,
+) {
+    let Ok(w) = window.single() else { return };
+    let mut target = held.map(|h| h.0.clone());
+    for (e, t) in &cams {
+        if !matches!(t, bevy::camera::RenderTarget::Window(bevy::window::WindowRef::Primary)) {
+            continue;
+        }
+        let first = target.is_none();
+        let h = target.get_or_insert_with(|| {
+            let h = images.add(Image::new_target_texture(w.physical_width(), w.physical_height(), bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb, None));
+            commands.insert_resource(Offscreen(h.clone()));
+            h
+        });
+        commands.entity(e).insert(bevy::camera::RenderTarget::Image(h.clone().into()));
+        if first {
+            commands.entity(e).insert(bevy::ui::IsDefaultUiCamera);
+        }
+    }
+}
+
+/// No real input while the pictures are taken: a run must repeat, and a mouse moved over the Mac (2026-11-06:
+/// camera_orbit's camera swung by AccumulatedMouseMotion) would steer the example. Cleared after Bevy's input systems
+/// fill them, before the example's Update reads them.
+fn no_input(
+    motion: Option<ResMut<bevy::input::mouse::AccumulatedMouseMotion>>,
+    scroll: Option<ResMut<bevy::input::mouse::AccumulatedMouseScroll>>,
+    buttons: Option<ResMut<ButtonInput<MouseButton>>>,
+    keys: Option<ResMut<ButtonInput<KeyCode>>>,
+) {
+    if let Some(mut m) = motion {
+        *m = default();
+    }
+    if let Some(mut s) = scroll {
+        *s = default();
+    }
+    if let Some(mut b) = buttons {
+        b.reset_all();
+    }
+    if let Some(mut k) = keys {
+        k.reset_all();
+    }
 }
 
 /// A fixed clock of `fps` frames a second (Bevy's TimeUpdateStrategy::ManualDuration), for a run that must repeat.
@@ -78,6 +138,7 @@ pub fn fixed_clock(app: &mut App, fps: f64) {
 
 #[allow(clippy::type_complexity)]
 fn probe(
+    offscreen: Option<Res<Offscreen>>,
     mut p: ResMut<Probe>,
     all: Query<Entity>,
     meshes_q: Query<(&Mesh3d, Option<&MeshMaterial3d<StandardMaterial>>, Option<&ViewVisibility>, Option<&Aabb>)>,
@@ -143,7 +204,8 @@ fn probe(
         let _ = writeln!(file, "{line}");
     }
     if let Some(d) = &p.png {
-        commands.spawn(Screenshot::primary_window()).observe(save_to_disk(d.join(format!("{f}.png"))));
+        let shot = offscreen.as_ref().map_or_else(Screenshot::primary_window, |o| Screenshot::image(o.0.clone()));
+        commands.spawn(shot).observe(save_to_disk(d.join(format!("{f}.png"))));
     }
 }
 

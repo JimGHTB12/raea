@@ -42,6 +42,10 @@ export interface Canvas3DProps {
    * hidden by its parts; positioned elements after it are over it. The 3D's background is transparent. Put the
    * Canvas3D straight in a full-frame AbsoluteFill. */
   layered?: boolean;
+  /** only with `layered`: the 3D clears to this CSS colour instead of transparent, so its translucent parts blend over
+   * it in linear light, as Bevy's do over its ClearColor (a Bevy 2D scene's rgb(43, 44, 47)), not over the page in sRGB.
+   * The 3D then hides the page elements before it. */
+  clearColor?: string;
   children?: ReactNode;
   [prop: string]: unknown;
 }

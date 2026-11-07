@@ -26,6 +26,8 @@ use std::hash::{Hash, Hasher};
 
 use raea_sys_material::shader_material::{defs, ident, uniform, Uniform, SLOTS, TEXTURES};
 
+mod layout;
+
 /// The fragment shader every ShaderExt pipeline starts from, swapped in `specialize` for the material's own. It is a
 /// whole lit surface by itself (no hooks), so a material whose module is missing still draws as standard.
 const PLACEHOLDER: Handle<Shader> = uuid_handle!("2f6b1c4e-8d3a-4e7f-b9a2-6c1d5e8f0a73");
@@ -194,10 +196,12 @@ pub struct Inputs {
 
 impl Inputs {
     pub fn read(world: &mut World, o: &serde_json::Map<String, Value>, what: &str, image: &mut impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>) -> Result<Inputs, String> {
-        let src = match (o.get("wgsl").and_then(Value::as_str), o.get("wesl").and_then(Value::as_str)) {
-            (Some(_), Some(_)) => return Err(format!("{what} takes wgsl or wesl, not both")),
-            (Some(s), None) | (None, Some(s)) => s.to_string(),
-            (None, None) => return Err(format!("{what} needs wesl or wgsl: its source")),
+        let src = match (o.get("wgsl").and_then(Value::as_str), o.get("wesl").and_then(Value::as_str), o.get("fragment").and_then(Value::as_str)) {
+            (Some(s), None, None) | (None, Some(s), None) => s.to_string(),
+            // an asset path, found by the SDK (asset.load), as Bevy's MaterialExtension::fragment_shader names one
+            (None, None, Some(p)) => std::fs::read_to_string(p).map_err(|e| format!("{what}: its fragment {p}: {e}"))?,
+            (None, None, None) => return Err(format!("{what} needs wesl, wgsl or a fragment path: its source")),
+            _ => return Err(format!("{what} takes one of wesl, wgsl and fragment")),
         };
         let mut uniforms = vec![];
         if let Some(u) = o.get("uniforms") {
@@ -275,9 +279,20 @@ pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Va
         return Err("a surface shader defines fn surface(in: VertexOutput, pbr: ptr<function, PbrInput>), fn lit(in: VertexOutput, pbr: PbrInput, color: vec4<f32>) -> vec4<f32>, or its own @fragment".into());
     }
     let (names, tnames) = ins.names();
-    let id = register(world, module(&ins.src, &names, &tnames, ins.array.as_ref().map(|a| a.0.as_str())), &ins.defs, "raea surface shader", "raea_sys_shader");
+    // its own @binding(100) struct: the source as written, the uniforms in that struct's layout (layout.rs, FC2b)
+    // and a file (`fragment`) always as written, as Bevy's fragment_shader() names one: its imports first, its own
+    // bindings or none (a uniform it doesn't declare is refused)
+    let file = o.contains_key("fragment");
+    let (src, slots) = match layout::own_struct(&ins.src, &ins.defs).or_else(|| file.then(|| Ok(vec![]))) {
+        Some(fields) => {
+            let vals: Vec<(String, Vec4)> = ins.uniforms.iter().map(|u| (u.name.clone(), u.value)).collect();
+            (ins.src.clone(), layout::pack(&fields?, &vals)?)
+        }
+        None => (module(&ins.src, &names, &tnames, ins.array.as_ref().map(|a| a.0.as_str())), ins.slots()),
+    };
+    let id = register(world, src, &ins.defs, "raea surface shader", "raea_sys_shader");
     let mut t = ins.textures.iter().map(|x| Some(x.1.clone()));
-    Ok(ShaderExt { slots: ins.slots(), tex0: t.next().flatten(), tex1: t.next().flatten(), tex2: t.next().flatten(), tex3: t.next().flatten(), arr: ins.array.map(|a| a.1), shader: id })
+    Ok(ShaderExt { slots, tex0: t.next().flatten(), tex1: t.next().flatten(), tex2: t.next().flatten(), tex3: t.next().flatten(), arr: ins.array.map(|a| a.1), shader: id })
 }
 
 /// A shaded part: the standard material the rows animate (sync_meshes writes it), copied onto the shaded one's base

@@ -107,13 +107,12 @@ fn fresh_holders(world: &mut World) -> (Vec<Entity>, Option<Entity>) {
     (c.holders.clone(), c.slot)
 }
 
-/// The 3D's clear colour for a render or play: transparent (#00000000) for a layered Canvas3D, whose background is the
-/// page under it; else the nearest holder's background.
+/// The 3D's clear colour for a render or play: a layered Canvas3D's `clearColor` (its slot's data-clear, which its parts
+/// blend over in linear light as Bevy's over its ClearColor), else transparent, the page under it; else the nearest
+/// holder's background.
 pub fn scene_clear(world: &mut World) -> Option<String> {
-    if scene_slot(world).is_some() {
-        return Some("#00000000".into());
-    }
-    clear_of(&holders_of(world))
+    let Some(s) = fresh_holders(world).1 else { return clear_of(&holders_of(world)) };
+    Some(world.get::<ReactProps>(s).and_then(|p| p.0.get("data-clear")?.as_str().map(str::to_string)).unwrap_or_else(|| "#00000000".into()))
 }
 
 /// The 3D's clear colour: the nearest holder's background, as a render takes it.

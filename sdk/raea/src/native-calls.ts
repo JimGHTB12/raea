@@ -18,6 +18,8 @@ export interface NativeCalls {
   "aenc.new": { args: { rate: number; channels: number; kbps?: number }; answer: { id: number; description: string; priming: number } };
   /** an asset by its path (absolute, or from the edit's folder), loaded now: the file found and read, a picture's size; an error when it isn't there (S2b useAsset) */
   "asset.load": { args: { path: string }; answer: { path: string; bytes: number; width?: number; height?: number } };
+  /** a file's bytes (absolute, from the edit's folder, or an http(s) URL through raea's cache), read now, as base64 (R3F's loaders, docs/r3f.feature R3F13) */
+  "asset.read": { args: { path: string }; answer: { path: string; base64: string } };
   /** a queued call's answer once the Engine has run it (null before) */
   "bevy.world.answer": { args: { ticket: number }; answer: { value?: unknown; error?: string } | null };
   /** a BRP method (world.query, world.mutate_components, a plugin's method...) queued for the live Engine's next update: its ticket */

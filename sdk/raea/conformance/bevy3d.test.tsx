@@ -15,6 +15,8 @@ import { track } from "raea";
 
 const close = (a: number[], b: number[], eps = 1e-9) => a.every((x, i) => Math.abs(x - b[i]) < eps);
 const html = (el: React.ReactElement) => renderFrame(el, { frame: 0, width: 320, height: 240, fps: 30, durationInFrames: 30 });
+/** a Bevy StandardMaterial's emissive strength as written, which the old material takes as emissive_nits (core/scene emissive_power) */
+const nits = (k: number) => ({ emissive_nits: k }) as object;
 
 describe("Quat and Transform", () => {
   test("eulerOf inverts a composition's rotation, Quat::from_euler(EulerRot::XYZ, x, y, z) (scene3d.rs local)", () => {
@@ -166,7 +168,7 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
     expect(m(<StandardMaterial material="Fabric" base_color="#7a3b2e" />)).toBe(m(<MeshStandardMaterial color="#7a3b2e" material="Fabric" />));
     expect(m(<StandardMaterial perceptual_roughness={0.3} />)).toBe(m(<MeshStandardMaterial roughness={0.3} />));
     expect(m(<StandardMaterial base_color="#c03" base_color_texture={null} />)).toBe(m(<MeshStandardMaterial color="#c03" map={null} />));
-    expect(m(<StandardMaterial base_color="#000000" emissive={LinearRgba.from(Srgba.hex("#ffaa55")).mul(700)} />)).toBe(m(<MeshStandardMaterial color="#000000" emissive="#ffaa55" emissiveIntensity={700} />));
+    expect(m(<StandardMaterial base_color="#000000" emissive={LinearRgba.from(Srgba.hex("#ffaa55")).mul(700)} />)).toBe(m(<MeshStandardMaterial color="#000000" emissive="#ffaa55" {...nits(700)} />));
     expect(html(<StandardMaterial base_color="#7a3b2e" />)).toBe(html(<MeshStandardMaterial color="#7a3b2e" roughness={0.5} metalness={0} />));
   });
 
@@ -197,7 +199,7 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
       html(<MeshStandardMaterial color="#3060ff" roughness={0.5} metalness={0} animate={{ color: blue, roughness: track({ 0: 0.2, 30: 0.8 }), metalness: track({ 0: 0, 30: 1 }) }} />),
     );
     expect(html(<StandardMaterial emissive="#ff4070" animate={{ emissive: track({ 0: E.mul(0), 30: E.mul(2.5) }, "out-cubic") }} />)).toBe(
-      html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} emissive="#ff4070" animate={{ emissiveIntensity: track({ 0: 0, 30: 2.5 }, "out-cubic") }} />),
+      html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} emissive="#ff4070" {...nits(1)} animate={{ emissive_nits: track({ 0: 0, 30: 2.5 }, "out-cubic") } as never} />),
     );
     const F = LinearRgba.from(Srgba.hex("#00ff00"));
     expect(() => html(<StandardMaterial animate={{ emissive: track({ 0: E, 30: F }) }} />)).toThrow(/one colour/);
@@ -241,10 +243,10 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
   });
 
   test("emissive brighter than white: LinearRgba, made from a colour, goes as that colour and its intensity exactly", () => {
-    const glow = (e: string, k: number) => html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} emissive={e} emissiveIntensity={k} />);
+    const glow = (e: string, k: number) => html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} emissive={e} {...nits(k)} />);
     expect(html(<StandardMaterial emissive={LinearRgba.from(Srgba.hex("#884422")).mul(3)} />)).toBe(glow("#884422", 3));
     expect(html(<StandardMaterial emissive={LinearRgba.from(Srgba.hex("#884422")).mul(2).mul(1.5)} />)).toBe(glow("#884422", 3));
-    expect(html(<StandardMaterial emissive={LinearRgba.from(Srgba.hex("#ff8800"))} />)).toBe(html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} emissive="#ff8800" />));
+    expect(html(<StandardMaterial emissive={LinearRgba.from(Srgba.hex("#ff8800"))} />)).toBe(html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} emissive="#ff8800" {...nits(1)} />));
     // raw floats: the hue at full strength times the brightest channel
     expect(html(<StandardMaterial emissive={LinearRgba.rgb(4, 2, 0)} />)).toBe(glow("#ffbc00", 4));
     expect(html(<StandardMaterial emissive={LinearRgba.rgb(0, 0, 0)} />)).toBe(html(<StandardMaterial />));
@@ -278,7 +280,7 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
     // no base_color: on a Model, each glTF material keeps its own
     expect(toon({ material: "Body" }, { steps: 2 })).toBe(html(<MeshToonMaterial steps={2} material="Body" />));
     expect(toon({ base_color: Srgba.hex("#88ccff").with_alpha(0.5), alpha_mode: "Blend", emissive: LinearRgba.from(Srgba.hex("#ff0000")).mul(2) }, {})).toBe(
-      html(<MeshToonMaterial color="#88ccff" emissive="#ff0000" emissiveIntensity={2} transparent opacity={0.5} />),
+      html(<MeshToonMaterial color="#88ccff" emissive="#ff0000" {...nits(2)} transparent opacity={0.5} />),
     );
     expect(() => toon({ perceptual_roughness: 0.3 }, {})).toThrow(/not perceptual_roughness/);
     expect(() => html(<ExtendedMaterial base={<ExtendedMaterial base={<StandardMaterial />} extension={<GridExtension cell={1} />} />} extension={<ToonExtension />} />)).toThrow(/takes no other extension/);
@@ -310,7 +312,7 @@ describe("Bevy's lights, in Bevy's units", () => {
   test("PointLight sits at its translation, with Bevy's defaults (1e6 lm, range 20, no shadows)", () => {
     expect(html(<PointLight transform={Transform.fromXyz(1, 3, 2)} />)).toBe(html(<three.PointLight position={[1, 3, 2]} lumens={1_000_000} distance={20} castShadow={false} />));
     expect(html(<PointLight shadow_maps_enabled soft_shadows_enabled radius={0.1} color="#ffaa66" />)).toBe(
-      html(<three.PointLight position={[0, 0, 0]} lumens={1_000_000} distance={20} castShadow softShadow={0.1} color="#ffaa66" />),
+      html(<three.PointLight position={[0, 0, 0]} lumens={1_000_000} distance={20} castShadow radius={0.1} softShadow={0.1} color="#ffaa66" />),
     );
   });
 

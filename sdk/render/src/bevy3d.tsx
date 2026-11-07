@@ -17,3 +17,5 @@ export { SolariLighting, Pathtracer, type SolariLightingProps, type PathtracerPr
 export { ConicalFrustum, type ConicalFrustumProps } from "./3d/shapes";
 // a Bevy texture (a camera's target) drawn in an element (B3 H7)
 export { TextureView } from "./layers";
+// your own Material (docs/control.feature FC2a)
+export { Material, type MaterialProps } from "./bevy3d/all";

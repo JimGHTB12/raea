@@ -1,6 +1,6 @@
 // Image planes, decals, bloom, fog, grading, environment, ambient occlusion, shadows and volumetric fog.
 import { useCurrentFrame, useVideoConfig } from "@raea/app/clock";
-import { ImagePlaneProps, Vec3, checkShares, checkVec, colours, node3d } from "./all";
+import { ImagePlaneProps, Vec3, assetPath, checkShares, checkVec, colours, node3d } from "./all";
 
 /** A picture on a flat card in the scene, unlit (a poster, a screen, a sprite).
  * @bevy bevy_image::image::Image */
@@ -224,7 +224,7 @@ export interface EnvironmentProps {
 /** Light from all around, out of a panorama: soft light from the sky and reflections of it in every glossy or metal
  * surface (image-based lighting), and with `background` the panorama as the sky. Put it inside the Canvas3D, once a
  * frame; its src, intensity, rotation and background may change from frame to frame (a cut from a hall to a street).
- * @bevy bevy_light::probe::EnvironmentMapLight
+ * Bevy's EnvironmentMapLight with maps already filtered is <EnvironmentMapLight>.
  * Its panorama is filtered by Bevy's generator and, with `background`, drawn as the sky (engine/render
  * environment.rs): @bevy bevy_light::probe::GeneratedEnvironmentMapLight @bevy bevy_light::probe::Skybox */
 export function Environment(props: EnvironmentProps) {
@@ -236,6 +236,27 @@ export function Environment(props: EnvironmentProps) {
   }
   if (props.rotation !== undefined && !(typeof props.rotation === "number" && Number.isFinite(props.rotation))) throw new RangeError(`Environment: rotation must be a number of radians, got ${props.rotation}`);
   return node3d("Environment", props as unknown as Record<string, unknown>);
+}
+
+export interface EnvironmentMapLightProps {
+  /** the prefiltered diffuse (irradiance) cubemap, a .ktx2 file: staticFile("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2") */
+  diffuse_map: string;
+  /** the prefiltered specular (radiance) cubemap with its mips, a .ktx2 file */
+  specular_map: string;
+  /** cd/m² (Bevy's default 1) */
+  intensity?: number;
+}
+
+/** Bevy's EnvironmentMapLight with its own prefiltered maps, as Bevy's examples put one on the camera (docs/control.feature
+ *  FC0a): light from all around and its reflections, from cubemaps already filtered (an <Environment> filters a panorama
+ *  itself). Put it inside the Canvas3D, once; the first frame's holds.
+ *  @bevy bevy_light::probe::EnvironmentMapLight */
+export function EnvironmentMapLight(props: EnvironmentMapLightProps) {
+  for (const k of ["diffuse_map", "specular_map"] as const) {
+    if (typeof props[k] !== "string" || !/\.ktx2$/i.test(props[k])) throw new TypeError(`EnvironmentMapLight: ${k} is a prefiltered cubemap's .ktx2 file, got ${JSON.stringify(props[k])}`);
+  }
+  if (props.intensity !== undefined && !(typeof props.intensity === "number" && props.intensity >= 0 && Number.isFinite(props.intensity))) throw new RangeError(`EnvironmentMapLight: intensity is cd/m², 0 or more, got ${props.intensity}`);
+  return node3d("Environment", { diffuse_map: assetPath(props.diffuse_map), specular_map: assetPath(props.specular_map), intensity: props.intensity ?? 1 });
 }
 
 export interface AmbientOcclusionProps {
@@ -397,6 +418,9 @@ export interface FogVolumeProps {
    * fog that's a third as thick two metres up. A box wide and tall with a falloff is height fog. Only
    * <VolumetricFog mode="froxel"> draws it; the march draws the box evenly */
   falloff?: number;
+  /** Bevy's density_texture: a 3D .ktx2 image in the media folder whose values scale the density through the box (a
+   * cloud, a bunny of smoke); the box draws evenly without one. Only the march draws it */
+  density_texture?: string;
 }
 
 /** A box of air that light shows in: dust in a sunbeam, smoke, a haze of blood. Needs a <VolumetricFog> in the
@@ -407,6 +431,8 @@ export function FogVolume(props: FogVolumeProps) {
   for (const k of ["position", "rotation"] as const) if (props[k] !== undefined) checkVec("FogVolume", k, props[k]);
   if (props.density !== undefined && !(props.density >= 0 && Number.isFinite(props.density))) throw new RangeError(`FogVolume: density must be 0 or more, got ${props.density}`);
   if (props.anisotropy !== undefined && !(props.anisotropy > -1 && props.anisotropy < 1)) throw new RangeError(`FogVolume: anisotropy must be between -1 and 1, got ${props.anisotropy}`);
+  const tex = props.density_texture;
+  if (tex !== undefined && !(typeof tex === "string" && /\.ktx2$/i.test(tex))) throw new TypeError(`FogVolume: density_texture is a 3D .ktx2 image, got ${JSON.stringify(tex)}`);
   if (props.falloff !== undefined && !(props.falloff >= 0 && Number.isFinite(props.falloff))) throw new RangeError(`FogVolume: falloff must be 0 or more, got ${props.falloff}`);
-  return node3d("FogVolume", colours("FogVolume", props as Record<string, unknown>, ["color"]));
+  return node3d("FogVolume", colours("FogVolume", (tex === undefined ? props : { ...props, density_texture: assetPath(tex) }) as Record<string, unknown>, ["color"]));
 }

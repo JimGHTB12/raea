@@ -272,9 +272,10 @@ pub(crate) fn fogs_rows(tr: &Tracks, p: &mut Program) {
             }
         }
         let first = &its[0].props;
-        for (prop, col) in [("absorption", "absorption"), ("scattering", "scattering"), ("anisotropy", "anisotropy"), ("falloff", "falloff")] {
-            if let Some(x) = num(first, prop) {
-                row.insert(col.into(), V::N(x));
+        // and its density texture (Bevy's density_texture, a .ktx2 3D image's path: 3d/fog_volumes' bunny)
+        for (prop, col) in [("absorption", "absorption"), ("scattering", "scattering"), ("anisotropy", "anisotropy"), ("falloff", "falloff"), ("density_texture", "density_tex")] {
+            if let Some(x) = first.get(prop).and_then(|v| v.as_f64().map(V::N).or_else(|| v.as_str().map(|s| V::S(s.into())))) {
+                row.insert(col.into(), x);
             }
         }
         placement(p, &mut row, &id, &its);

@@ -31,13 +31,14 @@ pub(super) fn sprites(tracks: &[Track], p: &mut Program) {
         row.insert("id".into(), V::S(id.clone()));
         let first = &its[0].props;
         row.insert("src".into(), V::S(src_path(first.get("src").and_then(Value::as_str).unwrap_or(""))));
-        for (prop, col) in [("width", "w"), ("height", "h")] {
-            if let Some(v) = num(first, prop) {
-                row.insert(col.into(), V::N(v));
+        // keyed: a size that changes shows more or fewer tiles of a tiled one (Bevy's custom_size, 2d/sprite_tile)
+        for (prop, col) in [("width", "w"), ("height", "h"), ("tileStretch", "tile_stretch")] {
+            if num(first, prop).is_some() {
+                column(p, &mut row, &id, col, &its.iter().map(|i| n(&i.props, prop, 1.0)).collect::<Vec<_>>());
             }
         }
         sheet(p, &mut row, &id, &its);
-        for (prop, col) in [("flipX", "flip_x"), ("flipY", "flip_y")] {
+        for (prop, col) in [("flipX", "flip_x"), ("flipY", "flip_y"), ("tileX", "tile_x"), ("tileY", "tile_y")] {
             if first.get(prop) == Some(&Value::Bool(true)) {
                 row.insert(col.into(), V::N(1.0));
             }

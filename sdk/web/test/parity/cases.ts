@@ -18,4 +18,5 @@ export const CASES: Case[] = [
   { name: "resource", kinds: ["BevyResource"], edit: `${BENCH}/reflect-keyed-resource-still.tsx`, frame: 15 },
   { name: "entities", kinds: ["Entities"], edit: "./entities.tsx", frame: 10 },
   { name: "fog", kinds: ["VolumetricFog", "FogVolume"], edit: "./fog.tsx", frame: 0 },
+  { name: "three-shader", kinds: ["ThreeShaderMaterial"], edit: "./three-shader.tsx", frame: 0 },
 ];

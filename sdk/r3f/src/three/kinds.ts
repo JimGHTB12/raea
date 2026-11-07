@@ -28,6 +28,7 @@ export const KINDS: Record<string, { status: Status; three: string; note?: strin
   MeshStandardMaterial: { status: "drawn", three: "MeshStandardMaterial (maps, alpha modes, sides, uv transform, samplers)" },
   MeshPhysicalMaterial: { status: "drawn", three: "MeshPhysicalMaterial (clearcoat, transmission, ior, thickness, attenuation, anisotropy, specular)" },
   MeshBasicMaterial: { status: "drawn", three: "MeshBasicMaterial" },
+  ThreeShaderMaterial: { status: "engine", three: "a three.js shader run by raea's engine (raea-sys-three-shader)", note: "it came from three.js (a ShaderMaterial's GLSL or a node material's WGSL); exported back to three.js, the original material is the one to keep" },
   MeshToonMaterial: { status: "near", three: "MeshToonMaterial with a gradient of its steps or bands", note: "raea's rim, highlight and ink outline are its own shader's: three's toon shades the bands only" },
   PerspectiveCamera: { status: "drawn", three: "PerspectiveCamera, or OrthographicCamera when `ortho`" },
   AmbientLight: { status: "drawn", three: "AmbientLight (units.ts)" },

@@ -11,6 +11,8 @@ import { Raea } from "@raea/r3f/output/Raea"
 import { loadShapes } from "@raea/r3f/three/geometry"
 // the shape module tools/shape-wasm.sh builds into sdk/r3f/wasm, served by tools/serve.ts at /wasm/
 const SHAPES = "/wasm/raea_shape_web.js"
+// drei's <Environment preset> panoramas from tools/serve.ts, which fetches them (the page makes no outside request)
+THREE.DefaultLoadingManager.setURLModifier((url) => url.replace(/^https:\/\/raw\.(githack|githubusercontent)\.com\/pmndrs\/drei-assets\//, "/drei-assets/"))
 
 function Stepper({ frame, onDone }: { frame: number; onDone: () => void }) {
   useEffect(() => {

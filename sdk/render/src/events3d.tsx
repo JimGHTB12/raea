@@ -238,6 +238,11 @@ const scene = {
   last: { hover: null, down: null } as Last,
 };
 
+/** What the frame last rendered can be picked: each part with handlers, by id, and its bounds in the world. */
+export function pickable3d(): ReadonlyMap<string, Pickable | undefined> {
+  return new Map([...scene.parts].map(([id, p]) => [id, p.target]));
+}
+
 function begin(frame: number) {
   if (scene.frame === frame) return;
   // a frame that doesn't follow the last one starts with nothing pressed or under the pointer
@@ -253,10 +258,14 @@ export function useCamera3d(camera: PickCamera) {
   scene.camera = camera;
 }
 
-/** A part's handlers (its on* props) called for the frame's pointer events on it; `bounds` its shape's, in its own
- * space, under the world matrix `m`. Nothing without a handler. */
-export function usePointer3d(id: string, m: Mat4, bounds: LocalBounds | undefined, props: Record<string, unknown>) {
-  usePart(id, bounds === undefined ? undefined : (handlers) => ({ target: worldBounds(id, m, bounds), handlers }), props);
+/** A part's handlers (its on* props) called for the frame's pointer events on it; `bounds` gives its shape's, in its
+ * own space, under the world matrix `m`. Nothing without a handler, and then `bounds` isn't asked: a part with none
+ * worked out its bounds every render, half of bloom_3d's React step (docs/control.feature FC1b). */
+export function usePointer3d(id: string, m: Mat4, bounds: () => LocalBounds | undefined, props: Record<string, unknown>) {
+  usePart(id, (handlers) => {
+    const b = bounds();
+    return b === undefined ? undefined : { target: worldBounds(id, m, b), handlers };
+  }, props);
 }
 
 /** A 2D part's handlers, as usePointer3d's: picked in frame px over the 3D, before any 3D part. */
@@ -264,10 +273,14 @@ export function usePointer2d(id: string, flat: Flat, props: Record<string, unkno
   usePart(id, (handlers) => ({ flat, handlers }), props);
 }
 
-function usePart(id: string, part: ((handlers: Record<string, Handler>) => Part) | undefined, props: Record<string, unknown>) {
+const POINTER_ENTRIES = Object.entries(POINTER_PROPS);
+
+function usePart(id: string, part: (handlers: Record<string, Handler>) => Part | undefined, props: Record<string, unknown>) {
   const handlers: Record<string, Handler> = {};
-  for (const [type, prop] of Object.entries(POINTER_PROPS)) if (typeof props[prop] === "function") handlers[type] = props[prop] as Handler;
-  const any = Object.keys(handlers).length > 0 && part !== undefined;
+  let n = 0;
+  for (const [type, prop] of POINTER_ENTRIES) if (typeof props[prop] === "function") (handlers[type] = props[prop] as Handler), n++;
+  const made = n > 0 ? part(handlers) : undefined;
+  const any = made !== undefined;
   // only a part with handlers follows the clock: reading it re-renders the part every frame, and every part reading
   // it made 10 000 still cubes re-render every frame (docs/control.feature FC1b). The three are context reads only,
   // which hold no hook slot in React (readContext) or in the live runtime (lite's useContext logs the read), so a
@@ -277,7 +290,7 @@ function usePart(id: string, part: ((handlers: Record<string, Handler>) => Part)
   const { width, height } = any ? useVideoConfig() : { width: 0, height: 0 };
   if (any) {
     begin(frame);
-    scene.parts.set(id, part(handlers));
+    scene.parts.set(id, made);
   }
   useEffect(() => {
     if (!any || !input) return;

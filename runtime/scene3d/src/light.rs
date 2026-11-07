@@ -135,6 +135,16 @@ pub fn light(world: &mut World, e: Entity, vals: &BTreeMap<String, V>) {
 pub fn fog_volume(world: &mut World, e: Entity, id: &str, vals: &BTreeMap<String, V>) {
     let mut fv = bevy::light::FogVolume::default();
     fog_values(&mut fv, vals);
+    // a density texture (a 3D .ktx2), loaded as Bevy's AssetServer loads one; one that won't load leaves the box even
+    if let Some(V::S(p)) = vals.get("density_tex") {
+        let img = std::fs::read(p).map_err(|e| e.to_string()).and_then(|b| {
+            Image::from_buffer(&b, bevy::image::ImageType::Extension("ktx2"), bevy::image::CompressedImageFormats::NONE, true, bevy::image::ImageSampler::Default, bevy::asset::RenderAssetUsages::RENDER_WORLD).map_err(|e| e.to_string())
+        });
+        match img {
+            Ok(img) => fv.density_texture = Some(world.resource_mut::<Assets<Image>>().add(img)),
+            Err(err) => eprintln!("raea: FogVolume density_texture {p}: {err}"),
+        }
+    }
     world.entity_mut(e).insert((fv, fog_transform(vals), FogRank(id.to_string()), FogThinning(num(vals, "falloff", 0.0).max(0.0))));
 }
 

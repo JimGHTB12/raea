@@ -41,7 +41,9 @@ function Inner({ fiber, children, name, ...config }: R3FProps & { fiber: Paramet
   };
   const s = stepTo(name ?? id, frame, fps, width, height, config, at);
   const { scene, camera, gl } = s.state as unknown as { scene: THREE.Scene; camera: THREE.Camera; gl: THREE.WebGLRenderer };
-  const out = convert(scene, camera, gl, height);
+  // R3F's clock: what a node material's `time` reads (useFrame's own steps, 1/fps a frame)
+  const r3fClock = (s.state as unknown as { clock: { elapsedTime: number } }).clock;
+  const out = convert(scene, camera, gl, height, r3fClock.elapsedTime, 1 / fps);
   const drawn = elementsOf(out.parts, "r3f.");
   return out.background ? <AbsoluteFill style={{ background: out.background }}>{drawn}</AbsoluteFill> : <>{drawn}</>;
 }

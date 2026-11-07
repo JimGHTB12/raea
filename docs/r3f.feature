@@ -105,28 +105,37 @@ Feature: React Three Fiber both ways: an R3F scene drawn by raea, a raea composi
       When tools/parity.sh renders each with `raea render` (native.tsx) and with three.js in headless Chrome
         (test/parity/page.tsx, which tools/serve.ts builds and serves itself, with the wasm tools/shape-wasm.sh builds),
         and compares the two by SSIM
-      Then every case is at least 0.92 (measured 11-06)
+      Then every case is at least 0.92 (measured 11-07)
         | case        | what                                                                 | SSIM   |
-        | in-basic    | a spinning box (useFrame), PBR and clearcoat, shadows, a point light | 0.9911 |
-        | in-lights   | spot, hemisphere and area lights, fog, Lambert and flat Phong        | 0.9792 |
-        | in-things   | InstancedMesh, multi-material, edge lines, a sprite                  | 0.9908 |
-        | in-catch    | a ShadowMaterial floor: only the box's shadow over the background    | 0.9965 |
+        | in-basic    | a spinning box (useFrame), PBR and clearcoat, shadows, a point light | 0.9917 |
+        | in-lights   | spot, hemisphere and area lights, fog, Lambert and flat Phong        | 0.9795 |
+        | in-things   | InstancedMesh, multi-material, edge lines, a sprite                  | 0.9917 |
+        | in-catch    | a ShadowMaterial floor: only the box's shadow over the background    | 0.9966 |
+        | in-lettra   | lettra's MSDF text (TSL) and a TSL gradient on its clock             | 0.9994 |
+        | in-lettrafx | lettra's wipe and scramble (an attribute, a uniform array)           | 0.9992 |
+        | in-shader   | ShaderMaterials: a rippled sphere, points sized by an attribute      | 0.9989 |
+        | in-post     | <EffectComposer>: HueSaturation, Vignette, ToneMapping ACES          | 0.9451 |
+        | in-drei     | drei's Text, Environment preset, ContactShadows, Float, useGLTF      | 0.9932 |
+        | in-approx   | matcap, normal, Phong specular, dashes, clipping, hemisphere, probe  | 0.9848 |
         | out-basic   | a raea scene, ACES, a moving box                                     | 0.9958 |
-        | out-tony    | the same scene in raea's default tone mapping, TonyMcMapface         | 0.9960 |
-        | out-lights  | spot and area lights, fog, Text3D (a solid)                          | 0.9627 |
-        | out-bloom   | <Bloom intensity={2}>                                                | 0.9444 |
-        | out-grade   | <Grade> saturation, contrast, vignette                               | 0.9748 |
-        | out-lens    | <LensDistortion k1={0.15}>                                           | 0.9933 |
+        | out-tony    | the same scene in raea's default tone mapping, TonyMcMapface         | 0.9961 |
+        | out-lights  | spot and area lights, fog, Text3D (a solid)                          | 0.9633 |
+        | out-bloom   | <Bloom intensity={2}>                                                | 0.9295 |
+        | out-grade   | <Grade> saturation, contrast, vignette                               | 0.9738 |
+        | out-lens    | <LensDistortion k1={0.15}>                                           | 0.9922 |
         | out-catch   | <Mesh shadow="catch">, three's ShadowMaterial                        | 0.9972 |
-        | out-entities| <Entities>: a raea/ecs world, a ship and its gun turned by a system  | 0.9971 |
-        | src-basic   | out-basic exported as R3F source, drawn by a plain <Canvas>          | 0.9957 |
-        | src-tony    | out-tony exported (Tony through raea-effects.ts)                     | 0.9960 |
-        | src-lights  | out-lights exported as R3F source (Text3D as its triangles)          | 0.9628 |
-        | src-bloom   | out-bloom exported (raea-effects.ts)                                 | 0.9444 |
-        | src-grade   | out-grade exported                                                   | 0.9748 |
-        | src-lens    | out-lens exported                                                    | 0.9933 |
+        | out-entities| <Entities>: a raea/ecs world, a ship and its gun turned by a system  | 0.9972 |
+        | src-basic   | out-basic exported as R3F source, drawn by a plain <Canvas>          | 0.9958 |
+        | src-tony    | out-tony exported (Tony through raea-effects.ts)                     | 0.9961 |
+        | src-lights  | out-lights exported as R3F source (Text3D as its triangles)          | 0.9633 |
+        | src-bloom   | out-bloom exported (raea-effects.ts)                                 | 0.9295 |
+        | src-grade   | out-grade exported                                                   | 0.9738 |
+        | src-lens    | out-lens exported                                                    | 0.9922 |
         | src-catch   | out-catch exported                                                   | 0.9972 |
-        | src-entities| out-entities exported                                                | 0.9971 |
+        | src-entities| out-entities exported                                                | 0.9972 |
+      And three r181 rewrote UnrealBloomPass (mrdoob/three.js#31528): three/effects.ts puts r180's kernels, composite
+        and blend back on three's pass, so out-bloom holds to the bloom raea's matches (three's frame equals r180's at
+        SSIM 0.999998)
       And three's ACES scales its input by 1/0.6 where Bevy's doesn't: the host's exposure takes 0.6 under ACES, and
         an R3F canvas's ACES reads as 0.74 stops more (measured: out-lights 0.927 to 0.963, in-lights 0.927 to 0.979)
 
@@ -170,3 +179,71 @@ Feature: React Three Fiber both ways: an R3F scene drawn by raea, a raea composi
       And measuring it fixed raea-web: a model's file is fetched rather than looked for on disk (runtime/scene3d
         model.rs), a black page background is the 3D's clear rather than a cover over it (rgb(0, 0, 0) was read as
         see-through, here and in Scene3d), and a layered <Canvas3D>'s empty slot isn't drawn
+
+  Rule: What R3F apps are made of draws in raea
+
+    Goal, 2026-11-06: "finish the r3f": custom GLSL shaders, @react-three/postprocessing, the materials and lights that
+    were approximate, and a drei-heavy scene, each read by <R3F> and held to three.js by parity (R3F8).
+
+    @done
+    Scenario: R3F11. three.js shaders run in raea's engine
+      Given a ShaderMaterial or RawShaderMaterial in an <R3F> scene (written by hand, or drei's shaderMaterial())
+      When raea reads it (src/input/shader.ts)
+      Then its GLSL goes as three would compile it: the #includes expanded from three's ShaderChunk, its defines in
+        front, the #ifdef blocks its defines settle decided, its uniforms as this frame's numbers and its textures as
+        pictures (a picture made in code as a PNG data: URL)
+      And raea-sys-three-shader translates it with naga and runs it with three's built-ins (the matrices, the camera,
+        a colour and uvs on every vertex, up to 4 attributes of its own, 64 vec4 uniforms, 4 textures)
+      And a shader that includes three's tone mapping is tone-mapped by Bevy's, one that doesn't is shown as three's
+        canvas shows it
+      And in-shader (a sphere rippled by a uniform set in useFrame, points sized by their own attribute): SSIM 0.9989
+
+    @done
+    Scenario: R3F12. @react-three/postprocessing's <EffectComposer> as raea's frame effects
+      Given an <EffectComposer> in an <R3F> scene
+      When raea reads its effects (src/input/post.ts)
+      Then each becomes the raea effect that does the same thing: Bloom; Vignette, ChromaticAberration,
+        HueSaturation and BrightnessContrast in one Grade; ToneMapping; DepthOfField and Bokeh; SMAA and FXAA; SSAO
+        and N8AO; Pixelation; LensDistortion
+      And one raea has nothing for (noise, glitch, god rays ...) is named once and left out (kinds.ts's EFFECTS
+        decides every effect postprocessing exports, tested)
+      And a composer's frame is tone-mapped only by its ToneMapping effect, as in three
+      And in-post (HueSaturation, Vignette, ToneMapping ACES): SSIM 0.945
+
+    @done
+    Scenario: R3F13. A drei-heavy scene: <Text>, <Environment preset>, <ContactShadows>, <Float>, useGLTF
+      Given test/parity's in-drei case: a knot loaded by useGLTF in a <Float>, troika's <Text> in Inter, drei's
+        <ContactShadows> under it and <Environment preset="city"> lighting it
+      When raea renders it
+      Then three's loaders read their files where a native render has no fetch: FileLoader by the `asset.read` native
+        call (a file, or an http(s) URL through raea's cache), so a glTF is parsed in JS; a DataTextureLoader (HDR,
+        EXR) hands back the cached file, which raea's engine loads as <Environment src>
+      And what an app draws into a render target is done on the CPU where it's a pass raea knows (src/input/targets.ts):
+        a MeshDepthMaterial override from an orthographic camera and three's 9-tap blurs, which are drei's
+        <ContactShadows>; anything else drawn into a target is named and left empty
+      And a mesh whose transform mirrors it is drawn with its triangles rewound (three flips the front face; Bevy
+        culls as wound)
+      And raea's bundler gives a composition troika-three-text as sdk/r3f/src/input/troika.ts (engine/bundle's
+        STAND_INS): its Text holds troika's settings and draws nothing, and src/input/text.ts reads any troika Text as
+        raea's <RichText> (size, the face's family from its name table, weight, colour, anchors, maxWidth)
+      And a root whose parts mounted late (they suspended) starts again from frame 0 once its loads are cached, and
+        Math.random is seeded per root, so drei's <Float> and three's uuids are the same however often a seek restarts
+        it (render equals play)
+      And in-drei: SSIM 0.993 (Float at speed 0 in the case: three's page draws its phase at random)
+
+    @done
+    Scenario: R3F14. The approximate kinds made exact or closer
+      Given test/parity's in-approx case
+      When raea renders it
+      Then MeshMatcapMaterial and MeshNormalMaterial run three's own ShaderLib programs (R3F11), so they look as three
+        draws them
+      And Phong's specular colour is its F0 (three's Blinn-Phong): Bevy's reflectance and specular tint
+      And a LineDashedMaterial is cut into its dashes by the line's distances (computeLineDistances), as three's shader
+        cuts it
+      And clipping planes (a material's with localClippingEnabled, the renderer's, a ClippingGroup's) cut the mesh's
+        triangles, so what three discards isn't drawn (src/input/clip.ts; clipIntersection keeps what is inside any one)
+      And drei's MeshTransmissionMaterial draws with Bevy's transmission (its own uniform's, as three's is 0 under it)
+      And a LightProbe is an ambient light of its constant band and a light along its linear band (exact for surfaces
+        facing that light or sideways, as the hemisphere light is), and its constant band is scaled as three's
+        irradiance is (0.886, where 0.282 made it a third as bright)
+      And in-approx: SSIM 0.9848 (Phong's F0 is held at Bevy's highest, 0.16, so its orange highlight glints less)

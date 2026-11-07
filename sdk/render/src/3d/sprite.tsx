@@ -33,6 +33,12 @@ export interface SpriteProps extends Place2dProps {
   flipY?: boolean;
   /** a tint multiplied over the picture (white by default) */
   color?: string;
+  /** Bevy's SpriteImageMode::Tiled: the picture repeats across the sprite's width (tileX) or height (tileY) instead of
+   * stretching to it, a tile every `tileStretch` x the picture's size (1 by default): a floor, a fence, a wall. Animate
+   * width and height to show more or fewer tiles */
+  tileX?: boolean;
+  tileY?: boolean;
+  tileStretch?: number;
 }
 
 /** A picture in 2D, over the 3D: Bevy's Sprite, drawn as a quad with its sprite material, a sprite sheet's cells cut
@@ -47,6 +53,8 @@ export function Sprite(props: SpriteProps) {
   if (gr !== undefined && !(Array.isArray(gr) && gr.length === 2 && gr.every((n) => Number.isInteger(n) && n >= 1))) throw new TypeError(`Sprite: grid is [columns, rows], two whole numbers of 1 or more, got ${JSON.stringify(gr)}`);
   if (props.frame !== undefined && !(Number.isFinite(props.frame) && props.frame >= 0)) throw new RangeError(`Sprite: frame is a cell of the grid, 0 or more, got ${props.frame}`);
   for (const k of ["width", "height"] as const) if (props[k] !== undefined && !(Number.isFinite(props[k]) && props[k] > 0)) throw new RangeError(`Sprite: ${k} is px above 0, got ${props[k]}`);
+  if (props.tileStretch !== undefined && !(Number.isFinite(props.tileStretch) && props.tileStretch > 0)) throw new RangeError(`Sprite: tileStretch is above 0, got ${props.tileStretch}`);
+  if (props.tileStretch !== undefined && !props.tileX && !props.tileY) throw new TypeError("Sprite: tileStretch is for a tiled sprite: give tileX or tileY");
   check2d("Sprite", props);
   const id = useId();
   const handled = Object.keys(props).some((k) => /^on[A-Z]/.test(k));

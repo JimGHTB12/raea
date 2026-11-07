@@ -111,6 +111,54 @@ function tonyTable(): THREE.Data3DTexture {
   return tonyLut;
 }
 
+/** three r181 widened UnrealBloomPass's blur (mrdoob/three.js#31528: kernels 6 to 22, sigma a third of each), which
+ * spreads the glow past Bevy's; raea's Bloom is matched to r180's (kernels 3 to 11, sigma the kernel, its composite and blend), put back here so
+ * the glow is the same whichever three a project has (a no-op on r180 and before) */
+/** r180's composite of the five blurs (three.js, MIT) */
+const R180_COMPOSITE = /* glsl */ `varying vec2 vUv;
+uniform sampler2D blurTexture1;
+uniform sampler2D blurTexture2;
+uniform sampler2D blurTexture3;
+uniform sampler2D blurTexture4;
+uniform sampler2D blurTexture5;
+uniform float bloomStrength;
+uniform float bloomRadius;
+uniform float bloomFactors[NUM_MIPS];
+uniform vec3 bloomTintColors[NUM_MIPS];
+float lerpBloomFactor(const in float factor) {
+  float mirrorFactor = 1.2 - factor;
+  return mix(factor, mirrorFactor, bloomRadius);
+}
+void main() {
+  gl_FragColor = bloomStrength * ( lerpBloomFactor(bloomFactors[0]) * vec4(bloomTintColors[0], 1.0) * texture2D(blurTexture1, vUv) +
+    lerpBloomFactor(bloomFactors[1]) * vec4(bloomTintColors[1], 1.0) * texture2D(blurTexture2, vUv) +
+    lerpBloomFactor(bloomFactors[2]) * vec4(bloomTintColors[2], 1.0) * texture2D(blurTexture3, vUv) +
+    lerpBloomFactor(bloomFactors[3]) * vec4(bloomTintColors[3], 1.0) * texture2D(blurTexture4, vUv) +
+    lerpBloomFactor(bloomFactors[4]) * vec4(bloomTintColors[4], 1.0) * texture2D(blurTexture5, vUv) );
+}`;
+
+function r180Blur(p: UnrealBloomPass): UnrealBloomPass {
+  const mats = (p as unknown as { separableBlurMaterials: THREE.ShaderMaterial[] }).separableBlurMaterials;
+  mats.forEach((m, i) => {
+    const r = 3 + 2 * i;
+    const c: number[] = [];
+    for (let k = 0; k < r; k++) c.push((0.39894 * Math.exp((-0.5 * k * k) / (r * r))) / r);
+    // r181's shader sums without dividing by the weights (r180's divided): the weights given summing to one are both
+    const sum = c.reduce((x, y, k) => x + (k ? 2 * y : y), 0);
+    m.defines.KERNEL_RADIUS = r;
+    m.uniforms.gaussianCoefficients.value = c.map((x) => x / sum);
+    m.needsUpdate = true;
+  });
+  // and r181 made the glow's additive blend premultiplied, its composite 3 times the blurs with their brightest channel
+  // as alpha: r180's composite and blend again
+  const own = p as unknown as { blendMaterial: THREE.ShaderMaterial; compositeMaterial: THREE.ShaderMaterial };
+  own.blendMaterial.premultipliedAlpha = false;
+  own.blendMaterial.needsUpdate = true;
+  own.compositeMaterial.fragmentShader = R180_COMPOSITE;
+  own.compositeMaterial.needsUpdate = true;
+  return p;
+}
+
 /** Bevy's bloom is energy-conserving: the frame is mixed toward its blur by the intensity, not added to (this keeps
  * 1 - k of the frame; UnrealBloomPass adds k of the blur) */
 const KEEP = `
@@ -242,7 +290,7 @@ export class Effects {
     if (has("DepthOfField")) add("DepthOfField", new BokehPass(scene, camera, { focus: 10, aperture: 0.002, maxblur: 0.01 }));
     if (has("Bloom")) {
       add("Bloom:keep", shader(KEEP, { keep: 1 }));
-      add("Bloom", new UnrealBloomPass(new THREE.Vector2(w, h), 1, 0.4, 0.8));
+      add("Bloom", r180Blur(new UnrealBloomPass(new THREE.Vector2(w, h), 1, 0.4, 0.8)));
     }
     if (has("MotionBlur")) add("MotionBlur", new AfterimagePass(0.5));
     if (has("Grade")) add("Grade", shader(GRADE, { temperature: 0, tint: 0, aberration: 0, scale: 1, vig: new THREE.Vector4(), vigColor: new THREE.Color(), aspect: new THREE.Vector2(1, 1), sat: new THREE.Vector3(1, 1, 1), con: new THREE.Vector3(1, 1, 1), gam: new THREE.Vector3(1, 1, 1), gai: new THREE.Vector3(1, 1, 1), lif: new THREE.Vector3() }));

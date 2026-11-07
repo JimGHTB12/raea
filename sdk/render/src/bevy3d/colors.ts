@@ -65,12 +65,14 @@ export class LinearRgba {
 
 // a StandardMaterial's emissive as the old material takes it: a colour and its intensity. One made from a colour goes
 // as that colour; raw floats go as their hue at full strength (8-bit, as any colour row) times their brightest channel.
-export function emissiveOf(e: string | LinearRgba): { emissive?: string; emissiveIntensity?: number } {
-  if (typeof e === "string") return { emissive: e };
+// Its strength is Bevy's, as written (`emissive_nits`, core/scene emissive_power), not a 3d.tsx material's relative
+// emissiveIntensity: Bevy's bloom_3d glows at LinearRgba 150 and 1000.
+export function emissiveOf(e: string | LinearRgba): { emissive?: string; emissive_nits?: number } {
+  if (typeof e === "string") return { emissive: e, emissive_nits: 1 };
   const f = e[MADE_FROM];
-  if (f) return { emissive: f.hex, ...(f.k !== 1 ? { emissiveIntensity: f.k } : {}) };
+  if (f) return { emissive: f.hex, emissive_nits: f.k };
   const k = Math.max(e.red, e.green, e.blue);
   if (!(k > 0)) return {};
   const byte = (c: number) => Math.round(Math.max(0, Math.min(1, linearToSrgb(c / k))) * 255).toString(16).padStart(2, "0");
-  return { emissive: "#" + byte(e.red) + byte(e.green) + byte(e.blue), ...(k !== 1 ? { emissiveIntensity: k } : {}) };
+  return { emissive: "#" + byte(e.red) + byte(e.green) + byte(e.blue), emissive_nits: k };
 }

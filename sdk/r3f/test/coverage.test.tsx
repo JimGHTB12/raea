@@ -121,6 +121,15 @@ describe("R3F → raea coverage", () => {
     expect(classes.map(([k]) => k)).toEqual(expect.arrayContaining(["Mesh", "Points", "SpotLight", "MeshPhysicalMaterial", "BatchedMesh"]));
   });
 
+  test("every node material in three/webgpu has a row in input/kinds.ts", async () => {
+    // untyped: three/webgpu's whole namespace as a type makes tsc take gigabytes
+    const GPU = (await import("three/webgpu")) as unknown as Record<string, { prototype?: unknown }>;
+    const base = GPU.NodeMaterial as unknown as abstract new () => unknown;
+    const nodes = Object.entries(GPU).filter(([, v]) => typeof v === "function" && (v === GPU.NodeMaterial || v.prototype instanceof base)).map(([k]) => k);
+    expect(nodes).toEqual(expect.arrayContaining(["MeshBasicNodeMaterial", "MeshStandardNodeMaterial"]));
+    expect(nodes.filter((k) => !(k in CLASSES))).toEqual([]);
+  });
+
   test("every Object3D and Material class in three has a row in input/kinds.ts", () => {
     const missing = classes.map(([k]) => k).filter((k) => !(k in CLASSES));
     expect(missing).toEqual([]);

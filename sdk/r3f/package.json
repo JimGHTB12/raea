@@ -11,19 +11,23 @@
     "./three": "./src/three/index.ts",
     "./export": "./src/export/index.ts"
   },
-  "//": "In a project, three and @react-three/fiber are its own (raea add three@0.180.0 @react-three/fiber@9.8.2): the bundler resolves them from the project, so a scene and raea share one copy. Here, for the package's tests and tsc, React is the SDK's own (sdk/raea), linked; sdk/playable's bundler resolves three to its own copy, so a playable carries one.",
+  "//": "In a project, three and @react-three/fiber are its own (raea add three@0.185.0 @react-three/fiber@9.8.2): the bundler resolves them from the project, so a scene and raea share one copy. Here, for the package's tests and tsc, React is the SDK's own (sdk/raea), linked; sdk/playable's bundler resolves three to its own copy, so a playable carries one.",
   "peerDependencies": {
     "@react-three/fiber": ">=9.0.0",
     "three": ">=0.170.0"
   },
   "devDependencies": {
+    "@react-three/drei": "10.7.9",
     "@react-three/fiber": "9.8.2",
+    "@react-three/postprocessing": "3.2.2",
     "@types/bun": "1.4.3",
     "@types/react-dom": "19.2.0",
-    "@types/three": "0.180.0",
+    "@types/three": "0.185.0",
+    "lettra": "0.3.0",
+    "postprocessing": "6.39.5",
     "react": "file:../raea/node_modules/react",
     "react-dom": "file:../raea/node_modules/react-dom",
     "scheduler": "file:../raea/node_modules/scheduler",
-    "three": "0.180.0"
+    "three": "0.185.0"
   }
 }

@@ -65,6 +65,10 @@ pub fn insert_reflect(world: &mut World, e: Entity, path: &str, json: &Value) ->
     if let Some(material) = path.strip_prefix("material:") {
         return patch_material(world, e, material, json);
     }
+    // a three shader's uniforms this frame (raea-sys-three-shader, docs/r3f.feature R3F11)
+    if path == "three:uniforms" {
+        return raea_sys_three_shader::patch(world, e, json);
+    }
     let registry = world.resource::<AppTypeRegistry>().clone();
     let reg = registry.read();
     let r = registration(&reg, path)?;

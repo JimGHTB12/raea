@@ -88,6 +88,15 @@ pub fn light_power(kind: &str, p: &Map<String, Value>) -> f64 {
     num(p, field).unwrap_or_else(|| num(p, "intensity").unwrap_or(1.0) * k)
 }
 
+/// A three.js-style emissive of intensity 1 in Bevy's units: what Bevy's default exposure (EV100 9.7) shows as 1.0,
+/// 1.2 x 2^9.7 cd/m², so a 3d.tsx material's `emissiveIntensity` glows as three.js's does (docs/control.feature FC1f).
+pub const EMISSIVE: f64 = 998.1;
+/// A material's emissive power in Bevy's units: a Bevy StandardMaterial's `emissive_nits` as written (bevy3d
+/// materials.tsx), else a 3d.tsx material's relative `emissiveIntensity` (1 by default) times EMISSIVE.
+pub fn emissive_power(p: &Map<String, Value>) -> f64 {
+    num(p, "emissive_nits").unwrap_or_else(|| n(p, "emissiveIntensity", 1.0) * EMISSIVE)
+}
+
 /// An <Environment> of intensity 1: the panorama's values (a Poly Haven HDR's sky is about 1) times this, in cd/m².
 pub const ENV: f64 = 1000.0;
 /// Bevy's default exposure (EV100): exposure 0; +1 is a stop brighter.

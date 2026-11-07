@@ -3,5 +3,6 @@
 export * from "./core";
 export * from "./colors";
 export * from "./materials";
+export * from "./material";
 export * from "./lights";
 export * from "./mesh2d";

@@ -1,5 +1,5 @@
 //! A shape expression that is a sphere alone, which a renderer draws as its own sphere mesh (raea-render: Bevy's
-//! Sphere::mesh(), as a Bevy Mesh3d's is) rather than as Manifold's.
+//! Sphere::mesh(), as a Bevy Mesh3d's is) rather than as Manifold's; a cuboid alone likewise (Bevy's Cuboid mesh).
 
 /// A sphere alone, as its expression asks for it
 #[derive(Debug, PartialEq)]
@@ -27,9 +27,28 @@ pub fn sphere_of(expr: &str) -> Option<SphereOf> {
     }
 }
 
+/// The cuboid `expr` is, `box(w, h, d)` alone with each side above 0 (a 0 side is a plane: Manifold's), as its full
+/// size: drawn as Bevy's Cuboid mesh, with its normals and texture coordinates, as a Bevy Mesh3d's is
+pub fn cuboid_of(expr: &str) -> Option<[f32; 3]> {
+    let inner = expr.trim().strip_prefix("box(")?.strip_suffix(')')?;
+    let n: Vec<f32> = inner.split(',').map(|s| s.trim().parse().ok()).collect::<Option<_>>()?;
+    match n.as_slice() {
+        &[w, h, d] if w > 0.0 && h > 0.0 && d > 0.0 => Some([w, h, d]),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_box_alone_is_a_cuboid_and_a_plane_or_anything_more_is_not() {
+        assert_eq!(cuboid_of(" box(1, 2, 0.5) "), Some([1.0, 2.0, 0.5]));
+        for e in ["box(1, 1, 0)", "box(1, 1)", "box(1, 1, 1, 0.1)", "move(box(1, 1, 1), 0, 1, 0)", "sphere(1)"] {
+            assert_eq!(cuboid_of(e), None, "{e}");
+        }
+    }
 
     #[test]
     fn a_sphere_alone_is_read_and_anything_more_is_not() {

@@ -50,9 +50,27 @@ fn place_of(v: &BTreeMap<String, V>) -> Transform {
         .with_scale(Vec3::new(num(v, "scale_x", 1.0), num(v, "scale_y", 1.0), 1.0))
 }
 
+/// A sprite's size in px: both given, or one and the other by the cell's shape (`aspect`, height over width), or none.
+fn size_of(v: &BTreeMap<String, V>, aspect: f32) -> Option<Vec2> {
+    match (v.get("w").map(|x| x.num() as f32), v.get("h").map(|x| x.num() as f32)) {
+        (Some(w), Some(h)) => Some(Vec2::new(w, h)),
+        (Some(w), None) => Some(Vec2::new(w, w * aspect)),
+        (None, Some(h)) => Some(Vec2::new(h / aspect, h)),
+        (None, None) => None,
+    }
+}
+
 /// The sheet cell a row shows, wrapping.
 fn cell(v: &BTreeMap<String, V>, cells: u32) -> usize {
     (num(v, "sheet_frame", 0.0).max(0.0) as u32 % cells.max(1)) as usize
+}
+
+/// A sprite's picture as Bevy's AssetServer loads a PNG for one: straight alpha (Bevy's sprite shader blends it so),
+/// one mip level, Bevy's default sampler. Not a panel's premultiplied mip chain: a tiled sprite drawn at half size
+/// sampled the half-size level and showed seams at its tiles' edges (2d/sprite_tile).
+pub fn sprite_image(w: u32, h: u32, rgba: Vec<u8>) -> Image {
+    let size = bevy::render::render_resource::Extent3d { width: w, height: h, depth_or_array_layers: 1 };
+    Image::new(size, bevy::render::render_resource::TextureDimension::D2, rgba, bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb, bevy::asset::RenderAssetUsages::default())
 }
 
 /// A sprite's entity from its row and its picture (`size` in px).
@@ -69,18 +87,15 @@ pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>,
         let layout = world.resource_mut::<Assets<TextureAtlasLayout>>().add(TextureAtlasLayout::from_grid(UVec2::new(cw, ch), cols, rows, None, None));
         TextureAtlas { layout, index: cell(v, cols * rows) }
     });
-    // one size given, the other follows the cell's shape
-    let aspect = ch as f32 / cw as f32;
-    let custom_size = match (v.get("w").map(|x| x.num() as f32), v.get("h").map(|x| x.num() as f32)) {
-        (Some(w), Some(h)) => Some(Vec2::new(w, h)),
-        (Some(w), None) => Some(Vec2::new(w, w * aspect)),
-        (None, Some(h)) => Some(Vec2::new(h / aspect, h)),
-        (None, None) => None,
-    };
+    let custom_size = size_of(v, ch as f32 / cw as f32);
+    // Bevy's SpriteImageMode::Tiled: the picture repeats across the sprite's size, every stretch_value x its own
+    let (tile_x, tile_y) = (num(v, "tile_x", 0.0) > 0.5, num(v, "tile_y", 0.0) > 0.5);
+    let image_mode = if tile_x || tile_y { SpriteImageMode::Tiled { tile_x, tile_y, stretch_value: num(v, "tile_stretch", 1.0) } } else { default() };
     let sprite = Sprite {
         image,
         texture_atlas,
         custom_size,
+        image_mode,
         color: color_of(v),
         flip_x: num(v, "flip_x", 0.0) > 0.5,
         flip_y: num(v, "flip_y", 0.0) > 0.5,
@@ -139,6 +154,11 @@ pub fn sync_2d(frame: Res<FrameRows>, mut mats: ResMut<Assets<ColorMaterial>>, m
         if let Some(mut s) = sprite {
             if s.color != c {
                 s.color = c;
+            }
+            // a keyed size (the shape held from what it was spawned at)
+            let size = size_of(v, s.custom_size.map_or(1.0, |c| c.y / c.x.max(1e-6)));
+            if size.is_some() && s.custom_size != size {
+                s.custom_size = size;
             }
             let cells = (num(v, "sheet_cols", 1.0).max(1.0) * num(v, "sheet_rows", 1.0).max(1.0)) as u32;
             let at = cell(v, cells);

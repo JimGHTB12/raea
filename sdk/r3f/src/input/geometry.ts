@@ -11,6 +11,8 @@ export interface Arrays {
   normals?: number[];
   uvs?: number[];
   colors?: number[];
+  /** a three shader's own attributes, per vertex (ThreeShaderMaterial) */
+  attributes?: Record<string, { size: number; values: number[] }>;
 }
 
 type Attr = THREE.BufferAttribute | THREE.InterleavedBufferAttribute;
@@ -53,6 +55,17 @@ export interface ReadOptions {
   flipV: boolean;
   /** the vertex colours, when the material uses them */
   colors: boolean;
+  /** each triangle wound the other way: a mesh whose transform mirrors it (a negative scale), which three draws
+   *  with its front face flipped and Bevy culls as it's wound */
+  mirror?: boolean;
+}
+
+/** the triangles wound the other way (indices made for a geometry without them) */
+export function rewound(a: Arrays): Arrays {
+  const idx = a.indices ?? Array.from({ length: a.positions.length / 3 }, (_, i) => i);
+  const out = idx.slice();
+  for (let i = 0; i + 2 < out.length; i += 3) [out[i + 1], out[i + 2]] = [out[i + 2], out[i + 1]];
+  return { ...a, indices: out };
 }
 
 /** A geometry's arrays for raea, the same objects while it hasn't changed. */
@@ -61,7 +74,7 @@ export function arraysOf(g: THREE.BufferGeometry, o: ReadOptions): Arrays | unde
   if (!pos || pos.count < 3) return undefined;
   const start = Math.max(o.start ?? 0, g.drawRange.start);
   const end = Math.min(o.count === undefined ? Infinity : (o.start ?? 0) + o.count, g.drawRange.count === Infinity ? Infinity : g.drawRange.start + g.drawRange.count);
-  const key = `${start}:${end}:${o.flipV}:${o.colors}`;
+  const key = `${start}:${end}:${o.flipV}:${o.colors}:${!!o.mirror}`;
   const v = versions(g);
   let m = kept.get(g);
   if (!m) kept.set(g, (m = new Map()));
@@ -76,8 +89,9 @@ export function arraysOf(g: THREE.BufferGeometry, o: ReadOptions): Arrays | unde
     colors: o.colors ? read(g.attributes.color, 4) : undefined,
   };
   if (indices && indices.length < 3) return undefined;
-  m.set(key, { v, arrays });
-  return arrays;
+  const out = o.mirror ? rewound(arrays) : arrays;
+  m.set(key, { v, arrays: out });
+  return out;
 }
 
 /** whether a mesh's shape moves from frame to frame: bones, or morph targets with any weight */

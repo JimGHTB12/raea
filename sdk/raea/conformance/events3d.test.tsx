@@ -3,7 +3,10 @@
 import { describe, expect, test } from "bun:test";
 import { events3d, local, onFlat, pickIn, under, worldBounds, IDENTITY, type Last } from "../../render/src/events3d";
 import { pick } from "../../render/src/pick";
-import { Quat } from "../../render/src/bevy3d";
+import { Mesh3d, Quat, StandardMaterial } from "../../render/src/bevy3d";
+import { pickable3d } from "../../render/src/events3d";
+import { Sphere } from "../src/3d";
+import { renderFrame } from "../src/test";
 
 type P = { x: number; y: number; down: boolean };
 /** The event types per part over a run of frames: each frame's pointer and the part under it. */
@@ -130,5 +133,26 @@ describe("the parts' bounds in the world", () => {
     expect(pickIn({ x: 500, y: 300 }, cam, [ball], frame, box)).toBeNull();
     expect(pickIn({ x: 750, y: 200 }, cam, [ball], frame, box)?.name).toBe("ball");
     expect(pickIn({ x: 610, y: 110 }, cam, [ball], frame, box)).toBeNull();
+  });
+});
+
+describe("a part is picked by its geometry's bounds (FC1b: worked out only for a part with handlers)", () => {
+  test("a Mesh3d with an onClick is pickable as its Sphere, placed; one without handlers isn't", () => {
+    const el = (
+      <>
+        <Mesh3d name="ball" transform={{ translation: [1, 2, 3] }} onClick={() => {}}>
+          <Sphere radius={2} />
+          <StandardMaterial />
+        </Mesh3d>
+        <Mesh3d name="still" transform={{ translation: [5, 0, 0] }}>
+          <Sphere radius={1} />
+          <StandardMaterial />
+        </Mesh3d>
+      </>
+    );
+    renderFrame(el, { frame: 0, width: 320, height: 240, fps: 30, durationInFrames: 30 });
+    const parts = pickable3d();
+    expect(parts.get("ball")).toEqual({ name: "ball", sphere: { center: [1, 2, 3], radius: 2 } });
+    expect(parts.has("still")).toBe(false);
   });
 });

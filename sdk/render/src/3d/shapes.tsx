@@ -1,5 +1,5 @@
 // Shapes and meshes: Bevy's primitives, buffer meshes, 3D text's props, and <Mesh> with its shape from its children.
-import { Children, isValidElement, useId, type ReactElement, type ReactNode } from "react";
+import { Children, isValidElement, memo, useId, type ReactElement, type ReactNode } from "react";
 import { Solid } from "../solid";
 import { useAnimation3d, type Keys, type Move, type TrackSpec } from "@raea/math/animate";
 import { Place3d, usePlace3d, usePointer3d, type LocalBounds, type PointerHandlers3d } from "../events3d";
@@ -21,7 +21,7 @@ export function Canvas3D(props: Canvas3DProps) {
   // points at the 3D's texture), first so the 3D parts after it stay out of the page's paint
   return (
     <div data-3d="Canvas3D" data-props={JSON.stringify(serialisable(props))} style={FILL}>
-      <img data-raea-scene="" alt="" style={{ ...FILL, objectFit: "fill" }} />
+      <img data-raea-scene="" data-clear={props.clearColor} alt="" style={{ ...FILL, objectFit: "fill" }} />
       {props.children}
     </div>
   );
@@ -88,9 +88,11 @@ function geometry<P extends { args?: number[] }>(name: string, defaults: number[
     return node3d(name, { ...rest, args });
   };
   Object.defineProperty(Component, "name", { value: display });
-  GEOMETRY_SHAPES.set(Component, toShape);
-  GEOMETRY_BOUNDS.set(Component, (props) => boundsOf(name, argsOf(props as P)));
-  return Component;
+  // memo: a geometry's props seldom change while its Mesh3d moves every frame, so React skips it (FC1b, bloom_3d)
+  const Memo = Object.assign(memo(Component), { displayName: display });
+  GEOMETRY_SHAPES.set(Memo, toShape);
+  GEOMETRY_BOUNDS.set(Memo, (props) => boundsOf(name, argsOf(props as P)));
+  return Memo as unknown as typeof Component;
 }
 
 /** @deprecated <Cuboid half_size>, raea/mesh */
@@ -204,6 +206,9 @@ export interface BufferMeshProps {
   /** each vertex's colour: r, g, b, a (linear, 0 to 1) per vertex, or one "#rrggbb" per vertex; the material's colour
    * is multiplied by it (Bevy's ATTRIBUTE_COLOR), so leave the material white to see them as given */
   colors?: number[] | string[];
+  /** a mesh's own attributes beyond those, for a three.js shader that reads them (<ThreeShaderMaterial>): each one's
+   * size (1 to 4 numbers a vertex) and values, per vertex */
+  attributes?: Record<string, { size: number; values: number[] }>;
 }
 
 /** Each mesh's shape text, checked and written once: React draws a <BufferMesh> every frame with the same arrays, and
@@ -212,7 +217,7 @@ export interface BufferMeshProps {
 const shaped = new WeakMap<object, { of: unknown[]; text: string }>();
 
 function bufferShape(p: BufferMeshProps): string {
-  const of = [p.indices, p.normals, p.uvs, p.colors];
+  const of = [p.indices, p.normals, p.uvs, p.colors, p.attributes];
   const had = Array.isArray(p.positions) ? shaped.get(p.positions) : undefined;
   if (had && had.of.every((a, i) => a === of[i])) return had.text;
   const text = writeBufferShape(p);
@@ -239,7 +244,10 @@ function writeBufferShape(p: BufferMeshProps): string {
     if (hex ? c.length !== n : !(c.every((x) => typeof x === "number" && Number.isFinite(x)) && c.length === n * 4)) throw new RangeError(`BufferMesh: colors is r, g, b, a for each of the ${n} vertices, or one "#rrggbb" each`);
   }
   if (p.indices && (p.indices.length % 3 !== 0 || p.indices.some((i) => !Number.isInteger(i) || i < 0 || i >= n))) throw new RangeError(`BufferMesh: indices are three a triangle, each a vertex 0..${n - 1}`);
-  return "buffer:" + JSON.stringify({ positions: p.positions, indices: p.indices, normals: p.normals, uvs: p.uvs, colors: p.colors });
+  for (const [k, a] of Object.entries(p.attributes ?? {})) {
+    if (!(a && Number.isInteger(a.size) && a.size >= 1 && a.size <= 4 && Array.isArray(a.values) && a.values.length === n * a.size)) throw new RangeError(`BufferMesh: attribute ${k} is {size: 1 to 4, values: size numbers for each of the ${n} vertices}`);
+  }
+  return "buffer:" + JSON.stringify({ positions: p.positions, indices: p.indices, normals: p.normals, uvs: p.uvs, colors: p.colors, attributes: p.attributes });
 }
 
 /** A mesh from its own vertex buffers, as the geometry of a <Mesh> (Bevy's Mesh built from attributes): a terrain from
@@ -388,6 +396,6 @@ export function Mesh(props: MeshProps) {
   if (anim.attr) extra["data-raea-anim"] = anim.attr;
   const id = useId();
   const m = usePlace3d(position, rotation, scale, props.quaternion);
-  usePointer3d(props.name ?? id, m, shape === undefined ? boundsFromChildren(props.children) : undefined, props as Record<string, unknown>);
+  usePointer3d(props.name ?? id, m, () => (shape === undefined ? boundsFromChildren(props.children) : undefined), props as Record<string, unknown>);
   return node3d("Mesh", { ...props, animate: undefined, shape: undefined, position, rotation, scale }, <Place3d.Provider value={m}>{props.children}</Place3d.Provider>, Object.keys(extra).length ? extra : undefined);
 }

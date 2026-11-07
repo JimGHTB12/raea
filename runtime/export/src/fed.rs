@@ -76,6 +76,10 @@ pub(crate) fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool) -> R<O
             let scene = scene_of(app.world_mut());
             let clear = scene_clear(app.world_mut());
             out.push((f, scene, clear));
+            // the mount is the first frame's: tools/bevy-parity charges the frames after it, as Bevy's setup isn't in its frame time
+            if f == 0 {
+                raea_runtime_react::startup_mark("the 3D's rows: frame 0 stepped");
+            }
             Ok(())
         })?;
         Ok(out)

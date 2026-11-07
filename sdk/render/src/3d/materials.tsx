@@ -107,6 +107,10 @@ export interface SurfaceShaderSpec {
   wesl?: string;
   /** the same in plain WGSL */
   wgsl?: string;
+  /** the source as an asset path (staticFile("shaders/x.wesl")), as Bevy's MaterialExtension::fragment_shader names one:
+   *  read as written, so a source that declares its own @binding(100) uniform struct gets its uniforms packed in that
+   *  struct's layout (docs/control.feature FC2b); in place of wesl or wgsl */
+  fragment?: string;
   /** up to 16: a number (f32), [x, y], [x, y, z], [x, y, z, w] or "#rrggbb" (a linear vec4) */
   uniforms?: Record<string, number | number[] | string>;
   /** up to 4: an asset path, a picture made in code ({ width, height, pixels }) or "render:NAME"; with a sampler,
@@ -157,13 +161,24 @@ export function samplerSpec(owner: string, s: SamplerSpec): SamplerSpec {
 
 const HOOK = /(^|[^A-Za-z0-9_])fn\s+(surface|lit)\s*\(|@fragment/;
 
+/** A shader file's path as the engine reads it: found from the edit's folder (staticFile's /media/x as a model's src is)
+ *  by the native asset.load where there is one, as written elsewhere (plain bun) */
+export function assetPath(p: string): string {
+  const call = (globalThis as { __raea_call?: (n: string, a: string) => string | undefined }).__raea_call;
+  if (typeof call !== "function") return p;
+  const out = call("asset.load", JSON.stringify({ path: p }));
+  return out ? (JSON.parse(out) as { path: string }).path : p;
+}
+
 /** A surface shader checked and given as the row's spec (its source, uniforms, textures). */
 export function surfaceShader(owner: string, sh: SurfaceShaderSpec, hook: RegExp = HOOK, hooks = "fn surface(in: VertexOutput, pbr: ptr<function, PbrInput>), fn lit(in: VertexOutput, pbr: PbrInput, color: vec4<f32>) -> vec4<f32>, or its own @fragment"): Record<string, unknown> {
   if (typeof sh !== "object" || sh === null) throw new TypeError(`${owner}: shader is { wesl | wgsl, uniforms, textures }`);
-  const { wesl, wgsl, uniforms = {}, textures = {}, defs } = sh;
-  if ((wesl === undefined) === (wgsl === undefined)) throw new TypeError(`${owner}: shader gives its source as wesl (or wgsl), one of them`);
+  const { wesl, wgsl, fragment, uniforms = {}, textures = {}, defs } = sh;
+  if ([wesl, wgsl, fragment].filter((s) => s !== undefined).length !== 1) throw new TypeError(`${owner}: shader gives its source as wesl, wgsl or a fragment path, one of them`);
+  if (fragment !== undefined && (typeof fragment !== "string" || !fragment)) throw new TypeError(`${owner}: fragment is an asset path, got ${JSON.stringify(fragment)}`);
   const src = wesl ?? wgsl;
-  if (typeof src !== "string" || !hook.test(src)) throw new TypeError(`${owner}: shader defines ${hooks}`);
+  // a file's source is checked where it's read (systems/shader)
+  if (fragment === undefined && (typeof src !== "string" || !hook.test(src))) throw new TypeError(`${owner}: shader defines ${hooks}`);
   const us = Object.entries(uniforms);
   if (us.length > 16) throw new RangeError(`${owner}: a shader has at most 16 uniforms, got ${us.length}`);
   for (const [k, v] of us) {
@@ -172,7 +187,7 @@ export function surfaceShader(owner: string, sh: SurfaceShaderSpec, hook: RegExp
     if (!ok) throw new TypeError(`${owner}: uniform ${k} is a number, [x, y(, z(, w))] or "#rrggbb", got ${JSON.stringify(v)}`);
   }
   checkTextures(owner, textures);
-  return { ...(wesl !== undefined ? { wesl } : { wgsl }), uniforms, textures, ...(defs !== undefined ? { defs: shaderDefs(owner, defs) } : {}) };
+  return { ...(fragment !== undefined ? { fragment: assetPath(fragment) } : wesl !== undefined ? { wesl } : { wgsl }), uniforms, textures, ...(defs !== undefined ? { defs: shaderDefs(owner, defs) } : {}) };
 }
 
 /** A shader's textures checked: up to 4 pictures and one array (docs/shaders.feature SH9). */

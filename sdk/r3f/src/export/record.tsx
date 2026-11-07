@@ -116,11 +116,13 @@ function lightOf(l: THREE.Light): string {
   for (const k of LIGHT_KEYS) if (k in own) out[k] = value(own[k]);
   const t = (l as THREE.DirectionalLight).target;
   if (t) out.target = arr(t.getWorldPosition(new THREE.Vector3()).toArray());
-  if (l.shadow && l.castShadow) {
-    const c = l.shadow.camera as THREE.OrthographicCamera & THREE.PerspectiveCamera;
+  // three 0.185's types keep `shadow` on the lights that cast one (DirectionalLight, PointLight, SpotLight)
+  const shadow = (l as THREE.DirectionalLight).shadow as THREE.LightShadow | undefined;
+  if (shadow && l.castShadow) {
+    const c = shadow.camera as THREE.OrthographicCamera & THREE.PerspectiveCamera;
     const camera: Record<string, number> = { near: r5(c.near), far: r5(c.far) };
     if ((c as THREE.OrthographicCamera).isOrthographicCamera) Object.assign(camera, { left: r5(c.left), right: r5(c.right), top: r5(c.top), bottom: r5(c.bottom) });
-    out.shadow = { mapSize: [l.shadow.mapSize.x, l.shadow.mapSize.y], bias: r5(l.shadow.bias), normalBias: r5(l.shadow.normalBias), camera };
+    out.shadow = { mapSize: [shadow.mapSize.x, shadow.mapSize.y], bias: r5(shadow.bias), normalBias: r5(shadow.normalBias), camera };
   }
   return JSON.stringify(out);
 }

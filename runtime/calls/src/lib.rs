@@ -39,6 +39,19 @@ pub static CLI: std::sync::OnceLock<fn(&[String]) -> i32> = std::sync::OnceLock:
 /// The edit's folder for asset.load (useAsset), set as a render or a play opens it.
 pub static ASSET_DIR: std::sync::Mutex<Option<std::path::PathBuf>> = std::sync::Mutex::new(None);
 
+/// An asset's file: an http(s) URL fetched into raea's cache, an absolute path, else one found as a model's src is
+/// (staticFile's /media/x: the edit's folder's media/, then its assets/)
+fn asset_path(p: &str) -> R<std::path::PathBuf> {
+    if p.starts_with("http://") || p.starts_with("https://") {
+        return raea_io_net::cache::fetch(p);
+    }
+    let dir = ASSET_DIR.lock().unwrap().clone();
+    Ok(match dir {
+        Some(d) if !std::path::Path::new(p).exists() => raea_core_scene::media_path(&d, &format!("/{}", p.trim_start_matches('/'))),
+        _ => std::path::PathBuf::from(p),
+    })
+}
+
 /// A composition opened live from `dir` (its bundle `js`): its assets (useAsset) found from its folder, as a render
 /// finds them; and a game that says lines has Pocket TTS loaded on its worker now, before the
 /// clock starts.
@@ -244,12 +257,7 @@ pub fn register() {
         // an asset loaded now, before the frame that names it uses it, as the Engine loads a handle's (S2b useAsset)
         raea_native::register("asset.load", "{ path: string }", "{ path: string; bytes: number; width?: number; height?: number }", "an asset by its path (absolute, or from the edit's folder), loaded now: the file found and read, a picture's size; an error when it isn't there (S2b useAsset)", |v| {
             let p = s(v, "path")?;
-            let rel = p.trim_start_matches('/');
-            let dir = ASSET_DIR.lock().unwrap().clone();
-            let path = match dir {
-                Some(d) if !std::path::Path::new(&p).exists() => d.join(rel),
-                _ => std::path::PathBuf::from(p),
-            };
+            let path = asset_path(&p)?;
             let bytes = std::fs::metadata(&path).map_err(|e| format!("asset {p}: {e}"))?.len();
             let mut out = json!({"path": path.to_string_lossy(), "bytes": bytes});
             if let Ok((w, h)) = image::image_dimensions(&path) {
@@ -257,6 +265,14 @@ pub fn register() {
                 out["height"] = json!(h);
             }
             Ok(out)
+        });
+        // a file's bytes read now, for a loader that parses them in JS (three's FileLoader under R3F: useGLTF)
+        raea_native::register("asset.read", "{ path: string }", "{ path: string; base64: string }", "a file's bytes (absolute, from the edit's folder, or an http(s) URL through raea's cache), read now, as base64 (R3F's loaders, docs/r3f.feature R3F13)", |v| {
+            use base64::Engine as _;
+            let p = s(v, "path")?;
+            let path = asset_path(&p)?;
+            let bytes = std::fs::read(&path).map_err(|e| format!("asset {p}: {e}"))?;
+            Ok(json!({"path": path.to_string_lossy(), "base64": base64::engine::general_purpose::STANDARD.encode(bytes)}))
         });
         for (name, args, answer, doc) in calls.iter().copied().chain(ecs::CALLS.iter().copied()) {
             let n = name.to_string();

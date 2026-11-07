@@ -6,6 +6,8 @@
 // with its `color` (or diffuse) uniform, unlit, and named once, with raea's <SurfaceShader> (WESL) as its port.
 import * as THREE from "three";
 import { placementOf, srcOf } from "./texture";
+import { classicOf, nodeMaterialOf, type NodeAt } from "./tsl";
+import { builtinPart, isShader, shaderPart } from "./shader";
 
 export type Props = Record<string, unknown>;
 export interface Part {
@@ -73,7 +75,16 @@ function physical(m: THREE.MeshPhysicalMaterial, p: Props) {
     p.clearcoat = m.clearcoat;
     p.clearcoatRoughness = m.clearcoatRoughness;
   }
-  if (m.transmission) {
+  // drei's MeshTransmissionMaterial keeps its transmission in a uniform (three's own is 0, so three makes no pass
+  // of its own): raea's is Bevy's transmission, which refracts what's behind as drei's buffer does
+  const drei = (m as unknown as { uniforms?: Record<string, { value: unknown }> }).uniforms;
+  const own = typeof drei?._transmission?.value === "number" ? (drei._transmission.value as number) : 0;
+  if (own && !m.transmission) {
+    p.transmission = own;
+    p.thickness = m.thickness;
+    const extras = ["chromaticAberration", "distortion", "temporalDistortion", "anisotropicBlur"].filter((k) => Number(drei?.[k]?.value ?? 0) !== 0);
+    if (extras.length) warnOnce(`MeshTransmissionMaterial ${extras.join(", ")}`, "isn't drawn: Bevy's transmission refracts without it");
+  } else if (m.transmission) {
     p.transmission = m.transmission;
     p.thickness = m.thickness;
   }
@@ -103,7 +114,7 @@ function warnOnce(type: string, why: string) {
 }
 
 /** a material as raea's: its component and props */
-export function materialOf(m: THREE.Material, vertexColors: boolean): Part {
+export function materialOf(m: THREE.Material, vertexColors: boolean, at?: NodeAt): Part {
   const p: Props = {};
   const t = m.type;
   switch (t) {
@@ -126,10 +137,17 @@ export function materialOf(m: THREE.Material, vertexColors: boolean): Part {
       drawn(ph, p);
       p.roughness = roughnessOfShininess(ph.shininess);
       p.metalness = 0;
+      // Blinn-Phong's specular colour is its F0 (three's BRDF_BlinnPhong): Bevy's F0 is 0.16 reflectance² times the tint
+      const sp = ph.specular, top = Math.max(sp.r, sp.g, sp.b);
+      if (top > 0) {
+        p.reflectance = Math.min(1, Math.sqrt(top / 0.16));
+        if (sp.r !== sp.g || sp.g !== sp.b) p.specularTint = hex(new THREE.Color(sp.r / top, sp.g / top, sp.b / top));
+      } else p.reflectance = 0;
       if (ph.emissive.r || ph.emissive.g || ph.emissive.b) Object.assign(p, { emissive: hex(ph.emissive), emissiveIntensity: ph.emissiveIntensity });
       const n = srcOf(ph.normalMap);
       if (n) p.normalMap = n;
-      return { type: "MeshStandardMaterial", props: p };
+      // (reflectance is the physical surface's)
+      return { type: "MeshPhysicalMaterial", props: p };
     }
     case "MeshToonMaterial": {
       const tm = m as THREE.MeshToonMaterial;
@@ -147,13 +165,12 @@ export function materialOf(m: THREE.Material, vertexColors: boolean): Part {
     case "PointsMaterial":
     case "LineBasicMaterial":
     case "LineDashedMaterial":
-    case "MeshMatcapMaterial":
       drawn(m as THREE.MeshBasicMaterial, p);
-      if (t === "MeshMatcapMaterial") warnOnce(t, "is drawn unlit in its colour (a matcap's lighting is three's shader)");
       return { type: "MeshBasicMaterial", props: p };
+    // three's own programs for these (its ShaderLib's matcap and normal), run by raea's engine as three runs them
+    case "MeshMatcapMaterial":
     case "MeshNormalMaterial":
-      warnOnce(t, "is drawn as each vertex's normal in colour, unlit (three shades it per pixel, in view space)");
-      return { type: "MeshBasicMaterial", props: { color: "#ffffff" }, normals: true } as Part;
+      return builtinPart(m as THREE.MeshMatcapMaterial);
     case "MeshDepthMaterial":
     case "MeshDistanceMaterial":
       warnOnce(t, "is drawn unlit grey (it is three's shadow and depth pass, not a surface)");
@@ -163,10 +180,21 @@ export function materialOf(m: THREE.Material, vertexColors: boolean): Part {
       return { type: "MeshBasicMaterial", props: { color: hex(s.color), opacity: s.opacity, transparent: true }, catchShadow: true } as Part;
     }
     default: {
-      // ShaderMaterial, RawShaderMaterial, a NodeMaterial, a library's own
+      // a TSL node material (three/webgpu): one with no node of its own is its classic material; one with a graph is
+      // compiled to WGSL by three and run by raea's engine (tsl.ts), or, if its graph can't be, drawn flat below
+      if ((m as { isNodeMaterial?: boolean }).isNodeMaterial) {
+        const classic = classicOf(m);
+        // (its `type` is three's accessor: defined on a view of it, not assigned)
+        if (classic) return materialOf(Object.defineProperties(Object.create(m) as THREE.Material, { type: { value: classic }, isNodeMaterial: { value: false } }), vertexColors, at);
+        const shader = at && nodeMaterialOf(m, at);
+        if (shader) return shader;
+      }
+      // a ShaderMaterial or RawShaderMaterial: its GLSL run by raea's engine as three would run it (shader.ts)
+      if (isShader(m)) return shaderPart(m);
+      // a NodeMaterial whose graph can't be compiled, a library's own
       const u = (m as THREE.ShaderMaterial).uniforms ?? {};
       const c = (u.color ?? u.diffuse ?? u.uColor)?.value;
-      warnOnce(t, "runs GLSL that Bevy doesn't: drawn unlit in its colour uniform; port its shader to raea's <SurfaceShader> (WESL)");
+      warnOnce(t, "has a shader raea can't run: drawn unlit in its colour uniform");
       drawn(m as THREE.MeshBasicMaterial, p);
       if (c instanceof THREE.Color) p.color = hex(c);
       return { type: "MeshBasicMaterial", props: p };

@@ -164,7 +164,7 @@ impl LiveScene {
                     put("rough", n(m, "roughness", 0.5));
                     put("metal", n(m, "metalness", 0.0));
                     if m.get("emissive").and_then(Value::as_str).and_then(hex_cow).is_some_and(|e| e != "#000000") {
-                        put("emissive_k", n(m, "emissiveIntensity", 1.0));
+                        put("emissive_k", emissive_power(m));
                     }
                     if m.get("transparent") == Some(&Value::Bool(true)) || num(m, "opacity").is_some_and(|o| o < 1.0) {
                         put("opacity", n(m, "opacity", 1.0));

@@ -34,7 +34,8 @@ export interface PointLightProps extends LightCommon {
   intensity?: number;
   /** metres it reaches (20) */
   range?: number;
-  /** the bulb's radius in metres: soft shadows' size when soft_shadows_enabled */
+  /** the bulb's radius in metres (0): the size of its highlight on shiny surfaces (a spherical area light), and soft
+   * shadows' size when soft_shadows_enabled */
   radius?: number;
   shadow_maps_enabled?: boolean;
   soft_shadows_enabled?: boolean;
@@ -52,7 +53,7 @@ export function PointLight(p: PointLightProps) {
   const { transform, visibility, intensity = 1_000_000, range = 20, radius, shadow_maps_enabled = false, soft_shadows_enabled, ...rest } = p;
   if (visibility === "Hidden") return null;
   const s = soft({ radius, soft_shadows_enabled });
-  return <PointLight3 {...rest} position={forward(transform).position} lumens={intensity} distance={range} castShadow={shadow_maps_enabled} {...(s !== undefined ? { softShadow: s } : {})} />;
+  return <PointLight3 {...rest} position={forward(transform).position} lumens={intensity} distance={range} castShadow={shadow_maps_enabled} {...(radius ? { radius } : {})} {...(s !== undefined ? { softShadow: s } : {})} />;
 }
 
 export interface SpotLightProps extends PointLightProps {
@@ -71,7 +72,7 @@ export function SpotLight(p: SpotLightProps) {
   const s = soft({ radius, soft_shadows_enabled });
   // the rows take a penumbra: inner = outer * (1 - penumbra) (scene3d.rs)
   const penumbra = 1 - Math.min(inner_angle, outer_angle) / outer_angle;
-  return <SpotLight3 {...rest} {...forward(transform)} lumens={intensity} distance={range} castShadow={shadow_maps_enabled} angle={outer_angle} penumbra={penumbra} {...(s !== undefined ? { softShadow: s } : {})} />;
+  return <SpotLight3 {...rest} {...forward(transform)} lumens={intensity} distance={range} castShadow={shadow_maps_enabled} {...(radius ? { radius } : {})} angle={outer_angle} penumbra={penumbra} {...(s !== undefined ? { softShadow: s } : {})} />;
 }
 
 export interface DirectionalLightProps extends Omit<LightCommon, "children"> {

@@ -7,5 +7,5 @@ publish = false
 description = "The parity probe (docs/control.feature FC0a): what a frame cost and what the World held, written as JSON lines at chosen frames, the same plugin in a Bevy example and in raea, off unless RAEA_PARITY is set"
 
 [dependencies]
-bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render", "ui_bevy_render"] }
 serde_json = "1"

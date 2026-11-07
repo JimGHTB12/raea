@@ -51,11 +51,22 @@ export async function serve(port = 0): Promise<{ url: string; stop: () => void }
   });
   if (!result.success) throw new AggregateError(result.logs, "serve: the parity page didn't build");
   const page = `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#000"><div id="root"></div><script type="module" src="/main.js"></script>`;
+  const fetched = new Map<string, Promise<ArrayBuffer>>();
+  const dreiAsset = async (rest: string) => {
+    const url = `https://raw.githubusercontent.com/pmndrs/drei-assets/${rest}`;
+    if (!fetched.has(url)) fetched.set(url, fetch(url).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`${url}: ${r.status}`)))));
+    return new Response(await fetched.get(url)!);
+  };
   const server = Bun.serve({
     port,
     fetch(req) {
       const p = new URL(req.url).pathname;
       if (p === "/" || p === "/index.html") return new Response(page, { headers: { "content-type": "text/html" } });
+      // the cases' own files: lettra's font atlas and the drei case's face (test/parity/fonts), its model (models)
+      if (p.startsWith("/fonts/") || p.startsWith("/models/")) return new Response(Bun.file(resolve(here, "test/parity", p.slice(1))));
+      // drei's <Environment preset> panoramas (the page sends them here, so Chrome makes no outside request): fetched
+      // from drei's assets once a run
+      if (p.startsWith("/drei-assets/")) return dreiAsset(p.slice("/drei-assets/".length));
       if (p.startsWith("/wasm/")) {
         const f = Bun.file(resolve(here, "wasm", p.slice(6)));
         return new Response(f, { headers: { "content-type": p.endsWith(".wasm") ? "application/wasm" : "text/javascript" } });

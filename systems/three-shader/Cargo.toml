@@ -1,0 +1,18 @@
+[package]
+name = "raea-sys-three-shader"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "three.js's shaders drawn by Bevy (docs/r3f.feature R3F11): a ShaderMaterial's GLSL translated by naga and a node material's WGSL (three's own TSL builder), each run with three's built-ins as a Material of its own"
+
+[dependencies]
+raea-sys-sampler = { path = "../sampler" }
+# a picture made in code (a data: URL), decoded as a material's map is
+raea-sys-material = { path = "../material" }
+image = { version = "0.25", default-features = false }
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
+# wgsl-in too: naga 30.0.1's glsl-in calls the interpolator module only spv-in or wgsl-in compiles (natively Bevy turns
+# wgsl-in on; raea-web had nothing that did)
+naga = { version = "=30.0.1", features = ["glsl-in", "wgsl-in", "wgsl-out"] }
+serde_json = "1"

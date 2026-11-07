@@ -55,7 +55,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/light` (sdk/raea/src/light.ts)
 
-`AmbientLight`, `Atmosphere`, `DirectionalLight`, `Environment`, `GlobalAmbientLight`, `Pathtracer`, `PointLight`, `RectLight`, `Shadows`, `SolariLighting`, `SpotLight`, `light_consts`
+`AmbientLight`, `Atmosphere`, `DirectionalLight`, `Environment`, `EnvironmentMapLight`, `GlobalAmbientLight`, `Pathtracer`, `PointLight`, `RectLight`, `Shadows`, `SolariLighting`, `SpotLight`, `light_consts`
 
 ## `raea/math` (sdk/raea/src/math.ts)
 
@@ -67,7 +67,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/pbr` (sdk/raea/src/pbr.ts)
 
-`AmbientOcclusion`, `Decal`, `ExtendedMaterial`, `Fire`, `Fog`, `FogVolume`, `GridExtension`, `PaintExtension`, `Refinish`, `ShaderExtension`, `ShaderMesh`, `StandardMaterial`, `SurfaceShader`, `ToonExtension`, `ToonMaterial`, `VolumetricFog`, `WearExtension`
+`AmbientOcclusion`, `Decal`, `ExtendedMaterial`, `Fire`, `Fog`, `FogVolume`, `GridExtension`, `PaintExtension`, `Refinish`, `ShaderExtension`, `ShaderMesh`, `StandardMaterial`, `SurfaceShader`, `ThreeShaderMaterial`, `ToonExtension`, `ToonMaterial`, `VolumetricFog`, `WearExtension`
 
 ## `raea/post_process` (sdk/raea/src/post_process.ts)
 

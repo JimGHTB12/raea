@@ -1,5 +1,5 @@
 // Materials: standard, grid, paint, toon, extended (their colours in colors.ts).
-import { isValidElement, useContext, type ReactElement, type ReactNode } from "react";
+import { isValidElement, memo, useContext, type ReactElement, type ReactNode } from "react";
 import type { TrackSpec } from "@raea/math/animate";
 import { InModel } from "../3d/all";
 import { LinearRgba, MADE_FROM, baseOf, emissiveOf, type Affine2, type Srgba } from "./all";
@@ -131,7 +131,7 @@ const TOON_ANIMATE: Record<string, string> = { shadow_color: "shadowColor", rim_
 const COLOUR_FIELDS = new Set(["color", "emissive", "shadowColor"]);
 
 // an `animate` as the old material's: its keys renamed; an emissive's LinearRgba keys as their colour and an
-// emissiveIntensity track (a colour track's emissive is at strength 1, as Bevy's emissive is the whole colour)
+// emissive_nits track, Bevy's strength as written (a colour track's emissive is at strength 1, as Bevy's emissive is the whole colour)
 function animateOf(owner: string, a: object | undefined, names: Record<string, string>, fields: Record<string, "number" | "string"> = {}): { animate?: Record<string, TrackSpec>; emissive?: Record<string, unknown> } {
   if (!a) return {};
   const animate: Record<string, TrackSpec> = {};
@@ -151,12 +151,12 @@ function animateOf(owner: string, a: object | undefined, names: Record<string, s
       const from = spec.keys.map(([, v]) => (v as LinearRgba)[MADE_FROM]);
       if (from.some((f) => !f || f.hex !== from[0]!.hex)) throw new TypeError(`${owner}: an emissive track's LinearRgba keys are one colour, LinearRgba.from(Srgba.hex(c)).mul(k) each`);
       emissive = { emissive: from[0]!.hex };
-      animate.emissiveIntensity = { ...spec, keys: spec.keys.map(([f], i) => [f, from[i]!.k]) };
+      animate.emissive_nits = { ...spec, keys: spec.keys.map(([f], i) => [f, from[i]!.k]) };
       continue;
     }
     const kind = COLOUR_FIELDS.has(name) ? "string" : "number";
     if (!spec.keys.every(([, v]) => typeof v === kind)) throw new TypeError(`${owner}: animate's ${k} keys are ${kind === "string" ? "colours" : "numbers"}`);
-    if (name === "emissive") emissive = { emissiveIntensity: undefined };
+    if (name === "emissive") emissive = { emissive_nits: 1 };
     animate[name] = spec as TrackSpec;
   }
   return { animate, emissive };
@@ -214,9 +214,9 @@ function uvOf(t: Affine2 | undefined): { repeat?: [number, number]; uvTransform?
 /** Bevy's StandardMaterial for the Mesh3d it's inside. Unlit draws as MeshBasicMaterial; a clearcoat or transmission
  *  as MeshPhysicalMaterial; anything else as MeshStandardMaterial, all on Bevy's StandardMaterial in the engine.
  * @bevy bevy_pbr::pbr_material::StandardMaterial */
-export function StandardMaterial<A>(p: StandardMaterialProps & { animate?: Only<A, StandardMaterialAnimate> }) {
+export const StandardMaterial = memo(function StandardMaterial<A>(p: StandardMaterialProps & { animate?: Only<A, StandardMaterialAnimate> }) {
   return standard(p, {});
-}
+}) as unknown as <A>(p: StandardMaterialProps & { animate?: Only<A, StandardMaterialAnimate> }) => ReactElement;
 
 // raea's extensions an ExtendedMaterial puts on its StandardMaterial, as the old material's props
 type Extended = { grid?: GridExtensionProps; paint?: PaintExtensionProps; wear?: MeshStandardMaterialProps["wear"]; shader?: Record<string, unknown> };
@@ -362,6 +362,7 @@ export type ShaderExtensionProps = SurfaceShaderSpec;
 export function ShaderExtension(_: ShaderExtensionProps): ReactNode {
   throw new TypeError("ShaderExtension goes in an ExtendedMaterial: <ExtendedMaterial base={<StandardMaterial />} extension={<ShaderExtension wesl={src} />} />");
 }
+
 
 /** raea's extension of StandardMaterial that cel-shades it (the engine's ToonExt; three.js's MeshToonMaterial): the
  *  scene's lights in `steps` hard bands (2; `bands` for an explicit ramp, darkest first), the bottom one

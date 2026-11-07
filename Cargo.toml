@@ -20,6 +20,7 @@ members = [
     "systems/sampler",
     "systems/parity",
     "systems/shader",
+    "systems/three-shader",
     "engine/bevy-calls",
     "engine/bevy-adapters",
     "engine/bevy-plugins",

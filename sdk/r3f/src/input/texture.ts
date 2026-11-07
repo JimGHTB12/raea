@@ -3,6 +3,7 @@
 // native render, where there's no DOM to load an <img> into, three's ImageLoader is stood in for by one that hands
 // back the url (with the picture's size unknown) and the engine loads that file.
 import * as THREE from "three";
+import { targetPixels } from "./targets";
 
 const urls = new WeakMap<object, string>();
 
@@ -15,13 +16,132 @@ export function standInImages() {
     const img = { src, width: 1, height: 1, naturalWidth: 1, naturalHeight: 1, complete: true } as unknown as HTMLImageElement;
     urls.set(img, src);
     this.manager.itemStart(src);
-    queueMicrotask(() => {
+    // at once: raea reads a frame's scene in the same turn its components render, so a picture handed over later
+    // is missing from the frame (lettra's atlas, any TextureLoader.load). A callback that reads the variable its own
+    // load is assigned to can't run yet: it runs once the load has returned.
+    try {
       onLoad?.(img);
       this.manager.itemEnd(src);
-    });
+    } catch (e) {
+      if (!(e instanceof ReferenceError)) throw e;
+      queueMicrotask(() => {
+        onLoad?.(img);
+        this.manager.itemEnd(src);
+      });
+    }
     return img;
   };
   THREE.ImageLoader.prototype.load = load as unknown as THREE.ImageLoader["load"];
+  standInFiles();
+}
+
+/** a raea native call, where the host has them (a render, a play) */
+function native<T>(name: string, args: unknown): T | undefined {
+  const call = (globalThis as { __raea_call?: (n: string, a: string) => string | undefined }).__raea_call;
+  if (typeof call !== "function") return undefined;
+  const out = call(name, JSON.stringify(args));
+  if (typeof out !== "string") return undefined;
+  const v = JSON.parse(out) as T | { error: string };
+  if (v && typeof v === "object" && "error" in v && typeof (v as { error: unknown }).error === "string") throw new Error((v as { error: string }).error);
+  return v as T;
+}
+
+/** onLoad now (raea reads the frame's scene in this turn), or once the load has returned when it reads that load */
+function settle(run: () => void) {
+  try {
+    run();
+  } catch (e) {
+    if (!(e instanceof ReferenceError)) throw e;
+    queueMicrotask(run);
+  }
+}
+
+function bytesFromBase64(s: string): Uint8Array {
+  const at = new Int16Array(128).fill(-1);
+  for (let i = 0; i < 64; i++) at[B64.charCodeAt(i)] = i;
+  const clean = s.replace(/=+$/, "");
+  const out = new Uint8Array(Math.floor((clean.length * 3) / 4));
+  let o = 0, acc = 0, bits = 0;
+  for (let i = 0; i < clean.length; i++) {
+    acc = (acc << 6) | at[clean.charCodeAt(i)];
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out[o++] = (acc >> bits) & 0xff;
+    }
+  }
+  return out;
+}
+
+/**
+ * three's file loads where the engine has no fetch (a native render's JS thread): FileLoader reads the file (a path,
+ * or an http(s) URL through raea's cache) by the host's `asset.read`, so a glTF (useGLTF), a font or a JSON is parsed
+ * in this turn; a DataTextureLoader's (HDR, EXR: drei's <Environment>) texture is a stand-in carrying the cached
+ * file's path, which raea's engine loads itself (lights.ts reads it as <Environment src>).
+ */
+function standInFiles() {
+  if (typeof (globalThis as { Request?: unknown }).Request === "function") return;
+  if (typeof (globalThis as { __raea_call?: unknown }).__raea_call !== "function") return;
+  const fileLoad = function (this: THREE.FileLoader, url: string, onLoad?: (data: unknown) => void, _onProgress?: unknown, onError?: (e: unknown) => void) {
+    const src = this.manager.resolveURL((this.path ?? "") + url);
+    this.manager.itemStart(src);
+    let data: unknown;
+    try {
+      if (src.startsWith("data:")) {
+        const [head, body] = [src.slice(5, src.indexOf(",")), src.slice(src.indexOf(",") + 1)];
+        const raw = head.endsWith(";base64") ? bytesFromBase64(body) : new TextEncoder().encode(decodeURIComponent(body));
+        data = raw;
+      } else {
+        const got = native<{ base64: string }>("asset.read", { path: src });
+        if (!got) throw new Error(`${src}: the host can't read files`);
+        data = bytesFromBase64(got.base64);
+      }
+      const bytes = data as Uint8Array;
+      const type = this.responseType;
+      if (type === "arraybuffer") data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      else if (type === "json") data = JSON.parse(new TextDecoder().decode(bytes));
+      else if (type === "blob") data = new Blob([bytes as BlobPart]);
+      else data = new TextDecoder().decode(bytes);
+    } catch (e) {
+      settle(() => {
+        onError?.(e);
+        this.manager.itemError(src);
+        this.manager.itemEnd(src);
+      });
+      return;
+    }
+    settle(() => {
+      onLoad?.(data);
+      this.manager.itemEnd(src);
+    });
+  };
+  THREE.FileLoader.prototype.load = fileLoad as unknown as THREE.FileLoader["load"];
+
+  const dataLoad = function (this: THREE.DataTextureLoader, url: string, onLoad?: (t: THREE.DataTexture, d: unknown) => void, _onProgress?: unknown, onError?: (e: unknown) => void) {
+    const src = this.manager.resolveURL((this.path ?? "") + url);
+    const texture = new THREE.DataTexture(new Float32Array([0.5, 0.5, 0.5, 1]), 1, 1, THREE.RGBAFormat, THREE.FloatType);
+    this.manager.itemStart(src);
+    try {
+      // the cached file when it's a URL (raea's engine reads paths); the file as found when it's a path
+      const got = native<{ path: string }>("asset.load", { path: src });
+      texture.userData.src = got?.path ?? src;
+    } catch (e) {
+      settle(() => {
+        onError?.(e);
+        this.manager.itemError(src);
+        this.manager.itemEnd(src);
+      });
+      return texture;
+    }
+    texture.colorSpace = THREE.LinearSRGBColorSpace;
+    texture.needsUpdate = true;
+    settle(() => {
+      onLoad?.(texture, { width: 1, height: 1 });
+      this.manager.itemEnd(src);
+    });
+    return texture;
+  };
+  THREE.DataTextureLoader.prototype.load = dataLoad as unknown as THREE.DataTextureLoader["load"];
 }
 
 // ---- PNG, uncompressed (stored deflate blocks): small code, and the pictures made in code are small ----
@@ -132,6 +252,14 @@ function bytesOf(t: THREE.DataTexture): Uint8Array | undefined {
 /** a texture's picture for raea, or undefined when it has none raea can load (a render target, a video) */
 export function srcOf(t: THREE.Texture | null | undefined): string | undefined {
   if (!t) return undefined;
+  // a render target the app drew into with a pass raea does on the CPU (targets.ts): its picture now
+  const drawn = targetPixels(t);
+  if (drawn) {
+    const bytes = new Uint8Array(drawn.w * drawn.h * 4);
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.round(Math.min(1, Math.max(0, drawn.data[i])) * 255);
+    // row 0 at v = 0: a target isn't flipped in y (its uvs reach raea as three gives them), so it's the PNG's top row
+    return pngOf(bytes, drawn.w, drawn.h);
+  }
   const given = t.userData?.src;
   if (typeof given === "string") return given;
   const img = t.image as { src?: string; toDataURL?: () => string; data?: unknown } | undefined;

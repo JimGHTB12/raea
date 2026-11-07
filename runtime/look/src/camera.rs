@@ -69,7 +69,15 @@ pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>)
     }
     // an <Environment>: each frame's panorama (an index into env_srcs, -1 for none), its light, turn and sky, keyed, so
     // a cut from a hall to a street changes the light on that frame
-    let envs: Vec<Option<&Item>> = all.iter().map(|its| its.iter().find(|i| i.kind == "environment")).collect();
+    // Bevy's EnvironmentMapLight with its own prefiltered maps (<EnvironmentMapLight>: its diffuse and specular
+    // cubemap files, as the first frame has them), in place of a panorama raea filters
+    if let Some(m) = all.iter().flatten().find(|i| i.kind == "environment" && i.props.contains_key("diffuse_map")) {
+        for k in ["diffuse_map", "specular_map"] {
+            row.insert(format!("envmap_{k}"), V::S(m.props.get(k).and_then(Value::as_str).unwrap_or_default().to_string()));
+        }
+        row.insert("envmap_k".into(), V::N(n(&m.props, "intensity", 1.0)));
+    }
+    let envs: Vec<Option<&Item>> = all.iter().map(|its| its.iter().find(|i| i.kind == "environment" && !i.props.contains_key("diffuse_map"))).collect();
     if envs.iter().any(Option::is_some) {
         let mut srcs: Vec<String> = Vec::new();
         let idx: Vec<f64> = envs.iter().map(|e| match e.and_then(|e| e.props.get("src")).and_then(Value::as_str) {
