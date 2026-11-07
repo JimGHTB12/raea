@@ -384,6 +384,22 @@ impl BlitzPage {
             }
             a
         };
+        // the source stamps (engine/bundle stamp.rs) of the nearest element up from `n` that has them: where the JSX
+        // is written ("promo.tsx:12:7"), and the uses of the edit's components it was drawn in, nearest first
+        let stamps = |n: blitz_dom::NodeId, entry: &mut serde_json::Value| {
+            let mut at = Some(n);
+            while let Some(x) = at {
+                let Some(node) = doc.get_node(x) else { break };
+                if let Some(loc) = node.attr(LocalName::from("data-raea-loc")) {
+                    entry["loc"] = json!(loc);
+                    if let Some(uses) = node.attr(LocalName::from("data-raea-use")).filter(|u| !u.is_empty()) {
+                        entry["use"] = json!(uses.split('|').collect::<Vec<_>>());
+                    }
+                    return;
+                }
+                at = node.parent;
+            }
+        };
         let (mut videos, mut text) = (Vec::new(), Vec::new());
         let mut owned: Vec<(blitz_dom::NodeId, Vec<String>)> = Vec::new();
         // the whole document: a composition's sequences and screens are pages of their own under the root's
@@ -398,7 +414,9 @@ impl BlitzPage {
                 let a = alpha(n);
                 if let (Some(b), true) = (rect(n), a > 0.01) {
                     let at = node.attr(LocalName::from("data-raea-at")).and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0);
-                    videos.push(json!({"src": src, "at": at, "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (a * 100.0).round() / 100.0}));
+                    let mut v = json!({"src": src, "at": at, "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (a * 100.0).round() / 100.0});
+                    stamps(n, &mut v);
+                    videos.push(v);
                 }
                 continue;
             }
@@ -443,8 +461,10 @@ impl BlitzPage {
                 TextAlignKeyword::Justify => "justify",
                 _ => "left",
             };
-            text.push(json!({"text": words.join(" "), "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (alpha(owner) * 100.0).round() / 100.0,
-                "color": color, "size": font.font_size.computed_size().px() as f64, "weight": font.font_weight.value() as f64, "align": align}));
+            let mut t = json!({"text": words.join(" "), "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (alpha(owner) * 100.0).round() / 100.0,
+                "color": color, "size": font.font_size.computed_size().px() as f64, "weight": font.font_weight.value() as f64, "align": align});
+            stamps(owner, &mut t);
+            text.push(t);
         }
         (videos, text)
     }
