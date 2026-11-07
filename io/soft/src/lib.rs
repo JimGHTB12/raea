@@ -258,7 +258,10 @@ pub fn h264_encoder(out: &Path, o: &EncodeOpts, intra_qp: Option<u8>) -> R<Box<d
         .max_frame_rate(FrameRate::from_hz(o.fps as f32))
         .rate_control_mode(RateControlMode::Bitrate)
         // every frame is a sample: rate control may not drop one (the edit has a frame for every tick)
-        .skip_frames(false);
+        .skip_frames(false)
+        // BT.709 limited range, as raea_io_codec::yuv converts the frames and as the Mac's encoder tags them (vt.rs):
+        // untagged, ffmpeg and other players read it as BT.601 and shift reds and greens
+        .vui(openh264::encoder::VuiConfig::bt709());
     let config = match intra_qp {
         Some(qp) => config.rate_control_mode(RateControlMode::Off).qp(openh264::encoder::QpRange::new(qp, qp)).intra_frame_period(openh264::encoder::IntraFramePeriod::from_num_frames(1)),
         None => config,

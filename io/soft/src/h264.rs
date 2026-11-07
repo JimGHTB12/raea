@@ -248,7 +248,9 @@ impl GopEncoder {
             .intra_frame_period(openh264::encoder::IntraFramePeriod::from_num_frames(
                 100_000,
             ))
-            .num_threads(1);
+            .num_threads(1)
+            // BT.709 limited range, as h264_encoder tags its stream
+            .vui(openh264::encoder::VuiConfig::bt709());
         let enc = H264Encoder::with_api_config(OpenH264API::from_source(), config)
             .map_err(|e| format!("openh264: {e}"))?;
         Ok(GopEncoder {
