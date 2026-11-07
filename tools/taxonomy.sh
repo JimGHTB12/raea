@@ -31,13 +31,16 @@ grep -E '^[A-Z][a-z]' "$tmp/all" > "$tmp/pascal" || true
 # Bevy's names: its crates' and glam's public types, the generated modules' type paths, and @bevy tags
 reg=$(ls -d "${CARGO_HOME:-$HOME/.cargo}"/registry/src/index.crates.io-*/ 2>/dev/null | head -1)
 # a fresh checkout (CI) hasn't unpacked Bevy's sources: fetch the locked ones first
-if [ -z "$reg" ] || [ ! -d "$reg/bevy_app-0.20.0" ]; then
+# Bevy's crates at the versions the lock pins (a patch release moves some of them: bevy_app is 0.20.1 while others
+# stay 0.20.0), each as its registry folder
+bevy_dirs=$(awk '/^name = "bevy_[a-z_0-9]+"$/ {n = $3; getline; if ($3 ~ /^"0\.20\./) print n "-" $3}' "$ROOT/Cargo.lock" | tr -d '"' | sort -u)
+if [ -z "$reg" ] || [ ! -d "$reg/$(echo "$bevy_dirs" | grep '^bevy_app-' | head -1)" ]; then
   cargo fetch --locked -q --manifest-path "$ROOT/Cargo.toml" >&2
   reg=$(ls -d "${CARGO_HOME:-$HOME/.cargo}"/registry/src/index.crates.io-*/ | head -1)
 fi
 glam=$(grep -A1 '^name = "glam"$' "$ROOT/Cargo.lock" | awk -F'"' '/version/ {print $2}' | sort -V | tail -1)
 {
-  grep -rhoE '^\s*pub (struct|enum|trait|type) [A-Z][A-Za-z0-9_]*' "$reg"/bevy_*-0.20.0/src "$reg/glam-$glam/src" | awk '{print $NF}'
+  grep -rhoE '^\s*pub (struct|enum|trait|type) [A-Z][A-Za-z0-9_]*' $(for d in $bevy_dirs; do [ -d "$reg/$d/src" ] && echo "$reg/$d/src"; done) "$reg/glam-$glam/src" | awk '{print $NF}'
   find "$ROOT/sdk" -name '*.gen.tsx' -not -path '*/node_modules/*' -print0 | xargs -0 grep -hoE '[a-z_0-9]+(::[A-Za-z_0-9]+)+' |
     grep -vE '^(alloc|core|std)::' | awk -F'::' '{print $NF}'
   grep -rhoE '@bevy [a-z_0-9]+(::[A-Za-z_0-9]+)+' "$ROOT"/sdk/*/src | awk -F'::' '{print $NF}'
