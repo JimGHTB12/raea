@@ -103,7 +103,9 @@ floor (`raea check hello.mp4`). `raea init` starts a project, and `raea --help` 
 
 ## Build from source
 
-Requirements: [Rust](https://rustup.rs) (stable) and [bun](https://bun.sh). On macOS, Xcode's command-line tools; on Linux, the ALSA, fontconfig and Vulkan libraries.
+Requirements: [Rust](https://rustup.rs) (rustup reads the pinned version from rust-toolchain.toml), [bun](https://bun.sh)
+and CMake. On macOS, Xcode's command-line tools; on Linux, the ALSA, fontconfig, udev and Vulkan libraries and NASM
+(Ubuntu: `cmake ninja-build nasm libasound2-dev libfontconfig1-dev libudev-dev libvulkan-dev`), as public CI installs them.
 
 ```sh
 git clone https://github.com/shinyobjectz/raea && cd raea
