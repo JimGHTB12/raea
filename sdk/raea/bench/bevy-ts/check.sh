@@ -20,6 +20,9 @@ export RAEA_SIGN=0 RAEA_MARK=0
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../../.." && pwd)
 BIN=${RAEA_BIN:-raea}
+# a case with `build: plugins` needs a raea with the plugin catalog: the plugin build here, or a release's raea, which has
+# it (RAEA_PLUGIN_BIN; tools/release.sh builds with it)
+PLUGIN_BIN=${RAEA_PLUGIN_BIN:-$ROOT/sdk/raea/bench/bevy-plugins/motion.sh}
 OUT=${TMPDIR:-/tmp}/raea-bevy-ts
 mkdir -p "$OUT"
 cases=()
@@ -38,7 +41,7 @@ for edit in "${cases[@]}"; do
     echo "$name ($gap): OPEN  pending: $pending"; open=$((open + 1)); continue
   fi
   bin=$BIN
-  grep -q '^// build: plugins' "$edit" && bin="$ROOT/sdk/raea/bench/bevy-plugins/motion.sh"
+  grep -q '^// build: plugins' "$edit" && bin=$PLUGIN_BIN
   png="$OUT/$name.png"
   log="$OUT/$name.log"
   rm -f "$png"
@@ -49,7 +52,7 @@ for edit in "${cases[@]}"; do
   play=$(sed -n 's|^// play: *||p' "$edit" | head -1)
   if [ -n "$play" ]; then
     set -- $play
-    run=("$bin" play "$edit" --offscreen --no-vsync --size 64x64 --seconds "$(echo "$2 + 0.3" | bc)" --input-script "$(dirname "$edit")/$1" --snapshot "$2" "$png")
+    run=("$bin" play "$edit" --offscreen --no-vsync --size 64x64 --seconds "$(awk -v s="$2" 'BEGIN { print s + 0.3 }')" --input-script "$(dirname "$edit")/$1" --snapshot "$2" "$png")
   else
     run=("$bin" render "$edit" --frame "${frame:-0}" ${extra[@]+"${extra[@]}"} -o "$png")
   fi
