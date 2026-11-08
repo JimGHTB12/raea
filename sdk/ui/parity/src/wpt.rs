@@ -10,7 +10,7 @@
 //! page with scripts run by @raea/ui's HTML runtime, once its reftest-wait is gone).
 //!
 //! Left out, with the reason in the run's skipped.jsonl: pages wptserve rewrites (`.sub.`, `.headers`), references
-//! that are reftests themselves (chains), and print, paged-media and SVG-file tests.
+//! that are reftests themselves (chains), print, paged-media and SVG-file tests, and SMIL tests (raea doesn't run SMIL).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io::{BufRead, BufReader, Write};
@@ -195,6 +195,11 @@ fn discover(root: &Path, areas: &[String], only: &[String]) -> (Vec<Test>, Vec<V
             }
             if lower.contains("print") || lower.contains("paged") || src.contains("class=\"reftest-print\"") {
                 skipped.push(skip("print or paged media"));
+                continue;
+            }
+            // raea doesn't run SMIL by design: such a test fails as expected, not as a regression
+            if ["<animate", "<set "].iter().any(|t| src.contains(t)) {
+                skipped.push(skip("SMIL animation (<animate>, <set>), which raea doesn't run"));
                 continue;
             }
             if let Some(r) = refs.iter().find(|r| !is_page(Path::new(&r.0))) {
