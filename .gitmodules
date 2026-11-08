@@ -1,3 +1,6 @@
 [submodule "tools/rask"]
 	path = tools/rask
 	url = https://github.com/shinyobjectz/rask.git
+[submodule "skills"]
+	path = skills
+	url = https://github.com/shinyobjectz/raea-skills.git
