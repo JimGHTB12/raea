@@ -203,6 +203,29 @@ export const INPUTS: Record<string, InputCase> = {
       </>
     ),
   },
+  // clear glass over a glow: a transmissive, clearcoated knot seen through to a thin emissive one inside it, at
+  // emissiveIntensity 1 (a glow raea once drew 998 times too bright, so the glass read as opaque white)
+  glass: {
+    canvas: { camera: { position: [0, 0, 5], fov: 40 } },
+    frame: 0,
+    scene: () => (
+      <>
+        <color attach="background" args={["#0e1116"]} />
+        <hemisphereLight args={["#dfe8ff", "#30261c", 1.2]} />
+        <directionalLight position={[3, 4, 5]} intensity={2} />
+        <group rotation={[0.4, 0.6, 0]}>
+          <mesh>
+            <torusKnotGeometry args={[1, 0.34, 320, 56]} />
+            <meshPhysicalMaterial color="#e6f3ff" transmission={1} thickness={1.4} roughness={0.04} ior={1.45} clearcoat={1} />
+          </mesh>
+          <mesh>
+            <torusKnotGeometry args={[1, 0.07, 320, 24]} />
+            <meshStandardMaterial color="#000" emissive="#ff5fa2" emissiveIntensity={1} />
+          </mesh>
+        </group>
+      </>
+    ),
+  },
   // lettra's effects: a wipe whose front R3F's clock moves (a uniform set in useFrame), reading the text's own
   // attributes (layoutX, glyphIndex, cellUv), and a scramble through a pool of glyphs (a uniformArray)
   lettrafx: {

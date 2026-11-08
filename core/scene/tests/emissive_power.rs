@@ -15,6 +15,7 @@ fn bevy_nits_as_written() {
 fn relative_intensity_is_three_js_brightness() {
     assert_eq!(emissive_power(json!({ "emissiveIntensity": 4.0 }).as_object().unwrap()), 4.0 * EMISSIVE);
     assert_eq!(emissive_power(json!({}).as_object().unwrap()), EMISSIVE);
-    // Bevy's default exposure shows EMISSIVE cd/m² as 1.0: 1.2 x 2^9.7
-    assert!((EMISSIVE - 1.2 * 2f64.powf(9.7)).abs() < 0.1);
+    // a StandardMaterial's emissive skips the exposure (emissive_exposure_weight 0): three.js's 1 is Bevy's 1.0, not
+    // 1.2 x 2^9.7 cd/m², which drew an emissiveIntensity of 0.25 white
+    assert_eq!(EMISSIVE, 1.0);
 }
