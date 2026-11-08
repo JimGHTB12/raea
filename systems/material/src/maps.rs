@@ -8,6 +8,11 @@ use bevy::render::render_resource::TextureFormat;
 #[derive(Resource, Default)]
 pub struct Maps(pub HashMap<String, Handle<Image>>);
 
+/// An image a texture source names instead of a file, by whoever draws it (raea-sys-screen's named_image: a UiTexture's
+/// `raea-screen:name@WxH`, render_ui_to_texture); None for any other source.
+#[derive(Resource)]
+pub struct NamedImages(pub fn(&mut World, &str) -> Option<Handle<Image>>);
+
 /// How a map's texels are read: colour (sRGB, the base colour) or data (linear: normals, roughness, occlusion).
 #[derive(Clone, Copy, PartialEq)]
 pub enum MapKind {
@@ -195,7 +200,11 @@ pub fn material(world: &mut World, t: &Tup, inserted: &[Tup], dir: &Path) -> Res
         _ => BTreeMap::new(),
     };
     let sam = |prop: &str| own.get(prop).or(all.as_ref());
-    if let Some(s) = src("map") {
+    // a UiTexture's image (raea-screen:name@WxH): the screen image its UI is drawn into
+    let named = world.get_resource::<NamedImages>().map(|n| n.0);
+    if let Some(h) = src("map").zip(named).and_then(|(s, named)| named(world, &s)) {
+        m.base_color_texture = Some(h);
+    } else if let Some(s) = src("map") {
         m.base_color_texture = Some(cached_map(world, s.clone(), MapKind::Colour, repeat, sam("map"), || map_picture(t, inserted, dir, "map", &s))?);
     }
     if let Some(s) = src("normal_map") {

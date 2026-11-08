@@ -99,7 +99,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/ui` (sdk/raea/src/ui.ts)
 
-`AbsoluteFill`, `AngularColorStop`, `BorderRadius`, `BoxShadow`, `ColorStop`, `ConicGradient`, `CornerRadius`, `FontFeatureTag`, `FontSource`, `FontVariationTag`, `FontWidth`, `GhostNode`, `GlobalUiDebugOptions`, `GridPlacement`, `GridTrack`, `ImageNode`, `ImagePlugin`, `InlineImage`, `LinearGradient`, `Node`, `Overflow`, `OverflowClipMargin`, `RadialGradient`, `RepeatedGridTrack`, `Rot2`, `Scrollbar`, `ScrollbarThumb`, `Text`, `Text2d`, `TextShadow`, `TextSpan`, `TextureAtlasLayout`, `UiPosition`, `UiRect`, `UiScale`, `UiTargetCamera`, `UiTransform`, `Val2`, `Viewport`, `auto`, `percent`, `px`, `vh`, `vmax`, `vmin`, `vw`
+`AbsoluteFill`, `AngularColorStop`, `BorderRadius`, `BoxShadow`, `ColorStop`, `ConicGradient`, `CornerRadius`, `FontFeatureTag`, `FontSource`, `FontVariationTag`, `FontWidth`, `GhostNode`, `GlobalUiDebugOptions`, `GridPlacement`, `GridTrack`, `ImageNode`, `ImagePlugin`, `InlineImage`, `LinearGradient`, `Node`, `Overflow`, `OverflowClipMargin`, `RadialGradient`, `RepeatedGridTrack`, `Rot2`, `Scrollbar`, `ScrollbarThumb`, `Text`, `Text2d`, `TextShadow`, `TextSpan`, `TextureAtlasLayout`, `UiPosition`, `UiRect`, `UiScale`, `UiTargetCamera`, `UiTexture`, `UiTransform`, `Val2`, `Viewport`, `auto`, `percent`, `px`, `targetImage`, `vh`, `vmax`, `vmin`, `vw`
 
 ## `raea/video` (sdk/raea/src/video.ts)
 

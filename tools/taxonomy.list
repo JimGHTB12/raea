@@ -85,3 +85,4 @@ raea Field           a signed distance field as text (raea-core-sdf), meshed int
 raea BevyApp         Bevy's App as a TypeScript object for programs (App is its Bevy name, also exported)
 raea BevyComponent   any reflected Bevy component on an entity by its type path (the TypeRegistry)
 raea BevyResource    any reflected Bevy resource by its type path (the TypeRegistry)
+raea UiTexture       the UI roots a Camera2d with RenderTarget::Image draws into a named image (Bevy spreads it over camera, target and UiTargetCamera)

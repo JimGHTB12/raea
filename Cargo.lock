@@ -15461,6 +15461,7 @@ dependencies = [
  "image",
  "raea-core-program",
  "raea-sys-frame",
+ "raea-sys-material",
  "serde_json",
  "wgpu",
 ]

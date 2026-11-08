@@ -53,6 +53,7 @@ pub fn install(app: &mut App) {
     bevy::asset::embedded_asset!(app, "screen.wesl");
     app.add_plugins(MaterialPlugin::<CrtMaterial>::default())
         .init_resource::<ScreenImages>()
+        .insert_resource(raea_sys_material::maps::NamedImages(named_image))
         .add_systems(Update, (model_screens, mesh_screens, hide_nodes, sync_screens).chain().after(FrameSystems::Rows).before(FrameSystems::Tag));
 }
 
@@ -185,6 +186,16 @@ fn seed(spec: &serde_json::Value) -> f32 {
     let name = spec.get("name").and_then(serde_json::Value::as_str).unwrap_or("");
     let h = name.bytes().fold(0x811c9dc5u32, |h, b| (h ^ b as u32).wrapping_mul(0x01000193));
     (h % 1024) as f32
+}
+
+/// The screen image a material's texture names (`raea-screen:name@WIDTHxHEIGHT`, the SDK's targetImage: Bevy's
+/// render_ui_to_texture, a UiTexture's UI drawn into it as a <Screen>'s picture is), made if no screen has it yet; None
+/// for any other source, or a World without screens.
+pub fn named_image(world: &mut World, src: &str) -> Option<Handle<Image>> {
+    let (name, size) = src.strip_prefix("raea-screen:")?.rsplit_once('@')?;
+    let (w, h) = size.split_once('x')?;
+    let (w, h) = (w.parse::<u32>().ok()?.max(1), h.parse::<u32>().ok()?.max(1));
+    world.contains_resource::<ScreenImages>().then(|| image(world, name, w, h))
 }
 
 /// A screen's image: black, the source's size, filled each frame by the host's copy.

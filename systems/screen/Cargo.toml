@@ -9,6 +9,8 @@ description = "Live pictures on surfaces (<Screen>, a model's screen materials, 
 [dependencies]
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "hdr"] }
 raea-sys-frame = { path = "../frame" }
+# a material texture naming a screen's image (raea-sys-material NamedImages: render_ui_to_texture)
+raea-sys-material = { path = "../material" }
 raea-core-program = { path = "../../core/program" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
 wgpu = "=30.0.1"
