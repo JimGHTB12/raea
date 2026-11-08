@@ -217,9 +217,11 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
         // a sliced ImageNode's data-raea-bevy-slice kept: Blitz scales and tiles its border-image as bevy_ui does,
         // vendor/blitz-paint render/border_image.rs; a GlobalZIndex node's data-raea-bevy-global-z kept: Blitz ranks it in the
         // root's stacking context, vendor/blitz-dom layout/paint_tree.rs; a bevy_ui root's data-raea-blend kept: its page
-        // blends in linear light, systems/page paint;
+        // blends in linear light, systems/page paint; a bevy_ui scroller's data-raea-bevy-scroll and an IgnoreScroll node's
+        // data-raea-bevy-ignore-scroll kept: Blitz floors its offset and keeps the node in place, vendor/blitz-dom resolve.rs;
         // the source stamps data-raea-loc and data-raea-use kept for the render manifest, engine/bundle stamp.rs)
-        if k == "children" || k == "key" || (k.starts_with("data-raea") && k != "data-raea-start" && k != "data-raea-bevy-text" && k != "data-raea-bevy-slice" && k != "data-raea-bevy-global-z" && k != "data-raea-blend" && k != "data-raea-loc" && k != "data-raea-use") || k == "data-props" || k == "data-shape" || k == "data-anim" || v.is_null() {
+        const KEPT: [&str; 11] = ["data-raea-start", "data-raea-bevy-text", "data-raea-bevy-slice", "data-raea-bevy-global-z", "data-raea-blend", "data-raea-bevy-scroll", "data-raea-bevy-ignore-scroll", "data-raea-bevy-scrollbar", "data-raea-bevy-thumb", "data-raea-loc", "data-raea-use"];
+        if k == "children" || k == "key" || (k.starts_with("data-raea") && !KEPT.contains(&k.as_str())) || k == "data-props" || k == "data-shape" || k == "data-anim" || v.is_null() {
             continue;
         }
         if k.starts_with("on") && k.chars().nth(2).is_some_and(|c| c.is_ascii_uppercase()) {

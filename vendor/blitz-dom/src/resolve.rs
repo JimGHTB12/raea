@@ -140,6 +140,9 @@ impl BaseDocument {
                 node.scroll_offset_mut().y = end;
             }
         }
+        // raea: scroll offsets the page set kept in range and bevy_ui Scrollbar thumbs placed, now that layout has the
+        // content (bevy_scroll.rs)
+        self.resolve_bevy_scroll();
 
         // Resolve transforms
         self.resolve_transforms(root_node_id, None, None);
@@ -243,9 +246,11 @@ impl BaseDocument {
         // one in a 3D rendering context, whose projection is its context's matrix times its own (a script setting the
         // preserve-3d parent's transform left its children at their old projection, #19), and one with a projection
         // now, which may have lost its context since
+        // (a bevy_ui IgnoreScroll node is placed again too: its parent's scroll moves it)
         if perspective.is_none()
             && context.is_none()
             && !self.projections.contains_key(&node_id)
+            && self.nodes[node_id].bevy_ignore_scroll().is_none()
             && !self.nodes[node_id]
                 .damage()
                 .map(|d| d.contains(style::selector_parser::RestyleDamage::RECALCULATE_OVERFLOW))
@@ -263,8 +268,21 @@ impl BaseDocument {
             return transform.transform_rect_bbox(overflow);
         }
 
-        let (transform, projection, context) =
+        let (mut transform, projection, context) =
             self.nodes[node_id].set_transform(scale as f32, perspective.as_ref(), context.as_ref());
+        // raea: a bevy_ui IgnoreScroll node keeps its place on its axes while its parent scrolls (bevy_ui's layout leaves
+        // the parent's scroll out of its position): moved back by that scroll, after its own transform
+        if let Some((ix, iy)) = self.nodes[node_id].bevy_ignore_scroll()
+            && let Some(parent) = self.nodes[node_id].parent
+        {
+            let s = *self.nodes[parent].scroll_offset();
+            let (dx, dy) = (if ix { s.x } else { 0.0 }, if iy { s.y } else { 0.0 });
+            if dx != 0.0 || dy != 0.0 {
+                let t = Affine::translate((dx * scale, dy * scale)) * transform.unwrap_or(Affine::IDENTITY);
+                *self.nodes[node_id].transform_mut() = Some(Box::new(t));
+                transform = Some(t);
+            }
+        }
         match projection {
             Some(p) => {
                 self.projections.insert(node_id, p);

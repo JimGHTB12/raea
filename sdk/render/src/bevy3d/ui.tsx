@@ -24,6 +24,8 @@ type Color = Srgba | LinearRgba | string;
 /** bevy_ui's Node: its layout fields as Bevy names them (each Bevy's default when left out), and the components that
  *  draw it: background_color (BackgroundColor), border_color (BorderColor, every side), z_index (ZIndex). */
 export interface NodeProps {
+  /** bevy_ecs's Name, as a Scrollbar's target names its scroller (the element's id) */
+  name?: string;
   display?: (typeof DISPLAY)[number];
   box_sizing?: "BorderBox" | "ContentBox";
   position_type?: (typeof POSITION_TYPE)[number];
@@ -48,6 +50,8 @@ export interface NodeProps {
   scrollbar_width?: number;
   /** IgnoreScroll: the axes it keeps its place on while its parent scrolls */
   ignore_scroll?: IgnoreScroll;
+  /** ScrollPosition: how far its Scroll axes are scrolled, in px (kept in range and floored to physical px) */
+  scroll_position?: [number, number];
   row_gap?: Val; column_gap?: Val;
   /** the grid's tracks (display Grid): RepeatedGridTracks (RepeatedGridTrack.fr(3, 1)) or GridTracks */
   grid_template_rows?: (RepeatedGridTrack | GridTrack)[]; grid_template_columns?: (RepeatedGridTrack | GridTrack)[];
@@ -81,6 +85,8 @@ export interface NodeProps {
 
 // inside a Node (null at the top: a Node there is a root), and what lies under its content when known
 export const InUi = createContext<{ back: Backdrop } | null>(null);
+// the UiScale the UI is drawn at: physical px to a logical one (a scale factor of 1)
+export const UiScaleCx = createContext(1);
 
 const VALS = ["left", "right", "top", "bottom", "width", "height", "min_width", "min_height", "max_width", "max_height", "flex_basis", "row_gap", "column_gap"] as const;
 const CSS_OF: Record<(typeof VALS)[number], keyof CSSProperties> = {
@@ -91,7 +97,7 @@ const CSS_OF: Record<(typeof VALS)[number], keyof CSSProperties> = {
 /** A Node's props as the box's CSS: Bevy's defaults made explicit where CSS's differ (display flex, border-box,
  *  position relative, flex-shrink 1, min sizes auto; no font of the page's own), its colours blended as Bevy blends them over
  *  `back`, and the backdrop it leaves its content. */
-export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSProperties; back: Backdrop; attrs: Record<string, string> } {
+export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): { css: CSSProperties; back: Backdrop; attrs: Record<string, string | number> } {
   const s: Record<string, unknown> = { display: "flex", boxSizing: "border-box", position: "relative", flexShrink: 1, minWidth: "auto", minHeight: "auto" };
   const kw = (k: keyof NodeProps, css: string, allowed: readonly string[]) => {
     const v = p[k];
@@ -126,7 +132,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
   // every node a stacking context, so a ZIndex ranks it among its siblings above their parent, as bevy_ui stacks
   // them; a GlobalZIndex ranks it in the root's (raea's Blitz hoists it past every other, layout/paint_tree.rs)
   s.zIndex = p.global_z_index ?? p.z_index ?? 0;
-  const attrs: Record<string, string> = p.global_z_index ? { "data-raea-bevy-global-z": "" } : {};
+  const attrs: Record<string, string | number> = p.global_z_index ? { "data-raea-bevy-global-z": "" } : {};
   if (p.margin !== undefined) s.margin = rectCss(who, "margin", p.margin);
   if (p.padding !== undefined) s.padding = rectCss(who, "padding", p.padding);
   if (p.border !== undefined) {
@@ -173,7 +179,8 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
     s.overflowX = o.x.toLowerCase();
     s.overflowY = o.y.toLowerCase();
   }
-  scrollCss(who, p, s);
+  if (p.name !== undefined) attrs.id = p.name;
+  scrollCss(who, p, s, attrs, scale);
   const m = p.overflow_clip_margin;
   if (m !== undefined) {
     if (!["BorderBox", "PaddingBox", "ContentBox"].includes(m?.visual_box) || !(Number.isFinite(m.margin) && m.margin >= 0)) throw new TypeError(`${who}: overflow_clip_margin is OverflowClipMargin.border_box(), padding_box() or content_box(), with_margin(px >= 0), got ${JSON.stringify(m)}`);
@@ -186,7 +193,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
 // a root's implicit viewport (bevy_ui ui_surface.rs): a grid the window's size, its one item at the start of both axes
 export const VIEWPORT: CSSProperties = { position: "absolute", left: 0, top: 0, width: "100%", height: "100%", display: "grid", alignItems: "start", justifyItems: "start" };
 
-export function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, root: boolean | "fixed", font?: ReactNode, attrs?: Record<string, string>) {
+export function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, root: boolean | "fixed", font?: ReactNode, attrs?: Record<string, string | number>) {
   const inner = (
     <div style={css} {...attrs}>
       <InUi.Provider value={{ back }}>{children}</InUi.Provider>
@@ -200,7 +207,7 @@ export function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, r
  *  <AbsoluteFill> (after the <Canvas3D>): each root fills the frame as Bevy's window. @bevy bevy_ui::ui_node::Node */
 export function Node({ children, fixed, ...p }: NodeProps) {
   const ui = useContext(InUi);
-  const n = nodeCss("Node", p, ui?.back);
+  const n = nodeCss("Node", p, ui?.back, useContext(UiScaleCx));
   return boxOf(n.css, n.back, children, fixed ? "fixed" : ui === null, undefined, n.attrs);
 }
 
@@ -345,7 +352,7 @@ const BREAK: Record<NonNullable<TextProps["linebreak"]>, CSSProperties> = {
  *  TextLayout and LineHeight (Bevy's defaults when left out). @bevy bevy_ui::widget::text::Text */
 export function Text({ children, font, font_size, weight, style, color, line_height, font_variations, font_features, letter_spacing, justify, linebreak, shadow, underline, strikethrough, underline_color, strikethrough_color, text_background_color, ...node }: TextProps) {
   const ui = useContext(InUi);
-  const n = nodeCss("Text", node, ui?.back);
+  const n = nodeCss("Text", node, ui?.back, useContext(UiScaleCx));
   const t = textCss("Text", { font, font_size, weight, style, color, line_height, font_variations, font_features, letter_spacing }, n.back);
   if (justify !== undefined && !["Left", "Center", "Right", "Justified", "Start", "End"].includes(justify)) throw new TypeError(`Text: justify is Left, Center, Right, Justified, Start or End, got ${JSON.stringify(justify)}`);
   if (linebreak !== undefined && !(linebreak in BREAK)) throw new TypeError(`Text: linebreak is WordBoundary, AnyCharacter, WordOrCharacter or NoWrap, got ${JSON.stringify(linebreak)}`);
@@ -418,13 +425,17 @@ export function Text2d({ transform, justify, children, ...text }: Text2dProps) {
 }
 
 
-/** bevy_ui's UiScale: every UI length inside times `value` (2 draws a 16 px node 32 px). Its roots lay out in a window
- *  of the frame's size over `value`, which is then scaled up from its top left, as Bevy lays out in logical px and
- *  draws in physical ones. Text2d and the 2D and 3D parts aren't UI, so they stay as they are.
+/** bevy_ui's UiScale: every UI length inside times `value` (2 draws a 16 px node 32 px), as CSS's zoom: laid out
+ *  and its text shaped at that size, in physical px, as Bevy lays out (a 3 px padding at 1.25 is 4 px, not 3 drawn 1.25
+ *  times as big). Text2d and the 2D and 3D parts aren't UI, so they stay as they are.
  * @bevy bevy_ui::UiScale */
 export function UiScale({ value, children }: { value: number; children?: ReactNode }) {
   if (!(Number.isFinite(value) && value > 0)) throw new RangeError(`UiScale: value is above 0, got ${value}`);
-  return <div style={{ position: "absolute", left: 0, top: 0, width: `${100 / value}%`, height: `${100 / value}%`, transform: `scale(${value})`, transformOrigin: "0 0" }}>{children}</div>;
+  return (
+    <div style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", zoom: value }}>
+      <UiScaleCx.Provider value={value}>{children}</UiScaleCx.Provider>
+    </div>
+  );
 }
 
 /** The UI camera's viewport (bevy_camera's Viewport on the Camera2d the UI draws through): its roots lay out in this

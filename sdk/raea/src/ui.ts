@@ -12,3 +12,4 @@ export { GridTrack, RepeatedGridTrack, GridPlacement, type GridTrackRepetition, 
 export { Rot2, Val2, UiTransform, BoxShadow, type ShadowStyle } from "@raea/render/bevy3d";
 export { FontFeatureTag } from "@raea/render/bevy3d";
 export type { IgnoreScroll } from "@raea/render/bevy3d";
+export { Scrollbar, ScrollbarThumb, type ScrollbarProps, type ScrollbarThumbProps, type ControlOrientation } from "@raea/render/bevy3d";

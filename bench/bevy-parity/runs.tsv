@@ -84,3 +84,4 @@ ui/text/text_debug	-	10
 ui/ui_transform	-	10
 ui/scroll_and_overflow/scroll	-	10
 ui/scroll_and_overflow/drag_to_scroll	-	10
+ui/scroll_and_overflow/scrollbars	-	10

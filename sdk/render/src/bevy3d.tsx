@@ -36,4 +36,5 @@ export { GridTrack, RepeatedGridTrack, GridPlacement, type GridTrackRepetition, 
 export { Rot2, Val2, UiTransform, BoxShadow, type ShadowStyle } from "./bevy3d/ui-transform";
 export { FontFeatureTag } from "./bevy3d/ui-features";
 export type { IgnoreScroll } from "./bevy3d/ui-scroll";
+export { Scrollbar, ScrollbarThumb, type ScrollbarProps, type ScrollbarThumbProps, type ControlOrientation } from "./bevy3d/ui-scrollbar";
 export { FontSource, type GenericFontFamily } from "./bevy3d/ui-font";

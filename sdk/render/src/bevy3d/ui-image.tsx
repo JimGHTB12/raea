@@ -1,7 +1,7 @@
 // bevy_ui's ImageNode, drawn by the page: a picture in a Node's box, one cell of a sheet (TextureAtlas), or cut in
 // nine (NodeImageMode::Sliced), each sampled as ImagePlugin's default sampler or its own says.
 import { Children, createContext, useContext, type CSSProperties, type ReactNode } from "react";
-import { InUi, VIEWPORT, boxOf, nodeCss, type NodeProps } from "./ui";
+import { InUi, UiScaleCx, VIEWPORT, boxOf, nodeCss, type NodeProps } from "./ui";
 import { over, px } from "./ui-val";
 import { LinearRgba, Srgba } from "./colors";
 import { samplerSpec, type SamplerSpec } from "../3d/materials";
@@ -128,13 +128,15 @@ function SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atl
   if (color !== undefined && !(color.red === 1 && color.green === 1 && color.blue === 1 && color.alpha === 1)) throw new TypeError("ImageNode: a sliced picture is untinted here yet (color white)");
   const max = sl.max_corner_scale ?? 1;
   if (!(Number.isFinite(max) && max > 0)) throw new RangeError(`ImageNode: max_corner_scale is above 0, got ${max}`);
+  // (lengths in the page's px: under a UiScale's zoom, times it, as Bevy scales them by the scale factor)
+  const scale = useContext(UiScaleCx);
   const mode = (m: SliceScaleMode | undefined, which: string) => {
     if (m === undefined || m === "Stretch") return "s";
     const v = typeof m === "object" ? m.Tile?.stretch_value : undefined;
     if (!(typeof v === "number" && Number.isFinite(v) && v > 0)) throw new TypeError(`ImageNode: ${which} is "Stretch" or { Tile: { stretch_value } } (above 0), got ${JSON.stringify(m)}`);
-    return `t${v}`;
+    return `t${v * scale}`;
   };
-  const marker = { "data-raea-bevy-slice": `${max} ${mode(sl.sides_scale_mode, "sides_scale_mode")} ${mode(sl.center_scale_mode, "center_scale_mode")}${cellOf}` };
+  const marker = { "data-raea-bevy-slice": `${max * scale} ${mode(sl.sides_scale_mode, "sides_scale_mode")} ${mode(sl.center_scale_mode, "center_scale_mode")}${cellOf}` };
   const ui = useContext(InUi);
   const n = nodeCss("ImageNode", p, ui?.back);
   const rendering = RENDERING[useContext(Sampler)];

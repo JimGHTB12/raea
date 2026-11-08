@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **85**, passing **81**, excluded **16** (docs/bevy-parity/excluded.tsv), left **341**.
+Examples: **438**, ported **86**, passing **82**, excluded **16** (docs/bevy-parity/excluded.tsv), left **340**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -115,9 +115,6 @@ doesn't pay.
 | 2d/mesh2d_repeated_texture | 10 | 0.991205 | 17 | 0 / 0 | 437 / 496 | 8 / 10 | 1 / 1 | 26.298 / 1.893 = 1.62 + 0.273 | yes |  |
 | ui/layout/flex_layout | 10 | 0.992327 | 8 | 0 / 0 | 602 / 492 | 5 / 7 | 1 / 1 | 35.062 / 1.343 = 1.252 + 0.091 | yes |  |
 | ui/scroll_and_overflow/overflow_clip_margin | 10 | 0.997488 | 7 | 0 / 0 | 465 / 492 | 5 / 7 | 1 / 1 | 32.281 / 1.412 = 1.203 + 0.209 | yes |  |
-| ui/images/ui_texture_slice | 10 | 0.998941 | 8 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 43.512 / 1.125 = 0.98 + 0.145 | yes |  |
-| ui/images/ui_texture_slice_flip_and_tile | 10 | 1.000000 | 0 | 0 / 0 | 461 / 492 | 5 / 7 | 1 / 1 | 32.465 / 1.228 = 1.046 + 0.182 | yes |  |
-| ui/images/ui_texture_atlas_slice | 10 | 0.990813 | 16 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 31.944 / 1.192 = 1.065 + 0.127 | yes |  |
 | ui/widgets/button | 10 | 0.999633 | 8 | 0 / 0 | 444 / 492 | 5 / 7 | 1 / 1 | 33.01 / 1.219 = 1.046 + 0.173 | yes |  |
 | ui/text/letter_spacing | 10 | 0.996458 | 13 | 0 / 0 | 455 / 492 | 5 / 7 | 1 / 1 | 33.285 / 1.088 = 0.961 + 0.127 | yes |  |
 | ui/styling/borders | 10 | 0.992828 | 9 | 0 / 0 | 591 / 492 | 5 / 7 | 1 / 1 | 33.521 / 1.111 = 1.02 + 0.091 | yes |  |
@@ -130,9 +127,7 @@ doesn't pay.
 | ui/layout/ghost_nodes | 10 | 0.998544 | 9 | 0 / 0 | 455 / 492 | 5 / 7 | 1 / 1 | 35.333 / 1.312 = 1.13 + 0.182 | yes |  |
 | ui/relative_cursor_position | 10 | 0.999907 | 2 | 0 / 0 | 443 / 492 | 5 / 7 | 1 / 1 | 52.279 / 3.978 = 3.723 + 0.255 | yes |  |
 | ui/ui_target_camera | 10 | 0.998769 | 7 | 0 / 0 | 452 / 492 | 5 / 7 | 1 / 1 | 39.413 / 1.71 = 1.71 + 0 | yes |  |
-| ui/text/text_wrap_debug | 10 | 0.986254 | 15 | 0 / 0 | 589 / 492 | 5 / 7 | 1 / 1 | 32.74 / 1.068 = 1.068 + 0 | yes |  |
 | ui/layout/grid | 10 | 0.995059 | 14 | 0 / 0 | 482 / 492 | 5 / 7 | 1 / 1 | 34.457 / 1.496 = 1.496 + 0 | yes |  |
-| ui/ui_scaling | 10 | 0.999856 | 5 | 0 / 0 | 446 / 492 | 5 / 7 | 1 / 1 | 37.383 / 2.14 = 2.14 + 0 | yes |  |
 | ui/layout/anchor_layout | 10 | 0.997421 | 9 | 0 / 0 | 468 / 492 | 5 / 7 | 1 / 1 | 33.145 / 1.417 = 1.417 + 0 | yes |  |
 | ui/layout/size_constraints | 10 | 0.991466 | 19 | 0 / 0 | 608 / 492 | 5 / 7 | 1 / 1 | 31.358 / 0.993 = 0.993 + 0 | yes |  |
 | ui/scroll_and_overflow/overflow_transform | 10 | 0.995397 | 12 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 41.134 / 1.724 = 1.724 + 0 | yes |  |
@@ -140,7 +135,13 @@ doesn't pay.
 | ui/text/text_debug | 10 | 0.984022 | 18 | 0 / 0 | 458 / 492 | 5 / 7 | 1 / 1 | 35.188 / 1.093 = 1.093 + 0 | yes |  |
 | ui/ui_transform | 10 | 0.999095 | 6 | 0 / 0 | 463 / 492 | 5 / 7 | 1 / 1 | 36.534 / 1.372 = 1.372 + 0 | yes |  |
 | ui/scroll_and_overflow/scroll | 10 | 0.997196 | 14 | 0 / 0 | 1988 / 492 | 5 / 7 | 1 / 1 | 35.528 / 1.129 = 1.129 + 0 | yes |  |
-| ui/scroll_and_overflow/drag_to_scroll | 10 | 0.999993 | 1 | 0 / 0 | 7644 / 492 | 5 / 7 | 1 / 1 | 33.654 / 1.161 = 1.161 + 0 | yes |  |
+| ui/scroll_and_overflow/drag_to_scroll | 10 | 0.999993 | 1 | 0 / 0 | 7644 / 492 | 5 / 7 | 1 / 1 | 35.892 / 1.362 = 1.362 + 0 | yes |  |
+| ui/text/text_wrap_debug | 10 | 0.986254 | 15 | 0 / 0 | 589 / 492 | 5 / 7 | 1 / 1 | 33.656 / 1.328 = 1.328 + 0 | yes |  |
+| ui/ui_scaling | 10 | 0.999856 | 5 | 0 / 0 | 446 / 492 | 5 / 7 | 1 / 1 | 35.618 / 1.41 = 1.41 + 0 | yes |  |
+| ui/images/ui_texture_slice_flip_and_tile | 10 | 1.000000 | 0 | 0 / 0 | 461 / 492 | 5 / 7 | 1 / 1 | 36.761 / 1.341 = 1.341 + 0 | yes |  |
+| ui/images/ui_texture_slice | 10 | 0.998941 | 8 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 33.914 / 0.905 = 0.905 + 0 | yes |  |
+| ui/images/ui_texture_atlas_slice | 10 | 0.990813 | 16 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 36.454 / 1.397 = 1.397 + 0 | yes |  |
+| ui/scroll_and_overflow/scrollbars | 10 | 0.994524 | 21 | 0 / 0 | 462 / 492 | 5 / 7 | 1 / 1 | 43.63 / 1.382 = 1.382 + 0 | yes |  |
 
 ## Excluded
 

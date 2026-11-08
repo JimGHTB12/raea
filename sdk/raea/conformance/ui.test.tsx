@@ -315,9 +315,10 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     expect(html(<ImageNode image={{ path: "p.png", sampler: {} }} />)).not.toContain("image-rendering");
     expect(() => html(<ImageNode image={{ path: "p.png", sampler: { wrap: "repeat" } }} />)).toThrow(/isn't wrapped/);
   });
-  test("UiScale lays its roots out in a window 1/value of the frame and scales it up from the top left", () => {
+  test("UiScale zooms its UI: laid out at value times every length, in the frame's window", () => {
     const out = html(<UiScale value={2}><Node width={px(16)} /></UiScale>);
-    for (const s of ["width:50%", "height:50%", "transform:scale(2)", "transform-origin:0 0"]) expect(out).toContain(s);
+    for (const s of ["width:100%", "height:100%", "zoom:2"]) expect(out).toContain(s);
+    expect(out).not.toContain("transform:scale");
     expect(() => html(<UiScale value={0} />)).toThrow(/above 0/);
   });
 });

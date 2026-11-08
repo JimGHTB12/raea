@@ -1010,6 +1010,25 @@ impl NodeData {
         self.attr(LocalName::from("data-raea-bevy-global-z")).is_some()
     }
 
+    /// raea: a bevy_ui IgnoreScroll (sdk/render's `ignore_scroll`, `data-raea-bevy-ignore-scroll` "x", "y" or "xy"):
+    /// the axes on which it keeps its place while its parent scrolls
+    pub fn bevy_ignore_scroll(&self) -> Option<(bool, bool)> {
+        let v = self.attr(LocalName::from("data-raea-bevy-ignore-scroll"))?;
+        Some((v.contains('x'), v.contains('y')))
+    }
+
+    /// raea: a bevy_ui scroller (sdk/render's `scroll_position`, `data-raea-bevy-scroll`): its physical px per CSS px,
+    /// to which bevy_ui floors its scroll offset
+    pub fn bevy_scroll_scale(&self) -> Option<f64> {
+        self.attr(LocalName::from("data-raea-bevy-scroll"))?.split(' ').next()?.parse().ok().filter(|s: &f64| *s > 0.0)
+    }
+
+    /// raea: the ScrollPosition a bevy_ui scroller was given (`data-raea-bevy-scroll` "scale x y", CSS px), unclamped
+    pub fn bevy_scroll_asked(&self) -> Option<(f32, f32)> {
+        let mut it = self.attr(LocalName::from("data-raea-bevy-scroll"))?.split(' ').skip(1).map(|v| v.parse().ok());
+        Some((it.next()??, it.next()??))
+    }
+
     pub fn has_attr(&self, name: impl PartialEq<LocalName>) -> bool {
         self.downcast_element()
             .is_some_and(|elem| elem.has_attr(name))
@@ -1070,6 +1089,21 @@ impl Node {
 
     pub fn is_bevy_global_z(&self) -> bool {
         self.data.is_bevy_global_z()
+    }
+
+    /// raea: NodeData::bevy_ignore_scroll
+    pub fn bevy_ignore_scroll(&self) -> Option<(bool, bool)> {
+        self.data.bevy_ignore_scroll()
+    }
+
+    /// raea: NodeData::bevy_scroll_scale
+    pub fn bevy_scroll_scale(&self) -> Option<f64> {
+        self.data.bevy_scroll_scale()
+    }
+
+    /// raea: NodeData::bevy_scroll_asked
+    pub fn bevy_scroll_asked(&self) -> Option<(f32, f32)> {
+        self.data.bevy_scroll_asked()
     }
 
     pub fn tree(&self) -> &crate::NodeTree {

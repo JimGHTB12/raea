@@ -388,6 +388,10 @@ pub struct BaseDocument {
     pub image_loads: Vec<(NodeId, Option<(u32, u32)>)>,
     /// raea: scrollers to scroll to their end once layout has their content (bevy-tsx's `scrollEnd`), taken by resolve
     pub scroll_to_end: Vec<NodeId>,
+    /// raea: scrollers whose offset the page set (scrollTop, scrollLeft), kept in their range by resolve
+    pub scroll_set: Vec<NodeId>,
+    /// raea: bevy_ui Scrollbar tracks (data-raea-bevy-scrollbar), whose thumbs resolve places
+    pub scrollbars: Vec<NodeId>,
 
     /// Nodes whose `background-image`/`mask-image` layers need flushing to
     /// dedicated storage on the node because their style changed (populated by
@@ -554,6 +558,8 @@ impl BaseDocument {
             pending_images: HashMap::new(),
             image_loads: Vec::new(),
             scroll_to_end: Vec::new(),
+            scroll_set: Vec::new(),
+            scrollbars: Vec::new(),
             pending_style_image_nodes: Vec::new(),
             pending_critical_resources: HashSet::new(),
             controls_to_form: HashMap::new(),

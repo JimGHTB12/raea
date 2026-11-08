@@ -92,6 +92,10 @@ pub fn apply(doc: &mut BaseDocument, nodes: &mut Nodes, ops: Vec<Op>) {
         if props.get("scrollEnd").is_some_and(|v| !v.is_null()) {
             out.push((id, "scrollEnd", 0.0));
         }
+        // a bevy_ui Scrollbar track (sdk/render's Scrollbar), whose thumbs blitz-dom places after layout
+        if props.contains_key("data-raea-bevy-scrollbar") {
+            out.push((id, "scrollbar", 0.0));
+        }
     };
     {
         let mut m = doc.mutate();
@@ -281,7 +285,18 @@ pub fn apply(doc: &mut BaseDocument, nodes: &mut Nodes, ops: Vec<Op>) {
             }
             continue;
         }
-        let Some(node) = nodes.by_id.get(&id).copied().and_then(|n| doc.get_node_mut(n)) else { continue };
+        if k == "scrollbar" {
+            if let Some(&n) = nodes.by_id.get(&id) && !doc.scrollbars.contains(&n) {
+                doc.scrollbars.push(n);
+            }
+            continue;
+        }
+        let Some(n) = nodes.by_id.get(&id).copied() else { continue };
+        // (kept in its range once layout has its content: blitz-dom's scroll_set)
+        if !doc.scroll_set.contains(&n) {
+            doc.scroll_set.push(n);
+        }
+        let Some(node) = doc.get_node_mut(n) else { continue };
         let at = node.scroll_offset_mut();
         if k == "scrollTop" { at.y = v } else { at.x = v }
         node.insert_damage(crate::ALL_DAMAGE);
