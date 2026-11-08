@@ -37,6 +37,10 @@ pub struct TextLayout {
     /// (a collapsed run's space may sit just before or after): what maps a DOM offset in it to the layout's and back
     /// (raea-runtime-dom's editing.rs: Range rects, caretPositionFromPoint, the selection's paint)
     pub text_nodes: Vec<(NodeId, usize, usize)>,
+    /// raea: the width (layout px) its lines were last broken at by a PerformLayout run: a height measured at another
+    /// width breaks them again, and they're put back after (layout/inline.rs), so a box whose layout taffy keeps from
+    /// its cache (no PerformLayout run this pass) still draws its own lines
+    pub performed_width: Option<f32>,
 }
 
 impl TextLayout {

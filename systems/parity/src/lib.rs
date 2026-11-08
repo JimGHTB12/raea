@@ -8,6 +8,7 @@
 //!   RAEA_PARITY_EXIT=1         exit a few frames after the last probed frame (the screenshot's readback lands first)
 //!   RAEA_PARITY_TYPES=A,B      also each listed Bevy type's value on every entity that has it, reflected as Bevy
 //!                              serializes it, one line a probed frame in FILE.world.jsonl (FC0c's defaults test)
+//!   RAEA_PARITY_INPUT=FILE     scripted input, the script `raea play --input-script` takes (input.rs)
 //!
 //! A line holds what decides a frame's cost, read from the main World:
 //!   entities          every entity
@@ -31,6 +32,8 @@ use bevy::camera::visibility::ViewVisibility;
 use bevy::prelude::*;
 use bevy::render::view::window::screenshot::{Screenshot, save_to_disk};
 use bevy::time::TimeUpdateStrategy;
+
+mod input;
 
 #[derive(Resource)]
 struct Probe {
@@ -70,6 +73,10 @@ pub fn install(app: &mut App) {
     if png.is_some() {
         app.add_systems(First, offscreen);
         app.add_systems(PreUpdate, no_input.after(bevy::input::InputSystems));
+    }
+    if let Some(script) = input::load() {
+        app.insert_resource(script);
+        app.add_systems(First, input::scripted);
     }
     app.insert_resource(Probe { out: out.into(), frames, png, exit, types, frame: 0, since: Instant::now(), ticks: 0 });
     app.add_systems(Last, (probe, dump).chain());

@@ -1,4 +1,4 @@
-# path	example arguments (- for none)	frames probed (docs/control.feature FC0a; tools/bevy-parity)
+# path	example arguments (- for none)	frames probed	input script, optional (docs/control.feature FC0a; tools/bevy-parity)
 stress_tests/many_cubes	--benchmark --instance-count 10000	30,60
 3d/3d_scene	-	5,10
 stress_tests/many_lights	-	30,60
@@ -98,7 +98,7 @@ ui/widgets/viewport_node	-	10
 ui/widgets/vertical_slider	-	10
 ui/widgets/virtual_keyboard	-	10
 ui/widgets/standard_widgets_observers	-	10
-ui/widgets/standard_widgets	-	10
+ui/widgets/standard_widgets	-	10	bench/bevy-parity/input/standard_widgets_menu.json
 ui/widgets/feathers_counter	-	10
 ui/widgets/feathers_number_input	-	10
 ui/widgets/feathers_gallery	-	10

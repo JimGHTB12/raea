@@ -180,6 +180,18 @@ impl BevyPage {
         self.page.hit(x, y).map(|id| id & !TEXT_BIT).filter(|id| *id >= REACT_IDS).map(|id| id - REACT_IDS)
     }
 
+    /// The React elements under the point (page px), the topmost first and then each one up to the root: the path a
+    /// pointer event there bubbles along (live play's page pointer).
+    pub fn hit_path(&mut self, x: f32, y: f32) -> Vec<u64> {
+        let mut out: Vec<u64> = Vec::new();
+        for id in self.page.hit_path(x, y).into_iter().map(|id| id & !TEXT_BIT).filter(|id| *id >= REACT_IDS).map(|id| id - REACT_IDS) {
+            if out.last() != Some(&id) {
+                out.push(id);
+            }
+        }
+        out
+    }
+
     /// Each element's box as last laid out ([x, y, w, h] in page px), by its path among the page's elements.
     pub fn boxes(&mut self) -> Vec<(String, [f32; 4])> {
         self.page.boxes()

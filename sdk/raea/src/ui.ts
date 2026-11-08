@@ -10,6 +10,7 @@ export { Node, GhostNode, Text, TextSpan, TextShadow, Text2d, UiScale, Viewport,
 export { LinearGradient, RadialGradient, ConicGradient, ColorStop, AngularColorStop, UiPosition, type Gradient, type RadialGradientShape, type InterpolationColorSpace } from "@raea/render/bevy3d";
 export { GridTrack, RepeatedGridTrack, GridPlacement, type GridTrackRepetition, type GridAutoFlow, type MinTrackSizingFunction, type MaxTrackSizingFunction, FontAtlasSet, type FontAtlas, FontCx, FontSource, type GenericFontFamily } from "@raea/render/bevy3d";
 export { Rot2, Val2, UiTransform, BoxShadow, BoxShadowSamples, type ShadowStyle } from "@raea/render/bevy3d";
+export type { Popover, PopoverPlacement } from "@raea/render/bevy3d";
 export { MaterialNode, type MaterialNodeProps } from "@raea/render/bevy3d";
 export { FontFeatureTag, FontWidth } from "@raea/render/bevy3d";
 export { GlobalUiDebugOptions, type UiDebugOptions } from "@raea/render/bevy3d";

@@ -133,6 +133,22 @@ impl BlitzPage {
         }
     }
 
+    /// Every element the ops made from the one topmost at the point (page px) up to the root, innermost first: the
+    /// path a pointer event there bubbles along.
+    pub fn hit_path(&mut self, x: f32, y: f32) -> Vec<u64> {
+        let docs = self.app.world().non_send::<Docs>();
+        let Some(doc) = docs.0.get(&self.page) else { return Vec::new() };
+        let mut out = Vec::new();
+        let mut n = doc.hit(x, y).map(|h| h.node_id);
+        while let Some(at) = n {
+            if let Some(id) = self.nodes.id_of(at).filter(|id| *id != 0) {
+                out.push(id);
+            }
+            n = doc.get_node(at).and_then(|d| d.parent);
+        }
+        out
+    }
+
     /// Each element's box as last laid out, [x, y, w, h] in page px, by its path.
     pub fn boxes(&mut self) -> Vec<(String, [f32; 4])> {
         let docs = self.app.world().non_send::<Docs>();

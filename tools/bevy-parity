@@ -10,6 +10,10 @@
 #   world   (not yet: entities and components over BRP)
 #
 #   tools/bevy-parity [PATH ...]    default: every row of bench/bevy-parity/runs.tsv
+#   A row's fourth column (optional) is an input script for an interactive example, the file `raea play
+#   --input-script` takes ({"FRAME": ["Pointer:X:Y:down", keys...]}): the example gets it as RAEA_PARITY_INPUT
+#   (systems/parity input.rs, bevy_picking's pointer), and the port's pictures are `raea play`'s under it (its cost
+#   still the render's, which has no input)
 #   tools/bevy-parity --report      only rewrite docs/bevy-parity.md from docs/bevy-parity/results.jsonl
 # Needs target/release/raea-bevy-parity and raea, built in two cargo runs (lane build -- cargo build --release -p
 # raea-bevy-parity, then -p raea-cli --bin raea): the host turns on bevy_winit for Bevy's examples, and one run of both
@@ -65,24 +69,27 @@ report() {
 
 # runs.tsv: path, the example's arguments, the frames probed
 rows=()
-while IFS=$'\t' read -r path args frames; do
+while IFS=$'\t' read -r path args frames input; do
   [[ -z "$path" || "$path" == \#* ]] && continue
   if [ $# -gt 0 ]; then
-    for want in "$@"; do [ "$want" = "$path" ] && rows+=("$path"$'\t'"$args"$'\t'"$frames"); done
+    for want in "$@"; do [ "$want" = "$path" ] && rows+=("$path"$'\t'"$args"$'\t'"$frames"$'\t'"${input:--}"); done
   else
-    rows+=("$path"$'\t'"$args"$'\t'"$frames")
+    rows+=("$path"$'\t'"$args"$'\t'"$frames"$'\t'"${input:--}")
   fi
 done < "$RUNS"
 
 for row in "${rows[@]}"; do
-  IFS=$'\t' read -r path args frames <<< "$row"
+  IFS=$'\t' read -r path args frames input <<< "$row"
   [ "$args" = - ] && args=""
+  [ "$input" = - ] && input=""
+  inenv=()
+  [ -n "$input" ] && inenv=(RAEA_PARITY_INPUT="$ROOT/$input")
   d="$OUT/${path//\//__}"
   rm -rf "$d"; mkdir -p "$d/bevy" "$d/raea"
   echo "== $path ($args) at frames $frames"
   # the example as Bevy wrote it
   # shellcheck disable=SC2086
-  if ! RAEA_PARITY="$d/bevy.jsonl" RAEA_PARITY_FRAMES="$frames" RAEA_PARITY_PNG="$d/bevy" RAEA_PARITY_EXIT=1 \
+  if ! env ${inenv[@]+"${inenv[@]}"} RAEA_PARITY="$d/bevy.jsonl" RAEA_PARITY_FRAMES="$frames" RAEA_PARITY_PNG="$d/bevy" RAEA_PARITY_EXIT=1 \
       RAEA_PARITY_EXAMPLE="$path" BEVY_ASSET_ROOT="$BEVY_SRC" "$HOST" $args > "$d/bevy.log" 2>&1; then
     echo "  the example failed: $(tail -1 "$d/bevy.log")"
   fi
@@ -102,6 +109,9 @@ for row in "${rows[@]}"; do
     elif ! RAEA_STARTUP_TRACE=$(perl -MTime::HiRes=time -e 'printf "%.1f", time * 1000') RAEA_PARITY="$d/raea-$f.jsonl" \
         "$RAEA" render "$tsx" --frame "$f" -o "$d/raea/$f.png" > "$d/raea-$f.log" 2>&1; then
       why="${why:+$why; }raea failed: $(grep -iE 'error|refused|panick' "$d/raea-$f.log" | tail -1 | cut -c1-140)"
+    elif [ -n "$input" ] && ! "$RAEA" play "$tsx" --offscreen --size "$(magick identify -format '%wx%h' "$d/bevy/$f.png" 2>/dev/null || echo 1280x720)" --input-script "$ROOT/$input" \
+        --snapshot "$(perl -e "printf '%.4f', $f / 60")" "$d/raea/$f.png" --seconds "$(perl -e "printf '%.4f', ($f + 14) / 60")" > "$d/raea-play-$f.log" 2>&1; then
+      why="${why:+$why; }raea play failed: $(grep -iE 'error|refused|panick' "$d/raea-play-$f.log" | tail -1 | cut -c1-140)"
     else
       # the counts from the last update before the readback; its time the median update after the first five (the
       # last line holds the readback's stall, the first the load)

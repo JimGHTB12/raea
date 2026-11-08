@@ -143,6 +143,8 @@ impl BaseDocument {
         // raea: scroll offsets the page set kept in range and bevy_ui Scrollbar thumbs placed, now that layout has the
         // content (bevy_scroll.rs)
         self.resolve_bevy_scroll();
+        // raea: bevy_ui_widgets Popovers placed beside their parents (bevy_popover.rs)
+        self.resolve_bevy_popovers();
 
         // Resolve transforms
         self.resolve_transforms(root_node_id, None, None);

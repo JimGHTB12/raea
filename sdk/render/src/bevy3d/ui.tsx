@@ -14,6 +14,7 @@ import { gradientsCss, gradientsOpaque, type Gradient } from "./ui-gradient";
 import { gridCss, type GridAutoFlow, type GridPlacement, type GridTrack, type RepeatedGridTrack } from "./ui-grid";
 import { ShadowSamplesCx, shadowCss, transformCss, type BoxShadow, type UiTransform } from "./ui-transform";
 import { featuresCss } from "./ui-features";
+import { handlersOf, popoverAttr, type PickProps } from "./ui-pick";
 import { scrollCss, type IgnoreScroll } from "./ui-scroll";
 import { useDebugAttr, type UiDebugOptions } from "./ui-debug";
 import type { TransformValue } from "./core";
@@ -24,7 +25,7 @@ type Color = Srgba | LinearRgba | string;
 
 /** bevy_ui's Node: its layout fields as Bevy names them (each Bevy's default when left out), and the components that
  *  draw it: background_color (BackgroundColor), border_color (BorderColor, every side), z_index (ZIndex). */
-export interface NodeProps {
+export interface NodeProps extends PickProps {
   /** bevy_ecs's Name, as a Scrollbar's target names its scroller (the element's id) */
   name?: string;
   /** UiDebugOptions: this node's debug overlay, in place of the GlobalUiDebugOptions it's in */
@@ -141,6 +142,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): 
   const attrs: Record<string, string | number> = p.global_z_index ? { "data-raea-bevy-global-z": "" } : {};
   // every shadow drawn as bevy_ui draws it (its spread, its blur summed in BoxShadowSamples steps), raea's Blitz box_shadow.rs
   if (p.box_shadow !== undefined && p.box_shadow.length) attrs["data-raea-bevy-shadow"] = String(samples);
+  popoverAttr(who, p, s as Record<string, unknown>, attrs);
   if (p.margin !== undefined) s.margin = rectCss(who, "margin", p.margin);
   if (p.padding !== undefined) s.padding = rectCss(who, "padding", p.padding);
   if (p.border !== undefined) {
@@ -210,7 +212,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): 
 // a root's implicit viewport (bevy_ui ui_surface.rs): a grid the window's size, its one item at the start of both axes
 export const VIEWPORT: CSSProperties = { position: "absolute", left: 0, top: 0, width: "100%", height: "100%", display: "grid", alignItems: "start", justifyItems: "start" };
 
-export function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, root: boolean | "fixed", font?: ReactNode, attrs?: Record<string, string | number>) {
+export function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, root: boolean | "fixed", font?: ReactNode, attrs?: Record<string, unknown>) {
   const inner = (
     <div style={css} {...attrs}>
       <InUi.Provider value={{ back }}>{children}</InUi.Provider>
@@ -225,7 +227,7 @@ export function boxOf(css: CSSProperties, back: Backdrop, children: ReactNode, r
 export function Node({ children, fixed, ...p }: NodeProps) {
   const ui = useContext(InUi);
   const n = nodeCss("Node", p, ui?.back, useContext(UiScaleCx));
-  return boxOf(n.css, n.back, children, fixed ? "fixed" : ui === null, undefined, n.attrs);
+  return boxOf(n.css, n.back, children, fixed ? "fixed" : ui === null, undefined, { ...n.attrs, ...handlersOf("Node", p) });
 }
 
 /** bevy_ui's GhostNode: no box of its own, its children laid out as its parent's (CSS display: contents), each one a

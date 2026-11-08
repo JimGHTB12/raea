@@ -261,6 +261,10 @@ impl LayoutPassState<'_> {
             .unwrap()
             .take_inline_layout()
             .unwrap();
+        // raea: a measure (taffy's intrinsic sizing, a re-layout's probes; a bevy_text box's min-content breaks them at
+        // no width) breaks the lines a laid-out box keeps; they're put back after it, so a box whose layout taffy keeps
+        // from its cache this pass still draws its own lines (TextLayout::performed_width)
+        let kept = (inputs.run_mode == RunMode::ComputeSize && inline_layout.performed_width.is_some()).then(|| inline_layout.layout.clone());
 
         let style = self.nodes[node_id].layout_style();
 
@@ -688,6 +692,9 @@ impl LayoutPassState<'_> {
         if inputs.run_mode == taffy::RunMode::ComputeSize
             && inputs.axis == RequestedAxis::Horizontal
         {
+            if let Some(l) = kept {
+                inline_layout.layout = l;
+            }
             // Put layout back
             self.nodes[node_id]
                 .data
@@ -1279,8 +1286,12 @@ impl LayoutPassState<'_> {
 
         if inputs.run_mode == RunMode::PerformLayout {
             inline_layout.span_cb_flags = span_cb_flags;
+            inline_layout.performed_width = Some(width);
         }
 
+        if let Some(l) = kept {
+            inline_layout.layout = l;
+        }
         // Put layout back
         self.nodes[node_id]
             .data

@@ -14,6 +14,7 @@ use raea_runtime_react::{ReactOutbox, ReactPlugin};
 
 mod open;
 mod sound;
+mod pointer;
 pub use sound::warm_audio;
 mod draw;
 
@@ -55,6 +56,8 @@ pub struct Live {
     frame: i64,
     /// the gamepads' marked keys the last frame was given beside its input ("Pad0:South"), for its input log
     pads: Vec<String>,
+    /// the pointer on the page's elements, as the last frame left it (pointer.rs)
+    pointer: pointer::PagePointer,
     /// generated sounds' files, by what they were made from (looked up once)
     made: std::collections::HashMap<String, Option<PathBuf>>,
     /// the frame's sounds, kept between frames (ZeroHeap)
@@ -199,6 +202,13 @@ impl Live {
                 None => None,
             };
             let keys = routed.as_deref().unwrap_or(keys);
+            // the pointer on the page's elements: their on* handlers, before the frame's step (pointer.rs)
+            if let Some(p) = pointer {
+                let path = self.page.hit_path(p.0 as f32, p.1 as f32);
+                for m in self.pointer.step(p, path) {
+                    self.app.world().resource::<ReactOutbox>().send(m);
+                }
+            }
             self.app.world().resource::<ReactOutbox>().send_raw(frame_event(f, keys, pointer, Some(self.session)));
             raea_runtime_react::scene::settle(&mut self.app, Some(f), 5.0)?;
             // a game's 3D: this frame's scene, as it was just computed, set on the live engine

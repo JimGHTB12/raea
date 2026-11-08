@@ -55,6 +55,7 @@ mod mutator;
 mod query_selector;
 mod resolve;
 mod bevy_scroll;
+mod bevy_popover;
 /// Computation of resolved CSS property values (`getComputedStyle()`)
 mod resolved_style;
 /// Scrolling of nodes and the viewport, and scroll animations.
