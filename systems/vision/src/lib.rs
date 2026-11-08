@@ -11,11 +11,15 @@ pub mod face;
 pub mod hands;
 #[cfg(target_vendor = "apple")]
 pub mod hair;
+#[cfg(target_vendor = "apple")]
 pub mod depth;
+#[cfg(target_vendor = "apple")]
 pub mod object;
 #[cfg(target_vendor = "apple")]
 pub mod flow;
 pub mod vision;
+#[cfg(target_vendor = "apple")]
+mod apple_vision;
 pub mod textread;
 pub mod camera;
 #[cfg(target_vendor = "apple")]

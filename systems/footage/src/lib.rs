@@ -4,6 +4,7 @@
 #[cfg(target_vendor = "apple")]
 pub mod ingest;
 pub mod shots;
+pub mod store;
 pub mod performance;
 #[cfg(target_vendor = "apple")]
 pub mod cuts;

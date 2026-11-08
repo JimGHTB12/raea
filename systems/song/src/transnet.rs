@@ -9,7 +9,7 @@ use ort::session::Session;
 use ort::value::Tensor;
 
 pub fn model_path() -> PathBuf {
-    PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".local/share/raea-models/transnetv2/transnetv2.onnx")
+    raea_io_home::models().join("transnetv2/transnetv2.onnx")
 }
 
 pub struct TransNet(Session);

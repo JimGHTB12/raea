@@ -14,13 +14,13 @@ vision-portable = ["raea-sys-perceive/vision-portable"]
 
 [dependencies]
 # frames come from the media plane (VideoToolbox on Apple, ffmpeg or the software decoders elsewhere)
-raea-io-media = { path = "../../io/media", default-features = false, features = ["apple"] }
+# soft-audio: a song's sound decoded in process off Apple (Symphonia), where an install has no ffmpeg (#43)
+raea-io-media = { path = "../../io/media", default-features = false, features = ["apple", "soft-audio"] }
 raea-sys-layout = { path = "../../systems/layout" }
 raea-sys-vision = { path = "../../systems/vision" }
 raea-sys-song = { path = "../../systems/song" }
 raea-sys-perceive = { path = "../../systems/perceive" }
 raea-sys-footage = { path = "../../systems/footage" }
 serde_json = "1"
-
-[target.'cfg(target_vendor = "apple")'.dependencies]
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+

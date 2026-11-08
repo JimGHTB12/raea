@@ -5,5 +5,4 @@ pub mod layout;
 pub mod coach;
 pub mod legible;
 pub mod framing;
-#[cfg(target_vendor = "apple")]
 pub mod motion;

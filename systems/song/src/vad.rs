@@ -14,7 +14,7 @@ const WIN: usize = 512;
 const CTX: usize = 64;
 
 pub fn model_path() -> PathBuf {
-    PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".local/share/raea-models/silero-vad/silero_vad.onnx")
+    raea_io_home::models().join("silero-vad/silero_vad.onnx")
 }
 
 pub struct Vad(Session);

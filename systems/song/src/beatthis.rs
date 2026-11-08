@@ -21,7 +21,7 @@ const CHUNK: usize = 1500;
 const BORDER: usize = 6;
 
 pub fn model_path() -> PathBuf {
-    PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".local/share/raea-models/beat-this/beat_this_small0.onnx")
+    raea_io_home::models().join("beat-this/beat_this_small0.onnx")
 }
 
 pub fn fft(re: &mut [f64], im: &mut [f64]) {

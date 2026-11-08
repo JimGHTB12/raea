@@ -15490,6 +15490,7 @@ dependencies = [
  "deep_filter",
  "ndarray 0.15.6",
  "ort",
+ "raea-io-home",
  "raea-io-media",
  "raea-sys-vision",
  "serde_json",

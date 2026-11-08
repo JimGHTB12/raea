@@ -19,7 +19,7 @@ const HOP: usize = 1024;
 const FQ: usize = NFFT / 2;
 
 pub fn model_path() -> PathBuf {
-    PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".local/share/raea-models/htdemucs/htdemucs_core.onnx")
+    raea_io_home::models().join("htdemucs/htdemucs_core.onnx")
 }
 
 fn fft(re: &mut [f64], im: &mut [f64], inverse: bool) {

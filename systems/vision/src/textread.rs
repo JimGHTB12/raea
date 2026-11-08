@@ -4,6 +4,7 @@
 //! its text, its first and last frame, and its median box. The rows read can then be set against the rows an edit
 //! wrote (what J1 is graded on: our own renders, whose true rows are known).
 
+#[cfg(target_vendor = "apple")]
 use std::path::Path;
 
 /// Frames a line may go unread inside a row before the row ends (a word Vision drops for a frame or two).

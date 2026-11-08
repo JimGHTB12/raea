@@ -59,8 +59,8 @@ pub fn song(args: &[String]) -> R<String> {
         return Err("song: the map is made by raea-perceive, which isn't installed beside raea. Update raea (`curl -fsSL https://raea.io/install | sh`: releases ship it in ~/.raea/bin), or from a checkout `cargo build --release -p raea-perceive`, or point RAEA_PERCEIVE at one".into());
     }
     // its beat model (Beat This!, MIT): an install keeps it in share/raea/models; raea-perceive reads it from
-    // ~/.local/share/raea-models
-    let model = PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".local/share/raea-models/beat-this/beat_this_small0.onnx");
+    // raea_io_home::models() (~/.local/share/raea-models; %LOCALAPPDATA%\raea\models on Windows)
+    let model = raea_io_home::models().join("beat-this/beat_this_small0.onnx");
     if !model.is_file() {
         let shipped = raea_io_home::home().join("models/beat-this/beat_this_small0.onnx");
         if !shipped.is_file() || std::fs::create_dir_all(model.parent().unwrap()).and_then(|_| std::fs::copy(&shipped, &model)).is_err() {

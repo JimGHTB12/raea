@@ -6,7 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, extname } from "node:path";
+import { basename, delimiter, dirname, extname } from "node:path";
 import { brandKit } from "./brand";
 import { readSite, stylesOf } from "./scrape";
 import { wordsOf } from "./heard";
@@ -211,9 +211,11 @@ function cut(a: { take: string; lines: string[]; spans: number[][]; keep: Clip[]
 /** raea-perceive, as `raea song` finds it (runtime/react/src/runtime/page/src/faces.rs perceive_bin): $RAEA_PERCEIVE, else beside raea, else on PATH */
 function perceive(): string {
   // raea's path (a bare name, as a test may pass, is found on PATH)
-  const self = raea.includes("/") ? raea : (process.env.PATH ?? "").split(":").map((d) => `${d}/${raea}`).find((p) => existsSync(p)) ?? raea;
-  const beside = existsSync(self) ? `${dirname(realpathSync(self))}/raea-perceive` : "";
-  return process.env.RAEA_PERCEIVE || (existsSync(beside) ? beside : "raea-perceive");
+  const self = raea.includes("/") ? raea : (process.env.PATH ?? "").split(delimiter).map((d) => `${d}/${raea}`).find((p) => existsSync(p)) ?? raea;
+  // raea-perceive.exe on Windows (#43)
+  const name = process.platform === "win32" ? "raea-perceive.exe" : "raea-perceive";
+  const beside = existsSync(self) ? `${dirname(realpathSync(self))}/${name}` : "";
+  return process.env.RAEA_PERCEIVE || (existsSync(beside) ? beside : name);
 }
 
 /** `raea frame`'s host step: how a take fits the edit's shape, from where its face is at a moment (raea-perceive's

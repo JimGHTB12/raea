@@ -43,6 +43,17 @@ fn drive(s: &str) -> Option<&str> {
     s.strip_prefix(r"\\?\").filter(|r| r.as_bytes().get(1) == Some(&b':'))
 }
 
+/// Where raea's models are kept (Beat This!, Demucs, TransNet, Silero, the Core ML ones): ~/.local/share/raea-models on
+/// the Mac and Linux, %LOCALAPPDATA%\raea\models on Windows, which has no HOME (#43). Relative when neither is set.
+pub fn models() -> std::path::PathBuf {
+    use std::path::PathBuf;
+    let var = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty()).map(PathBuf::from);
+    match var("LOCALAPPDATA").filter(|_| cfg!(windows)) {
+        Some(d) => d.join("raea").join("models"),
+        None => var("HOME").unwrap_or_default().join(".local/share/raea-models"),
+    }
+}
+
 /// raea's per-user cache folder: ~/Library/Caches/raea on macOS, $XDG_CACHE_HOME/raea (~/.cache/raea by default)
 /// elsewhere on Unix, %LOCALAPPDATA%\raea\cache on Windows. None when that platform's home isn't set.
 pub fn caches() -> Option<std::path::PathBuf> {

@@ -5,6 +5,8 @@ use super::*;
 
 pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Result<(), String> {
     match args.first().map(String::as_str) {
+        // (with a backend: Vision on Apple, or the ocr-portable feature)
+        #[cfg(any(target_vendor = "apple", feature = "ocr-portable"))]
         Some("read-lines") => {
             // --backend apple (Vision, the default on Apple) | ocrs (portable, the ocr-portable feature)
             let backend = flag("--backend").unwrap_or_else(|| if cfg!(target_vendor = "apple") { "apple".into() } else { "ocrs".into() });
@@ -24,6 +26,7 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
             }
             Ok(())
         }
+        #[cfg(target_vendor = "apple")]
         Some("eyes") => {
             // eyes IMG...: a line per picture with the largest face's eyes, their midpoint in shares of the picture
             // from the top left, or null with no face: where <Video framing="face"> holds them (sdk/react
@@ -50,6 +53,8 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
             }
             Ok(())
         }
+        // (with a backend: Vision on Apple, or the face-portable feature)
+        #[cfg(any(target_vendor = "apple", feature = "face-portable"))]
         Some("faces") => {
             // --backend apple (Vision, the default on Apple) | yunet (portable, the face-portable feature)
             let backend = flag("--backend").unwrap_or_else(|| if cfg!(target_vendor = "apple") { "apple".into() } else { "yunet".into() });
@@ -174,6 +179,7 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
             println!("{}", json!({"samples": mix[0].len(), "rtf": t.elapsed().as_secs_f64() / (mix[0].len() as f64 / 44_100.0)}));
             Ok(())
         }
+        #[cfg(target_vendor = "apple")]
         Some("vad") => {
             // Silero VAD v5: speech spans of a file's sound (a .f32 file is raw 16 kHz mono)
             let path = std::path::Path::new(args.get(1).ok_or("vad FILE [--store DIR]")?);
@@ -181,8 +187,8 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
             let j = raea_sys_song::vad::file(path, &backend)?;
             // --store DIR (or $RAEA_INGEST): kept as vad.json beside the source's other ingest tracks
             if args.iter().any(|a| a == "--store") || std::env::var_os("RAEA_INGEST").is_some() {
-                let store = flag("--store").map(std::path::PathBuf::from).unwrap_or_else(raea_sys_footage::ingest::store);
-                let dir = store.join(&raea_sys_footage::ingest::content_hash(path)?[..16]);
+                let store = flag("--store").map(std::path::PathBuf::from).unwrap_or_else(raea_sys_footage::store::store);
+                let dir = store.join(&raea_sys_footage::store::content_hash(path)?[..16]);
                 std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
                 std::fs::write(dir.join("vad.json"), j.to_string()).map_err(|e| e.to_string())?;
             }
@@ -192,7 +198,7 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
         Some("beats") => {
             // Beat This! small: beats and downbeats of a file's sound; --spect OUT.f32 also writes the log-mel frames
             let path = std::path::Path::new(args.get(1).ok_or("beats FILE [--store DIR] [--spect OUT.f32] [--pcm OUT.f32]")?);
-            let backend = flag("--backend").unwrap_or_else(|| if cfg!(target_vendor = "apple") { "apple".into() } else { "ffmpeg".into() });
+            let backend = flag("--backend").unwrap_or_else(sound_backend);
             if let Some(out) = flag("--pcm") {
                 let x = raea_sys_song::beatthis::pcm(path, &backend)?;
                 std::fs::write(&out, x.iter().flat_map(|v| v.to_le_bytes()).collect::<Vec<u8>>()).map_err(|e| e.to_string())?;
@@ -205,8 +211,8 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
             let j = raea_sys_song::beatthis::file(path, &backend)?;
             // --store DIR (or $RAEA_INGEST): kept as beats.json beside the source's other ingest tracks
             if args.iter().any(|a| a == "--store") || std::env::var_os("RAEA_INGEST").is_some() {
-                let store = flag("--store").map(std::path::PathBuf::from).unwrap_or_else(raea_sys_footage::ingest::store);
-                let dir = store.join(&raea_sys_footage::ingest::content_hash(path)?[..16]);
+                let store = flag("--store").map(std::path::PathBuf::from).unwrap_or_else(raea_sys_footage::store::store);
+                let dir = store.join(&raea_sys_footage::store::content_hash(path)?[..16]);
                 std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
                 std::fs::write(dir.join("beats.json"), j.to_string()).map_err(|e| e.to_string())?;
             }
@@ -217,7 +223,7 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
             // the song's energy map (raea_sys_song::song): sections from the file's [Section] markers when it
             // has them (--srt, a .srt beside it, or its own timed-text stream), else from novelty
             let path = std::path::Path::new(args.get(1).ok_or("song FILE [--srt S.srt] [-o OUT.json]")?);
-            let backend = flag("--backend").unwrap_or_else(|| if cfg!(target_vendor = "apple") { "apple".into() } else { "ffmpeg".into() });
+            let backend = flag("--backend").unwrap_or_else(sound_backend);
             let srt = flag("--srt").map(std::path::PathBuf::from);
             let j = raea_sys_song::song::file(path, &backend, srt.as_deref())?;
             match flag("-o") {
@@ -279,6 +285,7 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
             let _ = child.wait();
             Ok(())
         }
+        #[cfg(target_vendor = "apple")]
         Some("track") => {
             // an object tracked through frames from a box on the first (EdgeTAM): a matte per frame at the
             // frame's own size, OUTDIR/<frame's name>.png (255 on the object), and a JSON line each with its box
@@ -303,6 +310,7 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
             }
             Ok(())
         }
+        #[cfg(target_vendor = "apple")]
         Some("hands") => {
             let m = raea_sys_vision::hands::models()?;
             for path in &args[1..] {
@@ -349,4 +357,10 @@ pub(crate) fn run(args: &[String], flag: &dyn Fn(&str) -> Option<String>) -> Res
         }
         _ => Err("usage: raea-perceive ingest CLIP [--store DIR] | beats FILE | vad FILE | analyze | sound | cuts | transnet | samples VIDEO [--backend B] | bounds | layout | coach | camera | performance ... (the module comment lists every command)".into()),
     }
+}
+
+/// Where a song's sound is decoded by default: AVFoundation on Apple, else in process (the soft backend: Symphonia), since
+/// an install elsewhere has no ffmpeg (#43); `--backend ffmpeg` reads what Symphonia doesn't
+fn sound_backend() -> String {
+    if cfg!(target_vendor = "apple") { "apple" } else { "soft" }.into()
 }

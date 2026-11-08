@@ -13,6 +13,8 @@ denoise = ["dep:deep_filter", "dep:ndarray"]
 # frames come from the media plane (VideoToolbox on Apple, ffmpeg or the software decoders elsewhere)
 raea-io-media = { path = "../../io/media", default-features = false, features = ["apple"] }
 raea-sys-vision = { path = "../vision" }
+# where its models are kept (raea_io_home::models)
+raea-io-home = { path = "../../io/home" }
 serde_json = "1"
 # TransNetV2 (MIT) through its ONNX export, the same ort pin and prebuilt runtime as ugc-embed
 ort = "=2.0.0-rc.13"
