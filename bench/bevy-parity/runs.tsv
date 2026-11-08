@@ -121,3 +121,6 @@ animation/animated_transform	-	30,165
 3d/3d_shapes	-	10,120
 2d/sprite_scale	-	10,60
 2d/sprite_slice	-	10
+shader/shader_material	-	30
+shader/shader_defs	-	10
+shader/shader_material_screenspace_texture	-	10,60

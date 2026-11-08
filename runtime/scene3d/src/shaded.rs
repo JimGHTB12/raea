@@ -34,8 +34,7 @@ pub fn shade_rows(world: &mut World, inserted: &[Tup]) -> Result<(), String> {
     let mut made = Made::new();
     for e in todo {
         let Some(s) = world.entity_mut(e).take::<MeshShader>() else { continue };
-        let ext = shader_ext::build(world, &s.spec, plugins::image).map_err(|err| format!("mesh {}: shader: {err}", s.id))?;
-        shader_ext::shade(world, e, &ext, &mut made);
+        shader_ext::put(world, e, &s.spec, plugins::image, &mut made).map_err(|err| format!("mesh {}: shader: {err}", s.id))?;
     }
     pass_rows(world, inserted)?;
     compute_rows(world, inserted)

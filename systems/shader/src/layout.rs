@@ -124,6 +124,30 @@ pub fn pack(fields: &[(String, String)], uniforms: &[(String, Vec4)]) -> Result<
     Ok(out)
 }
 
+/// A material's uniforms (`given`, {name: value}) in its own bindings' slots: `declared` is each binding's (name, WGSL
+/// type) in slot order (ui_bind.rs's), and each value is packed in its type's layout, a scalar or vector from a number,
+/// an array or a colour and a struct from {field: value}. A value for a uniform the source doesn't declare is refused,
+/// as is a declared one without a value.
+pub fn slots(src: &str, declared: &[(String, String)], given: &serde_json::Map<String, serde_json::Value>, defs: &[ShaderDefVal]) -> Result<[[Vec4; 16]; 8], String> {
+    use raea_sys_material::shader_material::uniform;
+    if let Some(k) = given.keys().find(|k| !declared.iter().any(|(n, _)| n == *k)) {
+        return Err(format!("no uniform {k}"));
+    }
+    let mut out = [[Vec4::ZERO; 16]; 8];
+    for (i, (name, ty)) in declared.iter().enumerate() {
+        let v = given.get(name).ok_or_else(|| format!("its uniform {name} has no value"))?;
+        out[i] = match v.as_object() {
+            Some(o) => {
+                let fields = struct_fields(src, ty, defs).map_err(|e| format!("uniform {name}: {e}"))?;
+                let vals = o.iter().map(|(k, x)| uniform(k, x).map(|u| (u.name, u.value))).collect::<Result<Vec<_>, _>>()?;
+                pack(&fields, &vals)?
+            }
+            None => pack(&[(name.clone(), ty.clone())], &[(name.clone(), uniform(name, v)?.value)])?,
+        };
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

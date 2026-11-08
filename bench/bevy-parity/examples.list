@@ -122,3 +122,6 @@ animation/animated_transform
 3d/3d_shapes
 2d/sprite_scale
 2d/sprite_slice
+shader/shader_material
+shader/shader_defs
+shader/shader_material_screenspace_texture

@@ -27,6 +27,7 @@ use std::hash::{Hash, Hasher};
 use raea_sys_material::shader_material::{defs, ident, uniform, Uniform, SLOTS, TEXTURES};
 
 mod layout;
+pub mod own;
 pub mod ui;
 mod ui_bind;
 
@@ -40,6 +41,7 @@ pub fn install(app: &mut App) {
     let stub = module("", &[], &[], None);
     let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER, Shader::from_wesl(stub, "embedded://raea_sys_shader/placeholder.wesl"));
     app.add_plugins(MaterialPlugin::<ShadedMaterial>::default());
+    own::install(app);
     ui::install(app);
 }
 
@@ -296,6 +298,18 @@ pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Va
     let id = register(world, src, &ins.defs, "raea surface shader", "raea_sys_shader");
     let mut t = ins.textures.iter().map(|x| Some(x.1.clone()));
     Ok(ShaderExt { slots, tex0: t.next().flatten(), tex1: t.next().flatten(), tex2: t.next().flatten(), tex3: t.next().flatten(), arr: ins.array.map(|a| a.1), shader: id })
+}
+
+/// A mesh row's shader put on its part: a <Material>'s own (own.rs) or a ShaderExtension over its standard material.
+pub fn put(world: &mut World, e: Entity, v: &Value, mut image: impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>, made: &mut HashMap<(AssetId<StandardMaterial>, u128), Handle<ShadedMaterial>>) -> Result<(), String> {
+    if own::is_own(v) {
+        let m = own::build(world, v, &mut image)?;
+        own::put(world, e, m);
+        return Ok(());
+    }
+    let ext = build(world, v, image)?;
+    shade(world, e, &ext, made);
+    Ok(())
 }
 
 /// A shaded part: the standard material the rows animate (sync_meshes writes it), copied onto the shaded one's base

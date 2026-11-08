@@ -22,7 +22,7 @@ use bevy::render::render_resource::{AsBindGroup, RenderPipelineDescriptor, Textu
 use bevy::render::renderer::{RenderDevice, RenderQueue};
 use bevy::render::texture::GpuImage;
 use bevy::render::{Render, RenderApp, RenderSystems};
-use bevy::shader::{Shader, ShaderDefVal, ShaderRef};
+use bevy::shader::{Shader, ShaderRef};
 use bevy::ui::UiTargetCamera;
 use bevy::ui_render::prelude::{MaterialNode, UiMaterial, UiMaterialKey, UiMaterialPlugin};
 use serde_json::Value;
@@ -281,14 +281,7 @@ fn build(world: &mut World, state: &mut UiMats, o: &serde_json::Map<String, Valu
     let defs = raea_sys_material::shader_material::defs(o, "a UiMaterial")?;
     let Rebound { src, uniforms, textures, .. } = rebind(&src).map_err(|e| format!("{path}: {e}"))?;
     let given = o.get("uniforms").and_then(Value::as_object).cloned().unwrap_or_default();
-    if let Some(k) = given.keys().find(|k| !uniforms.iter().any(|(n, _)| n == *k)) {
-        return Err(format!("{path} has no uniform {k}"));
-    }
-    let mut slots = [[Vec4::ZERO; 16]; 8];
-    for (i, (name, ty)) in uniforms.iter().enumerate() {
-        let v = given.get(name).ok_or_else(|| format!("{path}'s uniform {name} has no value"))?;
-        slots[i] = pack(&src, name, ty, v, &defs).map_err(|e| format!("{path}: {e}"))?;
-    }
+    let slots = layout::slots(&src, &uniforms, &given, &defs).map_err(|e| format!("{path}: {e}"))?;
     let given = o.get("textures").and_then(Value::as_object).cloned().unwrap_or_default();
     if let Some(k) = given.keys().find(|k| !textures.contains(k)) {
         return Err(format!("{path} has no texture {k}"));
@@ -302,18 +295,6 @@ fn build(world: &mut World, state: &mut UiMats, o: &serde_json::Map<String, Valu
     let [t0, t1, t2, t3] = t;
     let [u0, u1, u2, u3, u4, u5, u6, u7] = slots;
     Ok(RaeaUiMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, shader })
-}
-
-/// A uniform's value in its declared type's layout: a scalar or vector from a number, an array or a colour; a struct
-/// from {field: value}.
-fn pack(src: &str, name: &str, ty: &str, v: &Value, defs: &[ShaderDefVal]) -> Result<[Vec4; 16], String> {
-    if let Some(o) = v.as_object() {
-        let fields = layout::struct_fields(src, ty, defs).map_err(|e| format!("uniform {name}: {e}"))?;
-        let vals = o.iter().map(|(k, x)| raea_sys_material::shader_material::uniform(k, x).map(|u| (u.name, u.value))).collect::<Result<Vec<_>, _>>()?;
-        return layout::pack(&fields, &vals);
-    }
-    let u = raea_sys_material::shader_material::uniform(name, v)?;
-    layout::pack(&[(name.to_string(), ty.to_string())], &[(name.to_string(), u.value)])
 }
 
 /// A picture file as an Image, decoded once (sRGB, as asset_server.load reads a colour texture).

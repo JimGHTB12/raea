@@ -122,6 +122,17 @@ export interface SurfaceShaderSpec {
   /** shader defs: each NAME a WESL condition for `@if(NAME)` (a number is true), and a whole number also
    * `constants::NAME`; each set of defs compiles its own pipeline */
   defs?: ShaderDefs;
+  /** a <Material>'s own (docs/control.feature FC2a): its vertex shader file and what its Material methods give; set by
+   *  <Material>, not on a ShaderExtension */
+  own?: OwnMaterialFields;
+}
+
+/** What a <Material>'s Material methods give: vertex_shader, alpha_mode, depth_bias and the faces its specialize culls. */
+export interface OwnMaterialFields {
+  vertex?: string;
+  alpha_mode?: unknown;
+  depth_bias?: number;
+  cull_mode?: "Front" | "Back" | null;
 }
 export type ShaderDefs = Record<string, boolean | number>;
 
@@ -175,7 +186,7 @@ export function assetPath(p: string): string {
 /** A surface shader checked and given as the row's spec (its source, uniforms, textures). */
 export function surfaceShader(owner: string, sh: SurfaceShaderSpec, hook: RegExp = HOOK, hooks = "fn surface(in: VertexOutput, pbr: ptr<function, PbrInput>), fn lit(in: VertexOutput, pbr: PbrInput, color: vec4<f32>) -> vec4<f32>, or its own @fragment"): Record<string, unknown> {
   if (typeof sh !== "object" || sh === null) throw new TypeError(`${owner}: shader is { wesl | wgsl, uniforms, textures }`);
-  const { wesl, wgsl, fragment, uniforms = {}, textures = {}, defs } = sh;
+  const { wesl, wgsl, fragment, uniforms = {}, textures = {}, defs, own } = sh;
   if ([wesl, wgsl, fragment].filter((s) => s !== undefined).length !== 1) throw new TypeError(`${owner}: shader gives its source as wesl, wgsl or a fragment path, one of them`);
   if (fragment !== undefined && (typeof fragment !== "string" || !fragment)) throw new TypeError(`${owner}: fragment is an asset path, got ${JSON.stringify(fragment)}`);
   const src = wesl ?? wgsl;
@@ -185,11 +196,18 @@ export function surfaceShader(owner: string, sh: SurfaceShaderSpec, hook: RegExp
   if (us.length > 16) throw new RangeError(`${owner}: a shader has at most 16 uniforms, got ${us.length}`);
   for (const [k, v] of us) {
     if (!IDENT.test(k)) throw new TypeError(`${owner}: uniform ${JSON.stringify(k)} isn't a WGSL name`);
+    // a Material's uniform of a struct type is { field: value }, each field checked where the struct is read
+    if (own !== undefined && typeof v === "object" && v !== null && !Array.isArray(v)) continue;
     const ok = (typeof v === "number" && Number.isFinite(v)) || (Array.isArray(v) && v.length >= 2 && v.length <= 4 && v.every((x) => typeof x === "number" && Number.isFinite(x))) || (typeof v === "string" && /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(v));
     if (!ok) throw new TypeError(`${owner}: uniform ${k} is a number, [x, y(, z(, w))] or "#rrggbb", got ${JSON.stringify(v)}`);
   }
+  if (own !== undefined && fragment === undefined) throw new TypeError(`${owner}: a Material's own fields go with its fragment file`);
   checkTextures(owner, textures);
-  return { ...(fragment !== undefined ? { fragment: assetPath(fragment) } : wesl !== undefined ? { wesl } : { wgsl }), uniforms, textures, ...(defs !== undefined ? { defs: shaderDefs(owner, defs) } : {}) };
+  // a picture's path found as the fragment's is (staticFile's /media/x); "render:NAME", data: URLs and pictures made in
+  // code kept as given
+  const file = (s: unknown) => (typeof s === "string" && !s.includes(":") ? assetPath(s) : s);
+  const found = Object.fromEntries(Object.entries(textures).map(([k, t]) => [k, typeof t === "string" ? file(t) : t !== null && typeof t === "object" && "src" in t ? { ...t, src: file(t.src) } : t]));
+  return { ...(fragment !== undefined ? { fragment: assetPath(fragment) } : wesl !== undefined ? { wesl } : { wgsl }), uniforms, textures: found, ...(defs !== undefined ? { defs: shaderDefs(owner, defs) } : {}), ...(own !== undefined ? { own, ...(own.vertex !== undefined ? { vertex: assetPath(own.vertex) } : {}) } : {}) };
 }
 
 /** A shader's textures checked: up to 4 pictures and one array (docs/shaders.feature SH9). */

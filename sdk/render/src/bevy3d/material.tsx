@@ -1,20 +1,38 @@
-// Your own Material (docs/control.feature FC2a): Bevy's Material with its fragment_shader(), a file compiled as written.
-import { ExtendedMaterial, ShaderExtension, StandardMaterial } from "./materials";
+// Your own Material (docs/control.feature FC2a): Bevy's Material, its shaders the author's files compiled as written.
+import { ExtendedMaterial, ShaderExtension, StandardMaterial, type AlphaMode } from "./materials";
 import type { SurfaceShaderSpec } from "../3d";
 
-/** Your own Material (docs/control.feature FC2a, its first step): Bevy's `impl Material` with a fragment_shader(), the
- *  file compiled as written (its imports, its own @fragment, its own @binding(100) uniform struct if it has one, read
- *  from `uniforms`). Today it draws as an ExtendedMaterial whose own fragment replaces the surface, the base unused.
+/** Your own Material (docs/control.feature FC2a): Bevy's `impl Material`, not an extension of StandardMaterial. Its
+ *  fragment_shader() (and vertex_shader(), when `vertex` names one) is the file compiled as written: its imports (a
+ *  `super::NAME` one reads NAME.wesl beside it), its own @fragment and its own `@group(MATERIAL_BIND_GROUP)` bindings,
+ *  up to 8 uniforms of any type (a struct's from { field: value }), 4 textures and their samplers, in its layout. A
+ *  uniform or texture it doesn't declare is refused. `alpha_mode` and `depth_bias` are its Material methods', and
+ *  `cull_mode` the faces its specialize culls (Back; null culls none).
  *  @bevy bevy_pbr::material::Material */
 export interface MaterialProps {
   /** the shader file, staticFile("shaders/x.wesl"), as Bevy's Material::fragment_shader names one */
   fragment: string;
-  uniforms?: SurfaceShaderSpec["uniforms"];
+  /** a vertex shader file, as Material::vertex_shader names one (Bevy's mesh vertex shader when not given) */
+  vertex?: string;
+  uniforms?: Record<string, number | number[] | string | Record<string, number | number[] | string>>;
   textures?: SurfaceShaderSpec["textures"];
   defs?: SurfaceShaderSpec["defs"];
+  alpha_mode?: AlphaMode;
+  depth_bias?: number;
+  cull_mode?: "Front" | "Back" | null;
 }
 
-export function Material({ fragment, uniforms, textures, defs }: MaterialProps) {
+const ALPHA = ["Opaque", "Blend", "Premultiplied", "Add", "Multiply", "AlphaToCoverage"];
+
+export function Material({ fragment, vertex, uniforms, textures, defs, alpha_mode, depth_bias, cull_mode }: MaterialProps) {
   if (typeof fragment !== "string" || !fragment) throw new TypeError(`Material: fragment is the shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(fragment)}`);
-  return <ExtendedMaterial base={<StandardMaterial />} extension={<ShaderExtension fragment={fragment} uniforms={uniforms} textures={textures} defs={defs} />} />;
+  if (vertex !== undefined && (typeof vertex !== "string" || !vertex)) throw new TypeError(`Material: vertex is a shader file, got ${JSON.stringify(vertex)}`);
+  const mask = typeof alpha_mode === "object" && alpha_mode !== null && Number.isFinite((alpha_mode as { Mask?: number }).Mask);
+  if (alpha_mode !== undefined && !mask && !ALPHA.includes(alpha_mode as string)) throw new TypeError(`Material: alpha_mode is ${ALPHA.join(", ")} or { Mask: cutoff }, got ${JSON.stringify(alpha_mode)}`);
+  if (depth_bias !== undefined && !Number.isFinite(depth_bias)) throw new TypeError(`Material: depth_bias is a number, got ${depth_bias}`);
+  if (cull_mode !== undefined && cull_mode !== null && cull_mode !== "Front" && cull_mode !== "Back") throw new TypeError(`Material: cull_mode is "Front", "Back" or null, got ${JSON.stringify(cull_mode)}`);
+  const own = { ...(vertex !== undefined ? { vertex } : {}), ...(alpha_mode !== undefined ? { alpha_mode } : {}), ...(depth_bias !== undefined ? { depth_bias } : {}), ...(cull_mode !== undefined ? { cull_mode } : {}) };
+  // drawn by the engine as raea-sys-shader's OwnMaterial; the StandardMaterial is only what the rows carry it on
+  const spec = { fragment, uniforms: uniforms as SurfaceShaderSpec["uniforms"], textures, defs, own };
+  return <ExtendedMaterial base={<StandardMaterial />} extension={<ShaderExtension {...spec} />} />;
 }
