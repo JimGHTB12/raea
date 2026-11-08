@@ -118,21 +118,16 @@ pub(crate) fn number(x: f64) -> String {
     if x.fract() == 0.0 && x.abs() < 1e15 { format!("{}", x as i64) } else { format!("{x}") }
 }
 
-/// camelCase as kebab-case; a vendor prefix (WebkitX, msX) gets its leading dash.
+/// camelCase as kebab-case; a vendor prefix gets its leading dash, keyed WebkitX, MozX, or as Chrome's style object and
+/// the HTML runtime key it, webkitX, mozX, msX (webkitX came out webkit-x, which stylo drops: #34).
 pub(crate) fn kebab(s: &str) -> String {
-    let mut out = String::with_capacity(s.len() + 4);
-    if s.starts_with("ms") && s[2..].starts_with(|c: char| c.is_ascii_uppercase()) {
-        out.push('-');
-    }
+    let vendor = ["ms", "webkit", "moz", "Webkit", "Moz"].iter().any(|p| s.strip_prefix(p).is_some_and(|r| r.starts_with(|c: char| c.is_ascii_uppercase())));
+    let mut out = String::from(if vendor { "-" } else { "" });
     for (i, c) in s.chars().enumerate() {
-        if c.is_ascii_uppercase() {
-            if i > 0 || matches!(s.get(..6), Some("Webkit")) || s.starts_with("Moz") {
-                out.push('-');
-            }
-            out.push(c.to_ascii_lowercase());
-        } else {
-            out.push(c);
+        if c.is_ascii_uppercase() && i > 0 {
+            out.push('-');
         }
+        out.push(c.to_ascii_lowercase());
     }
     out
 }
@@ -140,4 +135,10 @@ pub(crate) fn kebab(s: &str) -> String {
 /// The mutator's document id for an op id, for callers that work with nodes (the bridge's twins, boxes).
 pub fn node(nodes: &Nodes, id: u64) -> Option<NodeId> {
     nodes.by_id.get(&id).copied()
+}
+
+#[test]
+fn a_vendor_prefix_keeps_its_dash_however_it_is_keyed() {
+    let ks = ["WebkitLineClamp", "webkitLineClamp", "webkitTextStroke", "MozTabSize", "mozTabSize", "msTransform", "backgroundColor"];
+    assert_eq!(ks.map(kebab), ["-webkit-line-clamp", "-webkit-line-clamp", "-webkit-text-stroke", "-moz-tab-size", "-moz-tab-size", "-ms-transform", "background-color"]);
 }
