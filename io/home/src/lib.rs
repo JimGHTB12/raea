@@ -101,11 +101,37 @@ pub fn src(p: &std::path::Path) -> String {
 /// `src` of the path `s` as Windows writes it (`windows`) or as Unix does, whichever system asks (a test of Windows'
 /// form runs on the Mac too)
 pub fn src_on(s: &str, windows: bool) -> String {
+    let u = url_path_on(s, windows);
+    if u != s && u.as_bytes().get(2) == Some(&b':') { format!("file://{u}") } else { s.to_string() }
+}
+
+/// A local file as a page names it in a URL's path: its path on Unix; on Windows `/C:/x/y` (the path of the file URL
+/// file:///C:/x/y, which a page's file:/// base joins it to), its verbatim prefix gone and its backslashes slashes.
+/// Written `C:\x`, a URL reads `c` as its scheme and CSS reads the backslashes as escapes (#40, #41, #42).
+pub fn url_path(p: &std::path::Path) -> String {
+    url_path_on(&p.display().to_string(), cfg!(windows))
+}
+
+/// `url_path` of the path `s` as Windows writes it (`windows`) or as Unix does, whichever system asks
+pub fn url_path_on(s: &str, windows: bool) -> String {
     if !windows {
         return s.to_string();
     }
     let s = drive(s).unwrap_or(s);
-    if s.as_bytes().get(1) == Some(&b':') { format!("file:///{}", s.replace('\\', "/")) } else { s.to_string() }
+    if s.as_bytes().get(1) == Some(&b':') { format!("/{}", s.replace('\\', "/")) } else { s.to_string() }
+}
+
+/// A path a page named (`url_path`'s `/C:/x`, or any other) as the file it is
+pub fn from_url_path(s: &str) -> std::path::PathBuf {
+    from_url_path_on(s, cfg!(windows)).into()
+}
+
+/// `from_url_path` as Windows reads it (`windows`) or as Unix does
+pub fn from_url_path_on(s: &str, windows: bool) -> &str {
+    match s.strip_prefix('/') {
+        Some(r) if windows && r.as_bytes().get(1) == Some(&b':') => r,
+        _ => s,
+    }
 }
 
 #[cfg(test)]
@@ -116,6 +142,23 @@ mod tests {
         assert_eq!(super::src_on(r"C:\Users\a\assets/m.png", true), "file:///C:/Users/a/assets/m.png");
         assert_eq!(super::src_on(r"\\?\C:\a\m.png", true), "file:///C:/a/m.png");
         assert_eq!(super::src_on("assets/m.png", true), "assets/m.png");
+    }
+
+    #[test]
+    fn a_page_names_a_windows_file_by_its_url_path() {
+        use super::{from_url_path_on, url_path_on};
+        assert_eq!(url_path_on("/Users/a/page", false), "/Users/a/page");
+        assert_eq!(url_path_on(r"D:\work\page", true), "/D:/work/page");
+        assert_eq!(url_path_on(r"\\?\D:\06.AI\banana-hf5", true), "/D:/06.AI/banana-hf5");
+        assert_eq!(url_path_on(r"C:\Users\a\AppData\Local\raea\cache\f.woff2", true), "/C:/Users/a/AppData/Local/raea/cache/f.woff2");
+        assert_eq!(from_url_path_on("/D:/work/page/assets/hero.png", true), "D:/work/page/assets/hero.png");
+        assert_eq!(from_url_path_on("/D:/x", false), "/D:/x");
+        assert_eq!(from_url_path_on("assets/hero.png", true), "assets/hero.png");
+        // joined to a page's file:/// base as Blitz joins it, a drive's path is a file URL, not scheme `d` (#41)
+        for p in [r"D:\work\page", r"\\?\D:\work\page"] {
+            let u = url::Url::parse("file:///").unwrap().join(&format!("{}/assets/hero.png", url_path_on(p, true))).unwrap();
+            assert_eq!((u.scheme(), u.path()), ("file", "/D:/work/page/assets/hero.png"));
+        }
     }
 
     #[test]

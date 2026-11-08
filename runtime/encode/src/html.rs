@@ -37,7 +37,8 @@ fn local(dir: &Path, src: &str) -> Result<String, String> {
         return Ok(raea_io_net::cache::fetch(src)?.to_string_lossy().into_owned());
     }
     let src = src.strip_prefix("file://").unwrap_or(src);
-    Ok(dir.join(src).to_string_lossy().into_owned())
+    // (a path the runtime made absolute is url_path's, `/D:/x` on Windows)
+    Ok(dir.join(raea_io_home::from_url_path(src)).to_string_lossy().into_owned())
 }
 
 /// Lower an HTML composition: the page opened and probed for its length and sound, over a white canvas as a browser

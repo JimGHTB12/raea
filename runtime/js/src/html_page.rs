@@ -35,14 +35,16 @@ pub fn read_answer(dir: &Path, args: &Value) -> R<Value> {
     let path = if url.starts_with("http://") || url.starts_with("https://") {
         raea_io_net::cache::fetch(url)?
     } else {
-        let rel = url.split(['?', '#']).next().unwrap_or(url);
-        let p = if Path::new(rel).is_absolute() { PathBuf::from(rel) } else { dir.join(rel) };
+        // (a path the runtime made absolute is url_path's, `/C:/x` on Windows)
+        let rel = raea_io_home::from_url_path(url.split(['?', '#']).next().unwrap_or(url));
+        let p = if rel.is_absolute() { rel } else { dir.join(rel) };
         if !p.is_file() {
             return Err(format!("{url}: not found"));
         }
         p
     };
-    let mut out = json!({ "path": path.to_string_lossy() });
+    // as a page names it (url_path): the runtime writes it into url()s and src attributes (#42)
+    let mut out = json!({ "path": raea_io_home::url_path(&path) });
     if !binary {
         let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         out["text"] = Value::String(String::from_utf8_lossy(&bytes).into_owned());
@@ -131,11 +133,12 @@ pub struct Prepared {
 pub fn prepare(file: &Path, fps: f64, fonts: Option<&Path>, size: Option<(u32, u32)>, root: Option<&Path>) -> R<Prepared> {
     let file = if file.is_dir() { file.join("index.html") } else { file.to_path_buf() };
     let source = std::fs::read_to_string(&file).map_err(|e| format!("{}: {e}", file.display()))?;
-    let file = file.canonicalize().unwrap_or(file);
+    // (plain: Windows canonicalizes to a verbatim `\\?\D:\` path, #40)
+    let file = file.canonicalize().map(raea_io_home::plain).unwrap_or(file);
     // served: the page's folder is `root` and the page a path under it (`/x` is then root's x, as a server rooted
     // there serves it); the project listing is left out (a WPT checkout is too big to list, and only a
     // composition's sub-compositions use it)
-    let served = root.and_then(|r| r.canonicalize().ok()).filter(|r| file.starts_with(r));
+    let served = root.and_then(|r| r.canonicalize().ok()).map(raea_io_home::plain).filter(|r| file.starts_with(r));
     let (dir, name, files) = match &served {
         Some(r) => (r.clone(), file.strip_prefix(r).unwrap_or(&file).to_string_lossy().into_owned(), vec![]),
         None => {
@@ -151,11 +154,12 @@ pub fn prepare(file: &Path, fps: f64, fonts: Option<&Path>, size: Option<(u32, u
         .map(|rd| rd.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".woff2")).collect())
         .unwrap_or_default();
     let globals = json!({
-        "fonts": fonts.map(|d| d.to_string_lossy().into_owned()),
+        // the folders as a page names them in URLs (url_path: `/D:/x` on Windows, never `D:\x`, #40-#42)
+        "fonts": fonts.map(raea_io_home::url_path),
         "fontFiles": font_files,
         "source": source,
         "file": name,
-        "dir": dir.to_string_lossy(),
+        "dir": raea_io_home::url_path(&dir),
         "files": files,
         "served": served.is_some(),
         "fps": fps,
@@ -186,7 +190,7 @@ pub fn probe_of(file: &Path, ready: &Value, (w, h): (u32, u32)) -> R<Probe> {
 pub fn videos_of(done: &Value) -> Vec<VideoAt> {
     done["videos"]
         .as_array()
-        .map(|a| a.iter().filter_map(|v| Some(VideoAt { id: v["id"].as_u64()?, file: PathBuf::from(v["file"].as_str()?), at: v["at"].as_f64()?, fit: None })).collect())
+        .map(|a| a.iter().filter_map(|v| Some(VideoAt { id: v["id"].as_u64()?, file: raea_io_home::from_url_path(v["file"].as_str()?), at: v["at"].as_f64()?, fit: None })).collect())
         .unwrap_or_default()
 }
 

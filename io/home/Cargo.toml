@@ -8,3 +8,7 @@ description = "Where raea's own files are ($RAEA_HOME, an install's share/raea, 
 
 [dependencies]
 serde_json = "1"
+
+[dev-dependencies]
+# a page's file:/// base joined as Blitz joins it (the url_path test)
+url = "2"
