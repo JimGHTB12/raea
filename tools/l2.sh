@@ -103,6 +103,11 @@ build build-plugins -p raea-cli --bin raea-bevy-sdk --features "$feats" || exit 
 cp "$T/target/release/raea-bevy-sdk" "$OUT/bin/" || exit 1
 printf '#!/bin/sh\nexec %s motion "$@"\n' "$OUT/bin/raea-bevy-sdk" > "$OUT/bin/plugin.sh" && chmod +x "$OUT/bin/plugin.sh"
 cd "$T" || exit 2
+# the generated plugin bindings (sdk/plugins/src) against this commit's registry, read from the plugin build just made
+# (about 50 s): a landing that registers a reflected type (a material's MeshMaterial3d<..>, say) changes them, and only
+# this build can read the registry, which L1 doesn't make; four such landings went unnoticed 10-31 to 11-08 (d708518be)
+if bash tools/bevy-plugins.sh check sdk/raea/bench/bevy-plugins > "$OUT/bindings.log" 2>&1; then bindings=ok; else bindings=drift; fi
+say "plugin bindings: $bindings$([ $bindings = ok ] || echo " (tools/bevy-plugins.sh build sdk/raea/bench/bevy-plugins, then land sdk/plugins/src; $OUT/bindings.log)")"
 p26_rows "$OUT/p26/plugin"
 # a composition ONLY matched by substring also ran its longer-named neighbours: keep one row per frame
 cat "$OUT"/p26/*/results.jsonl | jq -s 'unique_by(.composition, .frame)' > "$OUT/p26.json"
@@ -117,5 +122,5 @@ RAEA_FEED_AGENT=echo "$OUT/bin/conformance" --bin "$OUT/bin/raea-page-host" --su
 conf=$(jq -r '"\(.pass)/\(.cases)"' "$OUT/conformance/summary.json" 2>/dev/null || echo "no results")
 say "conformance: $conf"
 
-jq -n --arg sha "$SHA" --arg p26 "$p26" --arg parity "$parity" --arg conf "$conf" '{sha: $sha, p26: $p26, ui_parity: $parity, conformance: $conf}' > "$OUT/summary.json"
-echo "L2 $SHA: P26 $p26, ui-parity $parity, conformance $conf"
+jq -n --arg sha "$SHA" --arg p26 "$p26" --arg parity "$parity" --arg conf "$conf" --arg bindings "$bindings" '{sha: $sha, p26: $p26, ui_parity: $parity, conformance: $conf, plugin_bindings: $bindings}' > "$OUT/summary.json"
+echo "L2 $SHA: P26 $p26, ui-parity $parity, conformance $conf, plugin bindings $bindings"
