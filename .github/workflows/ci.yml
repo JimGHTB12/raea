@@ -32,8 +32,13 @@ jobs:
         with:
           fetch-depth: 0
       - name: gitleaks
+        # GitHub's release host answered 504 for minutes at a time on 11-08, through every retry; the same version's
+        # container image on ghcr.io is the fallback
         run: |
-          curl -fsSL --retry 5 --retry-all-errors https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar -xz -C /usr/local/bin gitleaks
+          v=8.30.1
+          curl -fsSL --retry 3 --retry-all-errors https://github.com/gitleaks/gitleaks/releases/download/v$v/gitleaks_${v}_linux_x64.tar.gz | tar -xz -C /usr/local/bin gitleaks \
+            || { c=$(docker create ghcr.io/gitleaks/gitleaks:v$v) && sudo docker cp "$c:/usr/bin/gitleaks" /usr/local/bin/gitleaks && docker rm "$c"; }
+          gitleaks version
       - name: public-guard
         run: |
           base=${{ github.event.pull_request.base.sha || github.event.before }}
