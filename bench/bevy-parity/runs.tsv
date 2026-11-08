@@ -77,3 +77,4 @@ ui/text/text_wrap_debug	-	10
 ui/layout/grid	-	10
 ui/ui_scaling	-	10
 ui/layout/anchor_layout	-	10
+ui/layout/size_constraints	-	10
