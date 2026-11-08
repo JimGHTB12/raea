@@ -58,7 +58,9 @@ named in a warning and left out.
 **drei.** A typical drei scene draws (`test/parity`'s `in-drei`, R3F13):
 - `<Text>`: raea's bundler swaps troika-three-text for a stand-in, and raea lays the words out as its own `<RichText>`.
   The face is found by its family name.
-- `<Environment preset>` and `useGLTF`: three's loaders read files and URLs through raea's cache.
+- `<Environment preset>` and `useGLTF`: three's loaders read files and URLs through raea's cache. While anything in
+  the scene suspends on a load, raea holds the frame and draws it once the load has come, so a film's first frame
+  is never missing its 3D (`test/hold`).
 - `<ContactShadows>`: its depth and blur passes are done on the CPU.
 - `<Float>`: `Math.random` is seeded for each `<R3F>`, so a render equals its play.
 

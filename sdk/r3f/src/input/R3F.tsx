@@ -9,6 +9,7 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "raea";
 import { ClockContext, LocalTimeContext } from "@raea/app/clock";
 import type * as THREE from "three";
 import { FiberOf, useBridge } from "./bridge";
+import { Held, useWake } from "./hold";
 import { stepTo, type Config } from "./session";
 import { convert } from "./scene";
 import { standInImages } from "./texture";
@@ -28,6 +29,8 @@ function Inner({ fiber, children, name, ...config }: R3FProps & { fiber: Paramet
   const clock = useContext(ClockContext);
   const local = useContext(LocalTimeContext);
   const bridge = useBridge(fiber);
+  // drawn again when a load it waited on comes (hold.tsx): the frame isn't taken before
+  useWake();
   const id = useId();
   // the scene at local frame i: raea's clock as it was then, inside every context from outside
   const at = (i: number) => {
@@ -35,7 +38,9 @@ function Inner({ fiber, children, name, ...config }: R3FProps & { fiber: Paramet
     const l = local ? { ...local, frame: i } : null;
     return bridge(
       <ClockContext value={c}>
-        <LocalTimeContext value={l}>{children}</LocalTimeContext>
+        <LocalTimeContext value={l}>
+          <Held>{children}</Held>
+        </LocalTimeContext>
       </ClockContext>,
     );
   };

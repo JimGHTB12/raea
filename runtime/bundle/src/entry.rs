@@ -56,6 +56,9 @@ const INPUT: any = (() => {{
   }}
   return out;
 }})();
+// a frame held until what it waits on has come (an <R3F> scene suspended on a load: drei's Environment, a model): while
+// any hold is open the frame isn't marked done, and the last release draws it again (each wake), so it's taken whole
+const HOLD: any = ((globalThis as any).__raeaHold ??= {{ n: 0, wake: new Set() }});
 // a live session's input replayed (render --input of what play or the legacy app logged, every entry marked live): rendered as it
 // was played, on an endless clock, so frames past the composition's length are the frames the person saw
 const REPLAYS_LIVE = Object.values(INPUT).some((e: any) => e && e.live);
@@ -124,9 +127,11 @@ function Root() {{
 // (many_cubes' 10 000 parts, docs/control.feature FC1a)
 function Marker({{ f, to, conf, next }}: {{ f: number; to: number; conf: string; next: (f: number) => void }}) {{
   const [done, setDone] = useState(-1);
+  const [woke, setWoke] = useState(0);
+  useEffect(() => {{ const w = () => setWoke((n: number) => n + 1); HOLD.wake.add(w); return () => void HOLD.wake.delete(w); }}, []);
   useEffect(() => {{
-    if (f >= 0) setDone(f);
-  }}, [f]);
+    if (f >= 0 && HOLD.n === 0) setDone(f);
+  }}, [f, woke]);
   useEffect(() => {{
     if (f >= 0 && done === f && f + 1 < to) next(f + 1);
   }}, [done]);
@@ -180,8 +185,9 @@ function tree() {{
 }}
 // --comps (a bake): the marker rendered last, carrying the code of every component this frame rendered
 function Marker(p: any) {{
-  return <div data-raea-frame={{p.f}} data-raea-done={{p.f}} data-raea-config={{conf}} data-raea-comps={{takeRendered()}} />;
+  return <div data-raea-frame={{p.f}} data-raea-done={{HOLD.n ? -3 : p.f}} data-raea-config={{conf}} data-raea-comps={{takeRendered()}} />;
 }}
+HOLD.wake.add(() => {{ if (f >= 0) draw(); }});
 // a throw while rendering is put where Rust reads it (settle), as React's entry's Catch did
 function draw() {{
   try {{
@@ -216,6 +222,6 @@ draw();
 runEventLoop();
 "#,
         preamble = &full[start..end],
-        marker = if o.comps { "<Marker f={f} />" } else { "<div data-raea-frame={f} data-raea-done={f} data-raea-config={conf} />" },
+        marker = if o.comps { "<Marker f={f} />" } else { "<div data-raea-frame={f} data-raea-done={HOLD.n ? -3 : f} data-raea-config={conf} />" },
     )
 }
