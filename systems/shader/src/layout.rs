@@ -132,9 +132,14 @@ pub fn pack(fields: &[(String, String)], uniforms: &[(String, Vec4)]) -> Result<
 /// type) in slot order (ui_bind.rs's), and each value is packed in its type's layout, a scalar or vector from a number,
 /// an array or a colour and a struct from {field: value}. A value for a uniform the source doesn't declare is refused,
 /// as is a declared one without a value.
+/// The first name given that isn't declared.
+pub(crate) fn undeclared<'a>(given: &'a serde_json::Map<String, serde_json::Value>, declared: &[(String, String)]) -> Option<&'a String> {
+    given.keys().find(|k| !declared.iter().any(|(n, _)| n == *k))
+}
+
 pub fn slots(src: &str, declared: &[(String, String)], given: &serde_json::Map<String, serde_json::Value>, defs: &[ShaderDefVal]) -> Result<[[Vec4; 16]; 8], String> {
     use raea_sys_material::shader_material::uniform;
-    if let Some(k) = given.keys().find(|k| !declared.iter().any(|(n, _)| n == *k)) {
+    if let Some(k) = undeclared(given, declared) {
         return Err(format!("no uniform {k}"));
     }
     let mut out = [[Vec4::ZERO; 16]; 8];

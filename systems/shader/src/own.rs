@@ -219,7 +219,7 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
         dims[1] = Some(h.clone());
     }
     // its storage buffers from the spec's `buffers`, each in its declared type's layout
-    if let Some(k) = buffers.keys().find(|k| !storages.iter().any(|(n, _)| n == *k)) {
+    if let Some(k) = layout::undeclared(&buffers, &storages) {
         return Err(format!("{path} has no storage buffer {k}"));
     }
     let mut b = Vec::new();

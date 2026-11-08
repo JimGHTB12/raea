@@ -122,20 +122,14 @@ export interface SurfaceShaderSpec {
   /** shader defs: each NAME a WESL condition for `@if(NAME)` (a number is true), and a whole number also
    * `constants::NAME`; each set of defs compiles its own pipeline */
   defs?: ShaderDefs;
-  /** a <Material>'s own (docs/control.feature FC2a): its vertex shader file and what its Material methods give; set by
-   *  <Material>, not on a ShaderExtension */
+  /** a <Material>'s own (docs/control.feature FC2a): its vertex shader file and what its Material methods give, and its
+   *  read-only storage buffers; set by <Material>, not on a ShaderExtension */
   own?: OwnMaterialFields;
-  /** a <Material>'s read-only storage buffers, set by <Material> */
   buffers?: Record<string, (number | number[])[]>;
 }
 
 /** What a <Material>'s Material methods give: vertex_shader, alpha_mode, depth_bias and the faces its specialize culls. */
-export interface OwnMaterialFields {
-  vertex?: string;
-  alpha_mode?: unknown;
-  depth_bias?: number;
-  cull_mode?: "Front" | "Back" | null;
-}
+export type OwnMaterialFields = { vertex?: string; alpha_mode?: unknown; depth_bias?: number; cull_mode?: "Front" | "Back" | null };
 export type ShaderDefs = Record<string, boolean | number>;
 
 /** Shader defs checked (docs/shaders.feature SH8). */

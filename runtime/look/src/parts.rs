@@ -52,7 +52,7 @@ pub fn own_uniforms(p: &mut Program, id: &str, its: &[Item], spec: impl Fn(&Item
         let v = serde_json::json!({ "uniforms": s.get("uniforms").cloned().unwrap_or(Value::Null), "buffers": s.get("buffers").cloned().unwrap_or(Value::Null) });
         Some((f, serde_json::json!({ "type": "own:uniforms", "value": v })))
     }).collect();
-    if each.windows(2).all(|w| w[0].1 == w[1].1) {
+    if each.iter().all(|(_, v)| Some(v) == each.first().map(|x| &x.1)) {
         return;
     }
     // the part's spec carries its track's hash: parts share a Material (as Bevy's share one handle) only when their
