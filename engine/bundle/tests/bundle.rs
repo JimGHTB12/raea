@@ -130,7 +130,7 @@ import { version } from "react";
         aliases: [("~lib".to_string(), d.join("lib/aliased.ts"))].into_iter().collect(),
         stubs: vec!["fs".into()],
     };
-    let o = raea_bundle::Options { z3: false, script: Some(script.clone()), defines: vec![("FLAG".into(), "\"ON\"".into())], edit: None };
+    let o = raea_bundle::Options { z3: false, script: Some(script.clone()), defines: vec![("FLAG".into(), "\"ON\"".into())], edit: None, stamps: false };
     let b = raea_bundle::bundle_with(&d.join("work/entry.ts"), o).expect("bundles");
     for want in ["MOTION_INDEX", "MOTION_ECS", "MOTION_PRELUDE", "TEST_SHIM:", "ZLIB_SHIM", "ALIASED", "ENGINE_REACT", "isn't available in raea's V8", "\"ON\""] {
         assert!(b.js.contains(want), "{want} in the bundle: {}", b.js);
@@ -138,7 +138,7 @@ import { version } from "react";
     assert!(!b.js.contains("OTHER_REACT"), "one React: the engine's");
     // a Node built-in raea doesn't carry, not listed as a stub: the bundle fails, naming it
     w("work/bad.ts", "import { createServer } from \"http\";\nconsole.log(createServer);\n");
-    let e = raea_bundle::bundle_with(&d.join("work/bad.ts"), raea_bundle::Options { z3: false, script: Some(script), defines: vec![], edit: None }).expect_err("http isn't carried");
+    let e = raea_bundle::bundle_with(&d.join("work/bad.ts"), raea_bundle::Options { z3: false, script: Some(script), defines: vec![], edit: None, stamps: false }).expect_err("http isn't carried");
     assert!(e.contains("\"http\" is a Node built-in") && e.contains("--node-stub http"), "{e}");
     let _ = std::fs::remove_dir_all(&d);
 }

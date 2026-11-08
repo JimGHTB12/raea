@@ -17,6 +17,7 @@ use std::sync::{Arc, Mutex};
 
 pub mod edit;
 pub mod script;
+pub mod stamp;
 pub mod z3;
 
 /// A bundle: one browser script (an IIFE) and the CSS its modules imported (empty when none)
@@ -38,6 +39,8 @@ pub struct Options {
     pub defines: Vec<(String, String)>,
     /// a composition's bundle: the edit's own packages (edit.rs)
     pub edit: Option<edit::Edit>,
+    /// each element the edit's own files write stamped with its place in the code (stamp.rs; the app's editor asks)
+    pub stamps: bool,
 }
 
 /// `entry` bundled into one browser script and its CSS.
@@ -60,6 +63,13 @@ pub fn bundle_with(entry: &Path, o: Options) -> Result<Bundle, String> {
         experimental: Some(ExperimentalOptions { attach_debug_info: Some(AttachDebugInfo::None), ..Default::default() }),
         ..Default::default()
     };
+    let stamps = if o.stamps {
+        let helper = cwd.join("raea-stamp.tsx");
+        std::fs::write(&helper, stamp::HELPER).map_err(|e| format!("{}: {e}", helper.display()))?;
+        Some(Stamp { src: cwd.join("src"), helper, z3: o.z3 && std::env::var("RAEA_LITE_COMPILE").as_deref() != Ok("0") })
+    } else {
+        None
+    };
     let sheets: Sheets = Default::default();
     let order: Arc<Mutex<Vec<String>>> = Default::default();
     let css = Css { root: cwd, sheets: sheets.clone(), order: order.clone() };
@@ -74,6 +84,9 @@ pub fn bundle_with(entry: &Path, o: Options) -> Result<Bundle, String> {
         s.spawn(move || {
             rt.block_on(async move {
                 let mut plugins = vec![Pluginable::new_shared(css)];
+                if let Some(s) = stamps {
+                    plugins.push(Pluginable::new_shared(s));
+                }
                 if o.z3 && std::env::var("RAEA_LITE_COMPILE").as_deref() != Ok("0") {
                     plugins.push(Pluginable::new_shared(Z3));
                 }
@@ -259,6 +272,44 @@ impl Plugin for Z3 {
     }
 }
 
+/// The stamp plugin (stamp.rs): the edit's own TSX and JSX loaded stamped (and Z3-compiled after, for a live bundle)
+#[derive(Debug)]
+struct Stamp {
+    /// the work folder's copy of the edit's folder
+    src: PathBuf,
+    helper: PathBuf,
+    z3: bool,
+}
+
+impl Plugin for Stamp {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("raea:stamp")
+    }
+
+    fn register_hook_usage(&self) -> HookUsage {
+        HookUsage::Load
+    }
+
+    async fn load(&self, _ctx: SharedLoadPluginContext, args: &HookLoadArgs<'_>) -> HookLoadReturn {
+        let path = args.id.split(['?', '#']).next().unwrap_or(args.id);
+        let jsx = path.ends_with(".jsx");
+        if !(jsx || path.ends_with(".tsx")) {
+            return Ok(None);
+        }
+        let file = Path::new(path);
+        // the resolver names files with symlinks resolved (/var is /private/var on the Mac)
+        let src = self.src.canonicalize().unwrap_or_else(|_| self.src.clone());
+        let Some(rel) = stamp::own(file, &src).or_else(|| stamp::own(file, &self.src)) else { return Ok(None) };
+        let text = std::fs::read_to_string(file)?;
+        let Some(stamped) = stamp::stamp(&text, &rel, jsx, &self.helper.to_string_lossy()) else { return Ok(None) };
+        if self.z3 {
+            let code = z3::compile(&stamped, jsx).map_err(|e| anyhow::anyhow!("{path}: {e}"))?;
+            return Ok(Some(HookLoadOutput { code: code.into(), module_type: Some(ModuleType::Js), ..Default::default() }));
+        }
+        Ok(Some(HookLoadOutput { code: stamped.into(), module_type: Some(if jsx { ModuleType::Jsx } else { ModuleType::Tsx }), ..Default::default() }))
+    }
+}
+
 /// The C API raea loads (libraea_bundle.dylib), so raea links none of Rolldown's crates.
 pub mod ffi {
     use std::ffi::{c_char, CStr, CString};
@@ -269,7 +320,7 @@ pub mod ffi {
         1
     }
 
-    /// `entry` (a path, UTF-8) bundled with `opts` (JSON: {"z3": bool, "edit": {"dir", "js"}, "script": {..}, "defines"}); returns JSON, {"js","css"} or {"error"}, to
+    /// `entry` (a path, UTF-8) bundled with `opts` (JSON: {"z3": bool, "edit": {"dir", "js"}, "script": {..}, "defines", "stamps": bool}); returns JSON, {"js","css"} or {"error"}, to
     /// be freed with raea_bundle_free
     ///
     /// # Safety
@@ -293,7 +344,7 @@ pub mod ffi {
                 js: path(&e["js"]),
                 work: std::path::absolute(&entry).ok().and_then(|p| p.parent().map(|d| d.to_path_buf())).unwrap_or_default(),
             });
-            let o = super::Options { z3: opts["z3"].as_bool().unwrap_or(false), script, defines, edit };
+            let o = super::Options { z3: opts["z3"].as_bool().unwrap_or(false), script, defines, edit, stamps: opts["stamps"].as_bool().unwrap_or(false) };
             match super::bundle_with(std::path::Path::new(&entry), o) {
                 Ok(b) => serde_json::json!({"js": b.js, "css": b.css}),
                 Err(e) => serde_json::json!({"error": e}),
