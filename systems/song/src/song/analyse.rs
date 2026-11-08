@@ -35,9 +35,10 @@ pub fn analyse(x: &[f32], spect: &[[f32; MELS]], beats: &[f64], downs: &[f64], m
         }
     }
     let down_i = kept_d;
-    // the tempo: a line fitted through the downbeats against their bar count (a missed downbeat counted by its gap),
-    // over the beats per bar; never a median of single gaps, which 20 ms frames quantise (0.46 / 0.44 s read as one
-    // tempo or the other)
+    // the tempo: a line fitted through the beats against their count (a missed beat counted by its gap). Never a
+    // median of single gaps, which 20 ms frames quantise (0.46 / 0.44 s read as one tempo or the other); nor a line
+    // through the downbeats against their bar count, which a song whose downbeats come two beats apart in places
+    // counts as whole bars: 99 BPM read as 112.8 or 116.6, by where a 12 ms decoder offset put three downbeats (#49)
     let fit = |pts: &[(f64, f64)]| -> Option<f64> {
         if pts.len() < 3 {
             return None;
@@ -47,26 +48,9 @@ pub fn analyse(x: &[f32], spect: &[[f32; MELS]], beats: &[f64], downs: &[f64], m
         (sxx > 0.0).then(|| sxy / sxx)
     };
     let gap = {
-        let mut bar_gaps: Vec<f64> = down_i.windows(2).map(|w| beats[w[1]] - beats[w[0]]).collect();
-        bar_gaps.sort_by(f64::total_cmp);
-        let bar_median = bar_gaps.get(bar_gaps.len() / 2).copied().unwrap_or(4.0 * median);
         let mut k = 0.0;
-        let pts: Vec<(f64, f64)> = down_i
-            .iter()
-            .enumerate()
-            .map(|(j, d)| {
-                if j > 0 {
-                    k += ((beats[*d] - beats[down_i[j - 1]]) / bar_median).round().max(1.0);
-                }
-                (k, beats[*d])
-            })
-            .collect();
-        let beats_in_bar = (bar_median / median).round().max(1.0);
-        fit(&pts).map(|s| s / beats_in_bar).unwrap_or_else(|| {
-            let mut k = 0.0;
-            let pts: Vec<(f64, f64)> = (0..n).map(|i| { if i > 0 { k += ((beats[i] - beats[i - 1]) / median).round().max(1.0); } (k, beats[i]) }).collect();
-            fit(&pts).unwrap_or(median)
-        })
+        let pts: Vec<(f64, f64)> = (0..n).map(|i| { if i > 0 { k += ((beats[i] - beats[i - 1]) / median).round().max(1.0); } (k, beats[i]) }).collect();
+        fit(&pts).unwrap_or(median)
     };
     let tempo = 60.0 / gap;
     let mut counts = [0usize; 9];

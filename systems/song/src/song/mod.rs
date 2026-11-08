@@ -409,4 +409,21 @@ mod tests {
         assert!(stop["time"].as_f64().unwrap() >= drop_t - 2.5);
         assert_eq!(m["beatsPerBar"], 4);
     }
+
+    /// #49: downbeats two beats apart in places (as Beat This! marks some songs) leave the tempo the beats' own
+    #[test]
+    fn half_bars_leave_the_tempo_the_beats() {
+        let beat = 0.605;
+        let x = vec![0f32; (40.0 * SR) as usize];
+        let beats: Vec<f64> = (0..64).map(|i| 0.02 + i as f64 * beat).collect();
+        // bars of 4, then 2, 4, 4, 2, ... (every third bar half)
+        let (mut downs, mut i, mut k) = (Vec::new(), 0, 0);
+        while i < beats.len() {
+            downs.push(beats[i]);
+            i += if k % 3 == 1 { 2 } else { 4 };
+            k += 1;
+        }
+        let m = analyse(&x, &beatthis::spectrogram(&x), &beats, &downs, &[]);
+        assert!((m["tempo"].as_f64().unwrap() - 60.0 / beat).abs() < 0.05, "tempo {} for beats {beat} s apart", m["tempo"]);
+    }
 }
