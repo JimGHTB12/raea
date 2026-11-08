@@ -239,8 +239,13 @@ impl BaseDocument {
         let scale = self.viewport.scale_f64();
 
         // raea: a child seen through its parent's perspective is placed again whenever the parent is, damaged or not:
-        // the perspective moves with the parent's size and scroll (perspective-origin-scroll), not the child's
+        // the perspective moves with the parent's size and scroll (perspective-origin-scroll), not the child's. So is
+        // one in a 3D rendering context, whose projection is its context's matrix times its own (a script setting the
+        // preserve-3d parent's transform left its children at their old projection, #19), and one with a projection
+        // now, which may have lost its context since
         if perspective.is_none()
+            && context.is_none()
+            && !self.projections.contains_key(&node_id)
             && !self.nodes[node_id]
                 .damage()
                 .map(|d| d.contains(style::selector_parser::RestyleDamage::RECALCULATE_OVERFLOW))
@@ -557,5 +562,43 @@ impl BaseDocument {
 
         // println!("\n\n");
         // taffy::print_tree(self, root_node_id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Attribute, BaseDocument, DocumentConfig, qual_name};
+    use blitz_traits::shell::{ColorScheme, Viewport};
+
+    /// `#root` (perspective) > `#world` (preserve-3d, `world` its style) > `#card`: the document and the card
+    fn rig(world: &str) -> (BaseDocument, crate::NodeId, crate::NodeId) {
+        let mut doc = BaseDocument::new(DocumentConfig { viewport: Some(Viewport::new(1920, 1080, 1.0, ColorScheme::Light)), ..Default::default() });
+        let style = |v: &str| vec![Attribute { name: qual_name!("style"), value: v.to_string() }];
+        let root_id = doc.root_node().id;
+        let mut m = doc.mutate();
+        let root = m.create_element(qual_name!("div"), style("position:relative;width:1920px;height:1080px;perspective:1000px"));
+        let w = m.create_element(qual_name!("div"), style(&format!("position:absolute;inset:0;transform-style:preserve-3d;{world}")));
+        let card = m.create_element(qual_name!("div"), style("position:absolute;left:600px;top:1200px;width:700px;height:427px"));
+        m.append_children(w, &[card]);
+        m.append_children(root, &[w]);
+        m.append_children(root_id, &[root]);
+        drop(m);
+        doc.resolve(0.0);
+        (doc, w, card)
+    }
+
+    const MOVE: &str = "translate3d(0px,-1000px,100px) rotateX(11deg)";
+
+    /// raea #19: a preserve-3d parent's transform set after the first resolve (as a script sets it) places its children
+    /// as the same transform in its first style does; they kept their old projection, and the card was drawn off-frame
+    #[test]
+    fn a_child_follows_its_preserve_3d_parent_set_later() {
+        let (styled, _, card) = rig(&format!("transform:{MOVE}"));
+        let want = styled.projections.get(&card).copied();
+        assert!(want.is_some(), "the card has a projection in its parent's 3D context");
+        let (mut doc, world, card) = rig("");
+        doc.mutate().set_style_property(world, "transform", MOVE);
+        doc.resolve(0.0);
+        assert_eq!(doc.projections.get(&card).copied(), want);
     }
 }
