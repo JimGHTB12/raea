@@ -93,3 +93,4 @@ ui/ui_drag_and_drop	-	10
 ui/navigation/directional_navigation	-	10
 ui/navigation/directional_navigation_overrides	-	10
 ui/widgets/headless_tabs	-	10
+ui/widgets/tab_navigation	-	10
