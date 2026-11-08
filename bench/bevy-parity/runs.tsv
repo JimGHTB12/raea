@@ -113,3 +113,4 @@ ui/text/system_fonts	-	10
 ui/text/font_atlas_debug	-	10
 3d/two_passes	-	10
 3d/split_screen	-	10
+camera/2d_on_ui	-	5,60

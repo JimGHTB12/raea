@@ -1,6 +1,7 @@
 // 2D over the 3D: sprites and flat shapes, drawn over the Canvas3D's 3D by a 2D camera of its own (raea-sys-sprite).
 import { useId } from "react";
 import { node3d } from "./core";
+import type { Quat } from "../bevy3d/core";
 import { samplerSpec, type SamplerSpec } from "./materials";
 import { usePointer2d, type Flat, type PointerHandlers3d } from "../events3d";
 
@@ -12,6 +13,9 @@ export interface Place2dProps extends PointerHandlers3d {
   y?: number;
   /** radians, clockwise (as CSS rotate) */
   rotation?: number;
+  /** Bevy's rotation as it is, a quaternion [x, y, z, w] in Bevy's axes (y up, z toward the viewer), in place of
+   * `rotation`: a turn out of the frame's plane too, as a Sprite's Transform takes it (camera/2d_on_ui) */
+  quat?: Quat;
   /** 1 by default; [x, y] to stretch */
   scale?: number | [number, number];
   /** draw order among the 2D parts: higher draws over lower (0 by default) */
@@ -127,6 +131,9 @@ function flatOf(p: Place2dProps, w: number, h: number, round: boolean): Flat {
 
 function check2d(owner: string, p: Place2dProps): void {
   for (const k of ["x", "y", "rotation", "z"] as const) if (p[k] !== undefined && !Number.isFinite(p[k])) throw new RangeError(`${owner}: ${k} must be a number, got ${p[k]}`);
+  const q = p.quat;
+  if (q !== undefined && !(Array.isArray(q) && q.length === 4 && q.every(Number.isFinite) && Math.abs(Math.hypot(...q) - 1) < 1e-3)) throw new TypeError(`${owner}: quat is a unit quaternion [x, y, z, w], got ${JSON.stringify(q)}`);
+  if (q !== undefined && p.rotation !== undefined) throw new TypeError(`${owner}: give rotation or quat, not both`);
   if (p.opacity !== undefined && !(Number.isFinite(p.opacity) && p.opacity >= 0 && p.opacity <= 1)) throw new RangeError(`${owner}: opacity is 0 to 1, got ${p.opacity}`);
   const sc = p.scale;
   if (sc !== undefined && !(Number.isFinite(sc) || (Array.isArray(sc) && sc.length === 2 && sc.every(Number.isFinite)))) throw new TypeError(`${owner}: scale is a number or [x, y], got ${JSON.stringify(sc)}`);

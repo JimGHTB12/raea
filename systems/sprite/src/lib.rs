@@ -46,7 +46,11 @@ fn color_of(v: &BTreeMap<String, V>) -> Color {
 
 fn place_of(v: &BTreeMap<String, V>) -> Transform {
     Transform::from_xyz(num(v, "x", 0.0), -num(v, "y", 0.0), num(v, "z", 0.0))
-        .with_rotation(Quat::from_rotation_z(-num(v, "rot", 0.0)))
+        .with_rotation(match v.contains_key("q_w") {
+            // a quaternion in Bevy's axes as the part gave it
+            true => Quat::from_xyzw(num(v, "q_x", 0.0), num(v, "q_y", 0.0), num(v, "q_z", 0.0), num(v, "q_w", 1.0)),
+            false => Quat::from_rotation_z(-num(v, "rot", 0.0)),
+        })
         .with_scale(Vec3::new(num(v, "scale_x", 1.0), num(v, "scale_y", 1.0), 1.0))
 }
 
