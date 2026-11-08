@@ -157,3 +157,10 @@ upstream = "git:github.com/anomalyco/rune@7ead7d63fcf6f9dd9669385a8b90e2ae80015d
 kind = "patch"
 reason = "taffy's flexbox_balance is on (Blitz turns it on and features unify in one build), so encode_wrap maps FlexWrap::Balance and BalanceReverse; upstream's match isn't exhaustive with that feature"
 exit = "a Rune release whose rune-taffy handles taffy's flexbox_balance"
+
+[bevy_hanabi]
+path = "vendor/bevy_hanabi"
+upstream = "git:github.com/djeedai/bevy_hanabi@77630ff1eed8b104f34e91d23e9440428dc5ab01:."
+kind = "patch"
+reason = "frame-pure particles (raea #52): a new particle seeded by its spawn index, not the dead slot it recycles (vfx_init.wesl), and blended effects sorted by view depth from the main camera, far first as Bevy sorts its transparent phase, through the ribbons' sort pass (mod.rs, sort.rs, vfx_sort_fill.wesl); examples and GPU tests dropped"
+exit = "a hanabi with a deterministic mode (both changes offered upstream); then back to the git dependency and drop the copy"

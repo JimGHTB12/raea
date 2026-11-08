@@ -92,7 +92,6 @@ LICENSES/<crate>-<version>/.
   bevy_flipbook 0.1.0: MIT
   bevy_ghx_grid 0.10.0: MIT OR Apache-2.0
   bevy_ghx_proc_gen 0.10.0: MIT OR Apache-2.0
-  bevy_hanabi 0.20.0-dev: MIT OR Apache-2.0
   bevy_heavy 0.6.0: MIT OR Apache-2.0
   bevy_http_client 0.12.0: MIT OR Apache-2.0
   bevy_hui 0.8.0: MIT OR Apache-2.0

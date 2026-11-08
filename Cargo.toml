@@ -317,3 +317,9 @@ firewheel-nodes = { path = "vendor/firewheel-nodes" }
 # with Rune and Blitz in one build (raea-rune-slots) doesn't compile without it (changes marked "raea:"). Back to
 # upstream once Rune has it.
 rune-taffy = { path = "vendor/rune-taffy" }
+
+[patch."https://github.com/djeedai/bevy_hanabi"]
+# bevy_hanabi at engine/bevy-plugins' rev with frame-pure particles: a new particle seeded by its spawn index, not the
+# slot it recycles, and blended effects drawn back to front (changes marked "raea:", raea #52). Only the plugin build
+# compiles it. Back to upstream once hanabi has a deterministic mode.
+bevy_hanabi = { path = "vendor/bevy_hanabi" }

@@ -1,8 +1,9 @@
 //! bevy_hanabi (GPU particles). What had to be written by hand: an effect is an EffectAsset (a graph of modifiers and
 //! expressions held behind a Handle), which a row can't carry, so `Particles` is a reflected component of ours that
 //! builds a fountain effect from plain numbers when it's added; hanabi's CPU random source is seeded (it seeds itself
-//! from the OS); its per-update re-seed is held to the frame steps; and WinitPlugin, which hanabi's `x11` feature
-//! switches on, is turned off.
+//! from the OS); its per-update re-seed is held to the frame steps; the first 3D camera is hanabi's main camera, which
+//! vendor/bevy_hanabi sorts blended particles by (far first, so a frame is the same on every run: raea #52); and
+//! WinitPlugin, which hanabi's `x11` feature switches on, is turned off.
 
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
@@ -50,7 +51,17 @@ pub(crate) fn install(app: &mut App) {
     // hanabi seeds its CPU random source from the OS at build: a fixed one instead
     app.insert_resource(bevy_hanabi::Random(rand_pcg::Pcg32::new(0xcafe_f00d_d15e_a5e5, 0xa02b_dbf7_bb3c_0a7)));
     app.register_type::<Particles>();
-    app.add_systems(Update, build_particles);
+    app.add_systems(Update, (build_particles, main_camera));
+}
+
+/// hanabi's camera features (vendor/bevy_hanabi's blended sort among them) read the one camera with HanabiMainCamera:
+/// the first 3D camera, unless the scene tagged one.
+fn main_camera(mut commands: Commands, cams: Query<Entity, With<Camera3d>>, main: Query<(), With<HanabiMainCamera>>) {
+    if main.is_empty()
+        && let Some(cam) = cams.iter().min()
+    {
+        commands.entity(cam).insert(HanabiMainCamera);
+    }
 }
 
 /// hanabi's `x11` feature switches bevy_winit on; raea-render drives its own updates and has no window.
