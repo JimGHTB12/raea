@@ -96,3 +96,4 @@ ui/navigation/directional_navigation_overrides
 ui/widgets/headless_tabs
 ui/widgets/tab_navigation
 ui/widgets/viewport_node
+ui/widgets/vertical_slider

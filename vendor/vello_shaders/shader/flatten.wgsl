@@ -44,6 +44,13 @@ struct SubdivResult {
 }
 
 const D = 0.67;
+// raea: how far a flattened curve's chords may stray inside it, in px. Vello's 0.25 drew a 6 px circle up to a quarter
+// px small (an edge pixel's coverage 0.12 short); a bevy_ui page (config.blend_linear) is held to 0.02, as Bevy's UI
+// shader draws a rounded node's edge from its exact distance field.
+fn flatten_tol() -> f32 {
+    return select(0.25, 0.02, config.blend_linear != 0u);
+}
+
 fn approx_parabola_integral(x: f32) -> f32 {
     return x * inverseSqrt(sqrt(1.0 - D + (D * D * D * D + 0.25 * x * x)));
 }
@@ -373,7 +380,7 @@ fn flatten_euler(
         return;
     }
 
-    let tol = 0.25;
+    let tol = flatten_tol(); // raea: see flatten_tol
     var t0_u = 0u;
     var dt = 1.0;
     var last_p = p0;
@@ -498,7 +505,7 @@ fn flatten_arc(
     var r = begin - center;
 
     let MIN_THETA = 0.0001;
-    let tol = 0.25;
+    let tol = flatten_tol(); // raea: see flatten_tol
     let radius = max(tol, length(p0 - transform_apply(transform, center)));
     let theta = max(MIN_THETA, 2. * acos(1. - tol / radius));
 
