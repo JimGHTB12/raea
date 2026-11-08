@@ -30,6 +30,16 @@ impl EditResolve {
         let real = |p: PathBuf| p.canonicalize().map(raea_io_home::plain).unwrap_or(p);
         EditResolve(Edit { dir: real(e.dir), js: real(e.js), work: real(e.work) })
     }
+
+    /// whether an importer is one of the edit's own sources: under the work folder and not in a package. The importer
+    /// is named as real as the folders, since the resolver writes a path as it was given: on GitHub's Windows runners
+    /// TEMP is the 8.3 `C:\Users\RUNNER~1\..`, which canonicalize() spells `runneradmin`, so no importer was under the
+    /// work folder and every live play threw "not a function" (the engine's React, with no `__h`) before its first frame
+    fn from_edit(&self, imp: &str) -> bool {
+        let named = Path::new(imp);
+        let imp = named.canonicalize().map(raea_io_home::plain).unwrap_or_else(|_| named.to_path_buf());
+        imp.starts_with(&self.0.work) && !imp.components().any(|c| c.as_os_str() == "node_modules")
+    }
 }
 
 #[cfg(test)]
@@ -46,6 +56,29 @@ mod tests {
         let r = EditResolve::new(Edit { dir: dir.clone(), js: dir.clone(), work: dir.clone() });
         assert!(!r.0.work.display().to_string().starts_with(r"\\?\"), "{}", r.0.work.display());
         assert!(dir.join("entry.tsx").starts_with(&r.0.work) || cfg!(unix), "{} under {}", dir.display(), r.0.work.display());
+    }
+
+    /// an importer named by another spelling of the work folder (a symlink here; an 8.3 short name on Windows) is still
+    /// the edit's, and a package under it isn't
+    #[test]
+    fn an_importer_by_another_name_for_the_work_folder_is_the_edits() {
+        let d = std::env::temp_dir().join(format!("raea-edit-alias-{}", std::process::id()));
+        let work = d.join("work");
+        std::fs::create_dir_all(work.join("node_modules/pkg")).unwrap();
+        std::fs::write(work.join("entry.tsx"), "").unwrap();
+        std::fs::write(work.join("node_modules/pkg/index.js"), "").unwrap();
+        let alias = d.join("alias");
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&work, &alias).unwrap();
+        #[cfg(windows)]
+        std::os::windows::fs::symlink_dir(&work, &alias).unwrap_or_else(|_| std::fs::create_dir_all(&alias).unwrap());
+        let r = EditResolve::new(Edit { dir: work.clone(), js: work.clone(), work: alias.clone() });
+        if alias.is_symlink() {
+            assert!(r.from_edit(&work.join("entry.tsx").to_string_lossy()), "{} under {}", work.display(), r.0.work.display());
+        }
+        assert!(r.from_edit(&alias.join("entry.tsx").to_string_lossy()));
+        assert!(!r.from_edit(&alias.join("node_modules").join("pkg").join("index.js").to_string_lossy()));
+        let _ = std::fs::remove_dir_all(&d);
     }
 }
 
@@ -93,7 +126,7 @@ impl Plugin for EditResolve {
         }
         let pkg = if spec.starts_with('@') { spec.splitn(3, '/').take(2).collect::<Vec<_>>().join("/") } else { spec.split('/').next().unwrap_or(spec).to_string() };
         let engine = crate::script::SINGLETONS.contains(&pkg.as_str()) && e.js.join("node_modules").join(&pkg).exists();
-        let from_edit = Path::new(imp).starts_with(&e.work) && !imp.contains("/node_modules/");
+        let from_edit = self.from_edit(imp);
         match (from_edit, engine) {
             // the edit's sources: the engine's copy by the work folder's own resolution (its tsconfig paths point a live
             // bundle's react at the live runtime)
