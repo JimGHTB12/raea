@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **144**, passing **144**, excluded **17** (docs/bevy-parity/excluded.tsv), left **277**.
+Examples: **438**, ported **145**, passing **145**, excluded **17** (docs/bevy-parity/excluded.tsv), left **276**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -230,10 +230,12 @@ doesn't pay.
 | shader_advanced/fullscreen_material | 10 | 0.999748 | 6 | 1 / 1 | 444 / 522 | 6 / 8 | 2 / 2 | 23.02 / 0.953 = 0.953 + 0 | yes |  |
 | shader_advanced/fullscreen_material | 30 | 0.999749 | 6 | 1 / 1 | 444 / 522 | 6 / 8 | 2 / 2 | 1.521 / 0.746 = 0.746 + 0 | yes |  |
 | shader_advanced/fullscreen_material | 60 | 0.999749 | 6 | 1 / 1 | 444 / 522 | 6 / 8 | 2 / 2 | 1.584 / 0.658 = 0.658 + 0 | yes |  |
-| shader_advanced/custom_render_phase | 10 | 1.000000 | 0 | 3 / 3 | 445 / 529 | 8 / 10 | 4 / 4 | 3.461 / 1.979 = 1.979 + 0 | yes |  |
-| shader_advanced/custom_render_phase | 5 | 1.000000 | 0 | 3 / 3 | 445 / 529 | 8 / 10 | 4 / 4 | 62.92 / 5.261 = 5.261 + 0 | yes |  |
-| shader_advanced/custom_phase_item | 10 | 1.000000 | 0 | 0 / 0 | 442 / 522 | 5 / 7 | 1 / 1 | 2.263 / 0.98 = 0.98 + 0 | yes |  |
-| shader_advanced/custom_phase_item | 5 | 1.000000 | 0 | 0 / 0 | 442 / 522 | 5 / 7 | 1 / 1 | 39.678 / 2.388 = 2.388 + 0 | yes |  |
+| shader_advanced/custom_render_phase | 10 | 1.000000 | 0 | 3 / 3 | 445 / 530 | 8 / 10 | 4 / 4 | 3.024 / 2.523 = 2.523 + 0 | yes |  |
+| shader_advanced/custom_render_phase | 5 | 1.000000 | 0 | 3 / 3 | 445 / 530 | 8 / 10 | 4 / 4 | 50.318 / 4.435 = 4.435 + 0 | yes |  |
+| shader_advanced/custom_shader_instancing | 10 | 1.000000 | 0 | 0 / 0 | 442 / 524 | 6 / 8 | 1 / 1 | 2.352 / 2.528 = 2.528 + 0 | yes |  |
+| shader_advanced/custom_shader_instancing | 5 | 1.000000 | 0 | 0 / 0 | 442 / 524 | 6 / 8 | 1 / 1 | 45.771 / 4.077 = 4.077 + 0 | yes |  |
+| shader_advanced/custom_phase_item | 10 | 1.000000 | 0 | 0 / 0 | 442 / 523 | 5 / 7 | 1 / 1 | 4.21 / 1.445 = 1.445 + 0 | yes |  |
+| shader_advanced/custom_phase_item | 5 | 1.000000 | 0 | 0 / 0 | 442 / 523 | 5 / 7 | 1 / 1 | 54.956 / 2.448 = 2.448 + 0 | yes |  |
 
 ## Excluded
 

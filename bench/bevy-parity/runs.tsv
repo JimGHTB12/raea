@@ -143,3 +143,4 @@ shader_advanced/custom_post_processing	-	10,30,60
 shader_advanced/custom_vertex_attribute	-	5,10
 shader_advanced/fullscreen_material	-	10,30,60
 shader_advanced/custom_render_phase	-	5,10
+shader_advanced/custom_shader_instancing	-	5,10

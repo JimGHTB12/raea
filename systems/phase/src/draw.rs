@@ -63,7 +63,7 @@ fn prepare(mut commands: Commands, device: Res<RenderDevice>, items: Query<(Enti
     }
 }
 
-fn vertex_format(f: &str) -> Option<VertexFormat> {
+pub(crate) fn vertex_format(f: &str) -> Option<VertexFormat> {
     use VertexFormat::*;
     Some(match f {
         "Float32" => Float32,
@@ -81,6 +81,16 @@ fn vertex_format(f: &str) -> Option<VertexFormat> {
         "Unorm8x4" => Unorm8x4,
         _ => return None,
     })
+}
+
+/// Whether any of `attributes` has a format that isn't one of Bevy's VertexFormats here.
+pub(crate) fn unknown_format(attributes: &[crate::PhaseAttribute]) -> bool {
+    for a in attributes {
+        if vertex_format(&a.format).is_none() {
+            return true;
+        }
+    }
+    false
 }
 
 fn compare(c: &str) -> Option<CompareFunction> {

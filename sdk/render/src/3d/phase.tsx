@@ -64,3 +64,28 @@ export function MeshPass(p: MeshPassProps) {
   if (typeof shader !== "string" || !shader) throw new TypeError(`MeshPass: shader is a shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(shader)}`);
   return <BevyComponent type="raea_sys_phase::MeshPass" value={{ shader: assetPath(shader), vertex, fragment }} />;
 }
+
+export interface ShaderInstancesProps {
+  /** the shader file, compiled as written: staticFile("shaders/x.wesl"). Its vertex reads the mesh's position, normal
+   * and uv at locations 0 to 2 and the instance's attributes at theirs; its bind groups are Bevy's mesh pipeline's */
+  shader: string;
+  /** each instance's bytes (a multiple of 4) */
+  stride: number;
+  /** what the shader reads of an instance: Bevy's VertexFormat, its byte offset and @location (3 and up) */
+  attributes: PhaseAttribute[];
+  /** every instance's 32-bit words in order, `stride / 4` of them each */
+  words: number[];
+}
+
+/** The mesh it's inside drawn once per instance in one draw, by your shader, in the camera's Transparent3d phase, a
+ * vertex buffer of your words stepped per instance (Bevy's shader_advanced/custom_shader_instancing). Its instances
+ * aren't in the mesh's bounds: give the mesh Bevy's NoFrustumCulling (<BevyComponent type="bevy_camera::visibility::NoFrustumCulling" value={{}} />).
+ * @bevy raea_sys_phase::ShaderInstances */
+export function ShaderInstances(p: ShaderInstancesProps) {
+  const { shader, stride, attributes, words } = p;
+  if (typeof shader !== "string" || !shader) throw new TypeError(`ShaderInstances: shader is a shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(shader)}`);
+  if (!Number.isInteger(stride) || stride < 4 || stride % 4 !== 0) throw new TypeError(`ShaderInstances: stride is an instance's bytes, a multiple of 4, got ${stride}`);
+  if (!Array.isArray(words) || words.length % (stride / 4) !== 0 || !words.every(Number.isFinite)) throw new TypeError(`ShaderInstances: words are each instance's ${stride / 4} numbers, got ${words?.length}`);
+  for (const a of attributes) if (!(Number.isInteger(a.offset) && a.offset >= 0 && a.offset < stride && Number.isInteger(a.location) && a.location >= 0)) throw new TypeError(`ShaderInstances: an attribute is { format, offset (under the stride), location }, got ${JSON.stringify(a)}`);
+  return <BevyComponent type="raea_sys_phase::ShaderInstances" value={{ shader: assetPath(shader), stride, attributes, words }} />;
+}

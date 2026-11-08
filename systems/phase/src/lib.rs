@@ -3,7 +3,9 @@
 //! its shader file as written, its `vertex` and `fragment` entry points, reading its own vertex buffer (laid out as
 //! its `attributes` say) and index buffer. <PhaseItem> in raea's TSX gives an <Entity> the component; draw.rs queues,
 //! prepares and draws it. A MeshPass on a Mesh3d entity draws that mesh again by its own shader in a phase after the
-//! main opaque pass, as Bevy's shader_advanced/custom_render_phase draws its stencil (mesh_pass.rs).
+//! main opaque pass, as Bevy's shader_advanced/custom_render_phase draws its stencil (mesh_pass.rs), and
+//! ShaderInstances draws it many times in one draw, a vertex buffer of yours stepped per instance
+//! (shader_advanced/custom_shader_instancing, instances.rs).
 
 use bevy::camera::visibility::{self, VisibilityClass};
 use bevy::prelude::*;
@@ -11,8 +13,10 @@ use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::RenderApp;
 
 mod draw;
+mod instances;
 mod mesh_pass;
 
+pub use instances::ShaderInstances;
 pub use mesh_pass::MeshPass;
 
 /// A vertex attribute: its format (Bevy's VertexFormat by name, "Float32x3"), byte offset and shader location.
@@ -71,7 +75,7 @@ macro_rules! shaded {
         }
     )*};
 }
-shaded!(PhaseItem: "PhaseItem", MeshPass: "MeshPass");
+shaded!(PhaseItem: "PhaseItem", MeshPass: "MeshPass", ShaderInstances: "ShaderInstances");
 
 /// Each new or changed `C`'s shader file read and registered as written (a file it can't read is logged).
 pub(crate) fn register<C: Shaded>(world: &mut World) {
@@ -95,10 +99,20 @@ pub(crate) fn register<C: Shaded>(world: &mut World) {
     }
 }
 
+/// The mesh pass's and the instances' pipelines, each Bevy's mesh pipeline under its own specialize.
+fn pipelines(mut commands: Commands, mesh: Res<bevy::pbr::MeshPipeline>) {
+    commands.insert_resource(mesh_pass::PassPipeline { mesh: mesh.clone() });
+    commands.insert_resource(instances::InstancesPipeline { mesh: mesh.clone() });
+}
+
 pub fn install(app: &mut App) {
     app.register_type::<PhaseItem>();
     app.add_systems(PostUpdate, register::<PhaseItem>);
     app.add_plugins(ExtractComponentPlugin::<PhaseItem>::default());
     draw::install(app);
     mesh_pass::install(app);
+    instances::install(app);
+    if let Some(r) = app.get_sub_app_mut(bevy::render::RenderApp) {
+        r.add_systems(bevy::render::RenderStartup, pipelines.after(bevy::pbr::MeshPipelineSystems));
+    }
 }

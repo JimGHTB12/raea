@@ -16,7 +16,7 @@ use bevy::ecs::system::lifetimeless::SRes;
 use bevy::ecs::system::SystemParamItem;
 use bevy::math::FloatOrd;
 use bevy::mesh::{MeshAttributeCompressionFlags, MeshVertexBufferLayoutRef};
-use bevy::pbr::{self, DrawMesh, MeshInputUniform, MeshPipeline, MeshPipelineKey, MeshPipelineSystems, MeshPipelineViewLayoutKey, MeshUniform, RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup, SetMeshViewEmptyBindGroup, ViewKeyCache};
+use bevy::pbr::{self, DrawMesh, MeshInputUniform, MeshPipeline, MeshPipelineKey, MeshPipelineViewLayoutKey, MeshUniform, RenderMeshInstances, SetMeshBindGroup, SetMeshViewBindGroup, SetMeshViewEmptyBindGroup, ViewKeyCache};
 use bevy::platform::collections::HashSet;
 use bevy::prelude::*;
 use bevy::render::batching::gpu_preprocessing::{batch_and_prepare_sorted_render_phase, BatchedInstanceBuffers, IndirectParametersMetadata, UntypedPhaseIndirectParametersBuffers};
@@ -31,7 +31,7 @@ use bevy::render::render_resource::*;
 use bevy::render::renderer::{RenderContext, ViewQuery};
 use bevy::render::sync_world::{MainEntity, MainEntityHashSet};
 use bevy::render::view::{ExtractedView, RenderVisibleEntities, RetainedViewEntity, ViewTarget};
-use bevy::render::{Extract, Render, RenderApp, RenderDebugFlags, RenderStartup, RenderSystems};
+use bevy::render::{Extract, Render, RenderApp, RenderDebugFlags, RenderSystems};
 use indexmap::IndexMap;
 use nonmax::NonMaxU32;
 
@@ -61,7 +61,6 @@ pub fn install(app: &mut App) {
         .add_render_command::<Pass3d, DrawPass>()
         .init_resource::<ViewSortedRenderPhases<Pass3d>>()
         .init_resource::<Pending>()
-        .add_systems(RenderStartup, init.after(MeshPipelineSystems))
         .add_systems(ExtractSchedule, extract_phases)
         .add_systems(Render, (queue.in_set(RenderSystems::QueueMeshes), sort_phase_system::<Pass3d>.in_set(RenderSystems::PhaseSort), batch_and_prepare_sorted_render_phase::<Pass3d, PassPipeline>.in_set(RenderSystems::PrepareResources)))
         .add_systems(Core3d, draw.after(main_opaque_pass_3d).in_set(Core3dSystems::MainPass));
@@ -69,11 +68,7 @@ pub fn install(app: &mut App) {
 
 #[derive(Resource)]
 pub struct PassPipeline {
-    mesh: MeshPipeline,
-}
-
-fn init(mut commands: Commands, mesh: Res<MeshPipeline>) {
-    commands.insert_resource(PassPipeline { mesh: mesh.clone() });
+    pub(crate) mesh: MeshPipeline,
 }
 
 /// A pass pipeline's variant: the view and mesh's key, its shader and entry points.
