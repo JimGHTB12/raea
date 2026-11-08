@@ -14,7 +14,7 @@ pub mod decal;
 pub mod fields;
 pub mod lightmap;
 pub mod maps;
-pub mod mesh;
+pub use raea_sys_mesh as mesh;
 pub mod surface;
 pub mod toon;
 pub mod shadow_only;

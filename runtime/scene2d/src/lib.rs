@@ -1,8 +1,16 @@
 //! 2D parts' rows (`<Sprite>`, `<Shape2D>` in sdk/render's 3d/sprite.tsx): a `sprite` or `shape2d` row each, read by
 //! raea-sys-sprite. The picture, sheet and shape come from the first frame; the place, the sheet's cell, the colour and
-//! the opacity are keyed per frame.
+//! the opacity are keyed per frame. raea-runtime-scene makes them with the 3D parts' rows.
 
-use super::*;
+use std::collections::BTreeMap;
+
+use raea_core_program::ir::{Program, V};
+use raea_core_scene::*;
+use raea_runtime_look::*;
+use serde_json::Value;
+
+/// a part's name and its props on each frame (None where it's missing), as raea-runtime-scene tracks it
+type Track = (String, Vec<Option<Item>>);
 
 /// A 2D part's place (composition px from the top left, y down; radians clockwise; scale; draw order), its colour and
 /// its opacity, each keyed.
@@ -30,7 +38,7 @@ fn place2d(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item
 }
 
 /// Sprites: the picture, its sheet and size from the first frame; place, cell, tint and opacity keyed.
-pub(super) fn sprites(tracks: &[Track], p: &mut Program) {
+pub fn sprites(tracks: &[Track], p: &mut Program) {
     for (k, (_, track)) in tracks.iter().enumerate() {
         let its = filled(track);
         let id = format!("sprite{k}");
@@ -65,7 +73,7 @@ pub(super) fn sprites(tracks: &[Track], p: &mut Program) {
 }
 
 /// Flat shapes: the shape and its size from the first frame; place, colour and opacity keyed.
-pub(super) fn shapes(tracks: &[Track], p: &mut Program) {
+pub fn shapes(tracks: &[Track], p: &mut Program) {
     for (k, (_, track)) in tracks.iter().enumerate() {
         let its = filled(track);
         let id = format!("shape2d{k}");

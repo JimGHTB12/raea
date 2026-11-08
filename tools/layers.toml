@@ -100,6 +100,7 @@ raea-sys-environment = "systems"
 raea-sys-look = "systems"
 raea-sys-compose = "systems"
 raea-sys-material = "systems"
+raea-sys-mesh = "systems"
 raea-sys-framepass = "systems"
 raea-sys-compute = "systems"
 raea-sys-sampler = "systems"
@@ -128,6 +129,7 @@ raea-runtime-plugins = "runtime"
 raea-runtime-live = "runtime"
 raea-runtime-look = "runtime"
 raea-runtime-scene = "runtime"
+raea-runtime-scene2d = "runtime"
 raea-runtime-shared = "runtime"
 raea-page = "runtime"
 raea-app-check = "apps"
@@ -171,6 +173,8 @@ seetool = "tools"
 raea-sys-frame = true
 # a row's standard material and its maps (meshseq builds its mesh's on it)
 raea-sys-material = true
+# a row's mesh from JSON, Bevy's primitives by name (materials and reflected Mesh handles build on it)
+raea-sys-mesh = true
 # how a texture is read (materials, shaders and models set it the same way)
 raea-sys-sampler = true
 # a shader's inputs, accessors and registration (surface shaders and frame passes share them)

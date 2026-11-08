@@ -1,4 +1,7 @@
-use super::*;
+//! A row's mesh from JSON: one of Bevy's primitive shapes by name, meshed by Bevy's own meshers (rings and extrusions
+//! of its 2D ones too), or a buffer mesh's own vertex buffers. raea-sys-material re-exports it as its `mesh`.
+
+use bevy::prelude::*;
 
 /// A <BufferMesh>'s vertex colours (`colors`: r, g, b, a in linear light for each vertex, or "#rrggbb" sRGB each),
 /// laid out per triangle corner as buffer_tris lays its positions; None without them. StandardMaterial multiplies its

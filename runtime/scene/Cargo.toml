@@ -10,6 +10,7 @@ description = "A composition's 3D as raea-render rows: the camera, lights, meshe
 raea-core-scene = { path = "../../core/scene" }
 raea-core-program = { path = "../../core/program" }
 raea-runtime-look = { path = "../look" }
+raea-runtime-scene2d = { path = "../scene2d" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
 serde_json = "1"
 # a material's `wear` prop as its row's columns

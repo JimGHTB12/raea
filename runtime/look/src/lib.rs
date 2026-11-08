@@ -10,6 +10,8 @@ use serde_json::{Map, Value};
 mod camera;
 pub use camera::*;
 mod instances;
+mod parts;
+pub use parts::*;
 pub use instances::*;
 
 /// Bloom of intensity 1: Bevy's natural preset.
@@ -487,3 +489,4 @@ fn keyed<'a>(p: &mut Program, kind: &str, target: Option<&str>, tag: &str, each:
         n += 1;
     }
 }
+

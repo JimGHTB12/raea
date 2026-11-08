@@ -14936,8 +14936,19 @@ dependencies = [
  "raea-core-review",
  "raea-core-scene",
  "raea-runtime-look",
+ "raea-runtime-scene2d",
  "raea-sys-procmat",
  "raea-sys-wear",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-runtime-scene2d"
+version = "0.1.0"
+dependencies = [
+ "raea-core-program",
+ "raea-core-scene",
+ "raea-runtime-look",
  "serde_json",
 ]
 
@@ -15312,8 +15323,18 @@ dependencies = [
  "raea-core-shape",
  "raea-io-net",
  "raea-sys-frame",
+ "raea-sys-mesh",
  "raea-sys-sampler",
  "resvg 0.48.1",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-sys-mesh"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-core-shape",
  "serde_json",
 ]
 

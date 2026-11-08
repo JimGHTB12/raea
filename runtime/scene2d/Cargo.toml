@@ -1,0 +1,13 @@
+[package]
+name = "raea-runtime-scene2d"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "2D parts' rows (<Sprite>, <Shape2D>): the picture, sheet and shape, and the place, cell, colour and opacity keyed"
+
+[dependencies]
+raea-core-scene = { path = "../../core/scene" }
+raea-core-program = { path = "../../core/program" }
+raea-runtime-look = { path = "../look" }
+serde_json = "1"

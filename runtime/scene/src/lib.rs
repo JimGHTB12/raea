@@ -27,7 +27,6 @@ mod fast;
 /// Gaussian splats' rows (<Splat>).
 mod splat;
 /// 2D parts' rows (<Sprite>, <Shape2D>).
-mod sprite2d;
 /// <Instances>: a mesh or model row's placements (its `inst` column).
 /// Baked simulations' and glitches' rows (<MeshSequence>, <Goo>, glitch props).
 mod meshseq;
@@ -206,12 +205,6 @@ pub fn items_of(scene: &[Node3]) -> Vec<Item> {
     out
 }
 
-fn visible(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, track: &[Option<Item>]) {
-    if track.iter().any(Option::is_none) {
-        let on: Vec<f64> = track.iter().map(|t| t.is_some() as u8 as f64).collect();
-        column(p, row, id, "visible", &on);
-    }
-}
 
 /// A part's composition pass on each frame (`pass`: 0 "scene", from 1 the piece's passes), stepped.
 fn pass_column(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item], names: &[String]) {
@@ -349,8 +342,8 @@ fn rows_into_of(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
     // gaussian splats (<Splat>): splat.rs
     splat::rows(&tr.splats, p);
     // 2D over the 3D (<Sprite>, <Shape2D>): sprite2d.rs
-    sprite2d::sprites(&tr.sprites, p);
-    sprite2d::shapes(&tr.shapes2d, p);
+    raea_runtime_scene2d::sprites(&tr.sprites, p);
+    raea_runtime_scene2d::shapes(&tr.shapes2d, p);
     // baked simulations (<MeshSequence>, <Goo>): meshseq.rs
     meshseq::rows(&tr.meshseqs, p);
 }
