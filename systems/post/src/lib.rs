@@ -9,6 +9,7 @@ use raea_sys_frame::*;
 use raea_sys_frame::bevy_api;
 
 pub mod lens;
+pub mod views;
 pub mod motion_blur;
 pub mod dof;
 pub mod effect_stack;

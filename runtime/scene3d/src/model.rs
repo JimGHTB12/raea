@@ -337,6 +337,8 @@ pub fn await_models(_app: &mut App) -> Result<(), String> {
 pub fn await_models(app: &mut App) -> Result<(), String> {
     let mut t0 = bevy::platform::time::Instant::now();
     let mut most = 0usize;
+    // the cameras off while models load, so the draws are binned once, whole (#48): raea-sys-post's views.rs
+    let mut off: Option<Vec<Entity>> = None;
     loop {
         let world = app.world_mut();
         if let Some(e) = world.resource_mut::<Error>().0.take() {
@@ -360,6 +362,7 @@ pub fn await_models(app: &mut App) -> Result<(), String> {
             done += s;
         }
         if waiting == 0 {
+            if let Some(cams) = off { raea_sys_post::views::on(app, cams); }
             return Ok(());
         }
         if done > most {
@@ -370,6 +373,7 @@ pub fn await_models(app: &mut App) -> Result<(), String> {
             let [l, s, r] = stages;
             return Err(format!("{waiting} model(s) didn't load: none moved a stage in 60 s ({l} loading, {s} spawning, {r} ready without their surfaces)"));
         }
+        if off.is_none() { off = Some(raea_sys_post::views::off(app.world_mut())); }
         app.update();
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
