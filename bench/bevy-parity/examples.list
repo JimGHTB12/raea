@@ -72,3 +72,4 @@ ui/styling/stacked_gradients
 ui/styling/gradients
 ui/text/generic_font_families
 ui/layout/ghost_nodes
+ui/relative_cursor_position

@@ -400,3 +400,13 @@ export function UiScale({ value, children }: { value: number; children?: ReactNo
   if (!(Number.isFinite(value) && value > 0)) throw new RangeError(`UiScale: value is above 0, got ${value}`);
   return <div style={{ position: "absolute", left: 0, top: 0, width: `${100 / value}%`, height: `${100 / value}%`, transform: `scale(${value})`, transformOrigin: "0 0" }}>{children}</div>;
 }
+
+/** The UI camera's viewport (bevy_camera's Viewport on the Camera2d the UI draws through): its roots lay out in this
+ *  region of the window, `physical_position` from its top left and `physical_size` big (px, at a scale factor of 1),
+ *  and are clipped to it. @bevy bevy_camera::Viewport */
+export function Viewport({ physical_position, physical_size, children }: { physical_position: [number, number]; physical_size: [number, number]; children?: ReactNode }) {
+  const ok = (v: unknown, min: number) => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= min);
+  if (!ok(physical_position, 0) || !ok(physical_size, 1)) throw new RangeError(`Viewport: physical_position is [x, y] >= 0 and physical_size [w, h] >= 1 in whole px, got ${JSON.stringify({ physical_position, physical_size })}`);
+  const [[left, top], [width, height]] = [physical_position, physical_size];
+  return <div style={{ position: "absolute", left, top, width, height, overflow: "hidden" }}>{children}</div>;
+}
