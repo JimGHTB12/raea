@@ -55,8 +55,17 @@ impl ScriptResolve {
     }
 }
 
+/// A file's module id, one per file however its path was written: Rolldown keys modules by id, and its own resolver
+/// writes a path whole, so a path this plugin joins (home's "sdk/ui/src" onto a Windows folder: `D:\..\raea\sdk/ui/src\wire.ts`)
+/// must come out the same, or the file is bundled twice. On Windows that was two @raea/ui wires: the second took
+/// `__ui_deliver`, with none of the first's handlers, and every press was dropped (#51). Rebuilt from its components
+/// (one separator, no `.` or doubled ones) and without canonicalize()'s verbatim `\\?\` prefix.
+pub(crate) fn module_path(p: &Path) -> PathBuf {
+    raea_io_home::plain(p.components().collect())
+}
+
 fn path_id(p: &Path) -> Option<HookResolveIdOutput> {
-    Some(HookResolveIdOutput::from_id(p.to_string_lossy().into_owned()))
+    Some(HookResolveIdOutput::from_id(module_path(p).to_string_lossy().into_owned()))
 }
 
 impl Plugin for ScriptResolve {
@@ -141,5 +150,26 @@ impl Plugin for ScriptResolve {
             "const m = new Proxy({{}}, {{ get: (_t, k) => k === \"__esModule\" ? true : k === \"default\" ? m : () => {{ throw new Error(\"node:{name}.\" + String(k) + \" isn't available in raea's V8\"); }} }}); export default m;\n"
         );
         Ok(Some(HookLoadOutput { code: code.into(), module_type: Some(ModuleType::Js), ..Default::default() }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::module_path;
+    use std::path::Path;
+
+    /// One file, two spellings of its path (what a joined path and Rolldown's resolver write): one module id (#51)
+    #[test]
+    fn a_file_has_one_module_id_however_its_path_is_written() {
+        let joined = Path::new("/opt/raea/share/raea").join("sdk/ui/./src").join("wire.ts");
+        let resolved = Path::new("/opt/raea/share/raea/sdk//ui/src/wire.ts");
+        assert_eq!(module_path(&joined), module_path(resolved));
+        assert_eq!(module_path(&joined), Path::new("/opt/raea/share/raea/sdk/ui/src/wire.ts"));
+        #[cfg(windows)]
+        {
+            let mixed = Path::new(r"D:\a\raea\share\raea").join("sdk/ui/src").join("wire.ts");
+            assert_eq!(module_path(&mixed), Path::new(r"D:\a\raea\share\raea\sdk\ui\src\wire.ts"));
+            assert_eq!(module_path(Path::new(r"\\?\D:\a\raea\share\raea\sdk\ui\src\wire.ts")), Path::new(r"D:\a\raea\share\raea\sdk\ui\src\wire.ts"));
+        }
     }
 }
