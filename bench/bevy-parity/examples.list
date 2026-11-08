@@ -82,3 +82,4 @@ ui/layout/size_constraints
 ui/scroll_and_overflow/overflow_transform
 ui/text/text
 ui/text/text_debug
+ui/ui_transform
