@@ -242,6 +242,9 @@ thread_local! {
     pub(crate) static VIEW_HOLDER: std::cell::Cell<Option<u64>> = const { std::cell::Cell::new(None) };
     /// how deep the walk is inside 3D parts
     pub(crate) static IN_3D: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+    /// whether the walk is inside an <svg> (not back in HTML under its <foreignObject>): a `text`, `image` or `title`
+    /// there is SVG's, as sdk/ui's host says with `$ns`, so its attributes keep their SVG names (svg_owned)
+    pub(crate) static IN_SVG: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     /// the app screens (`<Screen app>`) the last walk met: each one's name, size and module
     pub(crate) static APP_SCREENS: std::cell::RefCell<Vec<(String, u32, u32, String)>> = const { std::cell::RefCell::new(Vec::new()) };
     /// why the last walk's page can't be rendered as written (an <img> of a file that isn't there, `page_props`; a take

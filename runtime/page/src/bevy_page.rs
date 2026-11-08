@@ -57,6 +57,7 @@ impl BevyPage {
         SCENE_SLOT.with(|c| c.set(None));
         VIEW_HOLDER.with(|c| c.set(None));
         IN_3D.with(|c| c.set(0));
+        IN_SVG.with(|c| c.set(false));
         APP_SCREENS.with(|c| c.borrow_mut().clear());
         TEXTURE_SLOTS.with(|c| c.borrow_mut().clear());
         REFUSED.with(|c| c.borrow_mut().clear());

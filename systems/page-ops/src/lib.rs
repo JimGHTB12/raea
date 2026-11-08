@@ -233,7 +233,8 @@ pub fn apply(doc: &mut BaseDocument, nodes: &mut Nodes, ops: Vec<Op>) {
                             styles.push(p);
                         }
                     }
-                    let svg = in_svg(kind);
+                    // (a text, image or title is SVG's when it was made in SVG's namespace: `$ns` at its create)
+                    let svg = in_svg(kind) || m.element_name(n).is_some_and(|q| q.ns == ns!(svg));
                     // a textarea's value is its text too: Blitz makes its editor from its text (construct.rs)
                     let area = (kind == "editableText" && m.element_name(n).is_some_and(|q| &*q.local == "textarea")).then(|| set.as_ref()?.get("value")?.as_str().map(str::to_string)).flatten();
                     let kept = nodes.props.entry(id).or_default();
