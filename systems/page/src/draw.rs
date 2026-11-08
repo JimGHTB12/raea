@@ -13,11 +13,12 @@ pub struct Scenes {
     pub todo: Vec<Drawn>,
 }
 
-/// The one Vello renderer on Bevy's device (not `Sync`: its shader cache holds cells), made on first use; each page's
+/// The one Vello renderer on Bevy's device (not `Sync`: its shader cache holds cells, so it's held in a SyncCell and the
+/// render world can run on a thread of its own, as the engine's pipelined updates run it), made on first use; each page's
 /// storage texture Vello draws into; and the pass that premultiplies it into the page's image.
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct Vello {
-    pub renderer: Option<vello::Renderer>,
+    pub renderer: Option<bevy::platform::cell::SyncCell<vello::Renderer>>,
     pub scratch: HashMap<AssetId<Image>, (wgpu::Texture, UVec2)>,
     pub premul: Option<Premul>,
     /// the filter passes (filters.rs) and the textures they work in
@@ -53,11 +54,11 @@ pub struct Placed {
 /// `view`, the element's picture a box of the texture, straight or made so.
 pub fn view_at(app: &mut App, image: vello::peniko::ImageData, placed: Option<Placed>) {
     if let Some(r) = app.get_sub_app_mut(RenderApp) {
-        r.world_mut().non_send_mut::<Vello>().pending.push((image, placed));
+        r.world_mut().resource_mut::<Vello>().pending.push((image, placed));
     }
 }
 
-pub fn extract(painted: Extract<Option<Res<Painted>>>, image_views: Extract<Option<Res<view3d::ImageViews>>>, mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>) {
+pub fn extract(painted: Extract<Option<Res<Painted>>>, image_views: Extract<Option<Res<view3d::ImageViews>>>, mut scenes: ResMut<Scenes>, mut vello: ResMut<Vello>) {
     if let Some(p) = painted.as_ref() {
         scenes.todo = std::mem::take(&mut *p.0.lock().unwrap());
     }
@@ -66,7 +67,7 @@ pub fn extract(painted: Extract<Option<Res<Painted>>>, image_views: Extract<Opti
 
 /// Each scene drawn by Vello into its page's storage texture on Bevy's device, then premultiplied into the page's
 /// image, before the frame's passes sample it. No readback: Vello's non-robust path (B1f).
-pub fn draw(mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>, device: Res<RenderDevice>, queue: Res<RenderQueue>, images: Res<RenderAssets<GpuImage>>) {
+pub fn draw(mut scenes: ResMut<Scenes>, mut vello: ResMut<Vello>, device: Res<RenderDevice>, queue: Res<RenderQueue>, images: Res<RenderAssets<GpuImage>>) {
     let todo = std::mem::take(&mut scenes.todo);
     if todo.is_empty() {
         return;
@@ -122,7 +123,7 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>, device: Re
     queue.submit([straighten.finish()]);
     // a view's texture changes under the same paint: any view placed this frame draws every page again
     let views = !pending.is_empty();
-    let renderer = renderer.get_or_insert_with(|| {
+    let renderer = renderer.get_or_insert_with(|| bevy::platform::cell::SyncCell::new({
         // Vello's bump buffers sized for pages, ~100 MB less GPU memory than its defaults (paris-30k's): lines 1M,
         // tiles, seg_counts and segments 1M, ptcl 2M, blend spill 256K. A scene past one draws without some of its
         // geometry and no error, so P26's corpus is the check (every frame at the defaults' SSIM). RAEA_VELLO_BUMP=full
@@ -153,7 +154,8 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: NonSendMut<Vello>, device: Re
             vello::RendererOptions { antialiasing_support: vello::AaSupport::area_only(), num_init_threads: std::num::NonZeroUsize::new(1), ..default() },
         )
         .expect("vello on Bevy's device")
-    });
+    }));
+    let renderer = renderer.get();
     for (image, placed) in pending.drain(..) {
         let at = placed.map(|p| wgpu::TexelCopyTextureInfoBase { texture: p.texture, mip_level: 0, origin: wgpu::Origin3d { x: p.origin.0, y: p.origin.1, z: 0 }, aspect: wgpu::TextureAspect::All });
         renderer.override_image(&image, at);

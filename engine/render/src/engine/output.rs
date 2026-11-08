@@ -23,7 +23,7 @@ impl Engine {
         self.pre_step();
         let t = std::time::Instant::now();
         plugins::arm(self.app.world_mut());
-        self.app.update();
+        self.pipe.update(&mut self.app);
         let dt = t.elapsed().as_nanos() as u64;
         let mut wait = 0;
         if self.serial {
@@ -139,8 +139,7 @@ impl Engine {
                 // and the GPU waited for, so every readback queued before this frame (the warm-up's, which can still
                 // be on its way when the frame is large or heavy: supersampled, traced) has landed and is dropped here
                 // rather than taken for this frame later
-                let dev = self.app.sub_app(bevy::render::RenderApp).world().resource::<bevy::render::renderer::RenderDevice>().clone();
-                let _ = dev.wgpu_device().poll(bevy::render::render_resource::PollType::wait_indefinitely());
+                raea_sys_frame::pipe::wait_gpu(&self.app);
                 continue;
             }
             for d in got {
@@ -230,8 +229,7 @@ impl Engine {
                 // every frame in flight is sent and none has come back: the GPU is behind. Wait for it rather than
                 // queueing more updates (each one more frame of GPU work), so a heavy pass (traced AO) slows the
                 // render down instead of starving its readbacks into the careful path
-                let dev = self.app.sub_app(bevy::render::RenderApp).world().resource::<bevy::render::renderer::RenderDevice>().clone();
-                let _ = dev.wgpu_device().poll(bevy::render::render_resource::PollType::wait_indefinitely());
+                raea_sys_frame::pipe::wait_gpu(&self.app);
             }
             self.app.world_mut().resource_mut::<Error>().0.take().map_or(Ok(()), Err)?;
             for d in std::mem::take(&mut self.app.world_mut().resource_mut::<Out>().0) {

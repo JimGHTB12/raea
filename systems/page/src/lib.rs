@@ -259,8 +259,8 @@ impl Plugin for PaintPlugin {
             .init_resource::<view3d::NextLayer>()
             .add_systems(PostUpdate, (size_images.in_set(PageSystems::Commands), (view3d::size_to_boxes, view3d::element_images).chain().in_set(PageSystems::Commands), widgets::attach.in_set(PageSystems::Commands), resolve.in_set(PageSystems::Restyle), paint.in_set(PageSystems::Paint)));
         if let Some(r) = app.get_sub_app_mut(RenderApp) {
-            r.world_mut().init_non_send::<draw::Vello>();
-            r.init_resource::<draw::Scenes>()
+            r.init_resource::<draw::Vello>()
+                .init_resource::<draw::Scenes>()
                 .add_systems(ExtractSchedule, draw::extract)
                 .add_systems(Render, draw::draw.in_set(RenderSystems::PrepareResources));
         }

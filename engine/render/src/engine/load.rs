@@ -126,7 +126,7 @@ impl Engine {
             None => std::sync::Arc::new(raea_core_program::timeline::Timeline::from_cols(prog, base)?),
         };
         world.insert_resource(Edit { prog: prog.clone(), timeline, media });
-        world.insert_resource(FrameRows { cols: eval::Cols::default(), ix, live: None, looks: HashMap::new(), timeline: None });
+        world.insert_resource(FrameRows::new(ix));
         let Some(cam) = camera else { return Err("the edit needs a camera: INSERT INTO camera (id, ...) VALUES (...)".into()) };
         let models = world.query::<&scene3d::Model3d>().iter(world).count();
         let h = prog.height as f32;

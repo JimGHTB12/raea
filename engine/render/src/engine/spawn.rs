@@ -28,7 +28,7 @@ pub(crate) fn relational(edit: Res<Edit>, clock: Res<Clock>, mut err: ResMut<Err
         return;
     }
     let t0 = bevy::platform::time::Instant::now();
-    frame.cols = edit.timeline.cols(clock.0);
+    frame.set_cols(edit.timeline.cols(clock.0));
     if !frame.timeline.as_ref().is_some_and(|t| std::sync::Arc::ptr_eq(t, &edit.timeline)) {
         frame.timeline = Some(edit.timeline.clone());
     }

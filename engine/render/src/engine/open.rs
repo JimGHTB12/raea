@@ -240,7 +240,7 @@ impl Engine {
         } else {
             app.world_mut().spawn(Readback::texture(target.clone())).observe(|ev: On<ReadbackComplete>, mut out: ResMut<Out>| out.0.push(ev.data.clone()));
         }
-        let mut e = Engine { app, target, w, h, ss, dir: dir.to_path_buf(), #[cfg(feature = "native")] warm: false, #[cfg(feature = "native")] serial: std::env::var_os("RAEA_SERIAL").is_some(), nv12, packed, replay: None, live, prestep: false };
+        let mut e = Engine { app, target, w, h, ss, dir: dir.to_path_buf(), #[cfg(feature = "native")] warm: false, #[cfg(feature = "native")] serial: std::env::var_os("RAEA_SERIAL").is_some(), nv12, packed, replay: None, live, prestep: false, pipe: Default::default() };
         mem_mark("engine: target and readback made");
         e.load_shared(prog, inserted, timeline)?;
         mem_mark("engine: edit loaded into the World");
@@ -248,6 +248,8 @@ impl Engine {
             e.app.update();
             mem_mark(&format!("engine: warm-up update {i}"));
         }
+        // updates pipelined from here on (raea_sys_frame::pipe), but for a live draw's own
+        e.pipe = raea_sys_frame::pipe::Pipe::new();
         // a live game's frame on one thread (lightspeed F2): its scene is small, and the multi-threaded executor's task
         // hand-offs cost more than its systems (arena3d's frame work p50 2.7-3.4 -> 1.9-2.6 ms, p99 3.9-4.6 -> 2.7-3.5,
         // paired). RAEA_BEVY_EXECUTOR=single|multi picks for every engine; renders stay multi-threaded otherwise

@@ -12,6 +12,8 @@ use raea_core_program::ir::{Program, V};
 pub mod bevy_api;
 /// a camera row's order, clear and viewport among the cameras on its target
 pub mod camera;
+/// pipelined updates: the render world drawing the last frame while the main world runs this one
+pub mod pipe;
 // the edit's rows as entities, each column a component of its own, found by kind and id
 pub mod store;
 // the frame loop's own state (Stages, the frame tag, the overlay and output resources)
@@ -39,6 +41,7 @@ pub struct Edit {
 /// The frame's values: the base after the keys, rules and transitions at the clock, by row; and each row's entity.
 #[derive(Resource, Default)]
 pub struct FrameRows {
+    /// the frame's columns, set with `set_cols` (which forgets the rows `vals` made from the last frame's)
     pub cols: eval::Cols,
     pub ix: bevy::ecs::entity::EntityHashMap<usize>,
     /// a live scene's rows (Engine::set_rows): a game's 3D comes from its play's state each frame, not from a timeline,
@@ -49,9 +52,24 @@ pub struct FrameRows {
     pub looks: HashMap<usize, (String, Vec<BTreeMap<String, V>>)>,
     /// the edit's timeline the columns came from (which rows never change: `still`)
     pub timeline: Option<std::sync::Arc<raea_core_program::timeline::Timeline>>,
+    /// each row's values this frame as `vals` makes them, made on its first ask: six of the 3D's systems read every
+    /// row, and many_foxes' thousand foxes were each made six times a frame (FC1b)
+    made: Vec<std::sync::OnceLock<BTreeMap<String, V>>>,
 }
 
 impl FrameRows {
+    /// A load's rows, by entity, with no frame yet.
+    pub fn new(ix: bevy::ecs::entity::EntityHashMap<usize>) -> FrameRows {
+        FrameRows { ix, ..Default::default() }
+    }
+
+    /// This frame's columns.
+    pub fn set_cols(&mut self, cols: eval::Cols) {
+        self.made.clear();
+        self.made.resize_with(cols.len(), Default::default);
+        self.cols = cols;
+    }
+
     /// Whether a row's values are the same on every frame of the edit, so a system applying them to its entity each
     /// frame can apply them once (a live scene's rows: never, since a play changes any of them).
     pub fn still(&self, e: Entity) -> bool {
@@ -93,11 +111,17 @@ impl FrameRows {
                 })
             }
             None => {
-                let mut v = self.cols.tup(r).vals;
-                if let Some((_, looks)) = self.looks.get(&r) {
-                    frame_look_onto(&mut v, looks);
-                }
-                Some(std::borrow::Cow::Owned(v))
+                let make = || {
+                    let mut v = self.cols.tup(r).vals;
+                    if let Some((_, looks)) = self.looks.get(&r) {
+                        frame_look_onto(&mut v, looks);
+                    }
+                    v
+                };
+                Some(match self.made.get(r) {
+                    Some(m) => std::borrow::Cow::Borrowed(m.get_or_init(make)),
+                    None => std::borrow::Cow::Owned(make()),
+                })
             }
         }
     }
@@ -105,6 +129,8 @@ impl FrameRows {
     /// The rows with a `frame_looks` list (the timeline's at the clock, or a live scene's rows), parsed again only
     /// where it changed.
     pub fn parse_looks(&mut self) {
+        // a row's frame look is laid on as `vals` makes it
+        self.made.iter_mut().for_each(|m| drop(m.take()));
         let found: Vec<(usize, String)> = match &self.live {
             Some(rows) => rows.iter().enumerate().filter_map(|(r, v)| match v.get("frame_looks") {
                 Some(V::S(s)) => Some((r, s.clone())),

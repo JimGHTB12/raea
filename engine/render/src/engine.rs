@@ -19,7 +19,7 @@ use bevy::render::render_asset::RenderAssets;
 #[cfg(feature = "native")]
 use bevy::render::storage::ShaderBuffer;
 
-use raea_core_program::eval::{self, Tup};
+use raea_core_program::eval::Tup;
 use raea_sys_frame::store;
 use raea_core_program::ir::{Program, V};
 
@@ -124,6 +124,8 @@ pub struct Engine {
     /// the edit has MotionBlur: each update of frame f is preceded by one of frame f - 1 (its readback ignored), so the
     /// previous poses Bevy blurs by are always frame f - 1's, however many updates a frame takes (motion_blur.rs)
     prestep: bool,
+    /// its updates pipelined or not (raea_sys_frame::pipe)
+    pipe: raea_sys_frame::pipe::Pipe,
 }
 
 /// RAEA_MEM_MARKS: one line on stderr per start-up phase, "mem_mark <ms since the first mark> <phys_footprint MB>
@@ -226,6 +228,7 @@ impl Engine {
         self.app.world_mut().resource_mut::<Clock>().0 = f;
         self.pre_step();
         plugins::arm(self.app.world_mut());
+        self.pipe.flush(&mut self.app);
         self.app.update();
         self.capture_aov(f);
     }
@@ -241,7 +244,7 @@ impl Engine {
         let world = self.app.world_mut();
         world.resource_mut::<Clock>().0 = f - 1;
         world.resource_mut::<PreStep>().0 = true;
-        self.app.update();
+        self.pipe.update(&mut self.app);
         let world = self.app.world_mut();
         world.resource_mut::<PreStep>().0 = false;
         world.resource_mut::<Clock>().0 = f;
@@ -287,10 +290,7 @@ impl Engine {
             // staging buffer on submit) calls back while its buffer still exists, not on the new App's next poll after
             // the old App dropped it ("Buffer ... has been destroyed" from get_mapped_range, a panic)
             #[cfg(feature = "native")]
-            {
-                let dev = self.app.sub_app(bevy::render::RenderApp).world().resource::<bevy::render::renderer::RenderDevice>().clone();
-                let _ = dev.wgpu_device().poll(bevy::render::render_resource::PollType::wait_indefinitely());
-            }
+            raea_sys_frame::pipe::wait_gpu(&self.app);
             *self = Engine::build(&prog, &rows, &dir, None, self.live)?;
         }
         loop {
@@ -300,7 +300,7 @@ impl Engine {
             }
             self.app.world_mut().resource_mut::<Clock>().0 = s + 1;
             plugins::arm(self.app.world_mut());
-            self.app.update();
+            self.pipe.update(&mut self.app);
             self.app.world_mut().resource_mut::<Out>().0.clear();
         }
         Ok(())
