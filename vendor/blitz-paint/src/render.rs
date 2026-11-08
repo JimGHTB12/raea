@@ -2,6 +2,7 @@ mod background;
 mod bevy_debug;
 mod border;
 mod border_image;
+mod bevy_shadow;
 mod box_shadow;
 mod clip_path;
 mod form_controls;

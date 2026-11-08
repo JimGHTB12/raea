@@ -95,8 +95,8 @@ describe("bevy_ui rules the gallery brought", () => {
   test("a spreading box shadow is sent with its spread and marked for bevy_ui's rule", () => {
     const out = html(<Node width={px(100)} height={px(40)} box_shadow={BoxShadow.new(new Srgba(0, 0, 0, 0.9), px(0), px(0), px(1), px(4))} />);
     expect(out).toContain("0px 0px 8px 1px rgba(0, 0, 0, 0.9)");
-    expect(out).toContain("data-raea-bevy-shadow");
-    expect(html(<Node width={px(100)} box_shadow={BoxShadow.new(new Srgba(0, 0, 0, 1), px(2), px(2), px(0), px(4))} />)).not.toContain("data-raea-bevy-shadow");
+    expect(out).toContain('data-raea-bevy-shadow="4"');
+    expect(html(<Node width={px(100)} />)).not.toContain("data-raea-bevy-shadow");
   });
   test("a translucent border blends over what lies under the node, not the node's own background", () => {
     const half = new Srgba(1, 1, 1, 0.5);

@@ -37,6 +37,10 @@ fn main() {
             // include_str!/include_bytes! paths are relative to the example, not to OUT_DIR
             .replace("include_str!(\"", &format!("include_str!(\"{}/", file.parent().unwrap().display()))
             .replace("include_bytes!(\"", &format!("include_bytes!(\"{}/", file.parent().unwrap().display()))
+            // and so are its #[path] modules (examples/helpers: radio.rs, number_input_f32.rs, ...)
+            .replace("#[path = \"", &format!("#[path = \"{}/", file.parent().unwrap().display()))
+            // the example is a module of the host, so its crate root is that module
+            .replace("use crate::", "use self::")
             .replace("App::new()", "crate::parity_app()")
             .replace("\nfn main()", "\npub fn main()");
         // an example drawing from an unseeded rng draws differently every run (two runs of many_lights: SSIM 0.58), so

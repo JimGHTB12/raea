@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's UiTransform and BoxShadow on the page (ui/scroll_and_overflow/overflow_transform),
 // and bevy_color's Luminance darker and lighter.
 import { describe, expect, test } from "bun:test";
-import { BoxShadow, Node, Overflow, Rot2, UiRect, UiTransform, Val2, percent, px } from "raea/ui";
+import { BoxShadow, BoxShadowSamples, Node, Overflow, Rot2, UiRect, UiTransform, Val2, percent, px } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { renderFrame } from "../src/test";
 
@@ -43,7 +43,15 @@ describe("BoxShadow: drop shadows under a node", () => {
   test("a spread is sent as it is and its node marked, for raea's Blitz to spread it by bevy_ui's rule", () => {
     const out = html(<Node box_shadow={BoxShadow.new(new Srgba(0, 0, 0), px(1), px(1), px(2), px(4))} />);
     expect(out).toMatch(/box-shadow:1px 1px 8px 2px /);
-    expect(out).toContain("data-raea-bevy-shadow");
+    expect(out).toContain('data-raea-bevy-shadow="4"');
+  });
+  test("a shadowed node carries its BoxShadowSamples (4 unless set), and a node without one carries none", () => {
+    const shadow = BoxShadow.new(new Srgba(0, 0, 0), px(1), px(1), px(0), px(4));
+    expect(html(<Node box_shadow={shadow} />)).toContain('data-raea-bevy-shadow="4"');
+    expect(html(<BoxShadowSamples samples={9}><Node><Node box_shadow={shadow} /></Node></BoxShadowSamples>)).toContain('data-raea-bevy-shadow="9"');
+    expect(html(<BoxShadowSamples samples={9}><Node /></BoxShadowSamples>)).not.toContain("data-raea-bevy-shadow");
+    expect(() => html(<BoxShadowSamples samples={1.5}><Node /></BoxShadowSamples>)).toThrow(/samples/);
+    expect(() => html(<BoxShadowSamples samples={-1}><Node /></BoxShadowSamples>)).toThrow(/samples/);
   });
   test("a percent or a negative blur is refused, not drawn wrong", () => {
     expect(() => html(<Node box_shadow={BoxShadow.new(new Srgba(0, 0, 0), percent(20), px(1), px(0), px(4))} />)).toThrow(/x_offset/);

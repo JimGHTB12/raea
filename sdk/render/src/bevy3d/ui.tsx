@@ -12,7 +12,7 @@ import {
 import { LinearRgba, type Srgba } from "./colors";
 import { gradientsCss, gradientsOpaque, type Gradient } from "./ui-gradient";
 import { gridCss, type GridAutoFlow, type GridPlacement, type GridTrack, type RepeatedGridTrack } from "./ui-grid";
-import { shadowCss, shadowSpread, transformCss, type BoxShadow, type UiTransform } from "./ui-transform";
+import { ShadowSamplesCx, shadowCss, transformCss, type BoxShadow, type UiTransform } from "./ui-transform";
 import { featuresCss } from "./ui-features";
 import { scrollCss, type IgnoreScroll } from "./ui-scroll";
 import { useDebugAttr, type UiDebugOptions } from "./ui-debug";
@@ -137,8 +137,10 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): 
   // every node a stacking context, so a ZIndex ranks it among its siblings above their parent, as bevy_ui stacks
   // them; a GlobalZIndex ranks it in the root's (raea's Blitz hoists it past every other, layout/paint_tree.rs)
   s.zIndex = p.global_z_index ?? p.z_index ?? 0;
+  const samples = useContext(ShadowSamplesCx);
   const attrs: Record<string, string | number> = p.global_z_index ? { "data-raea-bevy-global-z": "" } : {};
-  if (p.box_shadow !== undefined && shadowSpread(p.box_shadow)) attrs["data-raea-bevy-shadow"] = "";
+  // every shadow drawn as bevy_ui draws it (its spread, its blur summed in BoxShadowSamples steps), raea's Blitz box_shadow.rs
+  if (p.box_shadow !== undefined && p.box_shadow.length) attrs["data-raea-bevy-shadow"] = String(samples);
   if (p.margin !== undefined) s.margin = rectCss(who, "margin", p.margin);
   if (p.padding !== undefined) s.padding = rectCss(who, "padding", p.padding);
   if (p.border !== undefined) {

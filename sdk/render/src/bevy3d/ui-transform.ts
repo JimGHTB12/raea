@@ -1,5 +1,7 @@
 // bevy_ui's UiTransform (a node turned, scaled and moved about its centre after layout, which it doesn't change) and
-// BoxShadow (drop shadows under a node) as the page's CSS transform and box-shadow.
+// BoxShadow (drop shadows under a node) as the page's CSS transform and box-shadow, each shadowed node marked
+// data-raea-bevy-shadow with its BoxShadowSamples, which raea's Blitz paints as bevy_ui's box_shadow.wesl does.
+import { createContext, createElement, type ReactNode } from "react";
 import { checkVal, colorCss, type Val } from "./ui-val";
 
 /** bevy_math's Rot2: a rotation by its cosine and sine; positive turns a UI node clockwise. @bevy bevy_math::Rot2 */
@@ -75,8 +77,8 @@ const pxOf = (who: string, k: string, v: Val) => {
 
 /** A BoxShadow as CSS's box-shadow. Bevy's blur radius is its Gaussian's standard deviation, CSS's twice that. Bevy
  *  grows the shadow's width by spread_radius (half each side) and scales its height and corners by the same ratio,
- *  where CSS's spread grows every side by it; the spread is sent as it is, and a node with one marked
- *  data-raea-bevy-shadow (shadowSpread), which raea's Blitz paints by Bevy's rule (vendor/blitz-paint box_shadow.rs). */
+ *  where CSS's spread grows every side by it; the spread is sent as it is, and raea's Blitz spreads a marked node's
+ *  shadow by Bevy's rule (vendor/blitz-paint box_shadow.rs). */
 export function shadowCss(who: string, b: BoxShadow): string {
   if (!Array.isArray(b)) throw new TypeError(`${who}: box_shadow is a BoxShadow (BoxShadow.new(color, px(30), px(30), px(0), px(4))), got ${JSON.stringify(b)}`);
   // CSS lists the shadow on top first, Bevy draws its list back to front
@@ -88,7 +90,12 @@ export function shadowCss(who: string, b: BoxShadow): string {
   }).join(", ");
 }
 
-/** whether a BoxShadow spreads, so its node is marked data-raea-bevy-shadow for Bevy's spread rule */
-export function shadowSpread(b: BoxShadow): boolean {
-  return Array.isArray(b) && b.some((s) => parseFloat(String(s.spread_radius)) !== 0);
+/** the BoxShadowSamples around a node: 4, bevy_ui_render's default, outside one */
+export const ShadowSamplesCx = createContext(4);
+
+/** bevy_ui_render's BoxShadowSamples: the steps each shadow's blur is summed in down its height (4 by default). Bevy sets
+ *  it on a UI camera; here it wraps the UI that camera draws. @bevy bevy_ui_render::BoxShadowSamples */
+export function BoxShadowSamples({ samples, children }: { samples: number; children?: ReactNode }) {
+  if (!(Number.isInteger(samples) && samples >= 0)) throw new RangeError(`BoxShadowSamples: samples is a whole number, 0 or more, got ${samples}`);
+  return createElement(ShadowSamplesCx.Provider, { value: samples }, children);
 }

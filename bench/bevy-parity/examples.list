@@ -103,3 +103,4 @@ ui/widgets/standard_widgets
 ui/widgets/feathers_counter
 ui/widgets/feathers_number_input
 ui/widgets/feathers_gallery
+ui/styling/box_shadow

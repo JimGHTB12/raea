@@ -22,7 +22,8 @@ impl ElementCx<'_, '_> {
             .as_srgb_color();
         let bg_is_opaque = bg_color.components[3] >= 1.0;
         let needs_clip = opacity < 1.0 || !bg_is_opaque;
-        let bevy = self.node.attr(blitz_dom::LocalName::from("data-raea-bevy-shadow")).is_some();
+        // raea: a bevy_ui node's shadows (data-raea-bevy-shadow="BoxShadowSamples") are drawn as bevy_ui draws them
+        let bevy = self.node.attr(blitz_dom::LocalName::from("data-raea-bevy-shadow")).and_then(|a| a.parse::<u32>().ok());
 
         let max_shadow_rect = box_shadow.iter().fold(Rect::ZERO, |prev, shadow| {
             let x = shadow.base.horizontal.px() as f64 * self.scale;
@@ -32,7 +33,7 @@ impl ElementCx<'_, '_> {
             let offset = spread + blur * 2.5;
 
             // raea: a bevy_ui node's shadow spreads by bevy_ui's rule, its height by the width's ratio
-            let rect = match bevy.then(|| bevy_spread(self.frame.border_box, 0.0, spread)).flatten() {
+            let rect = match bevy.is_some().then(|| bevy_spread(self.frame.border_box, 0.0, spread)).flatten() {
                 Some((r, _)) => r.inflate(blur * 2.5, blur * 2.5) + Vec2::new(x, y),
                 None => self.frame.border_box.inflate(offset, offset) + Vec2::new(x, y),
             };
@@ -69,6 +70,21 @@ impl ElementCx<'_, '_> {
                         // "shadow blur"), which draw_box_shadow takes; and at the page's scale, as the spread is
                         let blur = shadow.base.blur.px() as f64 * self.scale / 2.0;
 
+                        // raea: a bevy_ui node's shadow, spread by bevy_ui's rule and blurred as box_shadow.wesl blurs it
+                        if let Some(samples) = bevy {
+                            let Some((rect, ratio)) = bevy_spread(self.frame.border_box, 1.0, spread) else { continue };
+                            let r = &self.frame.border_radii;
+                            let radii = [r.top_left.x, r.top_right.x, r.bottom_right.x, r.bottom_left.x].map(|v| v * ratio);
+                            let [cr, cg, cb, _] = shadow_color.components;
+                            let rgb = [cr, cg, cb].map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8);
+                            let c = rect.center();
+                            if let Some(((x0, y0), image)) = super::bevy_shadow::bitmap((c.x, c.y), (rect.width(), rect.height()), radii, blur, samples, rgb, alpha) {
+                                let brush = super::to_peniko_image(&image, peniko::ImageQuality::Low);
+                                scene.draw_image(brush.as_ref(), transform.pre_translate(Vec2::new(x0, y0)));
+                            }
+                            continue;
+                        }
+
                         // Without blur or spread the shadow is exactly the element's shape,
                         // so fill the border box path directly (preserving individual radii)
                         if blur == 0.0 && spread == 0.0 {
@@ -83,17 +99,10 @@ impl ElementCx<'_, '_> {
                         }
 
                         // TODO draw shadows with matching individual radii instead of averaging
-                        // raea: the shadow's corners grow and shrink with its spread, as its box does; a bevy_ui
-                        // node's (data-raea-bevy-shadow) by bevy_ui's rule, which may leave no shadow at all
+                        // raea: the shadow's corners grow and shrink with its spread, as its box does
                         let radius = self.frame.border_radii.average();
-                        let (rect, radius) = if bevy {
-                            match bevy_spread(self.frame.border_box, radius, spread) {
-                                Some(s) => s,
-                                None => continue,
-                            }
-                        } else {
-                            (self.frame.border_box.inflate(spread, spread), if radius > 0.0 { (radius + spread).max(0.0) } else { 0.0 })
-                        };
+                        let radius = if radius > 0.0 { (radius + spread).max(0.0) } else { 0.0 };
+                        let rect = self.frame.border_box.inflate(spread, spread);
 
                         // Fill the color
                         scene.draw_box_shadow(transform, rect, shadow_color, radius, blur);

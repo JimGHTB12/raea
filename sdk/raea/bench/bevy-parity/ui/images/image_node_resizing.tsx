@@ -17,8 +17,10 @@ const ICON = staticFile("branding/icon.png");
 // tailwind BLUE_100 (bevy_color's palettes::tailwind): #dbeafe
 const BLUE_100 = new Srgba(0xdb / 255, 0xea / 255, 0xfe / 255);
 const PREFIX = "Compare NodeImageMode(Auto, Stretch) press `Up`/`Down` to resize height, press `Left`/`Right` to resize width\n";
-// each node's entity index: the camera's, then setup's spawns in order
-const CAMERA = 429;
+// each node's entity index: the camera's, then setup's spawns in order. The camera's moves with how many entities the
+// parity host's plugins spawn at startup (what the host links, not this example): when this port fails after a host
+// rebuild, its "entities" in docs/bevy-parity/results.jsonl says by how much
+const CAMERA = 430;
 const at = (k: number) => CAMERA + k;
 
 const Group = ({ index, children }: { index: number; children: ReactNode }) => (

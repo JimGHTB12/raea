@@ -35,7 +35,7 @@ export { ImageNode, InlineImage, ImagePlugin, TextureAtlasLayout, type TextureSl
 export { px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadius, Overflow, OverflowClipMargin, type Val } from "./bevy3d/ui-val";
 export { LinearGradient, RadialGradient, ConicGradient, ColorStop, AngularColorStop, UiPosition, type Gradient, type RadialGradientShape, type InterpolationColorSpace } from "./bevy3d/ui-gradient";
 export { GridTrack, RepeatedGridTrack, GridPlacement, type GridTrackRepetition, type GridAutoFlow, type MinTrackSizingFunction, type MaxTrackSizingFunction } from "./bevy3d/ui-grid";
-export { Rot2, Val2, UiTransform, BoxShadow, type ShadowStyle } from "./bevy3d/ui-transform";
+export { Rot2, Val2, UiTransform, BoxShadow, BoxShadowSamples, type ShadowStyle } from "./bevy3d/ui-transform";
 export { FontFeatureTag, FontWidth } from "./bevy3d/ui-features";
 export { GlobalUiDebugOptions, type UiDebugOptions } from "./bevy3d/ui-debug";
 export type { IgnoreScroll } from "./bevy3d/ui-scroll";
