@@ -1,6 +1,6 @@
 ---
 name: raea
-description: Make video, motion graphics, games and 3D scenes with raea, the Render Anything Engine, by writing React/TypeScript compositions with raea and rendering them on the GPU with the raea CLI (or playing games live). Use when the user wants an agent to produce a rendered video or animation from code, cut footage by its words, add captions or motion graphics, build a small playable game, or render frames headlessly.
+description: Make video, motion graphics, games and 3D scenes with raea, the Render Anything Engine, by writing React/TypeScript compositions with raea and rendering them on the GPU with the raea CLI (or playing games live). Use when the user names raea, or wants 3D scenes (Bevy materials, lights, physics, Gaussian splats), 3D placed into footage (matchmove), a playable game, footage cut by its words, cuts timed to a song's beat map, or foley and instruments made locally on the Mac. Also for rendered video, captions and motion graphics from code, and frames rendered headlessly.
 ---
 
 # raea
