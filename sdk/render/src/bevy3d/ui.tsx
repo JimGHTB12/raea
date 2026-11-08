@@ -144,6 +144,9 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): 
     s.borderWidth = rectCss(who, "border", p.border);
     s.borderStyle = "solid";
     s.borderColor = "transparent";
+    // bevy_ui draws a background inside the border only (ui.wesl draw_uinode_background): a see-through border
+    // shows what's under the node, not its background
+    if (!/^(\s*0(px)?)+$/.test(String(s.borderWidth))) s.backgroundClip = "padding-box";
   }
   // (its corners as Bevy resolves them, of its size when that is in px)
   const wh = [p.width, p.height].map((v) => (typeof v === "string" && /^[\d.e+-]+px$/.test(v) ? parseFloat(v) : NaN));

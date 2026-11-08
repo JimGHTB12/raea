@@ -90,3 +90,4 @@ ui/text/font_query	-	10
 ui/images/image_node_resizing	-	10
 ui/render_ui_to_texture	-	10
 ui/ui_drag_and_drop	-	10
+ui/navigation/directional_navigation	-	10
