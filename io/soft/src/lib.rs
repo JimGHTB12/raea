@@ -249,12 +249,21 @@ fn open_h264(path: &Path) -> R<Decoder> {
     })
 }
 
-/// openh264's encoder at the options' bitrate, or all-intra at a fixed quantiser when `intra_qp` is set (every frame
-/// an IDR: an optimized copy, raea_io_media::mezz).
+/// The bitrate openh264 is given: the options', or with --quality (o.quality, 0..1) that bitrate scaled by it, 2x a
+/// step of 0.1 from high (0.85, the default bitrate): master (0.95) twice it, draft (0.6) under a fifth. openh264 has
+/// no constant-quality mode the crate reaches, and it ignored the quality, so draft and master wrote the same file (#28).
+pub fn quality_kbps(o: &EncodeOpts) -> u32 {
+    match o.quality {
+        Some(q) => ((o.kbps as f64 * 2f64.powf((q.clamp(0.0, 1.0) as f64 - 0.85) * 10.0)).round() as u32).clamp(300, 240_000),
+        None => o.kbps,
+    }
+}
+
+/// openh264's encoder at the options' bitrate (quality_kbps), or all-intra at a fixed quantiser when `intra_qp` is set (every frame an IDR: an optimized copy, raea_io_media::mezz).
 #[cfg(feature = "h264")]
 pub fn h264_encoder(out: &Path, o: &EncodeOpts, intra_qp: Option<u8>) -> R<Box<dyn VideoEncoder>> {
     let config = EncoderConfig::new()
-        .bitrate(BitRate::from_bps(o.kbps * 1000))
+        .bitrate(BitRate::from_bps(quality_kbps(o) * 1000))
         .max_frame_rate(FrameRate::from_hz(o.fps as f32))
         .rate_control_mode(RateControlMode::Bitrate)
         // every frame is a sample: rate control may not drop one (the edit has a frame for every tick)
