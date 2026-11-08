@@ -6,7 +6,7 @@
 //! the cameras, each tile's place on the sheets and its exposure, and what the exposure found.
 
 use super::*;
-use crate::scene3d::items;
+use crate::scene::items;
 use raea_core_review::{TILE_W, VIEWS, boxes_of, cameras, ceiling, inside, parts_box, passed, whole};
 
 pub fn review(args: &[String], dir_out: &Path) -> R<String> {

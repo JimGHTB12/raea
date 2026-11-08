@@ -36,8 +36,8 @@ pub(crate) fn program(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64) -> raea
         }
     }
     if has3d {
-        // where it is and looks, frame by frame; its lens, ambient light and post-processing (scene3d)
-        scene3d::camera(frames, &mut p, &mut cam);
+        // where it is and looks, frame by frame; its lens, ambient light and post-processing (raea-runtime-scene)
+        raea_runtime_scene::camera(&scene::all_items(frames), &mut p, &mut cam);
     }
     p.spawns.push(("camera".into(), vec![cam]));
     // the pages: each distinct page shown for the frames in a row it's the same
@@ -123,8 +123,8 @@ pub(crate) fn program(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64) -> raea
         p.spawns.push(("master".into(), vec![row("mix", vec![("lufs", V::N(lufs)), ("ceiling", V::N(ceiling))])]));
     }
     if has3d {
-        // lights, meshes, models and pictures in space, matched across frames by identity (scene3d)
-        scene3d::rows(frames, &mut p);
+        // lights, meshes, models and pictures in space, matched across frames by identity (raea-runtime-scene)
+        raea_runtime_scene::rows(&scene::all_items(frames), &mut p);
     }
     p
 }

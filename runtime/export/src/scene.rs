@@ -4,8 +4,17 @@
 
 use serde_json::{Value, json};
 
-use super::scene3d::{all_items, items};
 use super::{Frame, bundle_composition, comp_opts, flag, scene_frames_to};
+
+/// A frame's 3D walked into its parts (raea-runtime-scene).
+pub(crate) fn items(f: &Frame) -> Vec<raea_core_scene::Item> {
+    raea_runtime_scene::items_of(&f.scene)
+}
+
+/// Each frame's items, walked once (a frame's tree was walked again for each kind of part: 11 times a live frame)
+pub(crate) fn all_items(frames: &[(i64, Frame)]) -> Vec<Vec<raea_core_scene::Item>> {
+    frames.iter().map(|(_, f)| items(f)).collect()
+}
 
 /// raea_sys_contact::told on a render's frames: the parts that clip where the camera sees them, said on stderr
 /// (RAEA_CLIP_CHECK=0 skips it).

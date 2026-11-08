@@ -283,9 +283,9 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
                 write_aov(out, i, cx.scene3d.as_mut())?;
             }
         }
-        if let Some(t) = FED_CLIPPING.lock().unwrap().take() {
-            let _ = t.join();
-        }
+        // with --manifest, its file as a 2D render writes it (it wrote none, and an older one stayed looking current, #28)
+        let clipping = FED_CLIPPING.lock().unwrap().take().and_then(|t| t.join().ok()).unwrap_or_default();
+        write_manifest(&mut cx, (w, h, fps), clipping, |_| json!([]))?;
         return Ok(if folder {
             format!("APPLIED  {} frames rendered to {} (bevy_ui, the page over its 3D)", wanted.len(), out.display())
         } else {
@@ -340,9 +340,7 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
     drop(app);
     // 3D parts passing through each other on screen: on stderr, and in the manifest for the legacy app's checks
     let clipping = scene::told(&frames, w, h, fps);
-    if let (Some(path), Some(frames_seen)) = (MANIFEST.lock().unwrap().clone(), cx.manifest.take()) {
-        std::fs::write(&path, json!({"width": w, "height": h, "fps": fps, "frames": frames_seen, "clipping": clipping, "sounds": heard(&frames, &tones, &cx, fps)}).to_string()).map_err(|e| format!("{}: {e}", path.display()))?;
-    }
+    write_manifest(&mut cx, (w, h, fps), clipping, |cx| heard(&frames, &tones, cx, fps))?;
 
     let ext = out_ext(out);
     // raea-render's IR built directly from the frames and drawn by raea-render (checked equal to the retired rrl's compile of the same

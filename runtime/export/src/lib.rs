@@ -29,7 +29,6 @@ use serde_json::{Map, Value, json};
 pub(crate) use raea_runtime_react::scene::*;
 pub(crate) use raea_runtime_react::{ReactKind, ReactOutbox, ReactPlugin, ReactProps};
 
-mod scene3d;
 mod bevy_frame;
 use bevy_frame::*;
 mod pages;
@@ -66,6 +65,13 @@ pub(crate) struct Sound {
 
 /// `render --manifest PATH` (the CLI's; render_bundle keeps its signature for the iPhone): where render.json goes.
 static MANIFEST: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None);
+
+/// With --manifest, its file: the frames' boxes as drawn (Ctx.manifest), the 3D's clipping and the sounds heard.
+fn write_manifest(cx: &mut Ctx, (w, h, fps): (u32, u32, f64), clipping: Vec<Value>, heard: impl FnOnce(&Ctx) -> Value) -> R<()> {
+    let (Some(path), Some(frames)) = (MANIFEST.lock().unwrap().clone(), cx.manifest.take()) else { return Ok(()) };
+    let m = json!({"width": w, "height": h, "fps": fps, "frames": frames, "clipping": clipping, "sounds": heard(cx)});
+    std::fs::write(&path, m.to_string()).map_err(|e| format!("{}: {e}", path.display()))
+}
 
 /// `render --stage WxH`: a responsive composition (one that lays out from useVideoConfig) laid out at a stage's size, as
 /// the legacy app's stage plays it (live.rs open), so a game's render can be checked against its frames at its own size.
