@@ -47,10 +47,12 @@ pub fn rebind_in(src: &str, groups: &[&str], what: &str, dims: bool) -> Result<R
     let mut out = String::with_capacity(src.len());
     let (mut uniforms, mut textures, mut samplers) = (Vec::new(), Vec::new(), 0usize);
     let mut rest = src;
+    let dead = bindless_spans(src);
     while let Some(i) = rest.find("@binding(") {
         let line_start = rest[..i].rfind('\n').map_or(0, |n| n + 1);
-        // a binding named in a comment is left alone
-        if rest[line_start..i].contains("//") {
+        // a binding named in a comment is left alone, and one under @if(BINDLESS) (bindless_spans)
+        let at = src.len() - rest.len() + i;
+        if rest[line_start..i].contains("//") || dead.iter().any(|s| s.contains(&at)) {
             out += &rest[..i + 1];
             rest = &rest[i + 1..];
             continue;
@@ -114,6 +116,27 @@ pub fn rebind_in(src: &str, groups: &[&str], what: &str, dims: bool) -> Result<R
     Ok(Rebound { src: out, uniforms, textures, others, storages, samplers })
 }
 
+/// The spans of `src` under `@if(BINDLESS)`: the `{ ... }` block it opens, or the one statement it marks. raea's
+/// materials aren't bindless (Bevy sets BINDLESS only for one that is), so these compile out, their bindings as written.
+fn bindless_spans(src: &str) -> Vec<std::ops::Range<usize>> {
+    let mut out = Vec::new();
+    for (i, m) in src.match_indices("@if(BINDLESS)") {
+        let after = i + m.len();
+        let at = after + (src[after..].len() - src[after..].trim_start().len());
+        let end = if src[at..].starts_with('{') {
+            let mut depth = 0i32;
+            src[at..].char_indices().find(|(_, c)| {
+                depth += match c { '{' => 1, '}' => -1, _ => 0 };
+                depth == 0
+            }).map(|(k, _)| at + k)
+        } else {
+            src[at..].find(';').map(|k| at + k)
+        };
+        out.extend(end.map(|e| i..e));
+    }
+    out
+}
+
 /// The group a declaration's `@group(N)` names.
 fn group(stmt: &str) -> Option<&str> {
     let g = stmt.find("@group(")? + "@group(".len();
@@ -153,6 +176,26 @@ mod tests {
         let nine = (0..9).map(|i| format!("@group(1) @binding({i}) var<uniform> u{i}: f32;\n")).collect::<String>();
         assert!(rebind(&nine).unwrap_err().contains("at most 8 uniforms"));
         assert!(rebind("@group(1) @binding(0) var s: sampler;\n@group(1) @binding(1) var s2: sampler;\n@group(1) @binding(2) var t: texture_2d<f32>;").unwrap_err().contains("one each"));
+    }
+
+    #[test]
+    fn bindings_under_if_bindless_are_left_as_written() {
+        // Bevy's bindless_material.wesl: its bindless set compiles out (raea's Material isn't bindless), its @else set is bound
+        let src = "struct Color { base_color: vec4<f32> }
+@if(BINDLESS) {
+@group(3) @binding(0) var<storage> materials: array<u32>;
+@group(3) @binding(10) var<storage> material_color: binding_array<Color>;
+}
+@else {
+@group(3) @binding(0) var<uniform> material_color: Color;
+@group(3) @binding(1) var t: texture_2d<f32>;
+@group(3) @binding(2) var s: sampler;
+}
+fn f() { @if(BINDLESS) let x = 1; }
+";
+        let r = rebind_in(src, &["3"], "a Material", true).unwrap();
+        assert_eq!((r.uniforms, r.textures, r.storages.len()), (vec![("material_color".to_string(), "Color".to_string())], vec!["t".to_string()], 0));
+        assert!(r.src.contains("@binding(10) var<storage> material_color") && r.src.contains("@binding(30) var<uniform> material_color"));
     }
 
     #[test]

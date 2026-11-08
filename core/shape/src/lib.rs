@@ -32,7 +32,7 @@ mod grown;
 mod mesh;
 mod parse;
 mod sphere;
-pub use sphere::{SphereOf, cuboid_of, plane_of, sphere_of};
+pub use sphere::{SphereOf, cuboid_of, cylinder_of, plane_of, sphere_of};
 
 pub use mesh::{export, from_mesh, read_glb, read_obj, to_mesh};
 

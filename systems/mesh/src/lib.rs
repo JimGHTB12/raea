@@ -267,7 +267,7 @@ pub fn box_uvs(pos: &[[f32; 3]], nor: &[[f32; 3]]) -> Vec<[f32; 2]> {
 
 
 /// A mesh row's shape as a Bevy Mesh (docs/media.feature M2): a sphere alone is Bevy's Sphere::mesh() (icosphere or UV
-/// sphere) and a cuboid alone its Cuboid's (UVs a face each), as a Bevy Mesh3d's; a <BufferMesh> ("buffer:{positions,
+/// sphere), a cuboid alone its Cuboid's (UVs a face each) and a cylinder its Cylinder's, as a Bevy Mesh3d's; a <BufferMesh> ("buffer:{positions,
 /// indices, normals, uvs, colors}") its own vertex buffers; anything else Manifold's, flat-shaded. `uvs` gives it
 /// texture coordinates (a picture map, a grid's outline) and `tangents` tangents made from them (a normal map).
 pub fn shape_mesh(id: &str, expr: &str, uvs: bool, tangents: bool) -> Result<Mesh, String> {
@@ -275,6 +275,7 @@ pub fn shape_mesh(id: &str, expr: &str, uvs: bool, tangents: bool) -> Result<Mes
         raea_core_shape::SphereOf::Ico { radius, subdivisions } => Sphere::new(radius).mesh().ico(subdivisions).map_err(|e| format!("mesh {id}: {e}")),
         raea_core_shape::SphereOf::Uv { radius, sectors, stacks } => Ok(Sphere::new(radius).mesh().uv(sectors, stacks)),
     }).or_else(|| raea_core_shape::cuboid_of(expr).map(|[w, h, d]| Ok(Mesh::from(Cuboid::new(w, h, d)))))
+        .or_else(|| raea_core_shape::cylinder_of(expr).map(|(r, h)| Ok(Mesh::from(Cylinder::new(r, h)))))
         // a plane alone: Bevy's one face, facing its normal (a box of no depth has two)
         .or_else(|| raea_core_shape::plane_of(expr).map(|(n, [w, h])| Ok(Mesh::from(Plane3d::new(Vec3::from(n), Vec2::new(w / 2.0, h / 2.0))))));
     if let Some(mut m) = ball.transpose()? {

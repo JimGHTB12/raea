@@ -49,9 +49,29 @@ pub fn cuboid_of(expr: &str) -> Option<[f32; 3]> {
     }
 }
 
+/// The cylinder `expr` is, `<Cylinder>`'s `rotate(cone(r, r, h), -90, 0, 0)` alone (both radii equal, above 0): its
+/// radius and full height, drawn as Bevy's Cylinder mesh (32 sides, one segment), with its normals and texture
+/// coordinates, as a Bevy Mesh3d's is
+pub fn cylinder_of(expr: &str) -> Option<(f32, f32)> {
+    let inner = expr.trim().strip_prefix("rotate(cone(")?.strip_suffix("), -90, 0, 0)")?;
+    let n: Vec<f32> = inner.split(',').map(|s| s.trim().parse().ok()).collect::<Option<_>>()?;
+    match n.as_slice() {
+        &[a, b, h] if a == b && a > 0.0 && h > 0.0 => Some((a, h)),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_cylinder_alone_is_read_and_a_cone_or_anything_more_is_not() {
+        assert_eq!(cylinder_of("rotate(cone(0.5, 0.5, 1), -90, 0, 0)"), Some((0.5, 1.0)));
+        for e in ["rotate(cone(0.5, 0.2, 1), -90, 0, 0)", "cone(0.5, 0.5, 1)", "move(rotate(cone(0.5, 0.5, 1), -90, 0, 0), 0, 1, 0)"] {
+            assert_eq!(cylinder_of(e), None, "{e}");
+        }
+    }
 
     #[test]
     fn a_box_alone_is_a_cuboid_and_a_plane_or_anything_more_is_not() {
