@@ -2,8 +2,8 @@ use super::*;
 
 /// Where a whole-video export of `tsx` is kept (lightspeed T1): named by everything it's made from. That's the bundle's
 /// bytes; this binary; the arguments but -o; every RAEA_ setting that isn't a timing or a trace; and each media file
-/// the edit can read, by path, size and modified time (those under its folder, links followed, and every absolute media
-/// path the bundle names). The output's own extension goes in too, and paths as they really are; where it and a
+/// the edit can read, by path, size and modified time (every file under its folder, links followed, and every absolute
+/// media path the bundle names). The output's own extension goes in too, and paths as they really are; where it and a
 /// --manifest go, a generation session's token and ledger, playback's mute, and the app's own RAEA_FEED_ settings don't. With --manifest the manifest is kept beside it and comes back with it. None for anything but
 /// an .mp4 or .mov, when
 /// RAEA_AUDIO_BOUNCE asks for a side file, with RAEA_FRAME_LOG, or with RAEA_EXPORT_CACHE=0; RAEA_EXPORT_CACHE=DIR moves it from
@@ -69,7 +69,10 @@ pub fn export_cache(tsx: &Path, js: &Path, out: &Path, args: &[String]) -> Optio
                 if depth < 6 {
                     walk(&p, depth + 1, out, files);
                 }
-            } else if p.extension().and_then(|x| x.to_str()).is_some_and(|x| MEDIA_EXTS.contains(&x.to_ascii_lowercase().as_str()) || matches!(x, "ttf" | "otf" | "woff" | "woff2" | "glb" | "gltf" | "bin" | "json" | "css")) {
+            } else {
+                // every file, whatever its kind: a page loads what it names (an <img> of an .svg or a .jpeg, a CSS
+                // url(), a fetch), and a list of extensions left an edited logo.svg out, so its old picture came back
+                // from the cache (#28). A false miss costs a render, a false hit a stale video
                 files.push(p);
             }
         }
