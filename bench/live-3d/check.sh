@@ -19,7 +19,7 @@ status=0
 for f in bench/at-3d/scene.tsx sdk/raea/bench/bevy-parity/3d/spotlight.tsx sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx \
   sdk/raea/bench/bevy-parity/3d/atmospheric_fog.tsx examples/games/screenshake.tsx examples/games/shapes.tsx examples/games/lighting.tsx \
   sdk/raea/bench/bevy/environment/edit.tsx sdk/raea/bench/bevy-ts/cases/material-field-0.tsx \
-  sdk/raea/bench/bevy-ts/cases/kept-mount.tsx sdk/raea/bench/bevy-ts/cases/kept-unmount.tsx; do
+  sdk/raea/bench/bevy-ts/cases/kept-mount.tsx sdk/raea/bench/bevy-ts/cases/kept-unmount.tsx sdk/raea/bench/bevy/text3d/edit.tsx; do
   n=$(basename "$f" .tsx)
   RAEA_3D=program "$BIN" render "$f" -o "$OUT/$n.program.txt" > "$OUT/$n.program.log" 2>&1 || { echo "FAIL $f: the programmed render failed"; tail -3 "$OUT/$n.program.log"; status=1; continue; }
   RAEA_3D=live RAEA_LIVE3D_CHECK=1 "$BIN" render "$f" -o "$OUT/$n.live.txt" > "$OUT/$n.live.log" 2>&1 || { echo "FAIL $f: the live render failed: $(grep -o 'RAEA_LIVE3D_CHECK.\{0,160\}' "$OUT/$n.live.log" | head -1)"; status=1; continue; }

@@ -290,9 +290,9 @@ impl LiveScene {
                 } else {
                     want.entry("emissive_k".into()).or_insert(V::N(1.0));
                 }
-                if r.sent.contains_key("opacity") {
-                    want.entry("opacity".into()).or_insert(V::N(1.0));
-                }
+            }
+            if matches!(kind.as_str(), "mesh" | "glyph") && r.sent.contains_key("opacity") {
+                want.entry("opacity".into()).or_insert(V::N(1.0));
             }
             if (r.sent.contains_key("visible") || kind != "light") && !matches!(kind.as_str(), "component" | "resource") {
                 want.entry("visible".into()).or_insert(V::N(1.0));
@@ -374,5 +374,15 @@ mod tests {
         let id_of = |name: &str| set.iter().find(|t| t.vals.get("name") == Some(&V::S(name.into()))).map(|t| t.id.clone()).unwrap();
         let body = set.iter().find(|t| t.vals.get("name") == Some(&V::S("b-body".into()))).unwrap();
         assert_eq!(body.vals.get("bone_rows"), Some(&V::S(id_of("b-head"))));
+    }
+
+    /// A glyph faded in (`reveal`: 0, 0.5, 1) is opaque once done, not left at its last fade (#38: bevy/text3d's tag).
+    #[test]
+    fn a_faded_glyph_is_opaque_once_done() {
+        let text = |o: f64| vec![Node3 { kind: "RichText".into(), props: std::sync::Arc::new(json!({"spans": [{"t": "a"}], "glyphs": [{"at": 0, "span": 0, "ch": "a", "o": o}]}).as_object().unwrap().clone()), shape: None, kids: Vec::new().into() }];
+        let mut ls = LiveScene::default();
+        ls.open(Shot { scene: &text(0.5), clear: None }, 64, 64, 30.0);
+        let (set, _) = ls.frame(Shot { scene: &text(1.0), clear: None });
+        assert_eq!(set.iter().find(|t| t.kind == "glyph").and_then(|t| t.vals.get("opacity")), Some(&V::N(1.0)));
     }
 }
