@@ -7,9 +7,9 @@
 # the runtime's packages (sdk/react/js/node_modules, installed, not committed) come from this checkout.
 #
 #   tools/release.sh VERSION BIN_DIR [REF]     BIN_DIR holds a release build's raea and its bundler
-#                                              (libraea_bundle.dylib, .so, or raea.exe and raea_bundle.dll), and on
-#                                              macOS raea-perceive (`raea song` runs it; it isn't ported, so Linux's
-#                                              and Windows's archives have no `raea song`), and the app targets' two
+#                                              (libraea_bundle.dylib, .so, or raea.exe and raea_bundle.dll),
+#                                              raea-perceive (`raea song` runs it; off Apple since #43), and the app
+#                                              targets' two
 #                                              hosts (docs/targets.feature T1f): raea-rune-host (native) and
 #                                              raea-page-host's window build (web), each built in a cargo call of its
 #                                              own, as they ship: `cargo build --profile dist -p raea-rune-host` and
@@ -93,23 +93,21 @@ since=${RAEA_SINCE:-$(git describe --tags --abbrev=0 --match 'v*' "$ref" 2>/dev/
 } > "$out/raea-$version-skills.md"
 case $platform in
   linux-x86_64)
-    cp "$bin/raea" "$bin/libraea_bundle.so" "$bin/raea-rune-host" "$bin/raea-page-host" "$stage/bin/"
+    cp "$bin/raea" "$bin/libraea_bundle.so" "$bin/raea-perceive" "$bin/raea-rune-host" "$bin/raea-page-host" "$stage/bin/"
     # what a Linux machine needs beside it: the bundled Noto Sans JP is a Latin subset, so kanji and kana come from the
     # system, as on a Mac (raea warns once a character when no font has it)
     printf '%s\n' "raea $version for Linux x86_64 (glibc 2.39 or newer, Vulkan: a GPU driver or Mesa's llvmpipe).
 Install a CJK font for Japanese, Chinese and Korean text (Debian and Ubuntu: apt install fonts-noto-cjk).
 An app's window, on either target (raea app run, raea-rune-host and raea-page-host), needs a display (X11 or
 Wayland; Xvfb on a server, as raea app check does there too), libxkbcommon-x11, the X client libraries and the Vulkan
-loader (Debian and Ubuntu: apt install libxkbcommon-x11-0 libxcursor1 libxi6 libxrandr2 libx11-xcb1 libvulkan1).
-Not in this build: raea song (its beat model's runner is macOS only so far)." > "$stage/README" ;;
+loader (Debian and Ubuntu: apt install libxkbcommon-x11-0 libxcursor1 libxi6 libxrandr2 libx11-xcb1 libvulkan1)." > "$stage/README" ;;
   windows-x86_64)
-    cp "$bin/raea.exe" "$bin/raea_bundle.dll" "$bin/raea-rune-host.exe" "$bin/raea-page-host.exe" "$stage/bin/"
+    cp "$bin/raea.exe" "$bin/raea_bundle.dll" "$bin/raea-perceive.exe" "$bin/raea-rune-host.exe" "$bin/raea-page-host.exe" "$stage/bin/"
     # the C runtime isn't in the zip (ort's ONNX Runtime needs its DLLs, and they're Microsoft's to ship): the VC++
     # redistributable, which most Windows machines already have, provides it
     printf '%s\r\n' "raea $version for Windows x86_64 (Windows 10 or 11, a DirectX 12 or Vulkan GPU driver; with no GPU, Mesa's lavapipe and WGPU_BACKEND=vulkan)." \
       "It needs the Microsoft Visual C++ Redistributable (x64), which most machines already have:" \
-      "https://aka.ms/vs/17/release/vc_redist.x64.exe" \
-      "Not in this build: raea song (its beat model's runner is macOS only so far)." > "$stage/README.txt" ;;
+      "https://aka.ms/vs/17/release/vc_redist.x64.exe" > "$stage/README.txt" ;;
   *) cp "$bin/raea" "$bin/libraea_bundle.dylib" "$bin/raea-perceive" "$bin/raea-rune-host" "$bin/raea-page-host" "$stage/bin/" ;;
 esac
 # the packages sdk/tsconfig.base.json lists (@raea/<name>: its sources and package.json), which the bundlers resolve by it
@@ -132,11 +130,10 @@ git archive "$ref" sdk/tsconfig.base.json sdk/ui/src sdk/ui/package.json sdk/ui/
 copy() { mkdir -p "$2" && tar -C "$(dirname "$1")" --exclude .cache -cf - "$(basename "$1")" | tar -C "$2" -xf -; }
 # styles.gen's Tailwind (raea compiles it on JavaScriptCore: runtime/bundle/src/styles.rs), as installed here
 copy sdk/react/tw/node_modules/tailwindcss "$stage/share/raea/sdk/react/tw/node_modules"
-# `raea song`'s beat model (Beat This! small0, MIT), copied into ~/.local/share/raea-models on first use
-if [ $platform = macos-arm64 ]; then
-  mkdir -p "$stage/share/raea/models/beat-this"
-  cp ~/.local/share/raea-models/beat-this/beat_this_small0.onnx "$stage/share/raea/models/beat-this/"
-fi
+# `raea song`'s beat model (Beat This! small0, MIT), copied on first use where raea-perceive reads it
+# (raea_io_home::models: ~/.local/share/raea-models, %LOCALAPPDATA%\raea\models on Windows); every platform since #43
+mkdir -p "$stage/share/raea/models/beat-this"
+cp ~/.local/share/raea-models/beat-this/beat_this_small0.onnx "$stage/share/raea/models/beat-this/"
 # the agent skills (sdk/skills: raea, raea-bevy), which the installer copies into ~/.claude/skills; raea-bevy's topic files
 # are links to the craft guides, so they go as the files they point to
 skills=$(mktemp -d)

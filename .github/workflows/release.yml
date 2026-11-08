@@ -42,9 +42,10 @@ jobs:
           - os: macos-15
             lib: libraea_bundle.dylib
             extra: raea-perceive
+          # raea-perceive (`raea song`'s map) builds off Apple since #43
           - os: ubuntu-24.04
             lib: libraea_bundle.so
-            extra: ""
+            extra: raea-perceive
     runs-on: ${{ matrix.os }}
     # a cold thin-LTO build of raea-cli with the plugin catalog is the long part; GitHub's own limit is 6 hours
     timeout-minutes: 340
@@ -140,20 +141,30 @@ jobs:
           bun-version: 1.4.2
       - name: The runtime's packages
         run: for d in sdk/react/js sdk/react/tw; do (cd "$d" && bun install --frozen-lockfile); done
+      # `raea song`'s beat model, which release.sh packs (into Git bash's ~/.local/share/raea-models, as on the others)
+      - name: Models (pinned by URL and sha256 in tools/release/models.tsv)
+        run: |
+          while IFS=$'\t' read -r path url sha; do
+            case $path in ''|'#'*) continue ;; esac
+            mkdir -p "$HOME/.local/share/raea-models/$(dirname "$path")"
+            curl -fsSL "$url" -o "$HOME/.local/share/raea-models/$path"
+            echo "$sha  $HOME/.local/share/raea-models/$path" | sha256sum -c -
+          done < <(tr -d '\r' < tools/release/models.tsv)
       # the app targets' hosts a cargo call each: with raea-cli's crates in one call taffy's features unify and
-      # rune-taffy doesn't build
+      # rune-taffy doesn't build; raea-perceive (`raea song`'s map, #43) a call of its own too
       - name: Build
         run: |
           feat=$(bash tools/bevy-plugins.sh features sdk/raea/bench/bevy-plugins)
           cargo build --profile dist --locked -p raea-cli --bin raea --no-default-features --features "$feat"
           cargo build --profile dist --locked -p raea-rune-host
           cargo build --profile dist --locked -p raea-page-host --features window
+          cargo build --profile dist --locked -p raea-perceive
       # which DLLs raea needs from the machine (the CRT's come from the VC++ redistributable)
       - name: What raea.exe imports
         run: |
-          { echo '### what raea.exe and raea_bundle.dll import'; echo '```'
+          { echo '### what raea.exe, raea_bundle.dll and raea-perceive.exe import'; echo '```'
             dumpbin=$(ls "/c/Program Files/Microsoft Visual Studio"/*/*/VC/Tools/MSVC/*/bin/HostX64/x64/dumpbin.exe | head -1)
-            "$dumpbin" -nologo -dependents target/dist/raea.exe target/dist/raea_bundle.dll | grep -iE '\.dll$|Dump of' | sed 's/^ *//'
+            "$dumpbin" -nologo -dependents target/dist/raea.exe target/dist/raea_bundle.dll target/dist/raea-perceive.exe | grep -iE '\.dll$|Dump of' | sed 's/^ *//'
             echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY" || true
       # release.sh's checks render on Mesa's lavapipe (software Vulkan, MIT; on the runner only, never in the zip): the
       # runner has no GPU, and WARP, Windows' own software DX12, crashes compiling one of Bevy's compute shaders there
@@ -166,6 +177,19 @@ jobs:
         env:
           RAEA_CHECK_DIR: ${{ runner.temp }}/release-check
         run: bash tools/release.sh "${TAG#v}" target/dist HEAD
+      # live play on Windows (PT20 left it unproven): bevy-ts's play cases, `play --offscreen` with an input script and
+      # a snapshot's pixels probed, run by the raea just built; check.sh reads the pixels with ImageMagick, which the
+      # image has only sometimes, and choco's PATH change doesn't reach the next step, so its folder goes on GITHUB_PATH
+      - name: ImageMagick (check.sh reads a snapshot's pixels)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) { choco install imagemagick -y --no-progress | Out-Null }
+          $im = Get-ChildItem "C:\Program Files" -Directory -Filter "ImageMagick-*" | Select-Object -First 1
+          if ($im) { Add-Content $env:GITHUB_PATH $im.FullName }
+      - name: Live play (bevy-ts's play cases)
+        run: |
+          b="$PWD/target/dist/raea.exe"
+          RAEA_BIN="$b" RAEA_PLUGIN_BIN="$b" bash sdk/raea/bench/bevy-ts/check.sh $(grep -l '^// play:' sdk/raea/bench/bevy-ts/cases/*.tsx) | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/attest-build-provenance@v2
         with:
           subject-path: dist/raea-*.zip

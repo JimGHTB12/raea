@@ -2,8 +2,9 @@
 # The check every release archive passes (tools/release.sh runs it on the archive it just made; release.yml's
 # windows-verify job runs it again on a fresh Windows runner, from the archive alone): unpacked into a fresh folder,
 # with RAEA_NO_TREE=1 so it can't be reading a checkout, its raea renders a frame, has the plugin catalog, prints a
-# craft guide and writes styles.gen.ts; its binaries name none of raea's API, nothing in it looks like a key, and a
-# Windows archive holds no Microsoft file (the CRT comes from the VC++ redistributable; docs/handoff/ports.md).
+# craft guide, writes styles.gen.ts and maps a song; its binaries name none of raea's API, nothing in it looks like a
+# key, and a Windows archive holds no Microsoft file (the CRT comes from the VC++ redistributable;
+# docs/handoff/ports.md).
 #
 #   tools/release-check.sh ARCHIVE     raea-VERSION-PLATFORM.tar.gz or .zip
 set -eu
@@ -87,6 +88,23 @@ for t in web native; do
 done
 grep -q "unsigned" "$check/app/native.log" || { tail -5 "$check/app/native.log" >&2; fail "the native film's report doesn't say it's unsigned"; }
 ! grep -qa c2pa "$check/app/native.mp4" || fail "the public engine's native film carries Content Credentials"
+# raea song on every platform (#43): the raea-perceive beside raea maps a 12 s drum loop at 120 BPM (perl writes it:
+# every runner has perl, Git's bash too) with the beat model the release ships, copied into a models folder of the
+# check's own (HOME, and LOCALAPPDATA on Windows)
+mkdir -p "$check/song/home"
+perl - "$check/song/loop.wav" <<'PL'
+my ($out) = @ARGV; my $sr = 22050; my $n = 12 * $sr; my @s; srand(1);
+for my $i (0 .. $n - 1) {
+  my $b = 2 * $i / $sr; my $ph = ($b - int($b)) / 2; my $h = 2 * $b; my $hp = ($h - int($h)) / 4;
+  my $kick = sin(2 * 3.14159265 * (50 + 100 * exp(-$ph * 40)) * $ph) * exp(-$ph * 12) * (int($b) % 4 == 0 ? 0.9 : 0.6);
+  push @s, int(32767 * 0.8 * ($kick + (rand() * 2 - 1) * exp(-$hp * 120) * 0.15));
+}
+open my $f, '>:raw', $out or die "$out: $!";
+print $f 'RIFF', pack('V', 36 + 2 * $n), 'WAVEfmt ', pack('VvvVVvv', 16, 1, 1, $sr, 2 * $sr, 2, 16), 'data', pack('V', 2 * $n), pack('s<*', @s);
+PL
+(cd "$check/song" && HOME="$check/song/home" LOCALAPPDATA="$check/song/home" RAEA_NO_TREE=1 "$raea" song loop.wav > song.log 2>&1) || { tail -20 "$check/song/song.log" >&2; fail "the unpacked raea didn't map a song"; }
+tempo=$(jq -r '.tempo' "$check/song/loop.song.json" | tr -d '\r')
+awk -v t="$tempo" 'BEGIN { exit !(t >= 118 && t <= 122) }' || fail "raea song read the 120 BPM loop as $tempo BPM"
 # engine only: no raea API in the binaries, nothing key-shaped anywhere
 api=$(cat "$check"/raea/bin/* | grep -aoE '(api|sign)\.raea\.io|RAEA_(SIGN|GEN)_TOKEN' | sort -u | tr '\n' ' ' || true)
 [ -z "$api" ] || fail "the binaries name raea's API ($api): build raea-cli with --no-default-features"
