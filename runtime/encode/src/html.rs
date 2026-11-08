@@ -82,6 +82,10 @@ pub fn lower(path: &Path) -> Result<Lowered, String> {
 pub fn render_file(edit: &str, out: &Path, opts: &crate::RenderOpts) -> Result<(), String> {
     let path = PathBuf::from(edit);
     let dir = crate::dir_of(edit);
-    let l = lower(&path)?;
+    let mut l = lower(&path)?;
+    // --alpha: the canvas clear, so the PNGs are transparent where the page draws nothing (#32)
+    if opts.alpha {
+        l.rows[0].vals.insert("bg".into(), V::S("#00000000".into()));
+    }
     crate::render_with(&l.prog, &l.rows, &dir, out, opts, Some(l.page))
 }

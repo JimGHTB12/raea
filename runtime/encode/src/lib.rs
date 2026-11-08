@@ -36,6 +36,8 @@ pub struct RenderOpts {
     /// RGB exactly; 8-bit limited-range H.264 errs up to 2/255 by its own round trip. The direct and fed renders
     /// take it; RAEA_EXPORT_10BIT=1 asks for it too. 3D through the engine stays 8-bit.
     pub ten_bit: bool,
+    /// PNGs kept transparent where the composition draws nothing: an HTML page's canvas clear instead of white (#32)
+    pub alpha: bool,
 }
 
 impl RenderOpts {

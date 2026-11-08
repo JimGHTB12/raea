@@ -183,18 +183,7 @@ impl CpuView {
         let rows2d: Vec<serde_json::Value> = rows.iter().filter(|t| crate::rows::is_2d(&t.kind)).map(|t| crate::rows::row2d(t, rows).1).collect();
         let rw = crate::rows2d::Rows::new(&rows2d, w, h, prog.frames.max(1), dir)?;
         // the background: the camera's clear colour
-        let bg = rows.iter().find(|t| t.kind == "camera").and_then(|t| match t.vals.get("bg") {
-            Some(V::S(s)) => Some(s.clone()),
-            _ => None,
-        });
-        let rgb = bg
-            .and_then(|s| {
-                let hx = s.trim_start_matches('#').to_string();
-                let b = |i: usize| u8::from_str_radix(hx.get(i..i + 2)?, 16).ok();
-                Some([b(0)?, b(2)?, b(4)?])
-            })
-            .unwrap_or([13, 10, 26]);
-        let word = rgb[0] as u32 | (rgb[1] as u32) << 8 | (rgb[2] as u32) << 16 | 255 << 24;
+        let word = u32::from_le_bytes(crate::camera_bg(&rows));
         let threads = std::env::var("RAEA_CPU_THREADS").ok().and_then(|t| t.parse().ok())
             .unwrap_or_else(|| std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4));
         Ok(CpuView {

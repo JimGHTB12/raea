@@ -1,4 +1,5 @@
-//! The direct render: frames in order made NV12 on the device and read back three in flight, from rows or fed in.
+//! The direct render: frames in order made NV12 (or P010, or kept RGBA) on the device and read back three in flight,
+//! from rows or fed in.
 
 use super::*;
 
@@ -24,13 +25,16 @@ impl GpuView {
         use std::sync::Arc;
         const RING: usize = 3;
         let (w, h) = (self.w, self.h);
-        // P010: two bytes a sample (a luma word holds two samples, a chroma word one Cb Cr pair)
-        let (words, bytes) = if self.ten_bit {
+        // RGBA: the composite itself (`rgba`); P010: two bytes a sample (a luma word holds two samples, a chroma word one
+        // Cb Cr pair)
+        let (words, bytes) = if self.rgba {
+            ((w * h) as usize, (w * h * 4) as usize)
+        } else if self.ten_bit {
             ((w * h / 2 + w * h / 4 + 1) as usize, (w * h * 3) as usize)
         } else {
             ((w * h / 4 + w * h / 8 + 1) as usize, (w * h * 3 / 2) as usize)
         };
-        if self.nv12.is_none() {
+        if self.nv12.is_none() && !self.rgba {
             let k = raea_core_k::parse(if self.ten_bit { P010BUF_K } else { NV12BUF_K })?;
             let sc: HashMap<&str, i32> = [("w", w as i32), ("h", h as i32), ("T_w", w as i32)].into();
             let c = self.gpu.compile_tex(&k, &["F"], &["T"], &sc, &["px"])?;
@@ -105,14 +109,19 @@ impl GpuView {
             dt.decode_upload += ft.decode_upload;
             dt.uploads += ft.uploads;
             let t = Instant::now();
-            let (c, nb) = self.nv12.as_ref().unwrap();
-            self.gpu.dispatch_ts(c, &[&self.out], &[&self.bg_view], &[nb], words, false, self.ts.as_ref().map(|q| (q, 4)));
+            let src = match self.nv12.as_ref().filter(|_| !self.rgba) {
+                Some((c, nb)) => {
+                    self.gpu.dispatch_ts(c, &[&self.out], &[&self.bg_view], &[nb], words, false, self.ts.as_ref().map(|q| (q, 4)));
+                    nb
+                }
+                None => &self.out,
+            };
             let slot = n % RING;
             let mut enc = self.gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("raea-render frame") });
             if let Some(q) = self.ts.as_ref() {
                 enc.write_timestamp(q, 6);
             }
-            enc.copy_buffer_to_buffer(nb, 0, &ring[slot], 0, (words * 4) as u64);
+            enc.copy_buffer_to_buffer(src, 0, &ring[slot], 0, (words * 4) as u64);
             if let Some(q) = self.ts.as_ref() {
                 enc.write_timestamp(q, 7);
                 enc.resolve_query_set(q, 0..16, &resolve, 0);

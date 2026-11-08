@@ -155,6 +155,8 @@ pub struct GpuView {
     /// the direct render hands P010 (p010buf.k: 10-bit BT.709 limited, w x h x 3 bytes) instead of NV12, for a
     /// 10-bit encoder (RenderOpts.ten_bit)
     pub ten_bit: bool,
+    /// the direct render hands the composite as it is, RGBA8 premultiplied (w x h x 4), for PNGs from a page (#32)
+    pub rgba: bool,
     /// RAEA_GPU_TIMES: timestamps around the direct render's GPU stages (8 per frame)
     ts: Option<wgpu::QuerySet>,
     /// uploads timed this frame (query pairs from 8)
@@ -202,18 +204,8 @@ impl GpuView {
         let rows2d: Vec<serde_json::Value> = rows.iter().filter(|t| crate::rows::is_2d(&t.kind)).map(|t| crate::rows::row2d(t, rows).1).collect();
         let rw = crate::rows2d::Rows::new(&rows2d, w, h, prog.frames.max(1), dir)?;
         // the background: the camera's clear colour (the engine's camera clears to it)
-        let bg = rows.iter().find(|t| t.kind == "camera").and_then(|t| match t.vals.get("bg") {
-            Some(V::S(s)) => Some(s.clone()),
-            _ => None,
-        });
-        let rgb = bg
-            .and_then(|s| {
-                let h = s.trim_start_matches('#').to_string();
-                let b = |i: usize| u8::from_str_radix(h.get(i..i + 2)?, 16).ok();
-                Some([b(0)?, b(2)?, b(4)?])
-            })
-            .unwrap_or([13, 10, 26]);
-        let texels: Vec<u8> = (0..(w * (h + 1)) as usize).flat_map(|_| [rgb[0], rgb[1], rgb[2], 255]).collect();
+        let bg = crate::camera_bg(&rows);
+        let texels: Vec<u8> = (0..(w * (h + 1)) as usize).flat_map(|_| bg).collect();
         let tex = gpu.device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: wgpu::Extent3d { width: w, height: h + 1, depth_or_array_layers: 1 },
@@ -262,6 +254,7 @@ impl GpuView {
             no_mask,
             nv12: None,
             ten_bit: false,
+            rgba: false,
             ts: None,
             ts_uploads: 0,
             upload_cpu_ms: 0.0,

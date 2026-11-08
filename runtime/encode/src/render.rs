@@ -15,6 +15,20 @@ pub fn render(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &RenderO
 /// textures). `prog` is the picture's program (its size, rate, length and background; no rows: the page is the
 /// picture), and `sound_of` the sound's, asked for once the last frame is made (the caller learns it from the frames):
 /// a track mixed and mastered already (the one mixer core's bounce, raea-mixer).
+/// The composite is premultiplied; a PNG holds straight colour. Only a transparent clear (render --alpha) leaves alpha
+/// under 255, so an opaque frame is written as it comes.
+fn straight(mut px: Vec<u8>) -> Vec<u8> {
+    for p in px.chunks_exact_mut(4) {
+        let a = p[3] as u32;
+        if a > 0 && a < 255 {
+            for c in &mut p[..3] {
+                *c = ((*c as u32 * 255 + a / 2) / a).min(255) as u8;
+            }
+        }
+    }
+    px
+}
+
 /// A direct render's frame `f`: to the encoder's queue, or with none (an .txt out) its NV12 hash to `lines`.
 fn direct_sink(tx: Option<&std::sync::mpsc::SyncSender<Vec<u8>>>, lines: &mut Vec<String>, f: i64, px: Vec<u8>) -> Result<(), String> {
     if let Some(tx) = tx {
@@ -211,13 +225,24 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
         let (w, h) = (v.w, v.h);
         let setup_s = t0.elapsed().as_secs_f64();
         let hashes = out.extension().is_some_and(|x| x == "txt");
-        let ten = ro.wants_10bit() && !hashes;
-        v.ten_bit = ten;
+        // PNGs (#32): OUT.png is one frame (the first unless --at names it), a folder one PNG a frame, each read back
+        // as the composite's RGBA
+        let still = out.extension().is_some_and(|x| x == "png");
+        let pngs = still || !out.extension().is_some_and(|x| matches!(x.to_str(), Some("mp4" | "mov" | "txt")));
+        let list = if still && ro.frames.is_none() { vec![0] } else { list };
+        if still && list.len() != 1 {
+            return Err(format!("{} is one frame, and {} were asked for: --at one frame, or -o a folder for several", out.display(), list.len()));
+        }
+        if pngs && !still {
+            std::fs::create_dir_all(out).map_err(|e| format!("{}: {e}", out.display()))?;
+        }
+        let ten = ro.wants_10bit() && !hashes && !pngs;
+        (v.ten_bit, v.rgba) = (ten, pngs);
         let mut lines = Vec::new();
         // the encoder on its own thread (frames over a short queue), so encoding overlaps the next frames
         let mut tx = None;
         let mut enc_thread = None;
-        if !hashes {
+        if !hashes && !pngs {
             let mix = match &ro.sound { Some(a) => Some(a.clone()), None => sound_tl(&prog, &tl, &rows, dir)? };
             let codec = ro.codec.clone().unwrap_or_else(raea_sys_frame::media_backend);
             let opts = ro.encode_opts(w, h, prog.fps, true, engine::has_3d(&rows), ten);
@@ -238,8 +263,12 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
         let mut n = 0;
         let dt = v
             .render_nv12(&list, |f, px| {
+                match pngs {
+                    true => save_png(&if still { out.to_path_buf() } else { out.join(format!("frame-{f:05}.png")) }, &straight(px), w, h)?,
+                    false => direct_sink(tx.as_ref(), &mut lines, f, px)?,
+                }
                 n += 1;
-                direct_sink(tx.as_ref(), &mut lines, f, px)
+                Ok(())
             });
         let t = std::time::Instant::now();
         drop(tx);
@@ -372,23 +401,7 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
     } else {
         std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
         let nv12 = e.nv12;
-        // the composite is premultiplied; a PNG holds straight colour. Only a transparent clear (render --alpha) leaves
-        // alpha under 255, so an opaque frame is written as it comes
-        let rgba_of = |px: Vec<u8>| {
-            if nv12 {
-                return raea_io_media::yuv::nv12_to_rgba(&px, w as usize, h as usize);
-            }
-            let mut px = px;
-            for p in px.chunks_exact_mut(4) {
-                let a = p[3] as u32;
-                if a > 0 && a < 255 {
-                    for c in &mut p[..3] {
-                        *c = ((*c as u32 * 255 + a / 2) / a).min(255) as u8;
-                    }
-                }
-            }
-            px
-        };
+        let rgba_of = |px: Vec<u8>| if nv12 { raea_io_media::yuv::nv12_to_rgba(&px, w as usize, h as usize) } else { straight(px) };
         let mut n = 0;
         e.frames(&list, |f, px| {
             save_png(&out.join(format!("frame-{f:05}.png")), &rgba_of(px), w, h)?;
