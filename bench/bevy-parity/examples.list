@@ -112,3 +112,5 @@ ui/text/text_input
 ui/ui_material
 ui/text/system_fonts
 ui/text/font_atlas_debug
+3d/two_passes
+3d/split_screen

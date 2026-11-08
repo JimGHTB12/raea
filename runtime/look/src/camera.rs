@@ -28,9 +28,26 @@ pub fn env_shown(sent: Option<&V>, cam: &mut BTreeMap<String, V>) {
     cam.insert("env_srcs".into(), V::S(serde_json::to_string(&list).unwrap_or_default()));
 }
 
-pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>) {
-    let cams: Vec<Option<Item>> = all.iter().map(|its| its.iter().find(|i| i.kind == "camera").cloned()).collect();
-    let id = "cam";
+/// The camera row (`row`, id "cam": the scene's first camera) and a row for each camera after it (cam1, cam2, ...), each
+/// drawn in its `order` over the ones before, cleared or not by its `clear` (<Camera3d order clear_color>, Bevy's
+/// Camera: two_passes, split_screen), clearing to the first's colour when it clears.
+pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>) -> Vec<BTreeMap<String, V>> {
+    one(all, p, row, 0, "cam");
+    let n = all.iter().map(|its| its.iter().filter(|i| i.kind == "camera").count()).max().unwrap_or(0);
+    (1..n)
+        .map(|k| {
+            let id = format!("cam{k}");
+            let mut r: BTreeMap<String, V> = row.get("bg").map(|b| ("bg".to_string(), b.clone())).into_iter().collect();
+            r.insert("id".into(), V::S(id.clone()));
+            one(all, p, &mut r, k, &id);
+            r
+        })
+        .collect()
+}
+
+/// The `k`th camera's row: where it is and looks frame by frame, its lens, the scene's ambient light and looks.
+fn one(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>, k: usize, id: &str) {
+    let cams: Vec<Option<Item>> = all.iter().map(|its| its.iter().filter(|i| i.kind == "camera").nth(k).cloned()).collect();
     if cams.iter().any(Option::is_some) {
         let its = filled(&cams);
         let pos: Vec<[f64; 3]> = its.iter().map(|c| vec3(&c.props, "position", [0.0, 0.0, 5.0])).collect();
@@ -65,6 +82,22 @@ pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>)
             column(p, row, id, "focus", &its.iter().map(focus_of).collect::<Vec<_>>());
         }
         let first = &its[0].props;
+        if let Some(o) = num(first, "order") {
+            row.insert("order".into(), V::N(o));
+        }
+        if let Some(c) = first.get("clear").and_then(Value::as_str) {
+            row.insert("clear".into(), V::S(c.into()));
+        }
+        if let Some(b) = first.get("bg").and_then(Value::as_str) {
+            row.insert("bg".into(), V::S(b.into()));
+        }
+        // its viewport (Bevy's Viewport: physical px from the target's top left)
+        let vp = |k: &str, i: usize| first.get("viewport").and_then(|v| v.get(k)).and_then(|v| v.get(i)).and_then(Value::as_f64);
+        for (col, k, i) in [("vp_x", "physical_position", 0), ("vp_y", "physical_position", 1), ("vp_w", "physical_size", 0), ("vp_h", "physical_size", 1)] {
+            if let Some(x) = vp(k, i) {
+                row.insert(col.into(), V::N(x));
+            }
+        }
         for (k, col) in [("near", "near"), ("far", "far")] {
             if let Some(v) = num(first, k) {
                 row.insert(col.into(), V::N(v));

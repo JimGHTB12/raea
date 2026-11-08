@@ -4,7 +4,7 @@ import { meshLayers } from "../layers";
 import { BevyComponent, DepthOfField, Fog, dofOf, eulerOf, type DepthOfFieldProps, type FogProps, type Vec3 } from "../3d";
 import { AmbientLight as AmbientLight3, Mesh, OrthographicCamera, PerspectiveCamera, type MeshProps } from "../three";
 import { Transform as TransformComponent } from "@raea/app/bevy";
-import { AmbientLight, ambientOf, type AmbientLightProps } from "./all";
+import { AmbientLight, LinearRgba, Srgba, ambientOf, type AmbientLightProps } from "./all";
 import { cameraFog } from "./fog";
 
 /** A rotation as glam's Quat: [x, y, z, w]. */
@@ -191,14 +191,37 @@ export interface Camera3dProps {
   projection?: Projection;
   /** Bevy's RenderLayers on the camera: it draws only the parts on these layers (a Mesh3d's `layers`; [0] by default) */
   layers?: number[];
+  /** Bevy's Camera order: a camera with a higher one draws after (over) those with lower; 0 by default */
+  order?: number;
+  /** Bevy's ClearColorConfig: "Default" (the clear colour), "None" (drawn over what the cameras before it drew, as a
+   *  second pass), or { Custom: colour } */
+  clear_color?: ClearColorConfig;
+  /** Bevy's Viewport: the camera draws into this region of the window only, `physical_position` from its top left and
+   *  `physical_size` big (whole px, at a scale factor of 1) */
+  viewport?: CameraViewport;
   children?: ReactNode;
 }
+
+/** Bevy's Viewport on a Camera, its depth range Bevy's default 0..1. */
+export interface CameraViewport {
+  physical_position: [number, number];
+  physical_size: [number, number];
+}
+
+/** Bevy's ClearColorConfig. @bevy bevy_camera::clear_color::ClearColorConfig */
+export type ClearColorConfig = "Default" | "None" | { Custom: Srgba | LinearRgba };
 
 /** Bevy's Camera3d with its Transform and Projection: it looks along its -Z, +Y up, as Bevy's cameras do.
  * @bevy bevy_camera::components::Camera3d
  * @bevy bevy_camera::camera::Camera
  * @bevy bevy_camera::projection::Projection */
-export function Camera3d({ transform, projection = { Perspective: {} }, layers, children: kids }: Camera3dProps) {
+export function Camera3d({ transform, projection = { Perspective: {} }, layers, order, clear_color, viewport, children: kids }: Camera3dProps) {
+  if (order !== undefined && !Number.isInteger(order)) throw new TypeError(`Camera3d: order is a whole number, got ${order}`);
+  const clear = clearOf(clear_color);
+  if (viewport !== undefined) {
+    const ok = (v: unknown, min: number) => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= min);
+    if (!ok(viewport.physical_position, 0) || !ok(viewport.physical_size, 1)) throw new RangeError(`Camera3d: viewport is { physical_position: [x, y] >= 0, physical_size: [w, h] >= 1 } in whole px, got ${JSON.stringify(viewport)}`);
+  }
   // Bevy's DepthOfField on the camera: its focal_distance is the camera's focus, the rest the scene's DepthOfField
   let dof: DepthOfFieldProps | undefined;
   // Bevy 0.20's AmbientLight on the camera: its own ambient, over GlobalAmbientLight (the scene's other ambient lights)
@@ -229,7 +252,7 @@ export function Camera3d({ transform, projection = { Perspective: {} }, layers, 
   // `up` only for a camera that rolls: one that doesn't is placed as the old camera is (+Y up), and an `up` sends its
   // row down the engine's roll path (matchmove.rs sync_view), which draws a moving camera elsewhere
   const level = Math.abs(f[1]) < 1 - 1e-9 && Math.abs(qdot(q, lookingAt(eye, lookAt, [0, 1, 0]))) > 1 - 1e-9;
-  const look = { position: eye, lookAt, ...(level ? {} : { up: Quat.mulVec3(q, [0, 1, 0]) }), ...(layers ? { layers } : {}) };
+  const look = { position: eye, lookAt, ...(level ? {} : { up: Quat.mulVec3(q, [0, 1, 0]) }), ...(layers ? { layers } : {}), ...(order ? { order } : {}), ...clear, ...(viewport ? { viewport } : {}) };
   if ("Orthographic" in projection) {
     const o = projection.Orthographic;
     const height = o.scaling_mode?.FixedVertical.viewport_height;
@@ -249,6 +272,16 @@ export function Camera3d({ transform, projection = { Perspective: {} }, layers, 
       {ambient}
     </>
   );
+}
+
+// a ClearColorConfig as the camera row's clear and bg
+function clearOf(c: ClearColorConfig | undefined): { clear?: "none"; bg?: string } {
+  if (c === undefined || c === "Default") return {};
+  if (c === "None") return { clear: "none" };
+  const col = typeof c === "object" && c !== null ? c.Custom : undefined;
+  if (col instanceof LinearRgba) return { bg: col.to_srgba().to_hex() };
+  if (col instanceof Srgba) return { bg: col.to_hex() };
+  throw new TypeError(`Camera3d: clear_color is "Default", "None" or { Custom: Srgba | LinearRgba }, got ${JSON.stringify(c)}`);
 }
 
 /** Bevy's Hdr: put it inside the <Camera3d> to render it to a float target, tone-mapped after, as Bevy's Hdr camera

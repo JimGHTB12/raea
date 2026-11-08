@@ -48,7 +48,7 @@ impl Engine {
             match t.kind.as_str() {
                 "camera" => {
                     spawn_camera(world, e, vals, inserted, &self.dir, (prog.width, prog.height), RenderTarget::Image(self.target.clone().into()), has_3d)?;
-                    camera = Some(e);
+                    camera.get_or_insert(e); // (the first camera: a second draws over it, two_passes)
                 }
                 k if is_3d_spawn(k) => {
                     spawn_3d(world, e, t, inserted, &self.dir)?;

@@ -175,6 +175,12 @@ export interface PerspectiveCameraProps {
    * and the window's top-left `x`, `y` in it. A crop of footage that keeps its lens's centre (<Matchmove> in 9:16 from
    * 16:9 footage) */
   view?: { width: number; height: number; x: number; y: number };
+  /** <Camera3d>'s order and clear_color, as the camera row has them: its order among the cameras, "none" to draw over
+   *  the cameras before without clearing, and the colour it clears to (#rrggbb[aa]) */
+  order?: number;
+  clear?: "none";
+  bg?: string;
+  viewport?: { physical_position: [number, number]; physical_size: [number, number] };
 }
 
 /** The viewpoint the scene is drawn from.

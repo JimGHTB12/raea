@@ -10,6 +10,8 @@ use raea_core_program::eval::{self, Tup};
 use raea_core_program::ir::{Program, V};
 
 pub mod bevy_api;
+/// a camera row's order, clear and viewport among the cameras on its target
+pub mod camera;
 // the edit's rows as entities, each column a component of its own, found by kind and id
 pub mod store;
 // the frame loop's own state (Stages, the frame tag, the overlay and output resources)

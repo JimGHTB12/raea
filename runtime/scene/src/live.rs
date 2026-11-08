@@ -95,11 +95,8 @@ impl LiveScene {
         if !all[0].iter().any(|i| i.kind == "camera") {
             // no camera this frame: a render holds the one before (filled)
             for k in ["x", "y", "z", "look_x", "look_y", "look_z", "fov", "focus"] {
-                match self.cam.get(k) {
-                    Some(v) => {
-                        cam.insert(k.into(), v.clone());
-                    }
-                    None => {}
+                if let Some(v) = self.cam.get(k) {
+                    cam.insert(k.into(), v.clone());
                 }
             }
         }
@@ -207,7 +204,9 @@ impl LiveScene {
         let (cam, rows) = self.current(f);
         let mut p = Program { fps, width: w, height: h, frames: 1, ..Default::default() };
         self.cam = cam.clone();
-        p.spawns.push(("camera".into(), vec![cam]));
+        // the cameras after the first (two_passes' second pass), as this frame places them: they hold that place in play
+        let more = camera(&[items_of(f.scene)], &mut Program::default(), &mut cam.clone());
+        p.spawns.push(("camera".into(), std::iter::once(cam).chain(more).collect()));
         for (kind, id, row) in rows {
             let first = row.clone();
             self.rows.insert(id, LiveRow { kind: kind.clone(), first, sent: row.clone(), recoloured: false, missing: 0, seen: false });

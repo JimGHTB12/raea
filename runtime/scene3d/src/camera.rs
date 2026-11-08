@@ -17,6 +17,8 @@ pub fn up_for(dir: Vec3) -> Vec3 {
 pub fn camera(world: &mut World, e: Entity, vals: &BTreeMap<String, V>) {
     let g = |k: &str, d: f32| num(vals, k, d);
     layers(world, e, vals);
+    // its order, clear and viewport among the cameras on its target (<Camera3d order clear_color viewport>)
+    raea_sys_frame::camera::camera_pass(world, e, vals);
     // shadow quality (a <Shadows>): the sun's and spots' maps are 4096 texels a side unless it says otherwise (Bevy's
     // 2048 speckles and blurs a film's shadows); point lights' cube maps half that, 1024 by default as Bevy's
     if !preview() {
