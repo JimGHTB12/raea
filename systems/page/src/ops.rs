@@ -268,6 +268,8 @@ pub fn apply(doc: &mut BaseDocument, nodes: &mut Nodes, ops: Vec<Op>) {
             }
         }
     }
+    // (a <style> whose text changed and that was removed later in the same batch is gone: #24)
+    styles.retain(|s| doc.get_node(*s).is_some());
     for s in styles {
         doc.process_style_element(s);
     }

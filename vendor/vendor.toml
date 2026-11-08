@@ -63,7 +63,7 @@ exit = "a Blitz release that draws these"
 path = "vendor/blitz-dom"
 upstream = "crates.io:0.3.0-beta.4"
 kind = "patch"
-reason = "inline flex/grid baselines, auto table columns, table row rects, inline image load events, SVG text fonts, SVG non-scaling strokes, url() filters; Blitz main's #1244 and #1246"
+reason = "inline flex/grid baselines, auto table columns, table row rects, inline image load events, SVG text fonts, SVG non-scaling strokes, url() filters; Blitz main's #1244 and #1246; a node removed in a mutation batch dropped from the style, form and title nodes the batch flushes (raea #24)"
 exit = "a Blitz release with #1244/#1246 and these"
 
 [parley_engine]

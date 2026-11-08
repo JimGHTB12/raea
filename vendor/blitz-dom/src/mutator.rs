@@ -995,6 +995,14 @@ impl<'doc> DocumentMutator<'doc> {
 
     fn process_removed_subtree(&mut self, node_id: NodeId) {
         self.doc.iter_subtree_mut(node_id, |node_id, doc| {
+            // raea: a node leaving the document isn't processed when the batch flushes, as it may be dropped by then
+            // (a <style> recorded when its text child was removed, then removed itself: `flush` indexed the dropped
+            // node and panicked, "invalid SlotMap key used", raea #24)
+            self.style_nodes.remove(&node_id);
+            self.form_nodes.remove(&node_id);
+            if self.title_node == Some(node_id) {
+                self.title_node = None;
+            }
             doc.nodes[node_id]
                 .flags
                 .set(NodeFlags::IS_IN_DOCUMENT, false);
@@ -1371,6 +1379,30 @@ mod test {
     use blitz_traits::shell::{ColorScheme, ShellProvider, Viewport};
 
     use crate::{Attribute, BaseDocument, DocumentConfig, ElementData, NodeData, qual_name};
+
+    /// raea #24: a <style> removed in the same batch as its text, the text first (which records the <style> to be parsed
+    /// again when the batch flushes): the flush used to index the dropped <style> and panic, "invalid SlotMap key used"
+    #[test]
+    fn a_style_removed_after_its_text_in_one_batch_is_not_parsed() {
+        let mut doc = BaseDocument::new(DocumentConfig::default());
+        let root = doc.root_node().id;
+        let (style, text) = {
+            let mut m = doc.mutate();
+            let div = m.create_element(qual_name!("div", html), vec![]);
+            let style = m.create_element(qual_name!("style", html), vec![]);
+            let text = m.create_text_node(".a { color: #fff; }");
+            m.append_children(style, &[text]);
+            m.append_children(div, &[style]);
+            m.append_children(root, &[div]);
+            (style, text)
+        };
+        {
+            let mut m = doc.mutate();
+            m.remove_and_drop_node(text);
+            m.remove_and_drop_node(style);
+        }
+        assert!(doc.get_node(style).is_none());
+    }
 
     #[test]
     fn media_type_defaults_to_screen() {
