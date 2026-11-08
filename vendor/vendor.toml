@@ -148,7 +148,7 @@ exit = "a Firewheel release with #144"
 path = "vendor/vello_shaders"
 upstream = "crates.io:0.11.0"
 kind = "patch"
-reason = "linear-light blending in fine.wgsl (Config.blend_linear, set by vello_encoding's set_blend_linear): every colour, ramp and texel decoded from sRGB, blended, and encoded once, the blend stack kept sRGB-encoded, so raea-page blends a bevy_ui page as Bevy's UI does on an sRGB target"
+reason = "linear-light blending in fine.wgsl (Config.blend_linear, set by vello_encoding's set_blend_linear): every colour, ramp and texel decoded from sRGB, blended, and encoded once, the blend stack kept sRGB-encoded, so raea-page blends a bevy_ui page as Bevy's UI does on an sRGB target; area coverage summed in fixed point (i32, 2^20 a pixel) so a scene draws the same whatever order its segments arrive in (raea #20)"
 exit = "a Vello release that blends in linear light on request"
 
 [rune-taffy]

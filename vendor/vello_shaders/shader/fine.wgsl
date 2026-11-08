@@ -1002,13 +1002,19 @@ const PIXELS_PER_THREAD = 4u;
 // to wire this so it's a dynamic choice (even per-path).
 //
 // FIXME: This should return an array when https://github.com/gfx-rs/naga/issues/1930 is fixed.
+// raea #20: a tile's segments come in the order path_count's atomicAdd gave them, which changes from run to run, and
+// f32 sums of their coverage in another order differ in the last bits, so a few pixels of the same scene came out a
+// level apart between renders. Each contribution is summed as a fixed-point i32 (2^20 to the pixel), which no order
+// changes, then made a float once.
+const AREA_ONE: f32 = 1048576.0;
+
 fn fill_path(fill: CmdFill, xy: vec2<f32>, result: ptr<function, array<f32, PIXELS_PER_THREAD>>) {
     let n_segs = fill.size_and_rule >> 1u;
     let even_odd = (fill.size_and_rule & 1u) != 0u;
     var area: array<f32, PIXELS_PER_THREAD>;
-    let backdrop_f = f32(fill.backdrop);
+    var acc: array<i32, PIXELS_PER_THREAD>;
     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
-        area[i] = backdrop_f;
+        acc[i] = fill.backdrop << 20u;
     }
     for (var i = 0u; i < n_segs; i++) {
         let seg_off = fill.seg_data + i;
@@ -1035,13 +1041,16 @@ fn fill_path(fill: CmdFill, xy: vec2<f32>, result: ptr<function, array<f32, PIXE
                 let c = max(b, 0.0);
                 let d = max(xmin, 0.0);
                 let a = (b + 0.5 * (d * d - c * c) - xmin) / (xmax - xmin);
-                area[i] += a * dy;
+                acc[i] += i32(round(a * dy * AREA_ONE));
             }
         }
-        let y_edge = sign(delta.x) * clamp(xy.y - segment.y_edge + 1.0, 0.0, 1.0);
+        let y_edge = i32(round(sign(delta.x) * clamp(xy.y - segment.y_edge + 1.0, 0.0, 1.0) * AREA_ONE));
         for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
-            area[i] += y_edge;
+            acc[i] += y_edge;
         }
+    }
+    for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
+        area[i] = f32(acc[i]) / AREA_ONE;
     }
     if even_odd {
         // even-odd winding rule
