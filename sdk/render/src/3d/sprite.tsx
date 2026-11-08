@@ -1,5 +1,5 @@
 // 2D over the 3D: sprites and flat shapes, drawn over the Canvas3D's 3D by a 2D camera of its own (raea-sys-sprite).
-import { useId } from "react";
+import { Children, isValidElement, useId, type ReactNode } from "react";
 import { node3d } from "./core";
 import type { Quat } from "../bevy3d/core";
 import { samplerSpec, type SamplerSpec } from "./materials";
@@ -53,6 +53,9 @@ export interface SpriteProps extends Place2dProps {
   /** the picture's sampler (Bevy's load_with_settings: { filter, mipmap, wrap, anisotropy }), Bevy's default (linear)
    * otherwise; { filter: "nearest" } is pixel art as Bevy's ImagePlugin::default_nearest() draws it */
   sampler?: SamplerSpec;
+  /** your own <Material> as its child: Bevy's SpriteMaterial, extending the sprite's own material (the shader reads the
+   * sprite's picture, tint and alpha with bevy_sprite_render::sprite_mesh::functions), its uniforms per frame */
+  children?: ReactNode;
 }
 
 type SliceScaleMode = "Stretch" | { Tile: { stretch_value: number } };
@@ -84,6 +87,7 @@ function checkImageMode(m: unknown): void {
  * @bevy bevy_sprite::sprite::Sprite
  * @bevy bevy_sprite_render::sprite_mesh::sprite_mesh_material::SpriteMeshMaterial
  * @bevy bevy_sprite_render::mesh2d::material::MeshMaterial2d<bevy_sprite_render::sprite_mesh::sprite_mesh_material::SpriteMeshMaterial>
+ * @bevy bevy_sprite_render::sprite_mesh::sprite_extended_material::SpriteMaterial
  * @bevy bevy_image::texture_atlas::TextureAtlasLayout */
 export function Sprite(props: SpriteProps) {
   if (typeof props.src !== "string" || props.src === "") throw new TypeError("Sprite: src must be a picture (staticFile(\"x.png\"))");
@@ -103,7 +107,14 @@ export function Sprite(props: SpriteProps) {
   const handled = Object.keys(props).some((k) => /^on[A-Z]/.test(k));
   if (handled && (props.width === undefined || props.height === undefined)) throw new TypeError("Sprite: give width and height to pick it (an on* handler needs its size, which the picture alone doesn't give here)");
   usePointer2d(props.name ?? id, flatOf(props, props.width ?? 0, props.height ?? 0, false), props as unknown as Record<string, unknown>);
-  return node3d("Sprite", props as unknown as Record<string, unknown>);
+  // a <Material> child's spec (the element's type makes it: bevy3d/material.tsx), as a Shape2D's `shader`
+  let shader: unknown;
+  for (const c of Children.toArray(props.children)) {
+    const of = isValidElement(c) ? (c.type as { shaderOf?: (p: unknown) => unknown }).shaderOf : undefined;
+    if (!of || shader) throw new TypeError("Sprite: its one child is a <Material> (Bevy's SpriteMaterial)");
+    shader = of((c as { props: unknown }).props);
+  }
+  return node3d("Sprite", { ...props, children: undefined, ...(shader ? { shader } : {}) } as unknown as Record<string, unknown>);
 }
 
 export interface Shape2DProps extends Place2dProps {

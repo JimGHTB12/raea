@@ -44,15 +44,16 @@ pub fn keyed_vec(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: 
 
 /// A <Material>'s uniforms and storage buffers over the frames (docs/control.feature FC2a), sent as keyed
 /// `own:uniforms` component rows from each frame they change, which raea-sys-shader's own_live.rs packs into the
-/// part's Material; none when they never change (the spec the part is made with holds them). `spec` finds an item's
-/// Material spec: a mesh's material's `shader`, a 2D shape's own. Called after the part's row is pushed.
+/// part's Material; none when they never change over a render's frames (the spec the part is made with holds them),
+/// but one for a single frame (live play's, whose next frame may change them). `spec` finds an item's Material spec: a
+/// mesh's material's `shader`, a 2D part's own. Called after the part's row is pushed.
 pub fn own_uniforms(p: &mut Program, id: &str, its: &[Item], spec: impl Fn(&Item) -> Option<&Value>) {
     let each: Vec<(usize, Value)> = its.iter().enumerate().filter_map(|(f, it)| {
         let s = spec(it).filter(|s| s.get("own").is_some())?;
         let v = serde_json::json!({ "uniforms": s.get("uniforms").cloned().unwrap_or(Value::Null), "buffers": s.get("buffers").cloned().unwrap_or(Value::Null) });
         Some((f, serde_json::json!({ "type": "own:uniforms", "value": v })))
     }).collect();
-    if each.iter().all(|(_, v)| Some(v) == each.first().map(|x| &x.1)) {
+    if its.len() > 1 && each.iter().all(|(_, v)| Some(v) == each.first().map(|x| &x.1)) {
         return;
     }
     // the part's spec carries its track's hash: parts share a Material (as Bevy's share one handle) only when their

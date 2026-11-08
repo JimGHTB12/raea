@@ -3,7 +3,9 @@
 //! the update numbered FRAME (the probe's count) until the next. "Pointer:X:Y" puts the mouse pointer at X, Y in the
 //! window's logical px, ":down" while its primary button is held; the pointer is bevy_picking's, written as the
 //! PointerInput messages a mouse sends (a Move when it moves, a Press and a Release on the button's edges), on the
-//! picture the cameras draw into (the offscreen image while pictures are taken, else the primary window).
+//! picture the cameras draw into (the offscreen image while pictures are taken, else the primary window). Any other
+//! entry is a KeyCode's name ("Space", "KeyA", "ArrowLeft"): held in ButtonInput<KeyCode> while its entry lasts, as
+//! Bevy's keyboard_input_system holds a pressed key (`keys`).
 
 use std::collections::BTreeMap;
 
@@ -16,6 +18,7 @@ use bevy::window::PrimaryWindow;
 pub(crate) struct Script {
     at: BTreeMap<u64, Vec<String>>,
     pointer: Option<(Vec2, bool)>,
+    held: Vec<KeyCode>,
 }
 
 /// The script at RAEA_PARITY_INPUT, if set; a script that can't be read ends the run, as the port's would.
@@ -23,7 +26,7 @@ pub(crate) fn load() -> Option<Script> {
     let p = std::env::var("RAEA_PARITY_INPUT").ok()?;
     let text = std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("RAEA_PARITY_INPUT {p}: {e}"));
     let at: BTreeMap<u64, Vec<String>> = serde_json::from_str(&text).unwrap_or_else(|e| panic!("RAEA_PARITY_INPUT {p}: {{\"FRAME\": [keys]}}: {e}"));
-    Some(Script { at, pointer: None })
+    Some(Script { at, pointer: None, held: Vec::new() })
 }
 
 /// "Pointer:X:Y[:down]" among an entry's keys
@@ -62,4 +65,32 @@ pub(crate) fn scripted(
         out.write(PointerInput::new(PointerId::Mouse, location, PointerAction::Release(PointerButton::Primary)));
     }
     s.pointer = Some(now);
+}
+
+/// This update's keys into ButtonInput<KeyCode>, after Bevy's input systems (and the probe's no_input, which resets it
+/// every update): a key just pressed on the update its entry starts, held while it lasts (pressed, not just pressed),
+/// just released on the update after, so `input_just_pressed` and `pressed` read it as a keyboard's.
+pub(crate) fn keys(mut s: ResMut<Script>, probe: Res<super::Probe>, input: Option<ResMut<ButtonInput<KeyCode>>>) {
+    let Some(mut input) = input else { return };
+    let names = s.at.range(..=probe.frame).next_back().map(|(_, k)| k.clone()).unwrap_or_default();
+    let now: Vec<KeyCode> = names.iter().filter(|k| !k.starts_with("Pointer:")).map(|k| key_code(k)).collect();
+    for k in &now {
+        input.press(*k);
+        if s.held.contains(k) {
+            input.clear_just_pressed(*k);
+        }
+    }
+    for k in s.held.iter().filter(|k| !now.contains(k)) {
+        // pressed first, so a release no_input's reset left nothing to release still reads as one
+        input.press(*k);
+        input.release(*k);
+        input.clear_just_pressed(*k);
+    }
+    s.held = now;
+}
+
+/// A KeyCode by its variant's name, as Bevy reflects it ("Space", "KeyA").
+fn key_code(name: &str) -> KeyCode {
+    use bevy::reflect::{enums::{DynamicEnum, DynamicVariant}, FromReflect};
+    KeyCode::from_reflect(&DynamicEnum::new(name, DynamicVariant::Unit)).unwrap_or_else(|| panic!("RAEA_PARITY_INPUT: {name} isn't a KeyCode's name"))
 }

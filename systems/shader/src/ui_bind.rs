@@ -13,6 +13,9 @@ pub const DIMS: [(&str, &str, usize); 5] = [("texture_1d<", "1d", 16), ("texture
 pub const SAMPLERS_WITH_DIMS: usize = 6;
 /// A Material's read-only storage buffers (`dims`), at 23 and 24.
 pub const STORAGE: [usize; 2] = [23, 24];
+/// Where a Material's slots (`dims`) start: past a sprite's own bindings (0 to 2, 10 when bindless), whose group a
+/// SpriteMaterial's share (shader/sprite_material). A UiMaterial's start at 0.
+pub const OWN_BASE: usize = 30;
 
 /// A UiMaterial source with its bindings renumbered: its uniforms (name, WGSL type) and its textures' names, each in
 /// its slot's order, and how many samplers it binds.
@@ -101,7 +104,7 @@ pub fn rebind_in(src: &str, groups: &[&str], what: &str, dims: bool) -> Result<R
             return Err(format!("{what}'s binding {name} is a var<uniform>, a texture_2d<f32> or a sampler, got {ty} (the rest are FC2a's to come)"));
         };
         out += &rest[..i];
-        out += &format!("@binding({slot})");
+        out += &format!("@binding({})", slot + if dims { OWN_BASE } else { 0 });
         rest = &rest[close + 1..];
     }
     out += rest;
@@ -159,7 +162,7 @@ mod tests {
         let r = rebind_in(&src, &["3"], "a Material", true).unwrap();
         assert_eq!(r.textures, vec!["t_2d".to_string()]);
         assert_eq!(r.others.iter().map(|o| o.1).collect::<Vec<_>>(), vec!["1d", "2d_array", "cube", "cube_array", "3d"]);
-        for want in ["@binding(16) var t_1d", "@binding(9) var s_1d", "@binding(8) var t_2d", "@binding(11) var s_2d", "@binding(18) var t_2d_array", "@binding(20) var t_cube:", "@binding(21) var t_cube_array", "@binding(22) var t_3d", "@binding(19) var s_3d"] {
+        for want in ["@binding(46) var t_1d", "@binding(39) var s_1d", "@binding(38) var t_2d", "@binding(41) var s_2d", "@binding(48) var t_2d_array", "@binding(50) var t_cube:", "@binding(51) var t_cube_array", "@binding(52) var t_3d", "@binding(49) var s_3d"] {
             assert!(r.src.contains(want), "{want} in {}", r.src);
         }
         // a UiMaterial takes none of them, and a Material one of each

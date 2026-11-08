@@ -7,7 +7,7 @@
 use bevy::prelude::*;
 use bevy::render::storage::ShaderBuffer;
 use bevy::shader::ShaderDefVal;
-use bevy::sprite_render::MeshMaterial2d;
+use bevy::sprite_render::{MeshMaterial2d, SpriteMaterial};
 use serde_json::Value;
 
 use crate::layout;
@@ -55,10 +55,19 @@ pub fn storage(name: &str, ty: &str, v: &Value) -> Result<ShaderBuffer, String> 
 #[derive(Component)]
 pub struct Pending(pub Value);
 
-/// An `own:uniforms` component row: the frame's {uniforms, buffers} packed into the part's own Material (3D or 2D)
-/// and its storage buffers.
+/// The frame's values a row gave before the part's Material was on, now that it is.
+pub fn settle(world: &mut World, e: Entity) -> Result<(), String> {
+    match world.entity_mut(e).take::<Pending>() {
+        Some(p) => patch(world, e, &p.0),
+        None => Ok(()),
+    }
+}
+
+/// An `own:uniforms` component row: the frame's {uniforms, buffers} packed into the part's own Material (3D, 2D or a
+/// sprite's) and its storage buffers.
 pub fn patch(world: &mut World, e: Entity, v: &Value) -> Result<(), String> {
-    let h = world.get::<MeshMaterial3d<OwnMaterial>>(e).map(|m| m.0.clone()).or_else(|| world.get::<MeshMaterial2d<OwnMaterial>>(e).map(|m| m.0.clone()));
+    let h = world.get::<MeshMaterial3d<OwnMaterial>>(e).map(|m| m.0.clone());
+    let h = h.or_else(|| world.get::<MeshMaterial2d<OwnMaterial>>(e).map(|m| m.0.clone())).or_else(|| world.get::<SpriteMaterial<OwnMaterial>>(e).map(|m| m.0.clone()));
     // a row applied before the part's Material is put on (shade_rows runs after the rows): kept for `put`
     let Some(h) = h else {
         world.entity_mut(e).insert(Pending(v.clone()));

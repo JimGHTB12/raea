@@ -185,10 +185,12 @@ impl LiveScene {
                 }
             }
         }
+        // a target of a kind that keeps its render id (a sprite, a 2D shape) is that row's
+        let kept: std::collections::HashSet<String> = others.iter().filter_map(|(_, r)| match r.get("id") { Some(V::S(i)) => Some(i.clone()), _ => None }).collect();
         for (kind, mut row) in others {
             let Some(V::S(mut id)) = row.get("id").cloned() else { continue };
             if let Some(V::S(t)) = row.get("target").cloned() {
-                let Some(to) = (if t.starts_with("ent") || t.starts_with("text") || t == "cam" { Some(t.clone()) } else { live_id.get(&t).cloned() }) else { continue };
+                let Some(to) = (if t.starts_with("ent") || t.starts_with("text") || t == "cam" || kept.contains(&t) { Some(t.clone()) } else { live_id.get(&t).cloned() }) else { continue };
                 id = id.replacen(&t, &to, 1);
                 row.insert("id".into(), V::S(id.clone()));
                 row.insert("target".into(), V::S(to));

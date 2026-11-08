@@ -77,6 +77,7 @@ pub fn install(app: &mut App) {
     if let Some(script) = input::load() {
         app.insert_resource(script);
         app.add_systems(First, input::scripted);
+        app.add_systems(PreUpdate, input::keys.after(bevy::input::InputSystems).after(no_input));
     }
     app.insert_resource(Probe { out: out.into(), frames, png, exit, types, frame: 0, since: Instant::now(), ticks: 0 });
     app.add_systems(Last, (probe, dump).chain());

@@ -53,3 +53,5 @@ export function Material(p: MaterialProps) {
 export function materialShader(p: MaterialProps): Record<string, unknown> {
   return surfaceShader("Material", ownSpec(p));
 }
+// what a 2D part reads a <Material> child by (3d/sprite.tsx: a Sprite's SpriteMaterial), without importing this file
+(Material as unknown as { shaderOf: typeof materialShader }).shaderOf = materialShader;

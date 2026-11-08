@@ -48,13 +48,12 @@ pub fn sprites(tracks: &[Track], p: &mut Program) {
             }
         }
         sheet(p, &mut row, &id, &its);
-        // the picture's sampler (Bevy's load_with_settings), as JSON for raea-sys-sampler
-        if let Some(s) = first.get("sampler") {
-            row.insert("texture_sampler".into(), V::S(s.to_string()));
-        }
-        // Bevy's SpriteImageMode as given (systems/sprite reads it)
-        if let Some(m) = first.get("image_mode") {
-            row.insert("image_mode".into(), V::S(m.to_string()));
+        // as JSON: the picture's sampler (Bevy's load_with_settings, raea-sys-sampler's), Bevy's SpriteImageMode as given
+        // and its <Material> (Bevy's SpriteMaterial, systems/sprite)
+        for (prop, col) in [("sampler", "texture_sampler"), ("image_mode", "image_mode"), ("shader", "shader")] {
+            if let Some(s) = first.get(prop) {
+                row.insert(col.into(), V::S(s.to_string()));
+            }
         }
         for (prop, col) in [("flipX", "flip_x"), ("flipY", "flip_y"), ("tileX", "tile_x"), ("tileY", "tile_y")] {
             if first.get(prop) == Some(&Value::Bool(true)) {
@@ -64,6 +63,7 @@ pub fn sprites(tracks: &[Track], p: &mut Program) {
         place2d(p, &mut row, &id, &its, "#ffffff");
         visible(p, &mut row, &id, track);
         p.spawns.push(("sprite".into(), vec![row]));
+        own_uniforms(p, &id, &its, |it| it.props.get("shader"));
     }
 }
 

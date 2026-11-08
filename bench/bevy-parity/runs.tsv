@@ -128,3 +128,4 @@ shader/shader_material_2d	-	10
 shader/fallback_image	-	10
 shader/storage_buffer	-	30,60
 shader/array_texture	-	30,100
+shader/sprite_material	-	29,40,70,95,110,130	bench/bevy-parity/input/sprite_material.json

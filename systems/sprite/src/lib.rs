@@ -88,7 +88,7 @@ pub fn shape_image(w: u32, h: u32, rgba: Vec<u8>, v: &BTreeMap<String, V>) -> Re
 }
 
 /// A sprite's entity from its row and its picture (`size` in px).
-pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>, size: UVec2) {
+pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>, size: UVec2) -> Result<(), String> {
     let v = &t.vals;
     let (cols, rows) = (num(v, "sheet_cols", 1.0).max(1.0) as u32, num(v, "sheet_rows", 1.0).max(1.0) as u32);
     let (cw, ch) = ((size.x / cols).max(1), (size.y / rows).max(1));
@@ -122,6 +122,23 @@ pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>,
         ..default()
     };
     world.entity_mut(e).insert((sprite, place_of(v), Visibility::default(), Part2d));
+    // a <Material> on it: Bevy's SpriteMaterial, extending the sprite's own (shader/sprite_material)
+    match own_material(world, t, "sprite")? {
+        Some(m) => {
+            world.entity_mut(e).insert(bevy::sprite_render::SpriteMaterial(m));
+            raea_sys_shader::own_live::settle(world, e)
+        }
+        None => Ok(()),
+    }
+}
+
+/// The row's `shader` (a <Material>, docs/control.feature FC2a) as its own 2D Material (raea-sys-shader's
+/// OwnMaterial), its textures decoded now, as the part's own picture is.
+fn own_material(world: &mut World, t: &Tup, what: &str) -> Result<Option<Handle<raea_sys_shader::own::OwnMaterial>>, String> {
+    let Some(V::S(s)) = t.vals.get("shader") else { return Ok(None) };
+    let spec: serde_json::Value = serde_json::from_str(s).map_err(|err| format!("{what} {}: shader: {err}", t.id))?;
+    let mut picture = |w: &mut World, p: &serde_json::Value| p.as_str().ok_or_else(|| format!("a texture is a picture's path, got {p}")).and_then(|p| raea_sys_shader::own::picture(w, p));
+    raea_sys_shader::own::shared(world, &spec, &mut picture, true).map(Some).map_err(|err| format!("{what} {}: {err}", t.id))
 }
 
 /// A ColorMaterial's uv_transform from the row's JSON Affine2 ({ scale: [x, y], angle, translation: [x, y] }, glam's
@@ -163,13 +180,9 @@ pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle
     };
     let uv_transform = uv_of(v);
     world.entity_mut(e).insert((Mesh2d(mesh), place_of(v), Visibility::default(), Part2d));
-    if let Some(V::S(s)) = v.get("shader") {
-        let spec: serde_json::Value = serde_json::from_str(s).map_err(|err| format!("shape2d {}: shader: {err}", t.id))?;
-        // its textures decoded now, as the shape's own picture is
-        let mut picture = |w: &mut World, p: &serde_json::Value| p.as_str().ok_or_else(|| format!("a texture is a picture's path, got {p}")).and_then(|p| raea_sys_shader::own::picture(w, p));
-        let m = raea_sys_shader::own::shared(world, &spec, &mut picture, true).map_err(|err| format!("shape2d {}: {err}", t.id))?;
+    if let Some(m) = own_material(world, t, "shape2d")? {
         world.entity_mut(e).insert(MeshMaterial2d(m));
-        return Ok(());
+        return raea_sys_shader::own_live::settle(world, e);
     }
     let mat = world.resource_mut::<Assets<ColorMaterial>>().add(ColorMaterial { color: color_of(v), alpha_mode, texture, uv_transform, ..default() });
     world.entity_mut(e).insert(MeshMaterial2d(mat));

@@ -3,8 +3,9 @@
 //! the author's file compiled as written but for the numbers of its `@group(MATERIAL_BIND_GROUP)` bindings, which go to
 //! this one Rust type's fixed slots in the order the source declares them (ui_bind.rs, as raea's UiMaterial does):
 //! uniforms of any type up to 256 bytes at 0 to 7, packed in their declared types (layout.rs), textures at 8, 10, 12,
-//! 14 and their samplers at 9, 11, 13, 15. A Rust Material's bind group is its type's, so raea's one type takes every
-//! author's layout this way. Its alpha mode, depth bias and faces are the material's, as Bevy's methods give them.
+//! 14 and their samplers at 9, 11, 13, 15, each past ui_bind's OWN_BASE (a sprite's own bindings are below it). A
+//! Rust Material's bind group is its type's, so raea's one type takes every author's layout this way. Its alpha mode,
+//! depth bias and faces are the material's, as Bevy's methods give them.
 //!
 //! A file's `import super::NAME` reads NAME.wesl beside it: the file is registered as embedded://raea_sys_shader/
 //! d{folder}/m{hash}.wesl and each module it imports from its folder as embedded://raea_sys_shader/d{folder}/NAME.wesl,
@@ -20,7 +21,7 @@ use bevy::prelude::*;
 use bevy::render::render_resource::{AsBindGroup, Face, RenderPipelineDescriptor, SpecializedMeshPipelineError};
 use bevy::render::storage::ShaderBuffer;
 use bevy::shader::{Shader, ShaderRef};
-use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dKey, Material2dPipeline, Material2dPlugin};
+use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dKey, Material2dPipeline, Material2dPlugin, MaterialExtension2d, SpriteMaterialPlugin};
 use serde_json::Value;
 
 use crate::own_live::{storage, Packing};
@@ -43,58 +44,59 @@ const GROUPS_2D: &[&str] = &["constants::MATERIAL_BIND_GROUP", "#{MATERIAL_BIND_
 #[derive(Asset, AsBindGroup, TypePath, Clone, Debug)]
 #[bind_group_data(OwnKey)]
 pub struct OwnMaterial {
-    #[uniform(0)]
+    #[uniform(30)]
     u0: [Vec4; 16],
-    #[uniform(1)]
+    #[uniform(31)]
     u1: [Vec4; 16],
-    #[uniform(2)]
+    #[uniform(32)]
     u2: [Vec4; 16],
-    #[uniform(3)]
+    #[uniform(33)]
     u3: [Vec4; 16],
-    #[uniform(4)]
+    #[uniform(34)]
     u4: [Vec4; 16],
-    #[uniform(5)]
+    #[uniform(35)]
     u5: [Vec4; 16],
-    #[uniform(6)]
+    #[uniform(36)]
     u6: [Vec4; 16],
-    #[uniform(7)]
+    #[uniform(37)]
     u7: [Vec4; 16],
-    #[texture(8)]
-    #[sampler(9)]
+    #[texture(38)]
+    #[sampler(39)]
     t0: Option<Handle<Image>>,
-    #[texture(10)]
-    #[sampler(11)]
+    #[texture(40)]
+    #[sampler(41)]
     t1: Option<Handle<Image>>,
-    #[texture(12)]
-    #[sampler(13)]
+    #[texture(42)]
+    #[sampler(43)]
     t2: Option<Handle<Image>>,
-    #[texture(14)]
-    #[sampler(15)]
+    #[texture(44)]
+    #[sampler(45)]
     t3: Option<Handle<Image>>,
     // one texture of each other dimension (ui_bind.rs DIMS), the 1d's and 2d_array's samplers the 5th and 6th
-    #[texture(16, dimension = "1d")]
-    #[sampler(17)]
+    #[texture(46, dimension = "1d")]
+    #[sampler(47)]
     d1: Option<Handle<Image>>,
-    #[texture(18, dimension = "2d_array")]
-    #[sampler(19)]
+    #[texture(48, dimension = "2d_array")]
+    #[sampler(49)]
     d2a: Option<Handle<Image>>,
-    #[texture(20, dimension = "cube")]
+    #[texture(50, dimension = "cube")]
     cube: Option<Handle<Image>>,
-    #[texture(21, dimension = "cube_array")]
+    #[texture(51, dimension = "cube_array")]
     cube_array: Option<Handle<Image>>,
-    #[texture(22, dimension = "3d")]
+    #[texture(52, dimension = "3d")]
     d3: Option<Handle<Image>>,
     // its read-only storage buffers (ui_bind.rs STORAGE); one it doesn't bind holds 16 zero bytes
-    #[storage(23, read_only)]
+    #[storage(53, read_only)]
     b0: Handle<ShaderBuffer>,
-    #[storage(24, read_only)]
+    #[storage(54, read_only)]
     b1: Handle<ShaderBuffer>,
     /// what its uniforms and buffers are packed from, for a frame's new values (own_live.rs)
     pub(crate) packing: Arc<Packing>,
     shader: u128,
     /// the vertex shader's uuid, 0 for Bevy's mesh vertex shader
     vertex: u128,
-    alpha: AlphaMode,
+    /// None when the spec gives none: Opaque as a Material's, a sprite's own as a SpriteMaterial's
+    alpha: Option<AlphaMode>,
     depth_bias: f32,
     /// the faces it culls (the pipeline's primitive.cull_mode); None keeps the pipeline's (3D culls Back, 2D none)
     cull: Option<Option<Face>>,
@@ -111,8 +113,10 @@ impl OwnMaterial {
     }
 }
 
-/// What picks a pipeline: the material's shaders and the faces it culls.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+/// What picks a pipeline: the material's shaders and the faces it culls (opaque to reflection, as SpriteMaterial's
+/// extension reflects its material's key).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Reflect)]
+#[reflect(opaque)]
 pub struct OwnKey {
     shader: u128,
     vertex: u128,
@@ -140,7 +144,7 @@ impl Material for OwnMaterial {
         ShaderRef::Handle(PLACEHOLDER)
     }
     fn alpha_mode(&self) -> AlphaMode {
-        self.alpha
+        self.alpha.unwrap_or(AlphaMode::Opaque)
     }
     fn depth_bias(&self) -> f32 {
         self.depth_bias
@@ -153,16 +157,35 @@ impl Material2d for OwnMaterial {
         ShaderRef::Handle(PLACEHOLDER_2D)
     }
     fn alpha_mode(&self) -> AlphaMode2d {
-        match self.alpha {
-            AlphaMode::Opaque => AlphaMode2d::Opaque,
-            AlphaMode::Mask(c) => AlphaMode2d::Mask(c),
-            _ => AlphaMode2d::Blend,
-        }
+        alpha2d(self.alpha.unwrap_or(AlphaMode::Opaque))
     }
     fn depth_bias(&self) -> f32 {
         self.depth_bias
     }
     specialize!(Material2dPipeline, Material2dKey, PLACEHOLDER_2D);
+}
+
+/// A sprite's SpriteMaterial<M> (Bevy's shader/sprite_material): the same material extending the sprite's own, its
+/// fragment where Material2d's is, the sprite's alpha mode unless the spec gives one.
+impl MaterialExtension2d for OwnMaterial {
+    fn fragment_shader() -> Option<ShaderRef> {
+        Some(ShaderRef::Handle(PLACEHOLDER_2D))
+    }
+    fn alpha_mode(&self) -> Option<AlphaMode2d> {
+        self.alpha.map(alpha2d)
+    }
+    fn depth_bias(&self) -> Option<f32> {
+        Some(self.depth_bias)
+    }
+    specialize!(Material2dPipeline, Material2dKey, PLACEHOLDER_2D);
+}
+
+fn alpha2d(a: AlphaMode) -> AlphaMode2d {
+    match a {
+        AlphaMode::Opaque => AlphaMode2d::Opaque,
+        AlphaMode::Mask(c) => AlphaMode2d::Mask(c),
+        _ => AlphaMode2d::Blend,
+    }
 }
 
 /// A pipeline given the material's own shaders: its fragment where it is `placeholder`, its vertex shader (if any) in
@@ -183,7 +206,7 @@ fn swap(descriptor: &mut RenderPipelineDescriptor, placeholder: &Handle<Shader>,
 pub fn install(app: &mut App) {
     let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER, Shader::from_wesl(STUB, "embedded://raea_sys_shader/own_placeholder.wesl"));
     let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER_2D, Shader::from_wesl(STUB_2D, "embedded://raea_sys_shader/own_placeholder_2d.wesl"));
-    app.add_plugins((MaterialPlugin::<OwnMaterial>::default(), Material2dPlugin::<OwnMaterial>::default()));
+    app.add_plugins((MaterialPlugin::<OwnMaterial>::default(), Material2dPlugin::<OwnMaterial>::default(), SpriteMaterialPlugin::<OwnMaterial>::default()));
 }
 
 /// The material a `<Material>` spec asks for: {fragment, vertex?, uniforms, textures, defs, own: {alpha_mode,
@@ -259,9 +282,9 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
 
 /// Bevy's AlphaMode as the SDK writes it: "Opaque", "Blend", {"Mask": cutoff}, "Premultiplied", "AlphaToCoverage",
 /// "Add" or "Multiply".
-fn alpha_mode(v: Option<&Value>) -> Result<AlphaMode, String> {
-    Ok(match v {
-        None => AlphaMode::Opaque,
+fn alpha_mode(v: Option<&Value>) -> Result<Option<AlphaMode>, String> {
+    Ok(Some(match v {
+        None => return Ok(None),
         Some(Value::String(s)) => match s.as_str() {
             "Opaque" => AlphaMode::Opaque,
             "Blend" => AlphaMode::Blend,
@@ -275,7 +298,7 @@ fn alpha_mode(v: Option<&Value>) -> Result<AlphaMode, String> {
             Some(c) => AlphaMode::Mask(c as f32),
             None => return Err(format!("a Material's alpha_mode is a name or {{\"Mask\": cutoff}}, got {v}")),
         },
-    })
+    }))
 }
 
 /// A picture file decoded now as an Image (sRGB, the default sampler, as asset_server.load reads a colour texture), so
@@ -359,11 +382,7 @@ pub fn shared(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &
 pub fn put(world: &mut World, e: Entity, h: Handle<OwnMaterial>) -> Result<(), String> {
     let Some(std) = world.get::<MeshMaterial3d<StandardMaterial>>(e).map(|m| m.0.clone()) else { return Ok(()) };
     world.entity_mut(e).remove::<MeshMaterial3d<StandardMaterial>>().insert((MeshMaterial3d(h), Shaded { std }, OwnSurface));
-    // the frame's values a row gave before it was on
-    match world.entity_mut(e).take::<crate::own_live::Pending>() {
-        Some(p) => crate::own_live::patch(world, e, &p.0),
-        None => Ok(()),
-    }
+    crate::own_live::settle(world, e)
 }
 
 #[cfg(test)]
@@ -372,8 +391,8 @@ mod tests {
     fn a_files_own_folder_imports_are_found() {
         let src = "import bevy_pbr::forward_io::VertexOutput;\nimport super::custom_material_import::COLOR_MULTIPLIER;\nimport super::{a::X, b_2::Y};\nfn f() { super::not_an_import(); }\n";
         assert_eq!(super::siblings(src), vec!["custom_material_import".to_string(), "a".into(), "b_2".into()]);
-        assert!(super::alpha_mode(Some(&serde_json::json!("Blend"))).unwrap() == bevy::prelude::AlphaMode::Blend);
-        assert!(super::alpha_mode(Some(&serde_json::json!({"Mask": 0.5}))).unwrap() == bevy::prelude::AlphaMode::Mask(0.5));
+        assert!(super::alpha_mode(Some(&serde_json::json!("Blend"))).unwrap() == Some(bevy::prelude::AlphaMode::Blend));
+        assert!(super::alpha_mode(Some(&serde_json::json!({"Mask": 0.5}))).unwrap() == Some(bevy::prelude::AlphaMode::Mask(0.5)));
         assert!(super::alpha_mode(Some(&serde_json::json!("Clear"))).is_err());
     }
 }
