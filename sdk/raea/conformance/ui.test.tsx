@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { AngularColorStop, GhostNode, Viewport, UiTargetCamera, UiRect as GradRect, FontSource, GridPlacement, GridTrack, RepeatedGridTrack, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { AngularColorStop, FontFeatureTag, GhostNode, Viewport, UiTargetCamera, UiRect as GradRect, FontSource, GridPlacement, GridTrack, RepeatedGridTrack, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { Canvas3D } from "raea/3d";
 import { renderFrame } from "../src/test";
@@ -121,6 +121,13 @@ describe("ImageNode, Underline and Strikethrough", () => {
     expect(html(<Text>a</Text>)).not.toContain("font-variation-settings");
     expect(() => html(<Text font_variations={{ wg: 300 }}>a</Text>)).toThrow(/four characters/);
     expect(() => html(<Text font_variations={{ wght: NaN }}>a</Text>)).toThrow(/is a number/);
+  });
+  test("FontFeatures turn OpenType features on by tag, on a Text or a TextSpan; a bad tag or value is refused", () => {
+    expect(html(<Text font_features={{ [FontFeatureTag.SMALL_CAPS]: 1, [FontFeatureTag.FRACTIONS]: 1 }}>a</Text>)).toContain("font-feature-settings:&quot;smcp&quot; 1, &quot;frac&quot; 1");
+    expect(html(<Text>a<TextSpan font_features={{ [FontFeatureTag.OLDSTYLE_FIGURES]: 1 }}>1</TextSpan></Text>)).toMatch(/<span style="[^"]*font-feature-settings:&quot;onum&quot; 1[^"]*">1<\/span>/);
+    expect(html(<Text>a</Text>)).not.toContain("font-feature-settings");
+    expect(() => html(<Text font_features={{ sc: 1 }}>a</Text>)).toThrow(/four characters/);
+    expect(() => html(<Text font_features={{ smcp: 0.5 }}>a</Text>)).toThrow(/whole number/);
   });
   test("a TextSpan's TextBackgroundColor is a box behind its run, in its own colour", () => {
     expect(html(<Text><TextSpan text_background_color={new Srgba(1, 0, 0)}>a</TextSpan></Text>)).toMatch(/<span style="[^"]*background-color:rgba\(255, 0, 0, 1\)[^"]*">a<\/span>/);

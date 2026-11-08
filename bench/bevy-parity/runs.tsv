@@ -79,3 +79,4 @@ ui/ui_scaling	-	10
 ui/layout/anchor_layout	-	10
 ui/layout/size_constraints	-	10
 ui/scroll_and_overflow/overflow_transform	-	10
+ui/text/text	-	10

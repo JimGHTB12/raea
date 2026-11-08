@@ -20,3 +20,9 @@ chacha20 = { version = "0.10.0", default-features = false, features = ["rng"] }
 # used by the ported examples, which build.rs copies in through include! where cargo-shear doesn't look
 [package.metadata.cargo-shear]
 ignored = ["argh", "rand", "chacha20"]
+
+# Bevy's examples ask cfg(feature = "default_font") of the crate they're built in: in Bevy's repo that's bevy's own
+# feature, on by default; here the host's, so it has one, on (ui/text/text builds only its default-font branch)
+[features]
+default = ["default_font"]
+default_font = []

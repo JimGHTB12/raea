@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **80**, passing **76**, excluded **16** (docs/bevy-parity/excluded.tsv), left **346**.
+Examples: **438**, ported **81**, passing **77**, excluded **16** (docs/bevy-parity/excluded.tsv), left **345**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -136,6 +136,7 @@ doesn't pay.
 | ui/layout/anchor_layout | 10 | 0.997421 | 9 | 0 / 0 | 468 / 492 | 5 / 7 | 1 / 1 | 33.145 / 1.417 = 1.417 + 0 | yes |  |
 | ui/layout/size_constraints | 10 | 0.991466 | 19 | 0 / 0 | 608 / 492 | 5 / 7 | 1 / 1 | 31.358 / 0.993 = 0.993 + 0 | yes |  |
 | ui/scroll_and_overflow/overflow_transform | 10 | 0.995397 | 12 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 41.134 / 1.724 = 1.724 + 0 | yes |  |
+| ui/text/text | 10 | 0.990913 | 8 | 0 / 0 | 459 / 492 | 5 / 7 | 1 / 1 | 34.947 / 1.446 = 1.446 + 0 | yes |  |
 
 ## Excluded
 

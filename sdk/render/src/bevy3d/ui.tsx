@@ -13,6 +13,7 @@ import { LinearRgba, type Srgba } from "./colors";
 import { gradientsCss, gradientsOpaque, type Gradient } from "./ui-gradient";
 import { gridCss, type GridAutoFlow, type GridPlacement, type GridTrack, type RepeatedGridTrack } from "./ui-grid";
 import { shadowCss, transformCss, type BoxShadow, type UiTransform } from "./ui-transform";
+import { featuresCss } from "./ui-features";
 import type { TransformValue } from "./core";
 import { eulerOf } from "../3d/model";
 import { useVideoConfig } from "@raea/app/clock";
@@ -219,6 +220,8 @@ export interface TextStyleProps {
   line_height?: { Px: number } | { RelativeToFont: number };
   /** FontVariations: a variable font's axes by their four-letter tag, { [FontVariationTag.WEIGHT]: 300 } */
   font_variations?: Record<string, number>;
+  /** FontFeatures: OpenType features by their four-letter tag, 1 to turn one on, { [FontFeatureTag.SMALL_CAPS]: 1 } */
+  font_features?: Record<string, number>;
   /** LetterSpacing: { Px } or { Rem } (of bevy_text's 20 px rem) after every glyph (none by default) */
   letter_spacing?: { Px: number } | { Rem: number };
 }
@@ -314,6 +317,8 @@ export function textCss(who: string, p: TextStyleProps, back?: Backdrop): { css:
   };
   const variations = variationsCss(who, p.font_variations);
   if (variations) css.fontVariationSettings = variations;
+  const features = featuresCss(who, p.font_features);
+  if (features) css.fontFeatureSettings = features;
   const ls = p.letter_spacing;
   if (ls !== undefined) {
     const [k, v] = Object.entries(ls)[0] ?? [];
@@ -332,10 +337,10 @@ const BREAK: Record<NonNullable<TextProps["linebreak"]>, CSSProperties> = {
 
 /** Bevy's UI text: a Node whose content is its string and its <TextSpan> children, in its TextFont, TextColor,
  *  TextLayout and LineHeight (Bevy's defaults when left out). @bevy bevy_ui::widget::text::Text */
-export function Text({ children, font, font_size, weight, style, color, line_height, font_variations, letter_spacing, justify, linebreak, shadow, underline, strikethrough, underline_color, strikethrough_color, text_background_color, ...node }: TextProps) {
+export function Text({ children, font, font_size, weight, style, color, line_height, font_variations, font_features, letter_spacing, justify, linebreak, shadow, underline, strikethrough, underline_color, strikethrough_color, text_background_color, ...node }: TextProps) {
   const ui = useContext(InUi);
   const n = nodeCss("Text", node, ui?.back);
-  const t = textCss("Text", { font, font_size, weight, style, color, line_height, font_variations, letter_spacing }, n.back);
+  const t = textCss("Text", { font, font_size, weight, style, color, line_height, font_variations, font_features, letter_spacing }, n.back);
   if (justify !== undefined && !["Left", "Center", "Right", "Justified", "Start", "End"].includes(justify)) throw new TypeError(`Text: justify is Left, Center, Right, Justified, Start or End, got ${JSON.stringify(justify)}`);
   if (linebreak !== undefined && !(linebreak in BREAK)) throw new TypeError(`Text: linebreak is WordBoundary, AnyCharacter, WordOrCharacter or NoWrap, got ${JSON.stringify(linebreak)}`);
   const textAlign = { Left: "left", Center: "center", Right: "right", Justified: "justify", Start: "start", End: "end" }[justify ?? "Left"] as CSSProperties["textAlign"];
