@@ -365,7 +365,8 @@ fn view_box_transform(
 pub const NON_SCALING_STROKE_ID: &str = "raea-nss-";
 
 /// raea: `source` with each element that says vector-effect="non-scaling-stroke" (as an attribute or in its style)
-/// and has no id of its own given one starting NON_SCALING_STROKE_ID. None when there's none (or it doesn't parse).
+/// given an id starting NON_SCALING_STROKE_ID: a new one, or its own renamed when nothing refers to it. None when
+/// there's none (or it doesn't parse).
 fn mark_non_scaling_strokes(source: &str) -> Option<String> {
     if !source.contains("non-scaling-stroke") {
         return None;
@@ -378,23 +379,34 @@ fn mark_non_scaling_strokes(source: &str) -> Option<String> {
                 st.split(';').any(|d| d.split_once(':').is_some_and(|(k, v)| k.trim() == "vector-effect" && v.trim() == "non-scaling-stroke"))
             })
     };
-    // after each marked start tag's name, from the last so the earlier offsets hold
-    let mut at: Vec<usize> = doc
+    // an id of its own is renamed to carry the mark when nothing in the source refers to it (`#id`): WPT's
+    // svgbox-stroke-box-003 strokes `<rect id="target">` (raea #50); one referred to keeps its id, and its stroke scales
+    let mut edits: Vec<(std::ops::Range<usize>, Option<String>)> = doc
         .descendants()
-        .filter(|n| n.is_element() && n.attribute("id").is_none() && says(n))
-        .filter_map(|n| {
-            let start = n.range().start + 1;
-            let len = source[start..].find(|c: char| c.is_whitespace() || c == '/' || c == '>')?;
-            Some(start + len)
+        .filter(|n| n.is_element() && says(n))
+        .filter_map(|n| match n.attributes().find(|a| a.name() == "id") {
+            Some(a) if !source.contains(&format!("#{}", a.value())) => Some((a.range(), Some(a.value().to_string()))),
+            Some(_) => None,
+            // after the start tag's name
+            None => {
+                let start = n.range().start + 1;
+                let end = start + source[start..].find(|c: char| c.is_whitespace() || c == '/' || c == '>')?;
+                Some((end..end, None))
+            }
         })
         .collect();
-    if at.is_empty() {
+    if edits.is_empty() {
         return None;
     }
-    at.sort_unstable();
+    // numbered in source order, applied from the last so the earlier offsets hold
+    edits.sort_unstable_by_key(|(r, _)| r.start);
     let mut out = source.to_string();
-    for (k, i) in at.iter().enumerate().rev() {
-        out.insert_str(*i, &format!(" id=\"{NON_SCALING_STROKE_ID}{k}\""));
+    for (k, (r, own)) in edits.into_iter().enumerate().rev() {
+        let id = match own {
+            Some(own) => format!("id=\"{NON_SCALING_STROKE_ID}{k}-{own}\""),
+            None => format!(" id=\"{NON_SCALING_STROKE_ID}{k}\""),
+        };
+        out.replace_range(r, &id);
     }
     Some(out)
 }
@@ -444,12 +456,13 @@ mod non_scaling_stroke_tests {
     /// raea: a path with vector-effect="non-scaling-stroke" (attribute or style) keeps blitz-dom's mark through usvg
     #[test]
     fn marked_paths_keep_their_mark() {
-        let src = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24"><polyline points="0,0 48,24" stroke="red" vector-effect="non-scaling-stroke"/><rect width="4" height="4" stroke="red" style="vector-effect: non-scaling-stroke"/><path id="own" d="M0 0L1 1" stroke="red" vector-effect="non-scaling-stroke"/><path d="M0 0L2 2" stroke="red"/></svg>"#;
+        let src = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24"><polyline points="0,0 48,24" stroke="red" vector-effect="non-scaling-stroke"/><rect width="4" height="4" stroke="red" style="vector-effect: non-scaling-stroke"/><path id="own" d="M0 0L1 1" stroke="red" vector-effect="non-scaling-stroke"/><path d="M0 0L2 2" stroke="red"/><path id="kept" d="M0 0L3 3" stroke="red" vector-effect="non-scaling-stroke"/><use href="#kept"/></svg>"##;
         let svg = super::SvgImageData::from_data(src.as_bytes(), &usvg::Options::default()).unwrap();
         let ids: Vec<String> = svg.tree.root().children().iter().filter_map(|n| match n {
             usvg::Node::Path(p) => Some(p.id().to_string()),
             _ => None,
         }).collect();
-        assert_eq!(ids, ["raea-nss-0", "raea-nss-1", "own", ""]);
+        // an id of its own carries the mark when nothing refers to it (#50); `kept` is used, so it stays
+        assert_eq!(ids, ["raea-nss-0", "raea-nss-1", "raea-nss-2-own", "", "kept"]);
     }
 }

@@ -220,10 +220,14 @@ impl Node {
         use style::values::computed::{CSSPixelLength, TransformBox};
         let styles = self.primary_styles()?;
         let box_styles = styles.get_box();
-        // an element without a CSS layout box uses fill-box for content-box and stroke-box for border-box
+        // an element without a CSS layout box uses fill-box for content-box and stroke-box for border-box; with
+        // vector-effect: non-scaling-stroke, stroke-box is fill-box (css-transforms-1, csswg-drafts#9640; raea #50)
+        let non_scaling = svg_computed(&styles, "vector-effect").is_some_and(|v| v == "non-scaling-stroke")
+            || self.attr(markup5ever::LocalName::from("vector-effect")).is_some_and(|v| v.trim() == "non-scaling-stroke");
         let rect = match box_styles.transform_box {
             TransformBox::ViewBox => self.svg_view_box(),
             TransformBox::FillBox | TransformBox::ContentBox => self.svg_fill_box().unwrap_or_default(),
+            TransformBox::StrokeBox | TransformBox::BorderBox if non_scaling => self.svg_fill_box().unwrap_or_default(),
             TransformBox::StrokeBox | TransformBox::BorderBox => {
                 let r = self.svg_fill_box().unwrap_or_default();
                 let half = self.svg_stroke_width() / 2.0;
@@ -301,10 +305,7 @@ impl Node {
             "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity", "stroke-linecap",
             "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray", "stroke-dashoffset",
         ];
-        fn value(st: &style::properties::ComputedValues, name: &str) -> Option<String> {
-            let id = style::properties::PropertyId::parse_enabled_for_all_content(name).ok()?;
-            Some(st.computed_value_to_string(id.as_shorthand().err()?))
-        }
+        let value = svg_computed;
         let (Some(st), Some(parent)) = (self.primary_styles(), self.parent.and_then(|p| self.tree()[p].primary_styles())) else {
             return String::new();
         };
@@ -325,22 +326,24 @@ impl Node {
         }
     }
 
-    /// `stroke-width` in user units, when the element is stroked (as an attribute or in its style).
+    /// `stroke-width` in user units, when the element is stroked: each as usvg reads the serialized element (its
+    /// style attribute, then a rule's value svg_css_paint writes there, then its attribute, then what it inherits),
+    /// so a stylesheet's stroke widens the stroke box too (WPT svgbox-stroke-box-001, raea #50).
     #[cfg(feature = "svg")]
     fn svg_stroke_width(&self) -> f64 {
         let Some(el) = self.element_data() else { return 0.0 };
         let style = el.attr(local_name!("style")).unwrap_or("");
-        let decl = |name: &str| {
-            style.split(';').filter_map(|d| d.split_once(':')).find(|(p, _)| p.trim() == name).map(|(_, v)| v.trim().to_string())
+        let (st, parent) = (self.primary_styles(), self.parent.and_then(|p| self.tree()[p].primary_styles()));
+        let get = |name: &str| {
+            let decl = style.split(';').filter_map(|d| d.split_once(':')).find(|(p, _)| p.trim() == name).map(|(_, v)| v.trim().to_string());
+            let computed = st.as_ref().and_then(|st| svg_computed(st, name));
+            let ruled = computed.clone().filter(|v| parent.as_ref().and_then(|p| svg_computed(p, name)).as_ref() != Some(v));
+            decl.or(ruled).or_else(|| el.attr(markup5ever::LocalName::from(name)).map(str::to_string)).or(computed)
         };
-        let stroke = decl("stroke").or_else(|| el.attr(local_name!("stroke")).map(str::to_string));
-        if stroke.is_none_or(|s| s == "none") {
+        if get("stroke").is_none_or(|s| s == "none") {
             return 0.0;
         }
-        decl("stroke-width")
-            .or_else(|| el.attr(local_name!("stroke-width")).map(str::to_string))
-            .and_then(|v| v.parse::<svgtypes::Length>().ok())
-            .map_or(1.0, |l| l.number)
+        get("stroke-width").and_then(|v| v.parse::<svgtypes::Length>().ok()).map_or(1.0, |l| l.number)
     }
 
     /// A length attribute in user units (unitless or px); None when it's missing or relative.
@@ -522,6 +525,13 @@ impl Node {
             }
         }
     }
+}
+
+/// raea: an SVG property's computed value as CSS text (`none`, `rgb(0, 0, 0)`, `20px`), for the serialized source.
+#[cfg(feature = "svg")]
+fn svg_computed(st: &style::properties::ComputedValues, name: &str) -> Option<String> {
+    let id = style::properties::PropertyId::parse_enabled_for_all_content(name).ok()?;
+    Some(st.computed_value_to_string(id.as_shorthand().err()?))
 }
 
 /// raea: a style attribute without its transform declarations (transform, transform-origin, transform-box, translate,

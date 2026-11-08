@@ -1,0 +1,18 @@
+<!doctype html>
+<!-- #50: an SVG shape's transform-box: stroke-box, as Chrome resolves it. a's stroke (20 wide) comes from a stylesheet,
+     so its stroke box is 120 wide and translateX(50%) moves it 60 (raea read the stroke from attributes only, used the
+     fill box and moved it 50). b has vector-effect: non-scaling-stroke and an id of its own: its stroke box is its fill
+     box (css-transforms-1, csswg-drafts#9640), so it moves 50, and its stroke stays 20 wide under scaleY(0.5) (raea
+     kept the id unmarked, so the stroke was scaled). bench/svg-stroke-box/check.sh -->
+<html><head><style>
+  svg { position: absolute; top: 0; width: 220px; height: 200px }
+  rect { fill: #13502B; stroke: #000; stroke-width: 20; transform-box: stroke-box }
+  #a rect { transform: translateX(50%) }
+  #b-rect { vector-effect: non-scaling-stroke; transform: translateX(50%) scaleY(0.5) }
+</style></head>
+<body style="margin:0;background:#fff">
+<div data-composition-id="main" data-start="0" data-duration="1" data-width="460" data-height="200" style="position:relative;width:460px;height:200px">
+  <svg id="a" style="left:0"><rect x="20" y="60" width="100" height="60"/></svg>
+  <svg id="b" style="left:240px"><rect id="b-rect" x="20" y="60" width="100" height="120"/></svg>
+</div>
+</body></html>
