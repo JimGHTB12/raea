@@ -14,11 +14,14 @@ extend(THREE as unknown as Parameters<typeof extend>[0]);
 export function standInRenderer(): THREE.WebGLRenderer {
   const noop = () => {};
   const size = { width: 1, height: 1 };
-  // a WebGL context that answers what a composer asks as it is made (@react-three/postprocessing, three's own)
-  const context = {
+  // a WebGL context that answers what a composer asks as it is made (@react-three/postprocessing, three's own), and
+  // takes every other call as it renders (its depth blit: bindFramebuffer, blitFramebuffer) doing nothing, its
+  // constants (READ_FRAMEBUFFER, DEPTH_BUFFER_BIT) 0: raea draws the effect (post.ts)
+  const gl = {
     getContextAttributes: () => ({ alpha: true, depth: true, stencil: false, antialias: false, premultipliedAlpha: true }),
     getExtension: () => null, getParameter: () => 0, getSupportedExtensions: () => [], isContextLost: () => false,
-  };
+  } as Record<string | symbol, unknown>;
+  const context = new Proxy(gl, { get: (t, k) => (k in t ? t[k] : typeof k !== "string" || k === "then" ? undefined : /^[A-Z0-9_]+$/.test(k) ? 0 : /^[a-z]/.test(k) ? noop : undefined) });
   // a pass an app draws into a render target itself (drei's <ContactShadows>) is done on the CPU (targets.ts)
   let target: THREE.RenderTarget | null = null;
   const clear: [number, number, number, number] = [0, 0, 0, 0];

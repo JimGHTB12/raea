@@ -1,9 +1,10 @@
 // @react-three/postprocessing's effects as raea's (src/input/post.ts, docs/r3f.feature R3F12): pmndrs postprocessing's
 // own classes, read the way they're found under an <EffectComposer>.
 import { describe, expect, test } from "bun:test";
-import { BloomEffect, ChromaticAberrationEffect, HueSaturationEffect, NoiseEffect, SMAAEffect, ToneMappingEffect, ToneMappingMode, VignetteEffect } from "postprocessing";
+import { BloomEffect, ChromaticAberrationEffect, DepthOfFieldEffect, EffectComposer, EffectPass, HueSaturationEffect, NoiseEffect, RenderPass, SMAAEffect, ToneMappingEffect, ToneMappingMode, VignetteEffect } from "postprocessing";
 import * as THREE from "three";
 import { postParts } from "../src/input/post";
+import { standInRenderer } from "../src/input/session";
 import { EFFECTS } from "../src/input/kinds";
 
 describe("<EffectComposer> → raea's frame effects", () => {
@@ -47,5 +48,19 @@ describe("<EffectComposer> → raea's frame effects", () => {
     const pp = (await import("postprocessing")) as Record<string, unknown>;
     const effects = Object.keys(pp).filter((k) => /Effect$/.test(k) && typeof pp[k] === "function" && k !== "Effect");
     expect(effects.filter((k) => !EFFECTS[k])).toEqual([]);
+  });
+});
+
+describe("<EffectComposer> on raea's stand-in renderer", () => {
+  test("a depth of field renders frame after frame: its depth blit is a call that does nothing", () => {
+    const gl = standInRenderer();
+    const camera = new THREE.PerspectiveCamera();
+    const composer = new EffectComposer(gl);
+    composer.addPass(new RenderPass(new THREE.Scene(), camera));
+    composer.addPass(new EffectPass(camera, new DepthOfFieldEffect(camera, { focusDistance: 0, focalLength: 0.02, bokehScale: 2 })));
+    for (let i = 0; i < 3; i++) expect(() => composer.render(1 / 30)).not.toThrow();
+    const ctx = gl.getContext() as unknown as Record<string, unknown>;
+    expect(ctx.READ_FRAMEBUFFER).toBe(0);
+    expect(ctx.then).toBeUndefined();
   });
 });
