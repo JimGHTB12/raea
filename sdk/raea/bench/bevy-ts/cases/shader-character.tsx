@@ -1,7 +1,8 @@
 // gap: SH3
 // A shader over a Character's skin (<Character> with a <MeshStandardMaterial shader> child, passed to its body Model):
-// card-body is a one-joint test body, a 1 m x 2 m white card skinned to Hips (made in code). The `lit` hook keeps
-// only the lit green, so the body shows green.
+// card-body is a one-joint test body, a 1 m x 2 m white card skinned to pelvis (made in code; its joint renamed from
+// CMU's Hips for the game_engine names, raea #38's corpus). The `lit` hook keeps only the lit green, so the body
+// shows green.
 // probe: 32 32 g>100 r<40 b<40
 // probe: 4 32 g<20
 import { AbsoluteFill, Composition, registerRoot } from "raea";
