@@ -28,12 +28,7 @@ fn place2d(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item
         column(p, row, id, col, &its.iter().map(|i| scale(i, k)).collect::<Vec<_>>());
     }
     // `quat`: Bevy's rotation as given, in place of `rot` (q_x q_y q_z q_w, as a 3D part's)
-    if its.iter().any(|i| i.props.get("quat").is_some()) {
-        let q = |i: &Item, k: usize| i.props.get("quat").and_then(|q| q.get(k)).and_then(Value::as_f64).unwrap_or(if k == 3 { 1.0 } else { 0.0 });
-        for (k, col) in ["q_x", "q_y", "q_z", "q_w"].iter().enumerate() {
-            column(p, row, id, col, &its.iter().map(|i| q(i, k)).collect::<Vec<_>>());
-        }
-    }
+    keyed_vec(p, row, id, its, "quat", &["q_x", "q_y", "q_z", "q_w"], &[0.0, 0.0, 0.0, 1.0]);
     tint(p, row, id, its, color);
 }
 

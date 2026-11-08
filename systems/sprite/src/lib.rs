@@ -251,8 +251,8 @@ fn image_mode(json: &str) -> SpriteImageMode {
         return SpriteImageMode::Sliced(TextureSlicer { border, center_scale_mode: slice(s.get("center_scale_mode")), sides_scale_mode: slice(s.get("sides_scale_mode")), max_corner_scale: f(s, "max_corner_scale", 1.0) });
     }
     if let Some(t) = v.get("Tiled") {
-        let b = |k: &str| t.get(k).and_then(|x| x.as_bool()).unwrap_or(false);
-        return SpriteImageMode::Tiled { tile_x: b("tile_x"), tile_y: b("tile_y"), stretch_value: f(t, "stretch_value", 1.0) };
+        let on = |k: &str| t.get(k) == Some(&serde_json::Value::Bool(true));
+        return SpriteImageMode::Tiled { tile_x: on("tile_x"), tile_y: on("tile_y"), stretch_value: f(t, "stretch_value", 1.0) };
     }
     default()
 }

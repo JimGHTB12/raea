@@ -29,3 +29,15 @@ pub fn tint(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Ite
         exact(p, row, id, name, &colors.iter().map(|v| v[c]).collect::<Vec<_>>());
     }
 }
+
+/// A vector prop keyed as one column per component (a camera's `up` as up_x/y/z, a 2D part's `quat` as q_x..q_w),
+/// written only when some frame sets it; a frame without it (or with the wrong length) takes `d`
+pub fn keyed_vec(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item], key: &str, names: &[&str], d: &[f64]) {
+    if !its.iter().any(|i| i.props.contains_key(key)) {
+        return;
+    }
+    for (k, name) in names.iter().enumerate() {
+        let at = |i: &Item| i.props.get(key).and_then(Value::as_array).filter(|a| a.len() == names.len()).and_then(|a| a[k].as_f64());
+        column(p, row, id, name, &its.iter().map(|i| at(i).unwrap_or(d[k])).collect::<Vec<_>>());
+    }
+}
