@@ -272,9 +272,13 @@ pub fn image_file(world: &mut World, what: &str, p: &str) -> Result<Handle<Image
 }
 
 /// A clip's or audio row's source: `media:<sha256>` names a row of the media table (content-addressed footage, music
-/// and voice; the row holds the file's path and size), anything else is a path. The size is checked on every
+/// and voice; the row holds the file's path and size), a staticFile path (/media/x) is found in the media folders as
+/// every other source of it is (raea-core-scene media_path), anything else is a path. The size is checked on every
 /// resolve (cheap); the hash was checked when the row was made (`raea media`).
 pub fn resolve_src(rows: &[Tup], src: &str, dir: &Path) -> Result<PathBuf, String> {
+    if src.starts_with("/media/") {
+        return Ok(raea_core_scene::media_path(dir, src));
+    }
     let Some(hash) = src.strip_prefix("media:") else { return Ok(find(dir, src)) };
     let m = rows.iter().find(|t| t.kind == "media" && t.id == hash).ok_or(format!("{src}: no such row in media"))?;
     // the portable decoders read the row's edit mezzanine when it has one (the platform's read the original)

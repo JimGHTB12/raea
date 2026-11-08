@@ -15229,6 +15229,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "raea-core-program",
+ "raea-core-scene",
  "raea-io-media",
  "serde_json",
 ]
