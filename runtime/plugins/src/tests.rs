@@ -88,6 +88,28 @@ fn keyed_components_land_on_their_frame_forwards_backwards_and_jumping() {
     }
 }
 
+/// A live engine's rows (a fed render to MP4) still take a row held for its frame: the frames' rows only carry values
+/// that change, and a `from` row never does, so a rigid body from frame 36 stayed asleep
+#[test]
+fn a_live_engine_takes_a_row_held_for_its_frame() {
+    let mut app = app();
+    let w = app.world_mut();
+    let a = w.spawn_empty().id();
+    let ty = "bevy_transform::components::transform::Transform".to_string();
+    w.insert_resource(Keyed { rows: vec![(Some(a), ty, json!({"translation": [7.0, 0.0, 0.0]}), 3)], ..default() });
+    w.insert_resource(Error(None));
+    let mut fed = FrameRows::default();
+    fed.live = Some(vec![]);
+    w.insert_resource(fed);
+    let x = |w: &World| w.get::<Transform>(a).map(|t| t.translation.x);
+    w.insert_resource(Clock(2));
+    keyed_rows(w);
+    assert_eq!(x(w), None, "not before its frame");
+    w.insert_resource(Clock(3));
+    keyed_rows(w);
+    assert_eq!(x(w), Some(7.0), "on its frame, in a live engine too");
+}
+
 /// A `material:` row sets only the fields it gives on the part's own copy of its material (#38): it took the whole
 /// StandardMaterial from them, every other field at its default, so a patch of emissive_exposure_weight blacked out the
 /// emissive and whitened the base, and a render's frames after the first drew the glowing cube grey

@@ -226,11 +226,10 @@ pub fn arm(world: &mut World) {
 
 /// Keyed rows whose frame has come, set on the update that draws it (so a plugin's steps after it see them): with a
 /// plugin, on the frame its clock steps to; without one, on the frame drawn, whichever way it was reached.
+/// A live engine (a fed render's, live play's) takes them too: its frames' rows set the values that change
+/// (apply_live_rows), but a row held for its `from` never changes after the load, so nothing else sets it (a render to
+/// MP4 left a rigid body from frame 36 asleep for good). Each lands once, on its frame.
 fn keyed_rows(world: &mut World) {
-    // live play sets its rows from the game's state each frame (apply_live_rows), not from a timeline
-    if world.get_resource::<FrameRows>().is_some_and(|r| r.live.is_some()) {
-        return;
-    }
     let f = match world.get_resource::<PluginClock>() {
         Some(c) if !c.advancing => return,
         Some(c) => c.stepped,

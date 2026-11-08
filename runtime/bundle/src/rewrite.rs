@@ -32,8 +32,13 @@ pub fn rewrite_into(src: &str, from_dir: &Path, motion_src: &Path, to_motion: &s
     let re = regex::Regex::new(r#"(?s)\b(?:(import)\s+([^;'"]*?)|(export)\s+((?:\*|\{|type\s*\{)[^;'"]*?))\s+from\s+(["'])([^"']+)["']"#).unwrap();
     let mut out = String::new();
     let mut last = 0;
+    // only real statements: an import written inside a string, a template or a comment (a code chip's text) is text
+    let text = text_spans(src);
     for c in re.captures_iter(src) {
         let whole = c.get(0).unwrap();
+        if text.iter().any(|&(a, b)| a <= whole.start() && whole.start() < b) {
+            continue;
+        }
         let kw = c.get(1).or(c.get(3)).unwrap().as_str();
         let what = c.get(2).or(c.get(4)).unwrap().as_str().trim();
         let spec = c.get(6).unwrap().as_str();
@@ -141,4 +146,70 @@ pub fn normalize(p: &Path) -> PathBuf {
         }
     }
     out
+}
+
+/// The byte ranges of `src` that are text, not code: string literals, a template's text (not its `${}`), comments and
+/// regular expression literals. A lexer's pass, enough to tell an import statement from one written in a string.
+pub(crate) fn text_spans(src: &str) -> Vec<(usize, usize)> {
+    let b = src.as_bytes();
+    let (mut spans, mut i, mut braces) = (Vec::new(), 0, Vec::<usize>::new());
+    // whether a `/` here starts a regular expression: after an operator or opening punctuation, or at the start
+    let regex_ok = |i: usize| b[..i].iter().rev().find(|c| !c.is_ascii_whitespace()).is_none_or(|c| b"(,=:[!&|?{};+-*%<>~^".contains(c));
+    // a template's text from `at` up to its end or a `${`; returns where the code resumes
+    let template = |mut i: usize, spans: &mut Vec<(usize, usize)>| -> (usize, bool) {
+        let at = i;
+        while i < b.len() && b[i] != b'`' && !(b[i] == b'$' && b.get(i + 1) == Some(&b'{')) {
+            i += if b[i] == b'\\' { 2 } else { 1 };
+        }
+        spans.push((at, i.min(b.len())));
+        if i < b.len() && b[i] == b'$' { (i + 2, true) } else { (i + 1, false) }
+    };
+    while i < b.len() {
+        match b[i] {
+            b'\'' | b'"' => {
+                let (q, at) = (b[i], i);
+                i += 1;
+                while i < b.len() && b[i] != q && b[i] != b'\n' {
+                    i += if b[i] == b'\\' { 2 } else { 1 };
+                }
+                i += 1;
+                spans.push((at, i.min(b.len())));
+            }
+            b'`' => {
+                let (next, open) = template(i + 1, &mut spans);
+                if open { braces.push(0) }
+                i = next;
+            }
+            b'{' if !braces.is_empty() => { *braces.last_mut().unwrap() += 1; i += 1; }
+            b'}' if braces.last() == Some(&0) => {
+                braces.pop();
+                let (next, open) = template(i + 1, &mut spans);
+                if open { braces.push(0) }
+                i = next;
+            }
+            b'}' if !braces.is_empty() => { *braces.last_mut().unwrap() -= 1; i += 1; }
+            b'/' if b.get(i + 1) == Some(&b'/') => {
+                let at = i;
+                while i < b.len() && b[i] != b'\n' { i += 1 }
+                spans.push((at, i));
+            }
+            b'/' if b.get(i + 1) == Some(&b'*') => {
+                let at = i;
+                i = src[i + 2..].find("*/").map_or(b.len(), |e| i + 2 + e + 2);
+                spans.push((at, i));
+            }
+            b'/' if regex_ok(i) => {
+                let (at, mut class) = (i, false);
+                i += 1;
+                while i < b.len() && b[i] != b'\n' && (class || b[i] != b'/') {
+                    if b[i] == b'[' { class = true } else if b[i] == b']' { class = false }
+                    i += if b[i] == b'\\' { 2 } else { 1 };
+                }
+                i += 1;
+                spans.push((at, i.min(b.len())));
+            }
+            _ => i += 1,
+        }
+    }
+    spans
 }

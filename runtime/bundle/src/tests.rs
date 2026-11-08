@@ -20,6 +20,19 @@ fn rewrite_into_points_imports_and_re_exports_at_the_copies() {
 }
 
 #[test]
+fn an_import_written_in_a_string_template_or_comment_is_left_as_text() {
+    // a code chip's text (a launch film types `import { RigidBody } from "raea/plugins/avian"`) isn't an import
+    let m = &raea_io_home::home().join("sdk/raea/src");
+    let src = "import { a } from \"raea\";\nconst chip = `import { b } from \"raea/clock\"; ${ {x: `import c from \"raea\"`}.x }`;\n// import d from \"raea\";\n/* import e from \"raea\"; */\nconst s = 'import f from \"raea\"';\nconst r = /import g from \"raea\"/;\nimport { h } from \"raea/clock\";\n";
+    let out = rewrite_into(src, Path::new("/nowhere/app"), m, "../motion", None).unwrap();
+    assert!(out.starts_with("import { a } from \"../motion/prelude\""), "{out}");
+    assert!(out.ends_with("import { h } from \"../app/clock\";\n"), "{out}");
+    for kept in ["`import { b } from \"raea/clock\"; ${", "`import c from \"raea\"`", "// import d from \"raea\";", "/* import e from \"raea\"; */", "'import f from \"raea\"'", "/import g from \"raea\"/"] {
+        assert!(out.contains(kept), "{kept} rewritten in {out}");
+    }
+}
+
+#[test]
 fn point_sdks_climbs_from_a_nested_file() {
     let src = "import { useClockState } from \"@raea/app/clock\";\nimport { x } from \"@raea/nope\";\n";
     assert_eq!(point_sdks(src, "../", &sdks()), src.replace("@raea/app/clock", "../app/clock"));
