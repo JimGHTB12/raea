@@ -152,10 +152,11 @@ pub struct EncodeOpts {
     pub height: u32,
     pub fps: f64,
     /// target video bitrate in kbps (an average; VideoToolbox spends less on easy pictures). Ignored where `quality` is
-    /// set and the backend takes it.
+    /// set and the backend has a constant quality; openh264 scales it by the quality.
     pub kbps: u32,
     /// constant quality, 0..1 (VideoToolbox's kVTCompressionPropertyKey_Quality; libx264's CRF through the ffmpeg
     /// backend), in place of `kbps`: each frame gets the bits its picture needs. None: the average bitrate.
+    /// openh264 (Windows, Linux) has no such mode: it scales `kbps` by the quality instead (raea_io_soft::quality_kbps).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quality: Option<f32>,
     /// frames will arrive as NV12 (push_nv12): platform encoders set up for it, so nothing converts on the CPU
