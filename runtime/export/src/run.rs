@@ -71,10 +71,10 @@ pub(crate) fn scene_program_checked(js: &Path, dir: &Path, upto: i64, wanted: Op
         }
     }
     raea_runtime_react::startup_mark("the 3D's rows: stepping React through the frames");
-    // a still steps only up to its frame, and one past it (what reads ahead, as a shutter might, has it); anything
-    // else steps the whole composition
+    // a still or an --at list steps only its frames and their neighbours (scene_frames), through one past the last
+    // (what reads ahead, as a shutter might, has it); anything else steps the whole composition
     let got = match wanted {
-        Some(&[f]) if f >= 0 => scene_frames(js, dir, upto.max(f + 1) + 1, false)?,
+        Some(w) if !w.is_empty() => scene_frames(js, dir, upto.max(w.iter().max().map_or(0, |f| f + 1)) + 1, false, w)?,
         _ => scene_frames_to(js, dir, upto)?,
     };
     let Some((frames, w, h, fps)) = got else { return Ok(None) };
@@ -82,10 +82,10 @@ pub(crate) fn scene_program_checked(js: &Path, dir: &Path, upto: i64, wanted: Op
     raea_runtime_react::startup_mark(&format!("the 3D's rows: {} frames stepped", frames.len()));
     let p = program(&frames, w, h, fps);
     raea_runtime_react::startup_mark("the 3D's rows: program made");
-    // a still: its own frame (the frames are 0..upto in order)
-    let seen = match wanted {
-        Some(&[f]) if f >= 0 && (f as usize) < frames.len() => f as usize..f as usize + 1,
-        _ => 0..frames.len(),
+    // a still or an --at list: its own frames (the rest are only stepped, or copies: scene_frames)
+    let frames: Vec<(i64, Frame)> = match wanted.map(|w| w.iter().copied().collect::<std::collections::HashSet<i64>>()) {
+        Some(w) => frames.into_iter().filter(|(f, _)| w.contains(f)).collect(),
+        None => frames,
     };
     // the clipping check on a thread of its own while the engine opens and the frames render (3 s over the Rome
     // film's 8,064 frames, which the render waited for before its engine opened); the render joins it at its end
@@ -96,7 +96,7 @@ pub(crate) fn scene_program_checked(js: &Path, dir: &Path, upto: i64, wanted: Op
     let owned = Prepassed(frames);
     *FED_CLIPPING.lock().unwrap() = Some(std::thread::spawn(move || {
         let o = owned;
-        scene::told(&o.0[seen], w, h, fps)
+        scene::told(&o.0, w, h, fps)
     }));
     Ok(Some(p))
 }

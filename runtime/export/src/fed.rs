@@ -49,13 +49,15 @@ pub(crate) fn frames_hold_3d(js: &Path, dir: &Path, frames: &[i64]) -> R<bool> {
 /// each waited on the JS thread and back, took the Rome film's 8,064 frames 6 s on a quiet machine and 38 s at load
 /// 50, before its engine could open. RAEA_BAKE_WORKERS sets how many runtimes (4; one for short timelines).
 pub(crate) fn scene_frames_to(js: &Path, dir: &Path, upto: i64) -> R<Option<(Vec<(i64, Frame)>, u32, u32, f64)>> {
-    scene_frames(js, dir, upto, true)
+    scene_frames(js, dir, upto, true, &[])
 }
 
 /// `whole`: the whole composition at least (scene_frames_to); else only frames 0..upto, as a still at frame f needs
 /// (a frame-0 still of 10 000 cubes over 121 frames stepped all 121, 69 s for 2 frames' 12 s; docs/control.feature
-/// FC1a)
-pub(crate) fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool) -> R<Option<(Vec<(i64, Frame)>, u32, u32, f64)>> {
+/// FC1a). `wanted`, the frames a still or an `--at` list draws: when they and their neighbours (what reads a frame
+/// either side, as a shutter does) are under half of the frames, only those are stepped (frames are pure) and each
+/// frame between holds the stepped one before it, never drawn (#26: four `--at` frames of 360 stepped all 360, 64 s)
+pub(crate) fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool, wanted: &[i64]) -> R<Option<(Vec<(i64, Frame)>, u32, u32, f64)>> {
     edit_dir(dir);
     let runtime = |js: &Path| {
         let mut app = App::new();
@@ -69,6 +71,7 @@ pub(crate) fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool) -> R<O
     let fps = num(&conf, "fps").unwrap_or(30.0);
     let length = num(&conf, "frames").unwrap_or(60.0) as i64;
     let total = if whole || upto <= 0 { length.max(upto) } else { upto };
+    let around: std::collections::BTreeSet<i64> = wanted.iter().filter(|f| **f >= 0).flat_map(|&f| f.saturating_sub(1).max(0)..=f + 1).collect();
     type Scenes = Vec<(i64, Vec<Node3>, Option<String>)>;
     let step = |app: &mut App, a: i64, b: i64| -> R<Scenes> {
         let mut out: Scenes = Vec::with_capacity((b - a).max(0) as usize);
@@ -84,33 +87,48 @@ pub(crate) fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool) -> R<O
         })?;
         Ok(out)
     };
-    let workers = std::env::var("RAEA_BAKE_WORKERS").ok().and_then(|v| v.parse::<i64>().ok()).unwrap_or(4).clamp(1, 16).min((total / 240).max(1));
-    let span = (total + workers - 1) / workers;
-    let ranges: Vec<(i64, i64)> = (0..workers).map(|k| (k * span, ((k + 1) * span).min(total))).filter(|(a, b)| a < b).collect();
-    let later: Vec<std::thread::JoinHandle<R<Scenes>>> = ranges
-        .iter()
-        .skip(1)
-        .map(|&(a, b)| {
-            let js = js.to_path_buf();
-            let dir = dir.to_path_buf();
-            std::thread::Builder::new()
-                .name("raea scene rows".into())
-                .spawn(move || {
-                    edit_dir(&dir);
-                    let mut app = runtime(&js);
-                    settle(&mut app, Some(-1), 20.0)?;
-                    step(&mut app, a, b)
-                })
-                .map_err(|e| e.to_string())
-        })
-        .collect::<Result<_, _>>()?;
-    let mut scenes = match ranges.first() {
-        Some(&(a, b)) => step(&mut app, a, b)?,
-        None => Vec::new(),
+    let scenes = if !around.is_empty() && around.len() * 2 < total as usize {
+        // each run of neighbouring frames stepped as one range, the runs one after another in the one runtime
+        let mut runs: Vec<(i64, i64)> = Vec::new();
+        for &f in &around {
+            match runs.last_mut() { Some(r) if r.1 == f => r.1 = f + 1, _ => runs.push((f, f + 1)) }
+        }
+        let mut stepped: Scenes = Vec::new();
+        for (a, b) in runs {
+            stepped.extend(step(&mut app, a, b)?);
+        }
+        raea_runtime_react::startup_mark(&format!("the 3D's rows: {} of {total} frames stepped (the wanted ones and their neighbours)", stepped.len()));
+        (0..total.max(stepped.last().map_or(0, |s| s.0 + 1))).map(|f| (f, stepped[stepped.partition_point(|s| s.0 <= f).saturating_sub(1)].clone())).map(|(f, (_, scene, clear))| (f, scene, clear)).collect()
+    } else {
+        let workers = std::env::var("RAEA_BAKE_WORKERS").ok().and_then(|v| v.parse::<i64>().ok()).unwrap_or(4).clamp(1, 16).min((total / 240).max(1));
+        let span = (total + workers - 1) / workers;
+        let ranges: Vec<(i64, i64)> = (0..workers).map(|k| (k * span, ((k + 1) * span).min(total))).filter(|(a, b)| a < b).collect();
+        let later: Vec<std::thread::JoinHandle<R<Scenes>>> = ranges
+            .iter()
+            .skip(1)
+            .map(|&(a, b)| {
+                let js = js.to_path_buf();
+                let dir = dir.to_path_buf();
+                std::thread::Builder::new()
+                    .name("raea scene rows".into())
+                    .spawn(move || {
+                        edit_dir(&dir);
+                        let mut app = runtime(&js);
+                        settle(&mut app, Some(-1), 20.0)?;
+                        step(&mut app, a, b)
+                    })
+                    .map_err(|e| e.to_string())
+            })
+            .collect::<Result<_, _>>()?;
+        let mut scenes = match ranges.first() {
+            Some(&(a, b)) => step(&mut app, a, b)?,
+            None => Vec::new(),
+        };
+        for t in later {
+            scenes.extend(t.join().map_err(|_| "a scene-rows runtime panicked".to_string())??);
+        }
+        scenes
     };
-    for t in later {
-        scenes.extend(t.join().map_err(|_| "a scene-rows runtime panicked".to_string())??);
-    }
     let frames: Vec<(i64, Frame)> = scenes.into_iter().map(|(f, scene, clear)| (f, Frame { screens: Vec::new(), mix: None, page: None, sounds: Vec::new(), scene, clear, same: false })).collect();
     if frames.iter().all(|(_, f)| f.scene.is_empty()) {
         return Ok(None);
