@@ -438,19 +438,26 @@ impl Node {
                     .flatten();
                 #[cfg(not(feature = "svg"))]
                 let css_transform: Option<String> = None;
-                if let Some(t) = css_transform.as_deref().filter(|t| !t.is_empty()) {
-                    writer.push_str(" transform=\"");
-                    writer.push_str(t);
-                    writer.push('"');
-                }
 
                 // raea: the SVG paint properties CSS sets on it (a stylesheet's, a class's), into its style attribute (#45)
                 #[cfg(feature = "svg")]
-                let css_paint = (opts.resolve_current_color && data.name.ns == ns!(svg))
+                let mut css_paint = (opts.resolve_current_color && data.name.ns == ns!(svg))
                     .then(|| self.svg_css_paint(current_color.as_deref()))
                     .unwrap_or_default();
                 #[cfg(not(feature = "svg"))]
-                let css_paint = String::new();
+                let mut css_paint = String::new();
+                // raea: and the computed transform there too, with its origin already in the matrix: a <style> inside
+                // the svg goes to usvg with it, and usvg applies that sheet's transform and transform-origin over a
+                // transform attribute (`rotate(30deg)`, which SVG's syntax can't read, so the shape drew unturned, #60).
+                // A style attribute's declarations win over a sheet's in usvg, as in CSS. The identity is written too,
+                // so a sheet's transform can't turn a shape the cascade leaves unturned.
+                if let Some(t) = css_transform.as_deref() {
+                    let t = if t.is_empty() { "matrix(1 0 0 1 0 0)" } else { t };
+                    if !css_paint.is_empty() {
+                        css_paint.push(';');
+                    }
+                    css_paint.push_str(&format!("transform:{t};transform-origin:0 0"));
+                }
                 for attr in data.attrs() {
                     if css_transform.is_some()
                         && attr.name.ns == ns!()
