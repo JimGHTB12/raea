@@ -21,13 +21,13 @@ fn ch(v: u32, i: u32) -> u32 { return (v >> (8u * i)) & 255u; }
         // the page alone, opaque: over the black the encoder's buffer starts as
         o = s | (255u << 24u);
     } else if p.mode == 1u {
-        // the page over the 3D, the 3D over black: Skia's SrcOver on the u8 grid, as bevy_over_3d did
+        // the page over the 3D, the 3D (premultiplied, as Bevy blends into it) over black: its own colour, a window's
+        // picture, whatever alpha its fragments wrote; then Skia's SrcOver on the u8 grid, as bevy_over_3d does
         let d = under[g.y * p.under_stride + g.x];
-        let da = ch(d, 3u);
         let k = 256u - ch(s, 3u);
         o = 255u << 24u;
         for (var i = 0u; i < 3u; i++) {
-            let t = (ch(d, i) * da + 127u) / 255u;
+            let t = ch(d, i);
             o |= min(255u, ch(s, i) + ((t * k) >> 8u)) << (8u * i);
         }
     }

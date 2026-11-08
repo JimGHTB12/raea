@@ -103,15 +103,16 @@ pub(crate) fn bevy_over_3d(world: &mut World, page: &mut raea_runtime_page::Bevy
         page.set_view(w, h, crop);
         return Ok(opaque(page.frame()?));
     }
-    // else the page over the 3D, the 3D over black (the fed render's page buffer; its alpha taken straight). The
+    // else the page over the 3D, the 3D over black (the fed render's page buffer): the 3D is premultiplied (Bevy blends
+    // into it), so over black it's its own colour, as a window shows it whatever alpha an opaque, masked or
+    // alpha-to-coverage fragment wrote (3d/transparency_3d). The
     // page goes over as the fed render's compositor lays a page's fills and layers (Skia's SrcOver on the u8 grid:
     // dst * (256 - srcA) >> 8, plus the source), so a near-black 3D under a faded layer floors as it did there
     let mut out = three;
     for (d, s) in out.chunks_exact_mut(4).zip(px.chunks_exact(4)) {
-        let a3 = 255 - d[3] as u32;
         let k = 256 - s[3] as u32;
         for c in 0..3 {
-            let t = (d[c] as u32 * (255 - a3) + 127) / 255;
+            let t = d[c] as u32;
             d[c] = (s[c] as u32 + ((t * k) >> 8)).min(255) as u8;
         }
         d[3] = 255;

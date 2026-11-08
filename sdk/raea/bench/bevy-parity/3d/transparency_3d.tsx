@@ -3,8 +3,8 @@
 // z 0 (blended, as Bevy's From<Color> makes a colour with alpha under 1, and alpha-to-coverage), every material's alpha
 // set to sin(elapsed) / 2 + 0.5 each update (fade_transparency), a shadow-casting PointLight at (4, 8, 4) and the camera at
 // (-2, 3, 5) looking at the origin, in Bevy's default 1280 x 720 window.
-// Open (frame 10 fails, worst tile 25): the AlphaToCoverage cube's samples it leaves uncovered come out near the clear
-// colour in raea (grey ~45, with RAEA_READBACK=rgba too) where Bevy's show the floor (~51), so the cube reads darker.
+// The AlphaToCoverage cube's fragments write their alpha (under 1 at frame 10) into the premultiplied target; it's
+// composited as premultiplied, its own colour as Bevy's window shows it (runtime/export bevy_frame.rs).
 import { Composition, registerRoot, useCurrentFrame } from "raea";
 import { Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
