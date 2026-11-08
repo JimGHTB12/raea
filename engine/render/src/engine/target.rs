@@ -40,6 +40,7 @@ pub(crate) fn tag_row_view(t: Res<TagRowTarget>, images: Res<Assets<Image>>, vie
         None => bevy::camera::SubCameraView { full_size: UVec2::new(s.x, s.y - 1), offset: Vec2::ZERO, size: s },
     };
     for (mut c, rt) in &mut q {
+        if c.viewport.is_some() { if c.sub_camera_view.is_some() { c.sub_camera_view = None; } continue; } // a camera with its own Viewport (a ViewportNode's) sees its viewport's shape, as Bevy sizes it, never the tag row
         if matches!(rt, RenderTarget::Image(i) if i.handle == t.0) && c.sub_camera_view != Some(view) {
             c.sub_camera_view = Some(view);
         }
