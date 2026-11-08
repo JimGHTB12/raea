@@ -90,3 +90,4 @@ ui/scroll_and_overflow/overflow_debug
 ui/text/font_query
 ui/images/image_node_resizing
 ui/render_ui_to_texture
+ui/ui_drag_and_drop

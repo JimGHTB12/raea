@@ -148,9 +148,10 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): 
   // (its corners as Bevy resolves them, of its size when that is in px)
   const wh = [p.width, p.height].map((v) => (typeof v === "string" && /^[\d.e+-]+px$/.test(v) ? parseFloat(v) : NaN));
   if (p.border_radius !== undefined) s.borderRadius = radiusCss(who, p.border_radius, wh.every(Number.isFinite) ? (wh as [number, number]) : undefined);
-  // (the outline is outside the node: over what is under the node, not its own background)
+  // (the outline is outside the node, over whatever is there: its siblings too, not only the parent's background, so a
+  // translucent one goes as written and the page blends it in linear light, as Bevy does; Color::NONE draws nothing)
   if (p.outline !== undefined) {
-    s.outline = `${checkVal(who, "outline.width", p.outline.width)} solid ${over(who, "outline.color", p.outline.color ?? "#ffffff", back).css}`;
+    s.outline = `${checkVal(who, "outline.width", p.outline.width)} solid ${over(who, "outline.color", p.outline.color ?? "#ffffff", undefined).css}`;
     if (p.outline.offset !== undefined) s.outlineOffset = checkVal(who, "outline.offset", p.outline.offset);
   }
   if (p.background_color !== undefined) ({ css: s.backgroundColor, back } = over(who, "background_color", p.background_color, back));
