@@ -20,7 +20,8 @@
     "./three": "./src/three.tsx",
     "./plugin": "./src/plugin.ts",
     "./screen": "./src/screen.tsx",
-    "./bevy-own": "./src/bevy-own.gen.tsx"
+    "./bevy-own": "./src/bevy-own.gen.tsx",
+    "./feathers": "./src/feathers.ts"
   },
   "raea": {
     "plugins": {

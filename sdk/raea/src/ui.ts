@@ -14,3 +14,5 @@ export { FontFeatureTag, FontWidth } from "@raea/render/bevy3d";
 export { GlobalUiDebugOptions, type UiDebugOptions } from "@raea/render/bevy3d";
 export type { IgnoreScroll } from "@raea/render/bevy3d";
 export { Scrollbar, ScrollbarThumb, type ScrollbarProps, type ScrollbarThumbProps, type ControlOrientation } from "@raea/render/bevy3d";
+// bevy_text's EditableText on a Node, its caret drawn while it has focus (docs/control.feature FC0a)
+export { EditableText, type EditableTextProps, type TextCursorStyle } from "@raea/render/bevy3d";

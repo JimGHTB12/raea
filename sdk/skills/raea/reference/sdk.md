@@ -41,6 +41,10 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 `Hsla`, `LinearRgba`, `Oklaba`, `Oklcha`, `Srgba`, `Xyza`, `kelvin`, `toHex`
 
+## `raea/feathers` (sdk/raea/src/feathers.ts)
+
+`FeathersButton`, `ThemeContext`, `ThemedText`, `UiTheme`, `VirtualKeyboard`, `context_color`, `create_dark_theme`, `fonts`, `palette`, `size`, `to_border_radius`, `tokens`, `useThemeColor`
+
 ## `raea/gizmos` (sdk/raea/src/gizmos.ts)
 
 `Gizmo`
@@ -99,7 +103,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/ui` (sdk/raea/src/ui.ts)
 
-`AbsoluteFill`, `AngularColorStop`, `BorderRadius`, `BoxShadow`, `ColorStop`, `ConicGradient`, `CornerRadius`, `FontFeatureTag`, `FontSource`, `FontVariationTag`, `FontWidth`, `GhostNode`, `GlobalUiDebugOptions`, `GridPlacement`, `GridTrack`, `ImageNode`, `ImagePlugin`, `InlineImage`, `LinearGradient`, `Node`, `Overflow`, `OverflowClipMargin`, `RadialGradient`, `RepeatedGridTrack`, `Rot2`, `Scrollbar`, `ScrollbarThumb`, `Text`, `Text2d`, `TextShadow`, `TextSpan`, `TextureAtlasLayout`, `UiPosition`, `UiRect`, `UiScale`, `UiTargetCamera`, `UiTexture`, `UiTransform`, `Val2`, `Viewport`, `auto`, `percent`, `px`, `targetImage`, `vh`, `vmax`, `vmin`, `vw`
+`AbsoluteFill`, `AngularColorStop`, `BorderRadius`, `BoxShadow`, `ColorStop`, `ConicGradient`, `CornerRadius`, `EditableText`, `FontFeatureTag`, `FontSource`, `FontVariationTag`, `FontWidth`, `GhostNode`, `GlobalUiDebugOptions`, `GridPlacement`, `GridTrack`, `ImageNode`, `ImagePlugin`, `InlineImage`, `LinearGradient`, `Node`, `Overflow`, `OverflowClipMargin`, `RadialGradient`, `RepeatedGridTrack`, `Rot2`, `Scrollbar`, `ScrollbarThumb`, `Text`, `Text2d`, `TextShadow`, `TextSpan`, `TextureAtlasLayout`, `UiPosition`, `UiRect`, `UiScale`, `UiTargetCamera`, `UiTexture`, `UiTransform`, `Val2`, `Viewport`, `auto`, `percent`, `px`, `targetImage`, `vh`, `vmax`, `vmin`, `vw`
 
 ## `raea/video` (sdk/raea/src/video.ts)
 

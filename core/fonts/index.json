@@ -292,5 +292,40 @@
   "weight": "900",
   "style": "normal",
   "file": "poppins-900-normal.woff2"
+ },
+ {
+  "package": "bevy_feathers",
+  "family": "fira-sans",
+  "weight": "400",
+  "style": "normal",
+  "file": "fira-sans-400-normal.woff2"
+ },
+ {
+  "package": "bevy_feathers",
+  "family": "fira-sans",
+  "weight": "700",
+  "style": "normal",
+  "file": "fira-sans-700-normal.woff2"
+ },
+ {
+  "package": "bevy_feathers",
+  "family": "fira-sans",
+  "weight": "400",
+  "style": "italic",
+  "file": "fira-sans-400-italic.woff2"
+ },
+ {
+  "package": "bevy_feathers",
+  "family": "fira-sans",
+  "weight": "700",
+  "style": "italic",
+  "file": "fira-sans-700-italic.woff2"
+ },
+ {
+  "package": "bevy_feathers",
+  "family": "fira-mono",
+  "weight": "500",
+  "style": "normal",
+  "file": "fira-mono-500-normal.woff2"
  }
 ]

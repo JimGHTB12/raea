@@ -58,6 +58,18 @@ export class Oklcha {
   mix(o: Oklcha, t: number): Oklcha {
     return new Oklcha(lerp(this.lightness, o.lightness, t), lerp(this.chroma, o.chroma, t), lerpHue(this.hue, o.hue, t), lerp(this.alpha, o.alpha, t));
   }
+  /** Bevy's Luminance::lighter: the lightness raised by `amount`, at most 1 */
+  lighter(amount: number): Oklcha {
+    return new Oklcha(Math.min(f(this.lightness + amount), 1), this.chroma, this.hue, this.alpha);
+  }
+  /** Bevy's Luminance::darker: the lightness lowered by `amount`, at least 0 */
+  darker(amount: number): Oklcha {
+    return new Oklcha(Math.max(f(this.lightness - amount), 0), this.chroma, this.hue, this.alpha);
+  }
+  /** Bevy's Alpha::with_alpha */
+  with_alpha(alpha: number): Oklcha {
+    return new Oklcha(this.lightness, this.chroma, this.hue, alpha);
+  }
 }
 
 /** Bevy's Xyza: CIE 1931 XYZ (D65, as linear sRGB's). */

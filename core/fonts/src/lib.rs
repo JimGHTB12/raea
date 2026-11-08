@@ -1,5 +1,5 @@
-//! raea's bundled faces: the Fontsource latin subsets in this folder (index.json), and the aliases that map a requested
-//! family onto one (a deterministic font set: Helvetica, Arial and SF Pro draw as Inter, Times and Georgia as EB
+//! raea's bundled faces: the Fontsource latin subsets in this folder (index.json) and bevy_feathers' Fira faces
+//! (whole), and the aliases that map a requested family onto one (a deterministic font set: Helvetica, Arial and SF Pro draw as Inter, Times and Georgia as EB
 //! Garamond, Courier and Menlo as JetBrains Mono, ...), so a render looks the same on every machine. Each family is
 //! under the SIL Open Font License 1.1 (licenses/).
 
@@ -10,7 +10,7 @@ pub const ALIASES: &[(&str, &str)] = &[
     ("space mono", "space-mono"), ("ibm plex mono", "ibm-plex-mono"), ("jetbrains mono", "jetbrains-mono"),
     ("eb garamond", "eb-garamond"), ("playfair display", "playfair-display"), ("source code pro", "source-code-pro"),
     ("noto sans jp", "noto-sans-jp"), ("roboto", "roboto"), ("open sans", "open-sans"), ("lato", "lato"),
-    ("poppins", "poppins"),
+    ("poppins", "poppins"), ("fira sans", "fira-sans"), ("fira mono", "fira-mono"),
     ("helvetica neue", "inter"), ("helvetica", "inter"), ("arial", "inter"), ("helvetica bold", "inter"),
     ("futura", "montserrat"), ("din alternate", "montserrat"), ("arial black", "montserrat"),
     ("bebas neue", "league-gothic"), ("courier new", "jetbrains-mono"), ("courier", "jetbrains-mono"),
