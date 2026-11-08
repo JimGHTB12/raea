@@ -288,6 +288,35 @@ mod svg_namespace_tests {
         assert!(!svg_owned("title", html), "a title under a <foreignObject> is HTML's");
         assert!(svg_inside("svg", html), "an <svg> in that HTML starts SVG again");
     }
+
+    /// An SVG <text> keeps SVG's attribute names from frame to frame, as an animated `fontSize` changes them: the walk
+    /// gives it `$ns`, and a later frame's diff sends only what changed, so the page tells it's SVG's by its namespace
+    #[test]
+    fn an_svg_texts_attributes_keep_their_svg_names_from_frame_to_frame() {
+        use bevy::prelude::{Entity, UVec2};
+        use raea_core_wire::tree::{Tree, Want};
+        use serde_json::{Value, json};
+        let mut docs = raea_sys_page::Docs::default();
+        let doc = docs.open(Entity::PLACEHOLDER, raea_sys_page::Page { size: UVec2::new(640, 360), scale: 1.0 });
+        let mut nodes = raea_sys_page::ops::Nodes::new(doc.root_node().id);
+        let (mut tree, order) = (Tree::default(), std::collections::HashMap::from([(0, vec![1]), (1, vec![2]), (2, vec![3])]));
+        let want = |id, parent, kind: &str, props: Value, text: Option<&str>| Want { id, parent, kind: kind.into(), props: props.as_object().unwrap().clone(), text: text.map(Into::into), path: String::new() };
+        let mut attrs_at = |size: u32, anchor: &str| {
+            let frame = [
+                want(1, 0, "svg", json!({"width": 640, "height": 360}), None),
+                want(2, 1, "text", json!({"$ns": "svg", "x": 320, "y": 190, "fontSize": size, "textAnchor": anchor}), None),
+                want(3, 2, "text", json!({}), Some("Middle")),
+            ];
+            raea_sys_page::ops::apply(doc, &mut nodes, tree.diff(&frame, &order).0);
+            let el = doc.get_node(nodes.by_id[&2]).unwrap().element_data().unwrap();
+            el.attrs().iter().map(|a| format!("{}={}", a.name.local, a.value)).collect::<Vec<_>>()
+        };
+        let first = attrs_at(48, "middle");
+        assert!(first.contains(&"font-size=48".into()) && first.contains(&"text-anchor=middle".into()), "{first:?}");
+        let next = attrs_at(60, "end");
+        assert!(next.contains(&"font-size=60".into()) && next.contains(&"text-anchor=end".into()), "{next:?}");
+        assert!(!next.iter().any(|a| a.starts_with("fontsize=") || a.starts_with("textanchor=")), "lowercased as HTML: {next:?}");
+    }
 }
 
 #[cfg(test)]

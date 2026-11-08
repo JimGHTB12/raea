@@ -416,44 +416,6 @@ mod tests {
         assert_eq!(attr_name("strokeWidth", true).as_deref(), Some("stroke-width"));
         assert_eq!(attr_name("viewBox", true).as_deref(), Some("viewBox"));
     }
-
-    /// An SVG <text> made in SVG's namespace (`$ns`) keeps SVG's attribute names when React changes them, as an animated
-    /// `fontSize` does every frame: `font-size`, never the lowercased `fontsize` usvg doesn't know.
-    #[test]
-    fn an_svg_texts_attributes_keep_their_svg_names_when_they_change() {
-        use blitz_dom::DocumentConfig;
-        use serde_json::json;
-        let mut doc = BaseDocument::new(DocumentConfig::default());
-        let body = {
-            let mut m = doc.mutate();
-            let root = m.doc.root_node().id;
-            let html = m.create_element(super::attrs::name("html", false), vec![]);
-            m.append_children(root, &[html]);
-            let body = m.create_element(super::attrs::name("body", false), vec![]);
-            m.append_children(html, &[body]);
-            body
-        };
-        let mut nodes = Nodes::new(body);
-        let props = |v: Value| v.as_object().unwrap().clone();
-        apply(&mut doc, &mut nodes, vec![
-            Op::Create { id: 1, kind: "svg".into(), props: props(json!({"width": 640, "height": 360})), text: None },
-            Op::Create { id: 2, kind: "text".into(), props: props(json!({"$ns": "svg", "x": 320, "y": 190, "fontSize": 48, "textAnchor": "middle"})), text: Some("Middle".into()) },
-            Op::Append { parent: 0, child: 1 },
-            Op::Append { parent: 1, child: 2 },
-        ]);
-        let text = nodes.by_id[&2];
-        let attrs = |doc: &BaseDocument| -> Vec<(String, String)> {
-            let el = doc.get_node(text).unwrap().element_data().unwrap();
-            el.attrs().iter().map(|a| (a.name.local.to_string(), a.value.to_string())).collect()
-        };
-        let has = |a: &[(String, String)], k: &str, v: &str| a.iter().any(|(n, x)| n == k && x == v);
-        let made = attrs(&doc);
-        assert!(has(&made, "font-size", "48") && has(&made, "text-anchor", "middle"), "{made:?}");
-        apply(&mut doc, &mut nodes, vec![Op::Update { id: 2, set: Some(props(json!({"fontSize": 60, "textAnchor": "end"}))), unset: None, text: None }]);
-        let changed = attrs(&doc);
-        assert!(has(&changed, "font-size", "60") && has(&changed, "text-anchor", "end"), "{changed:?}");
-        assert!(!changed.iter().any(|(n, _)| n == "fontsize" || n == "textanchor"), "lowercased as HTML: {changed:?}");
-    }
 }
 
 /// A menu's items (`menuItem`: a `menuitem` attribute), in document order.
