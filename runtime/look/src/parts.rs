@@ -70,3 +70,30 @@ pub fn own_uniforms(p: &mut Program, id: &str, its: &[Item], spec: impl Fn(&Item
     }
     keyed(p, "component", Some(id), "o", each.iter().map(|(f, v)| (*f, v)));
 }
+
+/// A string that may change frame by frame (a column is a number per frame), as column `col`: its first frame's value,
+/// and when it changes, each value it takes (`{col}s`, one a line) and which one each frame has (`{col}_k`, keyed,
+/// stepped); raea-sys-frame's `keyed` reads it back. A value with a line break in it is held from the first frame.
+pub fn keyed_strings(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, col: &str, vals: &[String]) {
+    let Some(first) = vals.first() else { return };
+    row.insert(col.into(), V::S(first.clone()));
+    if vals.iter().all(|s| s == first) || vals.iter().any(|s| s.contains('\n')) {
+        return;
+    }
+    let mut list: Vec<&str> = Vec::new();
+    let ks: Vec<f64> = vals.iter().map(|s| match list.iter().position(|x| x == s) {
+        Some(k) => k as f64,
+        None => {
+            list.push(s);
+            (list.len() - 1) as f64
+        }
+    }).collect();
+    row.insert(format!("{col}s"), V::S(list.join("\n")));
+    row.insert(format!("{col}_k"), V::N(ks[0]));
+    p.keys.insert((id.to_string(), format!("{col}_k")), ks.iter().enumerate().map(|(f, k)| (f as i64, *k, "step".to_string())).collect());
+}
+
+/// Each frame's `src` (a picture's path, found as staticFile's /media/ is, or a "render:NAME"), for keyed_strings.
+pub fn srcs_of(its: &[Item]) -> Vec<String> {
+    its.iter().map(|i| src_path(i.props.get("src").and_then(Value::as_str).unwrap_or(""))).collect()
+}

@@ -5,6 +5,40 @@ use super::*;
 #[cfg(feature = "native")]
 use crate::store::RowKey;
 
+/// The images cameras draw into, by the name a Handle<Image> field gives them ("render:NAME"), and their sizes (made by
+/// raea-runtime-plugins' fields::image; a sprite switches between them by name: raea-sys-sprite's sync_2d).
+#[derive(Resource, Default)]
+pub struct RenderImages(pub BTreeMap<String, (Handle<Image>, (u32, u32))>);
+
+impl RenderImages {
+    /// A "render:NAME" or "render:NAME:WxH" source's name.
+    pub fn name(src: &str) -> Option<&str> {
+        let rest = src.strip_prefix("render:")?;
+        Some(rest.rsplit_once(':').filter(|(_, sz)| sz.contains('x')).map_or(rest, |(n, _)| n))
+    }
+}
+
+/// A string column that may change frame by frame (raea-runtime-look's keyed_strings) as this frame has it: from
+/// `{col}s` and `{col}_k` when it changes, `col` when it doesn't (`get` reads a column of the row).
+pub fn keyed(get: impl Fn(&str) -> Option<V>, col: &str) -> Option<String> {
+    if let (Some(V::S(list)), Some(k)) = (get(&format!("{col}s")), get(&format!("{col}_k"))) {
+        return list.split('\n').nth(k.num().round().max(0.0) as usize).map(str::to_string);
+    }
+    match get(col) {
+        Some(V::S(s)) => Some(s),
+        _ => None,
+    }
+}
+
+/// Every value a keyed string column takes over the run (`keyed`'s), its one value when it doesn't change.
+pub fn keyed_all(vals: &BTreeMap<String, V>, col: &str) -> Vec<String> {
+    match (vals.get(&format!("{col}s")), vals.get(col)) {
+        (Some(V::S(list)), _) => list.split('\n').map(str::to_string).collect(),
+        (_, Some(V::S(s))) => vec![s.clone()],
+        _ => vec![],
+    }
+}
+
 /// A 2D row's props as installed (its constants: what its columns started as, the image's asset path).
 #[derive(Component, Clone)]
 pub struct Base2d(pub serde_json::Map<String, serde_json::Value>);

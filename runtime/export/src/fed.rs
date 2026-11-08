@@ -87,19 +87,19 @@ pub(crate) fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool, wanted
         })?;
         Ok(out)
     };
-    let scenes = if !around.is_empty() && around.len() * 2 < total as usize {
-        // each run of neighbouring frames stepped as one range, the runs one after another in the one runtime
-        let mut runs: Vec<(i64, i64)> = Vec::new();
-        for &f in &around {
-            match runs.last_mut() { Some(r) if r.1 == f => r.1 = f + 1, _ => runs.push((f, f + 1)) }
+    // the wanted frames alone, unless a compute carries GPU state from frame to frame: then every frame up to them
+    let scenes = 'scenes: {
+        if !around.is_empty() && around.len() * 2 < total as usize {
+            // each run of neighbouring frames stepped as one range, the runs one after another in the one runtime
+            let runs = around.iter().fold(Vec::<(i64, i64)>::new(), |mut rs, &f| { match rs.last_mut() { Some(r) if r.1 == f => r.1 = f + 1, _ => rs.push((f, f + 1)) } rs });
+            let stepped: Scenes = runs.into_iter().map(|(a, b)| step(&mut app, a, b)).collect::<R<Vec<_>>>()?.into_iter().flatten().collect();
+            raea_runtime_react::startup_mark(&format!("the 3D's rows: {} of {total} frames stepped (the wanted ones and their neighbours)", stepped.len()));
+            if !stepped.iter().any(|s| raea_runtime_scene::carries_state(&s.1)) {
+                break 'scenes (0..total.max(stepped.last().map_or(0, |s| s.0 + 1))).map(|f| (f, stepped[stepped.partition_point(|s| s.0 <= f).saturating_sub(1)].clone())).map(|(f, (_, scene, clear))| (f, scene, clear)).collect();
+            }
+            app = runtime(js);
+            settle(&mut app, Some(-1), 20.0)?;
         }
-        let mut stepped: Scenes = Vec::new();
-        for (a, b) in runs {
-            stepped.extend(step(&mut app, a, b)?);
-        }
-        raea_runtime_react::startup_mark(&format!("the 3D's rows: {} of {total} frames stepped (the wanted ones and their neighbours)", stepped.len()));
-        (0..total.max(stepped.last().map_or(0, |s| s.0 + 1))).map(|f| (f, stepped[stepped.partition_point(|s| s.0 <= f).saturating_sub(1)].clone())).map(|(f, (_, scene, clear))| (f, scene, clear)).collect()
-    } else {
         let workers = std::env::var("RAEA_BAKE_WORKERS").ok().and_then(|v| v.parse::<i64>().ok()).unwrap_or(4).clamp(1, 16).min((total / 240).max(1));
         let span = (total + workers - 1) / workers;
         let ranges: Vec<(i64, i64)> = (0..workers).map(|k| (k * span, ((k + 1) * span).min(total))).filter(|(a, b)| a < b).collect();

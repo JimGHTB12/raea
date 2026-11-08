@@ -135,3 +135,4 @@ shader/shader_material_2d_bindless	-	10
 shader/extended_material_bindless	-	30,60
 shader/automatic_instancing	-	30,60
 shader/pipeline_constants	-	10
+shader/compute_shader_game_of_life	-	10,11,30,60

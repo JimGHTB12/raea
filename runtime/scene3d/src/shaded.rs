@@ -54,7 +54,12 @@ fn compute_rows(world: &mut World, inserted: &[Tup]) -> Result<(), String> {
     let mut list = Vec::new();
     for t in ordered(inserted, "compute") {
         let v = spec(t)?;
-        list.push(raea_sys_compute::build(world, &v, plugins::image).map_err(|e| format!("Compute: {e}"))?);
+        let mut c = raea_sys_compute::build(world, &v, &t.id, plugins::image).map_err(|e| format!("Compute: {e}"))?;
+        if let Some(w) = c.written.as_mut() {
+            let all = |k: &str| raea_sys_frame::keyed_all(&t.vals, k);
+            raea_sys_compute::written::check(w, &all("entry"), &all("bind")).map_err(|e| format!("Compute {}: {e}", t.id))?;
+        }
+        list.push(c);
     }
     world.get_resource_or_insert_with(raea_sys_compute::Computes::default).list = list;
     Ok(())

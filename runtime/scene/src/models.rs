@@ -150,24 +150,10 @@ pub(crate) fn panels_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         if first.get("screen").is_some_and(Value::is_object) {
             screen_columns(p, &mut row, &id, &its);
         } else {
-            row.insert("src".into(), V::S(src_path(first.get("src").and_then(Value::as_str).unwrap_or(""))));
             // a picture that changes (an ImagePlane playing frames: src={`g${f}.png`}): every picture it shows, one a
             // line, and which one each frame (keyed); raea-render swaps the texture (scene3d::sync_pictures). Without this the
             // first frame's picture was held for the whole run.
-            let srcs: Vec<&str> = its.iter().map(|i| i.props.get("src").and_then(Value::as_str).unwrap_or("")).collect();
-            if srcs.iter().any(|s| *s != srcs[0]) && !srcs.iter().any(|s| s.contains('\n')) {
-                let mut list: Vec<&str> = Vec::new();
-                let ks: Vec<f64> = srcs.iter().map(|s| match list.iter().position(|x| x == s) {
-                    Some(k) => k as f64,
-                    None => {
-                        list.push(s);
-                        (list.len() - 1) as f64
-                    }
-                }).collect();
-                row.insert("srcs".into(), V::S(list.iter().map(|s| src_path(s)).collect::<Vec<_>>().join("\n")));
-                row.insert("src_k".into(), V::N(ks[0]));
-                p.keys.insert((id.clone(), "src_k".into()), ks.iter().enumerate().map(|(f, k)| (f as i64, *k, "step".to_string())).collect());
-            }
+            keyed_strings(p, &mut row, &id, "src", &srcs_of(&its));
         }
         row.insert("w".into(), V::N(n(first, "width", 1.0)));
         if let Some(h) = num(first, "height") {

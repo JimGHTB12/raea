@@ -40,7 +40,8 @@ pub fn sprites(tracks: &[Track], p: &mut Program) {
         let mut row = BTreeMap::new();
         row.insert("id".into(), V::S(id.clone()));
         let first = &its[0].props;
-        row.insert("src".into(), V::S(src_path(first.get("src").and_then(Value::as_str).unwrap_or(""))));
+        // keyed: the picture, a "render:NAME" a frame may switch (Bevy's compute_shader_game_of_life swaps two)
+        keyed_strings(p, &mut row, &id, "src", &srcs_of(&its));
         // keyed: a size that changes shows more or fewer tiles of a tiled one (Bevy's custom_size, 2d/sprite_tile)
         for (prop, col) in [("width", "w"), ("height", "h"), ("tileStretch", "tile_stretch")] {
             if num(first, prop).is_some() {

@@ -15124,7 +15124,9 @@ name = "raea-sys-compute"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "raea-sys-frame",
  "raea-sys-material",
+ "raea-sys-sampler",
  "raea-sys-shader",
  "serde_json",
 ]

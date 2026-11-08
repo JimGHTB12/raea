@@ -130,6 +130,7 @@ shader/shader_material_2d
 shader/fallback_image
 shader/storage_buffer
 shader/automatic_instancing
+shader/compute_shader_game_of_life
 shader/array_texture
 shader/sprite_material
 shader/shader_prepass

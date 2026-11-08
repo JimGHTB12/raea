@@ -27,6 +27,8 @@ use raea_sys_material::shader_material::{ident, SLOTS};
 use raea_sys_shader::{accessors, register, Inputs};
 use serde_json::Value;
 
+pub mod written;
+
 /// Buffers and images a compute may have.
 pub const BUFFERS: usize = 4;
 pub const IMAGES: usize = 4;
@@ -40,6 +42,8 @@ pub struct Compute {
     /// each buffer's name and first contents (its length is its size, in f32s)
     pub buffers: Vec<(String, Vec<f32>)>,
     pub images: Vec<Handle<Image>>,
+    /// a compute as written (a <Compute file>): its own bindings, entry and images (written.rs)
+    pub written: Option<written::Written>,
 }
 
 /// The frame's computes, in order, and the frame's time.
@@ -67,10 +71,16 @@ pub fn module(source: &str, uniforms: &[(String, &'static str)], buffers: &[Stri
     m + "\n" + source
 }
 
-/// A compute from a <Compute>'s spec, {wesl | wgsl, workgroups, uniforms, buffers, images, defs}. `image` resolves a
-/// "render:NAME" as raea-runtime-plugins' fields::image does; the image is made storage-capable here.
-pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>) -> Result<Compute, String> {
+/// A compute from a <Compute>'s spec, {wesl | wgsl, workgroups, uniforms, buffers, images, defs} (or a file as written,
+/// written.rs), its row's id `id`. `image` resolves a "render:NAME" as raea-runtime-plugins' fields::image does; the image is
+/// made storage-capable here.
+pub fn build(world: &mut World, v: &Value, id: &str, mut image: impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>) -> Result<Compute, String> {
     let o = v.as_object().ok_or_else(|| format!("a compute is {{wesl, workgroups, uniforms, buffers, images}}, got {v}"))?;
+    let workgroups = workgroups(o)?;
+    if o.contains_key("file") {
+        let (shader, w) = written::build(world, o, id, &mut image)?;
+        return Ok(Compute { shader, workgroups, slots: [Vec4::ZERO; SLOTS], buffers: vec![], images: vec![], written: Some(w) });
+    }
     let ins = Inputs::read(world, o, "a compute", &mut image)?;
     if !ins.textures.is_empty() || ins.array.is_some() {
         return Err("a compute has buffers and images, not textures".into());
@@ -78,13 +88,6 @@ pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Va
     if ins.src.matches("@compute").count() != 1 {
         return Err("a compute's source has one @compute entry point".into());
     }
-    let workgroups = match o.get("workgroups").and_then(Value::as_array) {
-        Some(a) if (1..=3).contains(&a.len()) && a.iter().all(|x| x.as_u64().is_some_and(|n| (1..=65535).contains(&n))) => {
-            let n = |i: usize| a.get(i).and_then(Value::as_u64).unwrap_or(1) as u32;
-            [n(0), n(1), n(2)]
-        }
-        _ => return Err(format!("a compute's workgroups are [x, y, z], each 1 to 65535, got {}", o.get("workgroups").unwrap_or(&Value::Null))),
-    };
     let named = |k: &str| -> Result<Vec<(&String, &Value)>, String> {
         let m = match o.get(k) {
             None => return Ok(vec![]),
@@ -127,17 +130,43 @@ pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Va
     let (names, _) = ins.names();
     let bnames: Vec<String> = buffers.iter().map(|b| b.0.clone()).collect();
     let shader = register(world, module(&ins.src, &names, &bnames, &inames), &ins.defs, "raea compute", "raea_sys_compute");
-    Ok(Compute { shader, workgroups, slots: ins.slots(), buffers, images })
+    Ok(Compute { shader, workgroups, slots: ins.slots(), buffers, images, written: None })
+}
+
+/// A spec's workgroups, [x(, y(, z))], each 1 to 65535.
+fn workgroups(o: &serde_json::Map<String, Value>) -> Result<[u32; 3], String> {
+    match o.get("workgroups").and_then(Value::as_array) {
+        Some(a) if (1..=3).contains(&a.len()) && a.iter().all(|x| x.as_u64().is_some_and(|n| (1..=65535).contains(&n))) => {
+            let n = |i: usize| a.get(i).and_then(Value::as_u64).unwrap_or(1) as u32;
+            Ok([n(0), n(1), n(2)])
+        }
+        _ => Err(format!("a compute's workgroups are [x, y, z], each 1 to 65535, got {}", o.get("workgroups").unwrap_or(&Value::Null))),
+    }
 }
 
 pub fn install(app: &mut App) {
     app.init_resource::<Computes>();
     app.add_plugins(ExtractResourcePlugin::<Computes>::default());
-    app.add_systems(PostUpdate, stamp);
+    app.add_systems(PostUpdate, (follow, stamp));
     let Some(render_app) = app.get_sub_app_mut(RenderApp) else { return };
     render_app.init_resource::<State>();
     render_app.add_systems(Render, queue.in_set(RenderSystems::Queue));
     render_app.add_systems(RenderGraph, dispatch.before(camera_driver));
+}
+
+/// Each compute as written's entry and bindings from its row's `entry` and `bind` this frame (keyed strings) (a bad one is
+/// logged, and it isn't dispatched until the columns change).
+fn follow(frame: Option<Res<raea_sys_frame::FrameRows>>, mut c: ResMut<Computes>) {
+    let Some(frame) = frame else { return };
+    let cols = &frame.cols;
+    for w in c.list.iter_mut().filter_map(|c| c.written.as_mut()) {
+        let Some(r) = cols.id.iter().position(|i| *i == w.id) else { continue };
+        let s = |k: &str| raea_sys_frame::keyed(|c| cols.get(r, c), k).unwrap_or_default();
+        if let Err(e) = written::follow(w, &s("entry"), &s("bind")) {
+            error!("Compute {}: {e}", w.id);
+            w.entry = None;
+        }
+    }
 }
 
 /// The frame's time onto the computes (so they're extracted each frame).
@@ -155,11 +184,24 @@ const UNIFORM_BYTES: u64 = (16 * (1 + SLOTS)) as u64;
 struct State {
     pipelines: HashMap<(u128, usize, usize), (BindGroupLayoutDescriptor, CachedComputePipelineId)>,
     buffers: HashMap<(usize, u128, String), Buffer>,
+    /// a compute as written's pipelines, by its shader and entry point
+    written: HashMap<(u128, String), (BindGroupLayoutDescriptor, CachedComputePipelineId)>,
 }
 
 fn queue(c: Option<Res<Computes>>, mut s: ResMut<State>, cache: Res<PipelineCache>) {
     let Some(c) = c else { return };
     for k in &c.list {
+        if let Some(w) = &k.written {
+            let key = w.entry.as_ref().map(|e| (k.shader, e.clone()));
+            if let Some(key) = key.filter(|key| !s.written.contains_key(key)) {
+                let entry = key.1.clone();
+                let layout = BindGroupLayoutDescriptor::new("raea_compute_written", &written::layout(&w.decls));
+                let shader = Handle::Uuid(bevy::asset::uuid::Uuid::from_u128(k.shader), core::marker::PhantomData);
+                let id = cache.queue_compute_pipeline(ComputePipelineDescriptor { label: Some("raea_compute_written".into()), layout: vec![layout.clone()], shader, entry_point: Some(entry.clone().into()), ..default() });
+                s.written.insert(key, (layout, id));
+            }
+            continue;
+        }
         let key = (k.shader, k.buffers.len(), k.images.len());
         if s.pipelines.contains_key(&key) {
             continue;
@@ -188,6 +230,14 @@ fn dispatch(c: Option<Res<Computes>>, mut s: ResMut<State>, cache: Res<PipelineC
     let device = ctx.render_device().clone();
     let mut groups = vec![];
     for (n, k) in c.list.iter().enumerate() {
+        if let Some(w) = &k.written {
+            let Some((layout, id)) = w.entry.as_ref().and_then(|e| s.written.get(&(k.shader, e.clone()))) else { continue };
+            let (Some(pipeline), layout) = (cache.get_compute_pipeline(*id), cache.get_bind_group_layout(layout)) else { continue };
+            if let Some(group) = written::group(&device, &layout, w, &images) {
+                groups.push((pipeline, group, k.workgroups));
+            }
+            continue;
+        }
         let Some((layout, id)) = s.pipelines.get(&(k.shader, k.buffers.len(), k.images.len())) else { continue };
         let Some(pipeline) = cache.get_compute_pipeline(*id) else { continue };
         let Some(views) = k.images.iter().map(|h| images.get(h.id())).collect::<Option<Vec<_>>>() else { continue };

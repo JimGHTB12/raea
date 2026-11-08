@@ -25,7 +25,8 @@ export interface Place2dProps extends PointerHandlers3d {
 }
 
 export interface SpriteProps extends Place2dProps {
-  /** a picture in the media folder: staticFile("hero.png") */
+  /** a picture in the media folder: staticFile("hero.png"), or a "render:NAME" image a camera or a <Compute> draws (a
+   * frame may switch it to another by name) */
   src: string;
   /** size in px (the picture's, or one cell's, by default); one given, the other follows the picture's shape */
   width?: number;

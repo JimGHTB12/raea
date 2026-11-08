@@ -17,7 +17,7 @@ use bevy::prelude::*;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use raea_core_program::eval::Tup;
 use raea_core_program::ir::V;
-use raea_sys_frame::{FrameRows, num};
+use raea_sys_frame::{FrameRows, RenderImages, num};
 
 /// A 2D part made from a row.
 #[derive(Component)]
@@ -88,6 +88,18 @@ pub fn shape_image(w: u32, h: u32, rgba: Vec<u8>, v: &BTreeMap<String, V>) -> Re
 }
 
 /// A sprite's entity from its row and its picture (`size` in px).
+/// A sprite's picture and its size: a "render:NAME" (or "render:NAME:WxH") image as it is, from `render` (raea-runtime-plugins'
+/// fields::image), which a frame may switch to another by name (sync_2d); otherwise the picture `picture` decodes.
+pub fn source(world: &mut World, src: &str, picture: impl FnOnce(&str) -> Result<((u32, u32), Vec<u8>), String>, render: impl FnOnce(&mut World, &serde_json::Value) -> Result<Handle<Image>, String>) -> Result<(Handle<Image>, UVec2), String> {
+    if let Some(name) = RenderImages::name(src) {
+        let image = render(world, &serde_json::Value::String(src.into()))?;
+        let (w, h) = world.get_resource::<RenderImages>().and_then(|r| r.0.get(name)).map(|i| i.1).ok_or_else(|| format!("{src}: no render image"))?;
+        return Ok((image, UVec2::new(w, h)));
+    }
+    let ((w, h), rgba) = picture(src)?;
+    Ok((world.resource_mut::<Assets<Image>>().add(sprite_image(w, h, rgba)), UVec2::new(w, h)))
+}
+
 pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>, size: UVec2) -> Result<(), String> {
     let v = &t.vals;
     let (cols, rows) = (num(v, "sheet_cols", 1.0).max(1.0) as u32, num(v, "sheet_rows", 1.0).max(1.0) as u32);
@@ -212,7 +224,7 @@ pub fn camera_2d(mut commands: Commands, parts: Query<(), Or<(With<Part2d>, With
 }
 
 /// Each 2D part at its row's place, cell, colour and opacity this frame.
-pub fn sync_2d(frame: Res<FrameRows>, mut mats: ResMut<Assets<ColorMaterial>>, mut q: Query<(Entity, &mut Transform, &mut Visibility, Option<&mut Sprite>, Option<&MeshMaterial2d<ColorMaterial>>), With<Part2d>>) {
+pub fn sync_2d(frame: Res<FrameRows>, renders: Option<Res<RenderImages>>, mut mats: ResMut<Assets<ColorMaterial>>, mut q: Query<(Entity, &mut Transform, &mut Visibility, Option<&mut Sprite>, Option<&MeshMaterial2d<ColorMaterial>>), With<Part2d>>) {
     for (e, mut t, mut vis, sprite, mat) in &mut q {
         let Some(v) = frame.vals(e) else { continue };
         let v = &v;
@@ -238,6 +250,12 @@ pub fn sync_2d(frame: Res<FrameRows>, mut mats: ResMut<Assets<ColorMaterial>>, m
             let at = cell(v, cells);
             if let Some(a) = s.texture_atlas.as_mut().filter(|a| a.index != at) {
                 a.index = at;
+            }
+            // a render image's picture this frame (Bevy's compute_shader_game_of_life swaps its sprite's two each frame)
+            if let (Some(src), Some(r)) = (raea_sys_frame::keyed(|c| v.get(c).cloned(), "src"), &renders) {
+                if let Some(i) = RenderImages::name(&src).and_then(|n| r.0.get(n)).filter(|i| s.image != i.0) {
+                    s.image = i.0.clone();
+                }
             }
         }
         // looked at first: get_mut marks the material changed whether or not it is

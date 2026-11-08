@@ -11,9 +11,7 @@ pub struct Refs {
     pub media: Vec<Tup>,
 }
 
-/// The images cameras draw into, by the name a Handle<Image> field gives them ("render:NAME"), and their sizes.
-#[derive(Resource, Default)]
-pub struct RenderImages(pub BTreeMap<String, (Handle<Image>, (u32, u32))>);
+pub use raea_sys_frame::RenderImages;
 /// Assets a handle field started loading by path, which the load waits for before the first frame (await_loads).
 #[derive(Resource, Default)]
 pub struct Loading(pub Vec<(String, UntypedHandle)>);
