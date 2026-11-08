@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **101**, passing **97**, excluded **16** (docs/bevy-parity/excluded.tsv), left **325**.
+Examples: **438**, ported **102**, passing **98**, excluded **16** (docs/bevy-parity/excluded.tsv), left **324**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -120,12 +120,10 @@ doesn't pay.
 | ui/images/ui_texture_slice_flip_and_tile | 10 | 1.000000 | 0 | 0 / 0 | 461 / 493 | 5 / 7 | 1 / 1 | 38.792 / 2.161 = 2.161 + 0 | yes |  |
 | ui/widgets/button | 10 | 0.999667 | 8 | 0 / 0 | 444 / 493 | 5 / 7 | 1 / 1 | 38.306 / 2 = 2.0 + 0 | yes |  |
 | ui/text/letter_spacing | 10 | 0.996228 | 13 | 0 / 0 | 455 / 493 | 5 / 7 | 1 / 1 | 42.621 / 2.613 = 2.613 + 0 | yes |  |
-| ui/styling/borders | 10 | 0.993389 | 9 | 0 / 0 | 591 / 493 | 5 / 7 | 1 / 1 | 40.751 / 2.103 = 2.103 + 0 | yes |  |
 | ui/window_fallthrough | 10 | 0.992226 | 16 | 0 / 0 | 441 / 493 | 5 / 7 | 1 / 1 | 40.543 / 2.154 = 2.154 + 0 | yes |  |
 | ui/text/inline_image | 10 | 0.998400 | 7 | 0 / 0 | 446 / 493 | 5 / 7 | 1 / 1 | 40.3 / 1.803 = 1.803 + 0 | yes |  |
 | ui/layout/z_index | 10 | 1.000000 | 0 | 0 / 0 | 447 / 493 | 5 / 7 | 1 / 1 | 41.57 / 2.348 = 2.348 + 0 | yes |  |
 | ui/styling/stacked_gradients | 10 | 0.994550 | 1 | 0 / 0 | 442 / 493 | 5 / 7 | 1 / 1 | 37.884 / 2.055 = 2.055 + 0 | yes |  |
-| ui/styling/gradients | 10 | 0.990467 | 13 | 0 / 0 | 553 / 493 | 5 / 7 | 1 / 1 | 41.442 / 1.574 = 1.574 + 0 | yes |  |
 | ui/text/generic_font_families | 10 | 0.990143 | 19 | 0 / 0 | 457 / 493 | 5 / 7 | 1 / 1 | 42.309 / 2.093 = 2.093 + 0 | yes |  |
 | ui/layout/ghost_nodes | 10 | 0.998540 | 9 | 0 / 0 | 455 / 493 | 5 / 7 | 1 / 1 | 39.986 / 2.3 = 2.3 + 0 | yes |  |
 | ui/relative_cursor_position | 10 | 0.999899 | 2 | 0 / 0 | 443 / 493 | 5 / 7 | 1 / 1 | 38.933 / 1.696 = 1.696 + 0 | yes |  |
@@ -155,8 +153,11 @@ doesn't pay.
 | ui/widgets/vertical_slider | 10 | 0.999004 | 11 | 0 / 0 | 459 / 493 | 5 / 7 | 1 / 1 | 37.247 / 1.764 = 1.764 + 0 | yes |  |
 | ui/widgets/virtual_keyboard | 10 | 0.993705 | 13 | 0 / 0 | 646 / 493 | 5 / 7 | 1 / 1 | 40.167 / 1.441 = 1.441 + 0 | yes |  |
 | ui/widgets/standard_widgets_observers | 10 | 0.998736 | 14 | 0 / 0 | 473 / 493 | 5 / 7 | 1 / 1 | 37.156 / 0.873 = 0.873 + 0 | yes |  |
-| ui/widgets/standard_widgets | 10 | 0.997647 | 17 | 0 / 0 | 477 / 493 | 5 / 7 | 1 / 1 | 36.07 / 1.095 = 1.095 + 0 | yes |  |
 | ui/widgets/feathers_counter | 10 | 0.999941 | 1 | 0 / 0 | 493 / 493 | 5 / 7 | 1 / 1 | 37.899 / 0.893 = 0.893 + 0 | yes |  |
+| ui/widgets/feathers_number_input | 10 | 0.997483 | 6 | 0 / 0 | 972 / 493 | 5 / 7 | 1 / 1 | 40.117 / 1.426 = 1.426 + 0 | yes |  |
+| ui/styling/borders | 10 | 0.993389 | 9 | 0 / 0 | 591 / 493 | 5 / 7 | 1 / 1 | 40.239 / 1.538 = 1.538 + 0 | yes |  |
+| ui/styling/gradients | 10 | 0.990467 | 13 | 0 / 0 | 553 / 493 | 5 / 7 | 1 / 1 | 37.214 / 0.988 = 0.988 + 0 | yes |  |
+| ui/widgets/standard_widgets | 10 | 0.997647 | 17 | 0 / 0 | 477 / 493 | 5 / 7 | 1 / 1 | 37.124 / 0.901 = 0.901 + 0 | yes |  |
 
 ## Excluded
 

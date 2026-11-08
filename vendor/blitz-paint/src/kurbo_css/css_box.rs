@@ -678,6 +678,15 @@ fn start_angle(bt_width: f64, br_width: f64, radii: Vec2) -> f64 {
     radius with 40px/10px border widths), always yielding t in [0, π/2).
     */
 
+    // raea: a side without width meets this corner (a left-only border on a rounded box): x is b/0 or 0/0, NaN
+    // through the formula, and the path that carries it draws nothing. The formula's limits: the side with the width
+    // takes the whole arc (x -> inf gives pi/2, x -> 0 gives 0); with neither, the corner splits in half.
+    if x.is_nan() {
+        return std::f64::consts::FRAC_PI_4;
+    }
+    if x.is_infinite() {
+        return FRAC_PI_2;
+    }
     use std::f64::consts::SQRT_2;
     let sqrt_x = x.sqrt();
     let s = sqrt_x / (sqrt_x + SQRT_2);
@@ -726,6 +735,15 @@ mod tests {
     /// `start_angle` must return the angle `t` at which the border colour split
     /// line crosses the corner ellipse, i.e. the solution of
     /// `(cos t - 1) / (sin t - 1) == k` where `k = radii.y / (w * radii.x)`.
+    // raea: a side without width at a rounded corner leaves the whole arc to the other side, never NaN
+    #[test]
+    fn zero_width_side_takes_no_arc() {
+        let r = Vec2::new(4.0, 4.0);
+        assert_eq!(start_angle(0.0, 4.0, r), FRAC_PI_2);
+        assert_eq!(start_angle(4.0, 0.0, r), 0.0);
+        assert_eq!(start_angle(0.0, 0.0, r), std::f64::consts::FRAC_PI_4);
+    }
+
     fn assert_solves(bt: f64, br: f64, radii: Vec2) {
         let t = start_angle(bt, br, radii);
         assert!(t.is_finite(), "start_angle returned {t} for {radii:?}");
