@@ -299,7 +299,7 @@ pub fn apply(doc: &mut BaseDocument, nodes: &mut Nodes, ops: Vec<Op>) {
         let Some(node) = doc.get_node_mut(n) else { continue };
         let at = node.scroll_offset_mut();
         if k == "scrollTop" { at.y = v } else { at.x = v }
-        node.insert_damage(crate::ALL_DAMAGE);
+        node.insert_damage(ALL_DAMAGE);
         node.mark_ancestors_dirty();
         if !nodes.scrolled.contains(&id) {
             nodes.scrolled.push(id);
@@ -324,7 +324,7 @@ pub fn apply(doc: &mut BaseDocument, nodes: &mut Nodes, ops: Vec<Op>) {
         let data = vello::peniko::Blob::new(std::sync::Arc::new(px));
         el.special_data = blitz_dom::node::SpecialElementData::Image(Box::new(blitz_dom::node::ImageData::Raster(blitz_dom::node::RasterImageData { width: w, height: h, data })));
         node.clear_layout_cache();
-        node.insert_damage(crate::ALL_DAMAGE);
+        node.insert_damage(ALL_DAMAGE);
         node.mark_ancestors_dirty();
     }
 }
@@ -430,3 +430,6 @@ pub fn menu_items(d: &BaseDocument, menu: NodeId) -> Vec<NodeId> {
     }
     out
 }
+
+/// Everything about an element made again (blitz-dom's ALL_DAMAGE, crate-private there): what loading an image does.
+pub const ALL_DAMAGE: style::selector_parser::RestyleDamage = style::selector_parser::RestyleDamage::from_bits_retain(0b_0000_0000_1110_1111);

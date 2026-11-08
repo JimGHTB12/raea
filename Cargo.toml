@@ -90,6 +90,7 @@ members = [
     "systems/procmat",
     "systems/page",
     "systems/page-net",
+    "systems/page-ops",
     "systems/frame",
     "systems/splat",
     "systems/sprite",

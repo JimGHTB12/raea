@@ -25,7 +25,7 @@ pub use blitz_dom::not_applied; // what the page asked for and didn't get, said 
 pub mod providers;
 pub mod widgets;
 pub use providers::{PageFonts, PageHtmlParser, PageNavigation, PageNet};
-pub mod ops;
+pub use raea_sys_page_ops as ops;
 pub mod view3d;
 
 pub use draw::{Placed, view, view_at};
@@ -299,8 +299,7 @@ pub fn iframes() -> bool {
     std::env::var_os("RAEA_PAGE_IFRAMES").is_none_or(|v| v != "0")
 }
 
-/// Everything about an element made again (blitz-dom's ALL_DAMAGE, crate-private there): what loading an image does.
-pub const ALL_DAMAGE: style::selector_parser::RestyleDamage = style::selector_parser::RestyleDamage::from_bits_retain(0b_0000_0000_1110_1111);
+pub use ops::ALL_DAMAGE;
 
 /// A document for a page `w` x `h` on its own entity: html, head and a body with no margin and no background (the
 /// page is drawn over 3D and video), which is the root the composition's elements go in. (host.rs opens a root's so.)

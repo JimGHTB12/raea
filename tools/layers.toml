@@ -84,6 +84,7 @@ raea-sys-procmat = "systems"
 raea-sys-grass = "systems"
 raea-sys-page = "systems"
 raea-sys-page-net = "systems"
+raea-sys-page-ops = "systems"
 raea-sys-frame = "systems"
 raea-sys-splat = "systems"
 raea-sys-sprite = "systems"
@@ -198,5 +199,7 @@ raea-sys-filters = true
 raea-sys-page = true
 # a page's loads (raea-sys-page's net)
 raea-sys-page-net = true
+# the op wire applied to a page (raea-sys-page's ops)
+raea-sys-page-ops = true
 raea-sys-fonts = true
 raea-sys-image = true

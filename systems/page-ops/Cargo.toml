@@ -1,0 +1,19 @@
+[package]
+name = "raea-sys-page-ops"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "raea-runtime-js's wire ops applied to a Blitz document through its mutation API (raea-sys-page's ops)"
+
+[dependencies]
+# its svg fonts, which a canvas draws text with
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false, features = ["svg"] }
+# the op wire
+raea-core-wire = { path = "../../core/wire" }
+serde_json = "1"
+# a canvas element's bitmap, drawn from its display list, and the blob it's held in
+raea-sys-canvas = { path = "../canvas" }
+vello = { version = "=0.11.0", default-features = false }
+# an element's damage when its picture changes (blitz-dom's own type)
+stylo = "=0.22.0"

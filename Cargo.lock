@@ -15360,13 +15360,12 @@ dependencies = [
  "parley",
  "raea-core-wire",
  "raea-gpu-device",
- "raea-sys-canvas",
  "raea-sys-filters",
  "raea-sys-fonts",
  "raea-sys-image",
  "raea-sys-page-net",
+ "raea-sys-page-ops",
  "serde_json",
- "stylo",
  "vello",
  "wgpu",
 ]
@@ -15383,6 +15382,18 @@ dependencies = [
  "raea-sys-image",
  "serde_json",
  "url",
+]
+
+[[package]]
+name = "raea-sys-page-ops"
+version = "0.1.0"
+dependencies = [
+ "blitz-dom",
+ "raea-core-wire",
+ "raea-sys-canvas",
+ "serde_json",
+ "stylo",
+ "vello",
 ]
 
 [[package]]
