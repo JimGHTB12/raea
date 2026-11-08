@@ -75,3 +75,5 @@ ui/relative_cursor_position	-	10
 ui/ui_target_camera	-	10
 ui/text/text_wrap_debug	-	10
 ui/layout/grid	-	10
+ui/ui_scaling	-	10
+ui/layout/anchor_layout	-	10
