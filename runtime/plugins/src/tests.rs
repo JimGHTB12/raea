@@ -87,3 +87,25 @@ fn keyed_components_land_on_their_frame_forwards_backwards_and_jumping() {
         assert_eq!((x(w, a), x(w, b)), (Some(want_a), Some(want_b)), "frame {f}");
     }
 }
+
+/// A `material:` row sets only the fields it gives on the part's own copy of its material (#38): it took the whole
+/// StandardMaterial from them, every other field at its default, so a patch of emissive_exposure_weight blacked out the
+/// emissive and whitened the base, and a render's frames after the first drew the glowing cube grey
+#[test]
+fn a_material_row_sets_only_its_fields() {
+    let mut app = app();
+    app.register_type::<StandardMaterial>();
+    let w = app.world_mut();
+    let mut mats = Assets::<StandardMaterial>::default();
+    let (black, red) = (Color::BLACK, LinearRgba::rgb(1.0, 0.0, 0.0));
+    let shared = mats.add(StandardMaterial { base_color: black, emissive: red, ..default() });
+    w.insert_resource(mats);
+    let e = w.spawn(MeshMaterial3d(shared.clone())).id();
+    insert_reflect(w, e, "material:bevy_pbr::pbr_material::StandardMaterial", &json!({"emissive_exposure_weight": 0.5})).unwrap();
+    let own = w.get::<MeshMaterial3d<StandardMaterial>>(e).unwrap().0.clone();
+    assert_ne!(own, shared, "the part's own copy, not the shared material");
+    let m = w.resource::<Assets<StandardMaterial>>().get(&own).unwrap();
+    assert_eq!((m.emissive_exposure_weight, m.emissive, m.base_color), (0.5, red, black));
+    let err = insert_reflect(w, e, "material:bevy_pbr::pbr_material::StandardMaterial", &json!({"no_such": 1.0})).unwrap_err();
+    assert!(err.contains("no field no_such"), "{err}");
+}

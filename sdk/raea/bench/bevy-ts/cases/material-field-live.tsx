@@ -1,7 +1,7 @@
 // gap: FC1c
 // A StandardMaterial field past the row columns' four, animated (docs/control.feature FC1c): a black cube glowing red
 // whose emissive_exposure_weight runs from 0 at frame 0 to 1 at frame 20, set by reflection on its own material each
-// frame. Played live (0.85 s, frame 25, past the track's end) it is grey, not red: the emissive under the camera's exposure leaves only the black base's specular.
+// frame. Played live (0.85 s, frame 25, past the track's end) it is dark, not red: the emissive under the camera's exposure leaves only the black base's specular.
 // play: live-world.json 0.85
 // probe: 32 32 r<80
 import { AbsoluteFill, Composition, registerRoot } from "raea";

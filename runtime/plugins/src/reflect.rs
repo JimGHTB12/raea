@@ -2,6 +2,7 @@
 //! registers (fields, shapes, roles), for the generated TypeScript.
 
 use super::*;
+use bevy::reflect::structs::Struct;
 
 /// Before the first frame: every asset a handle field loaded by path, loaded with its dependencies (a material's
 /// textures), or the load's error.
@@ -239,7 +240,16 @@ pub fn patch_material(world: &mut World, e: Entity, path: &str, json: &Value) ->
     }
     let registry = world.resource::<AppTypeRegistry>().clone();
     let reg = registry.read();
-    let v = value_of(world, &reg, registration(&reg, path)?, path, json)?;
+    // each field given, by its own type: the whole StandardMaterial deserialized from a partial one took every field
+    // it wasn't given at its default, so a patch of emissive_exposure_weight blacked out the emissive (#38: a render's
+    // frames after the first, which the scene sync leaves alone, drew the glowing cube grey)
+    let Value::Object(given) = json else { return Err(format!("material:{path}: give its fields as an object")) };
+    let TypeInfo::Struct(info) = registration(&reg, path)?.type_info() else { return Err(format!("material:{path}: not a struct")) };
+    let mut fields = Vec::with_capacity(given.len());
+    for (name, x) in given {
+        let ty = info.field(name).ok_or_else(|| format!("material:{path}: no field {name}"))?.type_path();
+        fields.push((name.as_str(), value_of(world, &reg, registration(&reg, ty)?, &format!("{path}.{name}"), x)?));
+    }
     let Some(h) = world.get::<MeshMaterial3d<StandardMaterial>>(e).map(|m| m.0.clone()) else {
         return Err(format!("material:{path}: the part has no StandardMaterial"));
     };
@@ -254,5 +264,9 @@ pub fn patch_material(world: &mut World, e: Entity, path: &str, json: &Value) ->
     };
     let mut mats = world.resource_mut::<Assets<StandardMaterial>>();
     let Some(mut m) = mats.get_mut(&h) else { return Err(format!("material:{path}: its material isn't loaded")) };
-    PartialReflect::try_apply(&mut *m, v.as_partial_reflect()).map_err(|err| format!("material:{path}: {err}"))
+    for (name, v) in fields {
+        let f = Struct::field_mut(&mut *m, name).ok_or_else(|| format!("material:{path}: no field {name}"))?;
+        f.try_apply(v.as_partial_reflect()).map_err(|err| format!("material:{path}.{name}: {err}"))?;
+    }
+    Ok(())
 }
