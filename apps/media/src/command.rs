@@ -55,6 +55,9 @@ fn run(args: Vec<String>) {
             let frames = flag("--at").map(|at| at.split(',').map(|f| f.trim().parse().unwrap_or_else(|_| fail(format!("bad frame {f}")))).collect());
             let opts = raea_runtime_encode::RenderOpts { frames, codec: flag("--codec"), kbps: flag("--kbps").and_then(|k| k.parse().ok()), quality: flag("--quality").map(|q| raea_io_media::parse_quality(&q).unwrap_or_else(|e| fail(e))), ssim: flag_on("--ssim"), sound: None, ten_bit: flag_on("--10bit") };
             raea_runtime_encode::render_file(&arg(1), &out, &opts).unwrap_or_else(|e| fail(e));
+            if let Some(note) = raea_page::not_applied::said() {
+                println!("{note}");
+            }
         }
         "shots" => {
             let size = flag("--size").map(|s| s.split_once('x').and_then(|(w, h)| Some((w.parse().ok()?, h.parse().ok()?))).unwrap_or_else(|| fail(format!("bad --size {s} (WxH)"))));

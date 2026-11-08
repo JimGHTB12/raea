@@ -949,7 +949,7 @@ impl BaseDocument {
         let new_block = style::properties::declaration_block::parse_style_attribute(
             css,
             &self.url.url_extra_data(),
-            None,
+            crate::not_applied::reporter(), // raea: what stylo drops is noted (#34)
             QuirksMode::NoQuirks,
             rule_type,
         );

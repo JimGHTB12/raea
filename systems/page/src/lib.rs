@@ -20,6 +20,7 @@ mod draw;
 mod skipped;
 /// a page's loads (raea-sys-page-net: FileNet, FrameNet, the page's fetch, the image decoder)
 pub use raea_sys_page_net as net;
+pub use blitz_dom::not_applied; // what the page asked for and didn't get, said once when a render ends (#34)
 /// Blitz's extension points as Bevy resources (S6d)
 pub mod providers;
 pub mod widgets;

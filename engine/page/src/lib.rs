@@ -7,6 +7,8 @@
 pub mod feed;
 pub mod html;
 pub mod motion;
+/// What the page asked for and didn't get (#34), said once when a render ends
+pub use blitz_dom::not_applied;
 /// B3 H11's scenarios: the hooks together (bench/bridge/run.sh)
 #[cfg(test)]
 mod scenarios;

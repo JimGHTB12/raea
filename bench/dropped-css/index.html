@@ -1,0 +1,13 @@
+<!doctype html>
+<!-- #34: page.tsx as plain HTML (an outline in a stylesheet rule this time). bench/dropped-css/check.sh -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: "Brand"; src: url("/media/fonts/not-here.woff2"); }
+html,body{margin:0;width:640px;height:300px;background:#fff}
+.big{position:absolute;left:20px;font-size:64px;font-weight:900;font-family:Brand, Arial}
+.outline{top:30px;color:transparent;-webkit-text-stroke:2px #111}
+</style></head><body>
+<div id="root" data-composition-id="main" data-start="0" data-width="640" data-height="300" data-duration="1">
+<div class="big outline">OUTLINE</div>
+<div class="big" style="top:150px;color:transparent;background:linear-gradient(90deg,#e8174a,#2244ff);background-clip:text;-webkit-background-clip:text">GRADIENT</div>
+</div></body></html>

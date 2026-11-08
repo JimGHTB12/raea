@@ -1273,7 +1273,8 @@ impl BaseDocument {
                 abort_signal: self.abort_signal.clone(),
                 import_depth: 0,
             }),
-            None,
+            // raea: (#34) what stylo drops from the page's own CSS is noted
+            crate::not_applied::reporter().filter(|_| origin == Origin::Author),
             QuirksMode::NoQuirks,
             AllowImportRules::Yes,
         );

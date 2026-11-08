@@ -63,7 +63,7 @@ exit = "a Blitz release that draws these"
 path = "vendor/blitz-dom"
 upstream = "crates.io:0.3.0-beta.4"
 kind = "patch"
-reason = "inline flex/grid baselines, auto table columns, table row rects, inline image load events, SVG text fonts, SVG non-scaling strokes, url() filters; Blitz main's #1244 and #1246; a node removed in a mutation batch dropped from the style, form and title nodes the batch flushes (raea #24); a node in a 3D rendering context (or with a projection) placed again on every resolve, so it follows a preserve-3d parent whose transform a script set (raea #19)"
+reason = "inline flex/grid baselines, auto table columns, table row rects, inline image load events, SVG text fonts, SVG non-scaling strokes, url() filters; Blitz main's #1244 and #1246; a node removed in a mutation batch dropped from the style, form and title nodes the batch flushes (raea #24); a node in a 3D rendering context (or with a projection) placed again on every resolve, so it follows a preserve-3d parent whose transform a script set (raea #19); a ParseErrorReporter (not_applied.rs) on every author parse, keeping what stylo drops for the render to say once (raea #34)"
 exit = "a Blitz release with #1244/#1246 and these"
 
 [parley_engine]
@@ -84,7 +84,7 @@ exit = "parley carrying the fix"
 path = "vendor/stylo"
 upstream = "crates.io:0.22.0"
 kind = "patch"
-reason = "line-clamp, text-wrap-style (with Chrome's pretty) and pointer-events' SVG keywords (all, visible, painted...) for Servo too, Gecko-only upstream; url() filters; ::-webkit-slider-thumb and ::-moz-range-thumb as the slider thumb"
+reason = "line-clamp, text-wrap-style (with Chrome's pretty) and pointer-events' SVG keywords (all, visible, painted...) for Servo too, Gecko-only upstream; url() filters; ::-webkit-slider-thumb and ::-moz-range-thumb as the slider thumb; unknown vendor-prefixed properties reported like any other, so a page can be told what it lost (raea #34)"
 exit = "Servo's stylo enabling them"
 
 [anyrender]

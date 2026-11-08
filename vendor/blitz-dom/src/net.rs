@@ -163,7 +163,7 @@ impl NetHandler for ResourceHandler<StylesheetHandler> {
                 abort_signal: self.data.abort_signal.clone(),
                 import_depth: 0,
             }),
-            None, // error_reporter
+            crate::not_applied::reporter(), // raea: (#34) what stylo drops is noted
             QuirksMode::NoQuirks,
             AllowImportRules::Yes,
         );
@@ -273,7 +273,7 @@ impl NetHandler for ResourceHandler<NestedStylesheetHandler> {
             self.data.media.clone(),
             self.data.lock.clone(),
             Some(&self.data.loader),
-            None, // error_reporter
+            crate::not_applied::reporter(), // raea: (#34) what stylo drops is noted
             QuirksMode::NoQuirks,
             AllowImportRules::Yes,
         ));

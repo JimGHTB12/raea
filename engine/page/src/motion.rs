@@ -181,7 +181,7 @@ impl BlitzPage {
         let mut app = App::new();
         let mut group = DefaultPlugins
             .set(WindowPlugin { primary_window: None, exit_condition: ExitCondition::DontExit, close_when_requested: false, ..default() })
-            .set(bevy::log::LogPlugin { level: bevy::log::Level::WARN, filter: format!("{}bevy_log=off", bevy::log::DEFAULT_FILTER), ..default() })
+            .set(bevy::log::LogPlugin { level: bevy::log::Level::WARN, filter: format!("{}bevy_log=off,bevy_asset::io::web=error,bevy_asset::io::source=error,fontdb=error", bevy::log::DEFAULT_FILTER), ..default() })
             // the render world stays the App's sub-app, as raea-runtime-js's page keeps it: a readback waits on the device it
             // finds there (offscreen.rs), and the page's textures are looked up in it. Pipelined, the frame's readback
             // ran 32 updates without a wait and came back empty under a busy 3D render (kitchen/sky.tsx, real/*.tsx)

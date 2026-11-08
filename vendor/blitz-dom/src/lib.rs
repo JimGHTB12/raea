@@ -83,6 +83,7 @@ pub use stylo_to_kurbo::resolve_2d_transform;
 pub use stylo_to_kurbo::{Projection, preserves_3d};
 
 pub mod net;
+pub mod not_applied;
 pub mod util;
 
 #[cfg(feature = "accessibility")]

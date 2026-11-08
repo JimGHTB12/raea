@@ -311,8 +311,13 @@ impl log::Log for Logger {
         if !self.enabled(r.metadata()) {
             return;
         }
-        // printed as before (stderr, itself kept in stderr.log), and a line in events.jsonl
-        eprintln!("[{} {}] {}", r.level(), r.target(), r.args());
+        // a line in events.jsonl, and on stderr (itself kept in stderr.log) only a warning or an error a render's reader
+        // acts on: the `log` crate is third-party crates' (Bevy's Ctrl+C handler at info, fontdb's skipped faces: a
+        // system font it can't parse, or a missing @font-face file raea_sys_page_net already names), which printed
+        // on every render and buried what mattered (#34)
+        if r.level() <= log::Level::Warn && !r.target().starts_with("fontdb") {
+            eprintln!("[{} {}] {}", r.level(), r.target(), r.args());
+        }
         event("log", json!({"level": r.level().as_str(), "target": r.target(), "message": r.args().to_string()}));
     }
     fn flush(&self) {}

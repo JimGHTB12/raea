@@ -1715,11 +1715,9 @@ fn report_one_css_error(
         // The error no longer carries the property name, but `slice` is the
         // declaration text, i.e. `<name>: <value>`.
         let name = slice.split(':').next().unwrap_or("").trim();
-        if is_non_mozilla_vendor_identifier(name) {
-            // If the unrecognized property looks like a vendor-specific property,
-            // silently ignore it instead of polluting the error output.
-            return;
-        }
+        // raea: (#34) a vendor-specific property is reported too (-webkit-text-stroke drawn as nothing was never said);
+        // raea's reporter (blitz-dom not_applied.rs) keeps quiet about the ones that change nothing in a picture
+        let _ = is_non_mozilla_vendor_identifier;
         if let Some(alias) = alias_of_known_property(name) {
             // This is an unknown property, but its -moz-* version is known.
             // We don't want to report error if the -moz-* version is already
@@ -1751,10 +1749,10 @@ fn report_one_css_error(
         ) {
             error = ParseError::custom(StyleParseErrorKind::OtherInvalidValue);
         }
-        if !slice.contains(':') {
-            // For CSSOM we only have the value. If there's no `:`, prepend the property name.
-            error_string = Cow::Owned(format!("{}: {slice}", property.to_css_string()));
-        }
+        // raea: (#34) named by the property parsed, with the value after it. For CSSOM there's only the value, and a value
+        // error's slice can start past a leading `-` (-webkit-background-clip came as webkit-background-clip)
+        let value = slice.split_once(':').map_or(slice, |(_, v)| v.trim_start());
+        error_string = Cow::Owned(format!("{}: {value}", property.to_css_string()));
     }
 
     let error =

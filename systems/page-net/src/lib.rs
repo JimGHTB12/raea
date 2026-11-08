@@ -50,6 +50,10 @@ impl NetProvider for FileNet {
         if bytes.is_none() && (!matches!(url.scheme(), "http" | "https") || url.host_str() == Some("localhost")) {
             bevy::log::warn!("raea-page: {url} isn't a file, a data URL or a URL that reads");
         }
+        if bytes.is_none() {
+            // listed once more when the render ends, with the CSS the page dropped (#34)
+            blitz_dom::not_applied::note(format!("the file {url} (it didn't load)"));
+        }
         handler.bytes(url.to_string(), Bytes::from(bytes.unwrap_or_default()));
     }
 }

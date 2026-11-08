@@ -686,7 +686,7 @@ impl ElementData {
             ServoArc::new(guard.wrap(parse_style_attribute(
                 style_str,
                 url_extra_data,
-                None,
+                crate::not_applied::reporter(), // raea: what stylo drops is noted (#34)
                 QuirksMode::NoQuirks,
                 CssRuleType::Style,
             )))
