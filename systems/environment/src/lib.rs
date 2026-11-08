@@ -301,18 +301,13 @@ pub fn environment(world: &mut World, e: Entity, vals: &BTreeMap<String, V>, ins
     }
     let widest = eqs.iter().map(|q| q.w).max().unwrap_or(1024) as u32;
     let size = (widest / 4).max(64).next_power_of_two().min(2048);
-    let maps: Vec<Handle<Image>> = eqs.iter().map(|q| {
-        let img = cubemap(q, size);
-        world.resource_mut::<Assets<Image>>().add(img)
-    }).collect();
-    // each panorama's light, filtered once by its own bake
-    let mut lights = Vec::new();
-    let mut bakes = Vec::new();
-    for m in &maps {
-        let (diffuse_map, specular_map) = filter_targets(&mut world.resource_mut::<Assets<Image>>(), size);
-        let light = EnvironmentMapLight { diffuse_map, specular_map, intensity: 0.0, ..default() };
-        bakes.push(world.spawn((EnvBake, GeneratedEnvironmentMapLight { environment_map: m.clone(), intensity: 0.0, ..default() }, light.clone())).id());
+    // each panorama's cubemap and its light, filtered once by its own bake
+    let (mut maps, mut lights, mut bakes) = (Vec::new(), Vec::new(), Vec::new());
+    for q in &eqs {
+        let (m, light, bake) = panorama(world, q, size);
+        maps.push(m);
         lights.push(light);
+        bakes.push(bake);
     }
     let i = num(vals, "env_i", 0.0).round().max(0.0) as usize;
     let rot = Quat::from_rotation_y(num(vals, "env_rot", 0.0));
@@ -324,6 +319,74 @@ pub fn environment(world: &mut World, e: Entity, vals: &BTreeMap<String, V>, ins
     if vals.contains_key("sky_k") {
         let k = num(vals, "sky_k", 0.0);
         world.entity_mut(e).insert(Skybox { image: (k > 0.0 && num(vals, "env_i", 0.0) > -0.5).then(|| maps[i.min(maps.len() - 1)].clone()), brightness: k, rotation: rot });
+    }
+    Ok(())
+}
+
+/// A panorama made a cubemap of `size` and its light, with the bake that filters that light once.
+fn panorama(world: &mut World, q: &Equirect, size: u32) -> (Handle<Image>, EnvironmentMapLight, Entity) {
+    let map = world.resource_mut::<Assets<Image>>().add(cubemap(q, size));
+    let (diffuse_map, specular_map) = filter_targets(&mut world.resource_mut::<Assets<Image>>(), size);
+    let light = EnvironmentMapLight { diffuse_map, specular_map, intensity: 0.0, ..default() };
+    let bake = world.spawn((EnvBake, GeneratedEnvironmentMapLight { environment_map: map.clone(), intensity: 0.0, ..default() }, light.clone())).id();
+    (map, light, bake)
+}
+
+/// A live camera's panoramas as they come (#38): live play's camera row lists those its frames have shown so far
+/// (runtime/scene's LiveScene), so one first seen mid-play is made and baked when the row brings it, beside the ones
+/// before it at their face size, as a render's are all made at load (environment). A camera with none yet gets its
+/// whole environment then.
+fn grow(world: &mut World, e: Entity, vals: &BTreeMap<String, V>, inserted: &[Tup], dir: &Path) -> Result<(), String> {
+    let Some(V::S(list)) = vals.get("env_srcs") else { return Ok(()) };
+    let srcs: Vec<String> = serde_json::from_str(list).map_err(|e| format!("camera: env_srcs: {e}"))?;
+    let Some((have, first)) = world.get::<EnvMaps>(e).map(|m| (m.0.len(), m.0[0].clone())) else {
+        return environment(world, e, vals, inserted, dir);
+    };
+    if srcs.len() <= have || preview() {
+        return Ok(());
+    }
+    let size = world.resource::<Assets<Image>>().get(&first).map_or(512, |i| i.width());
+    for s in &srcs[have..] {
+        let path = resolve_src(inserted, s, dir).map_err(|e| format!("Environment: {e}"))?;
+        let q = equirect(&path).map_err(|e| format!("Environment: {e}"))?;
+        let (map, _, bake) = panorama(world, &q, size);
+        let mut m = world.get_mut::<EnvMaps>(e).ok_or("camera: its environment went")?;
+        m.0.push(map);
+        m.1.push(bake);
+    }
+    Ok(())
+}
+
+/// A live frame's camera rows (an Engine's set_rows): a panorama first shown now (runtime/scene's LiveScene sends
+/// env_srcs when its list grows) made and baked beside the ones before it (grow), and its light filtered before the
+/// frame draws, as one at load is (#38), by updates that draw nothing and step no time (the frame's own sets its step).
+pub fn live_rows(app: &mut App, rows: &[Tup], dir: &Path) -> Result<(), String> {
+    for t in rows {
+        if t.kind != "camera" || !t.vals.contains_key("env_srcs") {
+            continue;
+        }
+        let world = app.world_mut();
+        let Some(e) = raea_sys_frame::store::find(world, &t.kind, &t.id) else { continue };
+        let Some(row) = world.resource::<FrameRows>().vals(e).map(|v| v.into_owned()) else { continue };
+        grow(world, e, &row, &[], dir)?;
+    }
+    let baking = |w: &mut World| w.query_filtered::<(), (With<EnvBake>, With<GeneratedEnvironmentMapLight>)>().iter(w).next().is_some();
+    if !baking(app.world_mut()) {
+        return Ok(());
+    }
+    let was = app.world_mut().remove_resource::<bevy::time::TimeUpdateStrategy>();
+    app.world_mut().insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(std::time::Duration::ZERO));
+    for _ in 0..8 {
+        app.update();
+        if !baking(app.world_mut()) {
+            break;
+        }
+    }
+    match was {
+        Some(w) => app.world_mut().insert_resource(w),
+        None => {
+            app.world_mut().remove_resource::<bevy::time::TimeUpdateStrategy>();
+        }
     }
     Ok(())
 }

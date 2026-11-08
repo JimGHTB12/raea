@@ -70,7 +70,7 @@ pub(crate) fn live_dynamic(kind: &str) -> &'static [&'static str] {
 pub(crate) fn cam_keyed(k: &str) -> bool {
     ["lens_", "mb_", "up_", "view_"].iter().any(|p| k.starts_with(p))
         || ["_qx", "_qy", "_qz", "_qw"].iter().any(|q| k.ends_with(q))
-        || matches!(k, "x" | "y" | "z" | "look_x" | "look_y" | "look_z" | "fov" | "focus" | "ortho" | "ambient" | "skybox_k" | "env_i" | "env_k" | "env_rot" | "sky_k" | "aberration" | "dof_aperture" | "paint_bands" | "paint_grain" | "paint_rag" | "paint_seed")
+        || matches!(k, "x" | "y" | "z" | "look_x" | "look_y" | "look_z" | "fov" | "focus" | "ortho" | "ambient" | "skybox_k" | "env_srcs" | "env_i" | "env_k" | "env_rot" | "sky_k" | "aberration" | "dof_aperture" | "paint_bands" | "paint_grain" | "paint_rag" | "paint_seed")
 }
 
 impl LiveScene {
@@ -90,6 +90,8 @@ impl LiveScene {
             cam.insert("bg".into(), V::S(bg));
         }
         camera(all, p, &mut cam);
+        // an <Environment>'s panoramas: every one shown so far, as a render's row lists them all (#38)
+        env_shown(self.cam.get("env_srcs"), &mut cam);
         if !all[0].iter().any(|i| i.kind == "camera") {
             // no camera this frame: a render holds the one before (filled)
             for k in ["x", "y", "z", "look_x", "look_y", "look_z", "fov", "focus"] {

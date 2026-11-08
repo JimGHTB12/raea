@@ -6,6 +6,28 @@ use super::*;
 /// A frame without depth of field: an f-stop so large no circle of confusion reaches a pixel
 pub const NO_DOF: f64 = 1.0e6;
 
+/// A live frame's camera row (runtime/scene's LiveScene) with its <Environment>'s panoramas as every one shown so far:
+/// a frame names only its own, so the row lists those `sent` last, then this frame's if it's new, with env_i pointing
+/// into the list, as a render's row lists them all at load; the engine bakes one it hasn't seen when the row brings it
+/// (raea-sys-environment's live_rows, #38).
+pub fn env_shown(sent: Option<&V>, cam: &mut BTreeMap<String, V>) {
+    let Some(V::S(now)) = cam.get("env_srcs").cloned() else { return };
+    let mut list: Vec<String> = match sent {
+        Some(V::S(s)) => serde_json::from_str(s).unwrap_or_default(),
+        _ => Vec::new(),
+    };
+    let mine: Vec<String> = serde_json::from_str(&now).unwrap_or_default();
+    let i = cam.get("env_i").map(V::num).unwrap_or(-1.0);
+    if let Some(src) = mine.get(i.max(0.0) as usize).filter(|_| i > -0.5) {
+        let at = list.iter().position(|s| s == src).unwrap_or_else(|| {
+            list.push(src.clone());
+            list.len() - 1
+        });
+        cam.insert("env_i".into(), V::N(at as f64));
+    }
+    cam.insert("env_srcs".into(), V::S(serde_json::to_string(&list).unwrap_or_default()));
+}
+
 pub fn camera(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>) {
     let cams: Vec<Option<Item>> = all.iter().map(|its| its.iter().find(|i| i.kind == "camera").cloned()).collect();
     let id = "cam";

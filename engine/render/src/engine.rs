@@ -261,11 +261,9 @@ impl Engine {
         }
         // a camera's frame looks, as the timeline's are each frame (relational), so a live game's look turns on too
         self.app.world_mut().resource_mut::<FrameRows>().parse_looks();
-        // a glTF model loaded and set up before the frame that shows it draws
-        if spawned {
-            scene3d::await_models(&mut self.app)?;
-        }
-        Ok(())
+        // a glTF model, and a panorama a live frame showed first (#38), set up before the frame that shows it draws
+        if spawned { scene3d::await_models(&mut self.app)?; }
+        environment::live_rows(&mut self.app, rows, &self.dir)
     }
 
     /// A live scene's rows dropped, by kind and id: their entities go (and the meshes and surfaces only they held).
