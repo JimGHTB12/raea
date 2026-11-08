@@ -186,16 +186,23 @@ pub fn render_bundle(js: &Path, dir: &Path, out: &Path, wanted: Option<Vec<i64>>
     BEVY_3D_PROBE.store(false, std::sync::atomic::Ordering::Relaxed);
     if video && r.as_ref().err().is_some_and(|e| e.contains(FED_3D)) {
         raea_runtime_react::startup_mark("a 3D frame met: the render starts again with its 3D");
-        if let Some(scene) = scene_program_checked(js, dir, 0, None)? {
-            return render_bundle_with(js, dir, out, None, true, Some(scene), false);
+        // its 3D made live as each frame steps, React once a frame (#26, #38); RAEA_3D=program makes its rows first
+        if how != "program" {
+            LIVE_CLIPS.store(true, std::sync::atomic::Ordering::Relaxed);
+            let r = render_bundle_with(js, dir, out, None, true, None, true);
+            LIVE_CLIPS.store(false, std::sync::atomic::Ordering::Relaxed);
+            return r;
         }
-        return render_bundle_with(js, dir, out, None, false, None, false);
+        let scene = scene_program_checked(js, dir, 0, None)?;
+        return render_bundle_with(js, dir, out, None, scene.is_some(), scene, false);
     }
     r
 }
 
 /// The bevy_ui page's video render stops at the first frame with 3D (Err(FED_3D)), to start again fed with its 3D live.
 pub(crate) static BEVY_3D_PROBE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+/// A video's 3D made live (not a game's): each frame's scene kept in its Frame for the clipping check at the end.
+pub(crate) static LIVE_CLIPS: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 /// A game's bundle: it steps state with useGameState (bundles aren't minified, and what isn't used is left out).
 pub(crate) fn is_game(js: &Path) -> bool {
@@ -374,7 +381,7 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
 }
 
 /// An engine for the scene path, drawing the guide data when `--aov` asked for it.
-fn aov_on(mut e: raea_render::engine::Engine) -> raea_render::engine::Engine {
+pub(crate) fn aov_on(mut e: raea_render::engine::Engine) -> raea_render::engine::Engine {
     if AOV.load(std::sync::atomic::Ordering::Relaxed) {
         e.want_aov();
     }

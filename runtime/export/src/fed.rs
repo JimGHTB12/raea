@@ -153,7 +153,7 @@ pub fn live_scene(world: &mut World, ls: &mut LiveScene, engine: &mut Option<rae
         None => {
             let clear = scene_clear(world);
             let p = ls.open(Shot { scene: &scene, clear: clear.as_deref() }, size.0, size.1, fps);
-            let mut e = raea_render::engine::Engine::new_live(&p, &raea_render::inserted_of(&p), dir).map_err(|e| format!("the 3D didn't open: {e}"))?;
+            let mut e = aov_on(raea_render::engine::Engine::new_live(&p, &raea_render::inserted_of(&p), dir).map_err(|e| format!("the 3D didn't open: {e}"))?);
             e.set_rows(&[])?;
             *engine = Some(e);
         }
@@ -169,7 +169,6 @@ pub fn live_scene(world: &mut World, ls: &mut LiveScene, engine: &mut Option<rae
     }
     Ok(())
 }
-
 
 /// The Engine's reads (docs/sdk.feature S2d; off with RAEA_ENGINE_READS=0): the Engine stepped through frame f - 1 and its pushes sent before React
 /// is asked for frame f, so frame f's reads answer from frame f - 1's World in every render: a jump to f steps 0..f - 1
@@ -253,6 +252,8 @@ pub(crate) fn render_fed(app: &mut App, js: &Path, w: u32, h: u32, fps: f64, tot
                     fr = bevy_fed(app.world_mut(), bevy, cx, &page, fps)?;
                 }
             }
+            // a video's 3D made live keeps each frame's scene for the clipping check
+            if LIVE_CLIPS.load(std::sync::atomic::Ordering::Relaxed) { fr.scene = scene_of(app.world_mut()); }
             if cx.scene3d.is_none() && cx.live3d.is_none() && !cx.scene.is_empty() && BEVY_3D_PROBE.load(std::sync::atomic::Ordering::Relaxed) {
                 return Err(FED_3D.into());
             }
