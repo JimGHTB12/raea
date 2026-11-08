@@ -532,20 +532,23 @@ impl ElementCx<'_, '_> {
             y_ratio,
         );
 
-        let transform = base_transform
-            .pre_scale_non_uniform(x_ratio, y_ratio)
-            .then_translate(Vec2 {
-                x: x.translate,
-                y: y.translate,
-            });
+        // raea: the position and each tile's place are in the element's own axes, so they go before its transform
+        // (pre_translate); after it (then_translate) they moved in the page's axes, and under a rotated ancestor
+        // slices of one image set apart by background-position stopped lining up (#18)
+        let transform = base_transform.pre_translate(Vec2 {
+            x: x.translate,
+            y: y.translate,
+        });
         let tile_rect = Rect::new(0.0, 0.0, x.rect_len, y.rect_len);
 
         for hc in 0..y.count {
             for wc in 0..x.count {
-                let transform = transform.then_translate(Vec2 {
-                    x: wc as f64 * x.stride,
-                    y: hc as f64 * y.stride,
-                });
+                let transform = transform
+                    .pre_translate(Vec2 {
+                        x: wc as f64 * x.stride,
+                        y: hc as f64 * y.stride,
+                    })
+                    .pre_scale_non_uniform(x_ratio, y_ratio);
 
                 scene.fill(
                     peniko::Fill::NonZero,
@@ -621,7 +624,8 @@ impl ElementCx<'_, '_> {
             &current_color,
         );
 
-        let transform = base_transform.then_translate(Vec2 {
+        // raea: in the element's axes, as an image layer's (#18)
+        let transform = base_transform.pre_translate(Vec2 {
             x: x.translate,
             y: y.translate,
         });
@@ -658,7 +662,7 @@ impl ElementCx<'_, '_> {
 
         for hc in 0..y.count {
             for wc in 0..x.count {
-                let transform = transform.then_translate(Vec2 {
+                let transform = transform.pre_translate(Vec2 {
                     x: wc as f64 * x.stride,
                     y: hc as f64 * y.stride,
                 });

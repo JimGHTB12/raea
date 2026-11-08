@@ -53,7 +53,8 @@ impl ElementCx<'_, '_> {
 
                     let alpha = shadow_color.components[3];
                     if alpha != 0.0 {
-                        let transform = self.transform.then_translate(Vec2 {
+                        // raea: the offset in the element's axes, so it turns with a rotated element (#18)
+                        let transform = self.transform.pre_translate(Vec2 {
                             x: shadow.base.horizontal.px() as f64 * self.scale,
                             y: shadow.base.vertical.px() as f64 * self.scale,
                         });
@@ -112,9 +113,10 @@ impl ElementCx<'_, '_> {
 
             // TODO draw shadows with matching individual radii instead of averaging
             let radius = self.frame.border_radii.average();
-            let transform = self.transform.then_translate(Vec2 {
-                x: shadow.base.horizontal.px() as f64,
-                y: shadow.base.vertical.px() as f64,
+            // raea: in the element's axes (#18), and at the page's scale, as an outer shadow's offset is
+            let transform = self.transform.pre_translate(Vec2 {
+                x: shadow.base.horizontal.px() as f64 * self.scale,
+                y: shadow.base.vertical.px() as f64 * self.scale,
             });
 
             scene.push_layer(

@@ -964,7 +964,7 @@ pub(crate) fn stroke_text<'a>(
                     if color.components[3] == 0.0 {
                         continue;
                     }
-                    let at = transform.then_translate(kurbo::Vec2::new(dx * scale, dy * scale));
+                    let at = transform.pre_translate(kurbo::Vec2::new(dx * scale, dy * scale)); // in the run's axes (#18)
                     let sigma = blur * scale / 2.0;
                     if sigma > 0.0 {
                         let reach = sigma * 3.0;

@@ -1261,7 +1261,8 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                                     y: content_position.y - node.scroll_offset().y,
                                 };
 
-                                cx.transform = cx.transform.then_translate(Vec2 {
+                                // raea: scrolled in the element's axes (#18)
+                                cx.transform = cx.transform.pre_translate(Vec2 {
                                     x: -node.scroll_offset().x * self.scale,
                                     y: -node.scroll_offset().y * self.scale,
                                 });
@@ -2113,10 +2114,11 @@ impl ElementCx<'_, '_> {
             None if inline || !natural => Affine::scale(self.scale),
             _ => svg_viewport_affine(svg, paint_size.width, paint_size.height),
         };
-        let transform = (self.transform * viewport).then_translate(Vec2 { x, y });
+        // raea: the content box's place in the element's axes (#18): before its transform, not after
+        let transform = self.transform.pre_translate(Vec2 { x, y }) * viewport;
         // raea: the same, split where a non-scaling stroke is drawn (anyrender_svg render_svg_tree_in): the page's
         // place and device scale, then the viewBox's mapping in CSS px
-        let host = (self.transform * Affine::scale(self.scale)).then_translate(Vec2 { x, y });
+        let host = self.transform.pre_translate(Vec2 { x, y }) * Affine::scale(self.scale);
         let in_css = Affine::scale(1.0 / self.scale) * viewport;
         // raea: its text grown as the page's text is (text.rs svg_text_look)
         anyrender_svg::set_text_look(crate::text::svg_text_look);
@@ -2255,7 +2257,7 @@ impl ElementCx<'_, '_> {
         if let Some(widget_scene) = self.custom_widget_scene {
             let x = self.frame.content_box.origin().x;
             let y = self.frame.content_box.origin().y;
-            let transform = self.transform.then_translate(Vec2 { x, y });
+            let transform = self.transform.pre_translate(Vec2 { x, y }); // raea: in the element's axes (#18)
 
             // TODO: eliminate clone
             scene.append_scene(widget_scene.clone(), transform);
