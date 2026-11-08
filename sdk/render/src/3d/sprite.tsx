@@ -124,6 +124,9 @@ export interface Shape2DProps extends Place2dProps {
   /** one linear [r, g, b, a] per vertex of the shape's mesh (Bevy's Mesh::ATTRIBUTE_COLOR): the material's colour and
    * texture are multiplied by them. A rect has 4 (top right, top left, bottom left, bottom right), a triangle 3. */
   vertex_colors?: [number, number, number, number][];
+  /** its own Material2d in place of the ColorMaterial: the spec a <Material> in a Mesh2d makes (docs/control.feature
+   * FC2a); the shape's colour, texture and alpha_mode are then the material's to draw */
+  shader?: Record<string, unknown>;
 }
 
 /** bevy_sprite_render's AlphaMode2d */

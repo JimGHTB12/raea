@@ -326,7 +326,7 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
                 Some(V::S(s)) => { let pic = scene3d::panel_picture(s, inserted, dir).map_err(|e| format!("shape2d {}: {e}", t.id))?; let (pw, ph) = pic.dimensions(); Some(world.resource_mut::<Assets<Image>>().add(sprite2d::shape_image(pw, ph, pic.into_raw(), vals).map_err(|e| format!("shape2d {}: texture's {e}", t.id))?)) }
                 _ => None,
             };
-            sprite2d::spawn_shape(world, e, t, tex)
+            sprite2d::spawn_shape(world, e, t, tex)?
         }
         // a live picture on a quad (<Screen>): screen.rs
         "panel" if vals.contains_key("screen") => screen::spawn_panel(world, e, t)?,

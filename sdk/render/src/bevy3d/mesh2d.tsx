@@ -6,6 +6,7 @@ import { useVideoConfig } from "@raea/app/clock";
 import { Shape2D, type AlphaMode2d, type Place2dProps, type Shape2DProps } from "../3d/sprite";
 import { eulerOf } from "../3d";
 import { LinearRgba, Srgba, type Affine2, type SampledImage, type TransformValue } from "./all";
+import { Material, materialShader, type MaterialProps } from "./material";
 
 /** a primitive's mesh attributes: its Mesh::ATTRIBUTE_COLOR, one linear colour per vertex (as mesh.insert_attribute) */
 export interface MeshAttributes { vertex_colors?: (LinearRgba | [number, number, number, number])[] }
@@ -41,7 +42,8 @@ export const ColorMaterial = inMesh2d("ColorMaterial") as (p: ColorMaterialProps
 export interface Mesh2dProps extends Omit<Place2dProps, "x" | "y" | "rotation" | "scale" | "z"> {
   transform?: TransformValue;
   visibility?: "Inherited" | "Visible" | "Hidden";
-  /** one primitive (<Circle>, <Rectangle>, <Ellipse>, <RegularPolygon>) and a <ColorMaterial> */
+  /** one primitive (<Circle>, <Rectangle>, <Ellipse>, <RegularPolygon>) and a <ColorMaterial>, or your own <Material>
+   *  (Bevy's Material2d, docs/control.feature FC2a) */
   children?: ReactNode;
 }
 
@@ -72,14 +74,16 @@ function primitiveOf(el: { type: unknown; props: unknown }): ShapeOf {
 /** Bevy's Mesh2d with its Transform, a primitive and a ColorMaterial: <Shape2D> in Bevy's 2D world. */
 export function Mesh2d({ transform, visibility, children, ...rest }: Mesh2dProps) {
   const { width, height } = useVideoConfig();
-  let shape: ShapeOf | undefined, material: ColorMaterialProps | undefined;
+  let shape: ShapeOf | undefined, material: ColorMaterialProps | undefined, shader: Record<string, unknown> | undefined;
   for (const c of Children.toArray(children)) {
     if (!isValidElement(c)) continue;
     if (c.type === ColorMaterial) material = c.props as ColorMaterialProps;
+    else if (c.type === Material) shader = materialShader(c.props as MaterialProps);
     else if (c.type === Circle || c.type === Rectangle || c.type === Ellipse || c.type === RegularPolygon) {
       if (shape) throw new TypeError("Mesh2d: one primitive");
       shape = shapeOf(c);
-    } else throw new TypeError("Mesh2d takes a primitive (<Circle>, <Rectangle>, <Ellipse>, <RegularPolygon>) and a <ColorMaterial>");
+    } else throw new TypeError("Mesh2d takes a primitive (<Circle>, <Rectangle>, <Ellipse>, <RegularPolygon>) and a <ColorMaterial> or <Material>");
+  if (material && shader) throw new TypeError("Mesh2d: one material, a <ColorMaterial> or a <Material>");
   }
   if (!shape) throw new TypeError("Mesh2d: give it a primitive, e.g. <Circle radius={40} />");
   if (visibility === "Hidden") return null;
@@ -92,5 +96,5 @@ export function Mesh2d({ transform, visibility, children, ...rest }: Mesh2dProps
   const s = typeof c === "string" ? undefined : c instanceof LinearRgba ? c.to_srgba() : c;
   const color = s ? new Srgba(s.red, s.green, s.blue, 1).to_hex() : c as string;
   const opacity = (rest.opacity ?? 1) * (s ? s.alpha : 1);
-  return <Shape2D {...rest} {...shape} color={color} {...(s || rest.opacity !== undefined ? { opacity } : {})} {...(material?.texture ? { texture: material.texture } : {})} {...(material?.alpha_mode ? { alpha_mode: material.alpha_mode } : {})} {...(material?.uv_transform ? { uv_transform: material.uv_transform } : {})} x={width / 2 + tx} y={height / 2 - ty} z={tz} rotation={turn} scale={sx === sy ? sx : [sx, sy]} />;
+  return <Shape2D {...rest} {...shape} color={color} {...(s || rest.opacity !== undefined ? { opacity } : {})} {...(material?.texture ? { texture: material.texture } : {})} {...(material?.alpha_mode ? { alpha_mode: material.alpha_mode } : {})} {...(material?.uv_transform ? { uv_transform: material.uv_transform } : {})} {...(shader ? { shader } : {})} x={width / 2 + tx} y={height / 2 - ty} z={tz} rotation={turn} scale={sx === sy ? sx : [sx, sy]} />;
 }

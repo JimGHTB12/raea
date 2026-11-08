@@ -13,8 +13,6 @@ use std::sync::{Arc, Mutex};
 
 use bevy::asset::uuid_handle;
 use bevy::camera::{ClearColorConfig, RenderTarget};
-use bevy::image::{CompressedImageFormats, ImageSampler, ImageType};
-use bevy::asset::RenderAssetUsages;
 use bevy::prelude::*;
 use bevy::render::extract_resource::{ExtractResource, ExtractResourcePlugin};
 use bevy::render::render_asset::RenderAssets;
@@ -302,10 +300,7 @@ fn picture(world: &mut World, state: &mut UiMats, path: &str) -> Result<Handle<I
     if let Some(h) = state.pictures.get(path) {
         return Ok(h.clone());
     }
-    let bytes = std::fs::read(path).map_err(|e| format!("a UiMaterial texture {path}: {e}"))?;
-    let ext = std::path::Path::new(path).extension().and_then(|e| e.to_str()).unwrap_or("png");
-    let image = Image::from_buffer(&bytes, ImageType::Extension(ext), CompressedImageFormats::NONE, true, ImageSampler::Default, RenderAssetUsages::default()).map_err(|e| format!("a UiMaterial texture {path}: {e}"))?;
-    let h = world.resource_mut::<Assets<Image>>().add(image);
+    let h = crate::own::picture(world, path).map_err(|e| format!("a UiMaterial texture {e}"))?;
     state.pictures.insert(path.to_string(), h.clone());
     Ok(h)
 }

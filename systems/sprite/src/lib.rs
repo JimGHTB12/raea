@@ -134,8 +134,9 @@ fn uv_of(v: &BTreeMap<String, V>) -> bevy::math::Affine2 {
 }
 
 /// A flat shape's entity from its row: its ColorMaterial the row's colour, its texture (decoded by the caller) and
-/// AlphaMode2d (`alpha`: "opaque", "mask" at `alpha_cutoff`, otherwise Bevy's default "blend").
-pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle<Image>>) {
+/// AlphaMode2d (`alpha`: "opaque", "mask" at `alpha_cutoff`, otherwise Bevy's default "blend"); or, when the row has a
+/// `shader` (a <Material> in a Mesh2d, docs/control.feature FC2a), its own Material2d (raea-sys-shader's OwnMaterial).
+pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle<Image>>) -> Result<(), String> {
     let v = &t.vals;
     let (w, h) = (num(v, "w", 100.0), num(v, "h", 100.0));
     let mut mesh = match v.get("shape") {
@@ -161,20 +162,36 @@ pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle
         _ => AlphaMode2d::Blend,
     };
     let uv_transform = uv_of(v);
+    world.entity_mut(e).insert((Mesh2d(mesh), place_of(v), Visibility::default(), Part2d));
+    if let Some(V::S(s)) = v.get("shader") {
+        let spec: serde_json::Value = serde_json::from_str(s).map_err(|err| format!("shape2d {}: shader: {err}", t.id))?;
+        // its textures decoded now, as the shape's own picture is
+        let mut picture = |w: &mut World, p: &serde_json::Value| p.as_str().ok_or_else(|| format!("a texture is a picture's path, got {p}")).and_then(|p| raea_sys_shader::own::picture(w, p));
+        let m = raea_sys_shader::own::build(world, &spec, &mut picture, true).map_err(|err| format!("shape2d {}: {err}", t.id))?;
+        let m = world.resource_mut::<Assets<raea_sys_shader::own::OwnMaterial>>().add(m);
+        world.entity_mut(e).insert(MeshMaterial2d(m));
+        return Ok(());
+    }
     let mat = world.resource_mut::<Assets<ColorMaterial>>().add(ColorMaterial { color: color_of(v), alpha_mode, texture, uv_transform, ..default() });
-    world.entity_mut(e).insert((Mesh2d(mesh), MeshMaterial2d(mat), place_of(v), Visibility::default(), Part2d));
+    world.entity_mut(e).insert(MeshMaterial2d(mat));
+    Ok(())
 }
 
 /// The 2D camera, once the scene has a 2D part (or a plugin's Draws2d): over the 3D camera (one order after it), on its
-/// target, not clearing.
-pub fn camera_2d(mut commands: Commands, parts: Query<(), Or<(With<Part2d>, With<Draws2d>)>>, over: Query<(), With<Camera2dOver>>, three: Query<(&Camera, &RenderTarget), With<Camera3d>>) {
+/// target, not clearing. When the 3D camera is single-sampled and not Hdr the two share one main texture, which then
+/// holds the 3D and the 2D over it, so the 2D camera's output replaces the target's, as the first camera on a target
+/// does in Bevy, rather than blending the finished frame over itself: a 2D fragment's alpha below 1 (an opaque or
+/// masked Material2d's) then reaches the frame as a Camera2d alone leaves it (shader/shader_material_2d).
+pub fn camera_2d(mut commands: Commands, parts: Query<(), Or<(With<Part2d>, With<Draws2d>)>>, over: Query<(), With<Camera2dOver>>, three: Query<(&Camera, &RenderTarget, &Msaa, Has<bevy::camera::Hdr>), With<Camera3d>>) {
     if parts.is_empty() || !over.is_empty() {
         return;
     }
-    let Some((cam, target)) = three.iter().max_by_key(|(c, _)| c.order) else { return };
+    let Some((cam, target, msaa, hdr)) = three.iter().max_by_key(|(c, ..)| c.order) else { return };
+    let shared = *msaa == Msaa::Off && !hdr;
+    let output_mode = if shared { bevy::camera::CameraOutputMode::Write { blend_state: Some(bevy::render::render_resource::BlendState::REPLACE), clear_color: ClearColorConfig::None } } else { default() };
     commands.spawn((
         Camera2d,
-        Camera { order: cam.order + 1, clear_color: ClearColorConfig::None, ..default() },
+        Camera { order: cam.order + 1, clear_color: ClearColorConfig::None, output_mode, ..default() },
         target.clone(),
         Projection::Orthographic(OrthographicProjection { viewport_origin: Vec2::new(0.0, 1.0), ..OrthographicProjection::default_2d() }),
         Msaa::Off,

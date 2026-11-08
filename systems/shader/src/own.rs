@@ -18,6 +18,7 @@ use bevy::pbr::{Material, MaterialPipeline, MaterialPipelineKey, MaterialPlugin}
 use bevy::prelude::*;
 use bevy::render::render_resource::{AsBindGroup, Face, RenderPipelineDescriptor, SpecializedMeshPipelineError};
 use bevy::shader::{Shader, ShaderRef};
+use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dKey, Material2dPipeline, Material2dPlugin};
 use serde_json::Value;
 
 use crate::ui_bind::{rebind_in, Rebound};
@@ -26,9 +27,13 @@ use crate::{layout, register, Inputs, OwnSurface, Shaded};
 /// The fragment shader every pipeline starts from, swapped in `specialize` for the material's own (its uuid).
 const PLACEHOLDER: Handle<Shader> = uuid_handle!("5d1e7a3c-2b9f-4e6d-8a1c-3f7b9d2e6c41");
 const STUB: &str = "import bevy_pbr::render::forward_io::VertexOutput;\n@fragment\nfn fragment(in: VertexOutput) -> @location(0) vec4<f32> { return vec4(1.0, 0.0, 1.0, 1.0); }\n";
+/// The same for a 2D one (Material2d's), whose vertex output is mesh2d's.
+const PLACEHOLDER_2D: Handle<Shader> = uuid_handle!("5d1e7a3c-2b9f-4e6d-8a1c-3f7b9d2e6c42");
+const STUB_2D: &str = "import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;\n@fragment\nfn fragment(in: VertexOutput) -> @location(0) vec4<f32> { return vec4(1.0, 0.0, 1.0, 1.0); }\n";
 
-/// How a source may write the material's group.
+/// How a source may write the material's group: 3 in 3D, 2 in 2D.
 const GROUPS: &[&str] = &["constants::MATERIAL_BIND_GROUP", "#{MATERIAL_BIND_GROUP}", "3"];
+const GROUPS_2D: &[&str] = &["constants::MATERIAL_BIND_GROUP", "#{MATERIAL_BIND_GROUP}", "2"];
 
 /// One Rust type for every author's Material: eight uniform buffers of 256 bytes, four textures with their samplers,
 /// the shaders that read them, and how it blends and culls.
@@ -68,8 +73,8 @@ pub struct OwnMaterial {
     vertex: u128,
     alpha: AlphaMode,
     depth_bias: f32,
-    /// the faces it culls (the pipeline's primitive.cull_mode), Back as Bevy's mesh pipeline has it
-    cull: Option<Face>,
+    /// the faces it culls (the pipeline's primitive.cull_mode); None keeps the pipeline's (3D culls Back, 2D none)
+    cull: Option<Option<Face>>,
 }
 
 /// What picks a pipeline: the material's shaders and the faces it culls.
@@ -77,7 +82,7 @@ pub struct OwnMaterial {
 pub struct OwnKey {
     shader: u128,
     vertex: u128,
-    cull: Option<Face>,
+    cull: Option<Option<Face>>,
 }
 
 impl From<&OwnMaterial> for OwnKey {
@@ -101,22 +106,47 @@ impl Material for OwnMaterial {
         self.depth_bias
     }
     fn specialize(_: &MaterialPipeline, descriptor: &mut RenderPipelineDescriptor, _: &MeshVertexBufferLayoutRef, key: MaterialPipelineKey<Self>) -> Result<(), SpecializedMeshPipelineError> {
-        let k = key.bind_group_data;
-        if let Some(f) = descriptor.fragment.as_mut().filter(|f| f.shader.id() == PLACEHOLDER.id()) {
-            f.shader = uuid(k.shader);
-        }
-        // the main pass's vertex stage only: the prepass and shadow pipelines keep Bevy's
-        if k.vertex != 0 && descriptor.fragment.as_ref().is_some_and(|f| f.shader.id() == uuid(k.shader).id()) {
-            descriptor.vertex.shader = uuid(k.vertex);
-        }
-        descriptor.primitive.cull_mode = k.cull;
-        Ok(())
+        swap(descriptor, &PLACEHOLDER, key.bind_group_data)
     }
+}
+
+impl Material2d for OwnMaterial {
+    fn fragment_shader() -> ShaderRef {
+        ShaderRef::Handle(PLACEHOLDER_2D)
+    }
+    fn alpha_mode(&self) -> AlphaMode2d {
+        match self.alpha {
+            AlphaMode::Opaque => AlphaMode2d::Opaque,
+            AlphaMode::Mask(c) => AlphaMode2d::Mask(c),
+            _ => AlphaMode2d::Blend,
+        }
+    }
+    fn depth_bias(&self) -> f32 {
+        self.depth_bias
+    }
+    fn specialize(_: &Material2dPipeline, descriptor: &mut RenderPipelineDescriptor, _: &MeshVertexBufferLayoutRef, key: Material2dKey<Self>) -> Result<(), SpecializedMeshPipelineError> {
+        swap(descriptor, &PLACEHOLDER_2D, key.bind_group_data)
+    }
+}
+
+/// A pipeline given the material's own shaders: its fragment where it is `placeholder`, its vertex shader (if any) in
+/// that same pipeline (the main pass's: the prepass and shadow pipelines keep Bevy's), and the faces it culls.
+fn swap(descriptor: &mut RenderPipelineDescriptor, placeholder: &Handle<Shader>, k: OwnKey) -> Result<(), SpecializedMeshPipelineError> {
+    let Some(f) = descriptor.fragment.as_mut().filter(|f| f.shader.id() == placeholder.id()) else { return Ok(()) };
+    f.shader = uuid(k.shader);
+    if k.vertex != 0 {
+        descriptor.vertex.shader = uuid(k.vertex);
+    }
+    if let Some(c) = k.cull {
+        descriptor.primitive.cull_mode = c;
+    }
+    Ok(())
 }
 
 pub fn install(app: &mut App) {
     let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER, Shader::from_wesl(STUB, "embedded://raea_sys_shader/own_placeholder.wesl"));
-    app.add_plugins(MaterialPlugin::<OwnMaterial>::default());
+    let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER_2D, Shader::from_wesl(STUB_2D, "embedded://raea_sys_shader/own_placeholder_2d.wesl"));
+    app.add_plugins((MaterialPlugin::<OwnMaterial>::default(), Material2dPlugin::<OwnMaterial>::default()));
 }
 
 /// Whether a mesh's shader spec is a `<Material>`'s (its `own`), not a ShaderExtension's.
@@ -125,8 +155,10 @@ pub fn is_own(spec: &Value) -> bool {
 }
 
 /// The material a `<Material>` spec asks for: {fragment, vertex?, uniforms, textures, defs, own: {alpha_mode,
-/// depth_bias, cull_mode}}, its shaders registered as written (bindings renumbered, imports beside them).
-pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>) -> Result<OwnMaterial, String> {
+/// depth_bias, cull_mode}}, its shaders registered as written (bindings renumbered, imports beside them); a 2D one's
+/// (`two_d`, a Material2d's) binds group 2.
+pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>, two_d: bool) -> Result<OwnMaterial, String> {
+    let groups = if two_d { GROUPS_2D } else { GROUPS };
     let what = "a Material";
     let o = v.as_object().ok_or_else(|| format!("{what} is {{fragment, uniforms, textures}}, got {v}"))?;
     let path = o.get("fragment").and_then(Value::as_str).ok_or_else(|| format!("{what}'s fragment is its shader file"))?;
@@ -134,7 +166,7 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     let mut rest = o.clone();
     let given = rest.remove("uniforms").and_then(|u| u.as_object().cloned()).unwrap_or_default();
     let ins = Inputs::read(world, &rest, what, image)?;
-    let Rebound { src, uniforms, textures, .. } = rebind_in(&ins.src, GROUPS, what).map_err(|e| format!("{path}: {e}"))?;
+    let Rebound { src, uniforms, textures, .. } = rebind_in(&ins.src, groups, what).map_err(|e| format!("{path}: {e}"))?;
     let [u0, u1, u2, u3, u4, u5, u6, u7] = layout::slots(&src, &uniforms, &given, &ins.defs).map_err(|e| format!("{path}: {e}"))?;
     if let Some((k, _)) = ins.textures.iter().find(|(k, _)| !textures.contains(k)) {
         return Err(format!("{path} has no texture {k}"));
@@ -149,7 +181,7 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
         None => 0,
         Some(p) => {
             let s = std::fs::read_to_string(p).map_err(|e| format!("{what}'s vertex {p}: {e}"))?;
-            let s = rebind_in(&s, GROUPS, what).map_err(|e| format!("{p}: {e}"))?.src;
+            let s = rebind_in(&s, groups, what).map_err(|e| format!("{p}: {e}"))?.src;
             let krate = folder(world, p, &s)?;
             register(world, s, &ins.defs, "raea own material vertex", &krate)
         }
@@ -158,10 +190,10 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     let alpha = alpha_mode(own.get("alpha_mode"))?;
     let depth_bias = own.get("depth_bias").and_then(Value::as_f64).unwrap_or(0.0) as f32;
     let cull = match own.get("cull_mode") {
-        None => Some(Face::Back),
-        Some(Value::Null) => None,
-        Some(v) if v == "Front" => Some(Face::Front),
-        Some(v) if v == "Back" => Some(Face::Back),
+        None => None,
+        Some(Value::Null) => Some(None),
+        Some(v) if v == "Front" => Some(Some(Face::Front)),
+        Some(v) if v == "Back" => Some(Some(Face::Back)),
         Some(v) => return Err(format!("a Material's cull_mode is \"Front\", \"Back\" or null (none), got {v}")),
     };
     let [t0, t1, t2, t3] = t;
@@ -187,6 +219,17 @@ fn alpha_mode(v: Option<&Value>) -> Result<AlphaMode, String> {
             None => return Err(format!("a Material's alpha_mode is a name or {{\"Mask\": cutoff}}, got {v}")),
         },
     })
+}
+
+/// A picture file decoded now as an Image (sRGB, the default sampler, as asset_server.load reads a colour texture), so
+/// the first frame that draws it has it.
+pub fn picture(world: &mut World, path: &str) -> Result<Handle<Image>, String> {
+    use bevy::asset::RenderAssetUsages;
+    use bevy::image::{CompressedImageFormats, ImageSampler, ImageType};
+    let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
+    let ext = std::path::Path::new(path).extension().and_then(|e| e.to_str()).unwrap_or("png");
+    let image = Image::from_buffer(&bytes, ImageType::Extension(ext), CompressedImageFormats::NONE, true, ImageSampler::Default, RenderAssetUsages::default()).map_err(|e| format!("{path}: {e}"))?;
+    Ok(world.resource_mut::<Assets<Image>>().add(image))
 }
 
 /// The embedded folder a file's module goes in (raea_sys_shader/d{hash of its folder}), with every module it imports
