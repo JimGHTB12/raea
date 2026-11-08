@@ -21,7 +21,7 @@ use bevy::shader::{Shader, ShaderRef};
 use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dKey, Material2dPipeline, Material2dPlugin};
 use serde_json::Value;
 
-use crate::ui_bind::{rebind_in, Rebound};
+use crate::ui_bind::{rebind_in, Rebound, DIMS};
 use crate::{layout, register, Inputs, OwnSurface, Shaded};
 
 /// The fragment shader every pipeline starts from, swapped in `specialize` for the material's own (its uuid).
@@ -68,6 +68,19 @@ pub struct OwnMaterial {
     #[texture(14)]
     #[sampler(15)]
     t3: Option<Handle<Image>>,
+    // one texture of each other dimension (ui_bind.rs DIMS), the 1d's and 2d_array's samplers the 5th and 6th
+    #[texture(16, dimension = "1d")]
+    #[sampler(17)]
+    d1: Option<Handle<Image>>,
+    #[texture(18, dimension = "2d_array")]
+    #[sampler(19)]
+    d2a: Option<Handle<Image>>,
+    #[texture(20, dimension = "cube")]
+    cube: Option<Handle<Image>>,
+    #[texture(21, dimension = "cube_array")]
+    cube_array: Option<Handle<Image>>,
+    #[texture(22, dimension = "3d")]
+    d3: Option<Handle<Image>>,
     shader: u128,
     /// the vertex shader's uuid, 0 for Bevy's mesh vertex shader
     vertex: u128,
@@ -164,14 +177,22 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     let mut rest = o.clone();
     let given = rest.remove("uniforms").and_then(|u| u.as_object().cloned()).unwrap_or_default();
     let ins = Inputs::read(world, &rest, what, image)?;
-    let Rebound { src, uniforms, textures, .. } = rebind_in(&ins.src, groups, what).map_err(|e| format!("{path}: {e}"))?;
+    let Rebound { src, uniforms, textures, others, .. } = rebind_in(&ins.src, groups, what, true).map_err(|e| format!("{path}: {e}"))?;
     let [u0, u1, u2, u3, u4, u5, u6, u7] = layout::slots(&src, &uniforms, &given, &ins.defs).map_err(|e| format!("{path}: {e}"))?;
     if let Some((k, _)) = ins.textures.iter().find(|(k, _)| !textures.contains(k)) {
-        return Err(format!("{path} has no texture {k}"));
+        return Err(format!("{path} has no texture_2d {k}"));
     }
+    // a texture the source declares and the spec doesn't give is Bevy's fallback image, as an Option<Handle<Image>>
+    // field left None binds
     let mut t: [Option<Handle<Image>>; 4] = Default::default();
     for (i, name) in textures.iter().enumerate() {
-        t[i] = Some(ins.textures.iter().find(|(k, _)| k == name).map(|x| x.1.clone()).ok_or_else(|| format!("{path}'s texture {name} has no picture"))?);
+        t[i] = ins.textures.iter().find(|(k, _)| k == name).map(|x| x.1.clone());
+    }
+    // the other dimensions: a 2d_array from the spec's one texture array ({layers}); the rest are fallbacks for now
+    let mut dims: [Option<Handle<Image>>; 5] = Default::default();
+    if let Some((name, h)) = &ins.array {
+        let i = others.iter().position(|(n, d)| n == name && *d == "2d_array").ok_or_else(|| format!("{path} has no texture_2d_array {name}"))?;
+        dims[DIMS.iter().position(|x| x.1 == others[i].1).unwrap_or(1)] = Some(h.clone());
     }
     let krate = folder(world, path, &src)?;
     let shader = register(world, src, &ins.defs, "raea own material", &krate);
@@ -179,7 +200,7 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
         None => 0,
         Some(p) => {
             let s = std::fs::read_to_string(p).map_err(|e| format!("{what}'s vertex {p}: {e}"))?;
-            let s = rebind_in(&s, groups, what).map_err(|e| format!("{p}: {e}"))?.src;
+            let s = rebind_in(&s, groups, what, true).map_err(|e| format!("{p}: {e}"))?.src;
             let krate = folder(world, p, &s)?;
             register(world, s, &ins.defs, "raea own material vertex", &krate)
         }
@@ -195,7 +216,8 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
         Some(v) => return Err(format!("a Material's cull_mode is \"Front\", \"Back\" or null (none), got {v}")),
     };
     let [t0, t1, t2, t3] = t;
-    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, shader, vertex, alpha, depth_bias, cull })
+    let [d1, d2a, cube, cube_array, d3] = dims;
+    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, shader, vertex, alpha, depth_bias, cull })
 }
 
 /// Bevy's AlphaMode as the SDK writes it: "Opaque", "Blend", {"Mask": cutoff}, "Premultiplied", "AlphaToCoverage",

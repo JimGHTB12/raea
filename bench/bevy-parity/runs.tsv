@@ -125,3 +125,4 @@ shader/shader_material	-	30
 shader/shader_defs	-	10
 shader/shader_material_screenspace_texture	-	10,60
 shader/shader_material_2d	-	10
+shader/fallback_image	-	10

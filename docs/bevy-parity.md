@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **126**, passing **126**, excluded **16** (docs/bevy-parity/excluded.tsv), left **296**.
+Examples: **438**, ported **127**, passing **127**, excluded **16** (docs/bevy-parity/excluded.tsv), left **295**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -185,11 +185,12 @@ doesn't pay.
 | 2d/sprite_slice | 10 | 0.997293 | 11 | 0 / 0 | 464 / 521 | 5 / 7 | 1 / 1 | 43.511 / 1.426 = 1.426 + 0 | yes |  |
 | shader/animate_shader | 30 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 2 | 23.2 / 1.629 = 1.629 + 0 | yes |  |
 | shader/animate_shader | 60 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 2 | 3.338 / 1.465 = 1.465 + 0 | yes |  |
-| shader/shader_material | 30 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 2 | 18.093 / 1.611 = 1.611 + 0 | yes |  |
 | shader/shader_defs | 10 | 0.999999 | 0 | 0 / 0 | 448 / 511 | 7 / 8 | 1 / 3 | 45.978 / 2.503 = 2.503 + 0 | yes |  |
 | shader/shader_material_screenspace_texture | 10 | 0.998864 | 2 | 1 / 1 | 449 / 512 | 7 / 9 | 2 / 3 | 48.436 / 2.407 = 2.407 + 0 | yes |  |
 | shader/shader_material_screenspace_texture | 60 | 0.998929 | 2 | 1 / 1 | 449 / 512 | 7 / 9 | 2 / 3 | 3.231 / 1.598 = 1.598 + 0 | yes |  |
 | shader/shader_material_2d | 10 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 1 | 45.128 / 1.489 = 1.489 + 0 | yes |  |
+| shader/shader_material | 30 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 2 | 19.131 / 1.539 = 1.539 + 0 | yes |  |
+| shader/fallback_image | 10 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 2 | 42.667 / 2.26 = 2.26 + 0 | yes |  |
 
 ## Excluded
 
