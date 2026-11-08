@@ -145,3 +145,4 @@ shader_advanced/custom_vertex_attribute
 shader_advanced/fullscreen_material
 shader_advanced/custom_render_phase
 shader_advanced/custom_shader_instancing
+shader_advanced/deferred_raymarch

@@ -117,6 +117,11 @@ impl LiveScene {
                         put("dir_x", target[0] - pos[0]);
                         put("dir_y", target[1] - pos[1]);
                         put("dir_z", target[2] - pos[2]);
+                        if let Some(q) = crate::parts::light_rotation(it) {
+                            for (name, v) in ["rot_qx", "rot_qy", "rot_qz", "rot_qw"].into_iter().zip(q) {
+                                put(name, v);
+                            }
+                        }
                     }
                     if it.kind == "spot" {
                         // its cone, as parts.rs keys it: a spot whose angle moves (3d/spotlight) kept its first (#26)

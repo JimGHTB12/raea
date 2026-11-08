@@ -22,7 +22,8 @@ for (const [n, row] of (fixture as any[]).entries()) {
       case "euler": return near(Quat.fromEuler(row.order, ...(row.abc as V)), row.q);
       case "mul": return near(Quat.mul(row.a as Q, row.b as Q), row.q);
       case "mulVec3": return near(Quat.mulVec3(row.q as Q, row.v as V), row.out);
-      case "lookingAt": return near(Transform.fromTranslation(row.eye as V).lookingAt(row.target as V, row.up as V).rotation, row.q);
+      // computed in f32 as glam does it: the same quaternion to the bit
+      case "lookingAt": return expect(Transform.fromTranslation(row.eye as V).lookingAt(row.target as V, row.up as V).rotation.map(Math.fround)).toEqual(row.q.map(Math.fround));
       default: throw new Error(`unknown op ${row.op}`);
     }
   });

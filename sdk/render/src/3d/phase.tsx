@@ -89,3 +89,24 @@ export function ShaderInstances(p: ShaderInstancesProps) {
   for (const a of attributes) if (!(Number.isInteger(a.offset) && a.offset >= 0 && a.offset < stride && Number.isInteger(a.location) && a.location >= 0)) throw new TypeError(`ShaderInstances: an attribute is { format, offset (under the stride), location }, got ${JSON.stringify(a)}`);
   return <BevyComponent type="raea_sys_phase::ShaderInstances" value={{ shader: assetPath(shader), stride, attributes, words }} />;
 }
+
+export interface GBufferPassProps {
+  /** the shader file, compiled as written: staticFile("shaders/x.wesl"). Its entry points take Bevy's
+   * FullscreenVertexOutput; bind group 0 is the view uniform (binding 0) and Globals (binding 1) */
+  shader: string;
+  /** the entry point writing the G-buffer: its deferred vec4<u32> (location 0), its lighting pass id u32 (location 1)
+   * and its frag_depth ("fragment") */
+  fragment?: string;
+  /** the entry point writing a shadow view's frag_depth, so it casts shadows; none when left out */
+  shadow?: string;
+}
+
+/** Inside a Camera3d with Bevy's DepthPrepass and DeferredPrepass: your shader over the whole view, written into the
+ * deferred G-buffer after the deferred prepass (depth compared GreaterEqual), so Bevy's deferred lighting lights it as
+ * any surface, and into the shadow maps of the camera's lights (Bevy's shader_advanced/deferred_raymarch).
+ * @bevy raea_sys_phase::GBufferPass */
+export function GBufferPass(p: GBufferPassProps) {
+  const { shader, fragment = "fragment", shadow = "" } = p;
+  if (typeof shader !== "string" || !shader) throw new TypeError(`GBufferPass: shader is a shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(shader)}`);
+  return <BevyComponent type="raea_sys_phase::GBufferPass" value={{ shader: assetPath(shader), fragment, shadow }} />;
+}

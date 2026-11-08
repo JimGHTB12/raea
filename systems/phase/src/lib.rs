@@ -5,7 +5,8 @@
 //! prepares and draws it. A MeshPass on a Mesh3d entity draws that mesh again by its own shader in a phase after the
 //! main opaque pass, as Bevy's shader_advanced/custom_render_phase draws its stencil (mesh_pass.rs), and
 //! ShaderInstances draws it many times in one draw, a vertex buffer of yours stepped per instance
-//! (shader_advanced/custom_shader_instancing, instances.rs).
+//! (shader_advanced/custom_shader_instancing, instances.rs). A camera's GBufferPass draws a fullscreen shader into the
+//! deferred G-buffer and the shadow maps (shader_advanced/deferred_raymarch, gbuffer.rs).
 
 use bevy::camera::visibility::{self, VisibilityClass};
 use bevy::prelude::*;
@@ -13,9 +14,11 @@ use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::RenderApp;
 
 mod draw;
+mod gbuffer;
 mod instances;
 mod mesh_pass;
 
+pub use gbuffer::GBufferPass;
 pub use instances::ShaderInstances;
 pub use mesh_pass::MeshPass;
 
@@ -75,7 +78,7 @@ macro_rules! shaded {
         }
     )*};
 }
-shaded!(PhaseItem: "PhaseItem", MeshPass: "MeshPass", ShaderInstances: "ShaderInstances");
+shaded!(PhaseItem: "PhaseItem", MeshPass: "MeshPass", ShaderInstances: "ShaderInstances", GBufferPass: "GBufferPass");
 
 /// Each new or changed `C`'s shader file read and registered as written (a file it can't read is logged).
 pub(crate) fn register<C: Shaded>(world: &mut World) {
@@ -112,6 +115,7 @@ pub fn install(app: &mut App) {
     draw::install(app);
     mesh_pass::install(app);
     instances::install(app);
+    gbuffer::install(app);
     if let Some(r) = app.get_sub_app_mut(bevy::render::RenderApp) {
         r.add_systems(bevy::render::RenderStartup, pipelines.after(bevy::pbr::MeshPipelineSystems));
     }

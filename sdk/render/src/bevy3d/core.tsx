@@ -80,41 +80,45 @@ export const Affine2 = {
   fromScaleAngleTranslation: (scale: [number, number], angle: number, translation: [number, number]): Affine2 => ({ scale, angle, translation }),
 };
 
-/** The rotation that points -Z from `eye` at `target` with +Y toward `up`, as Bevy's Transform::looking_at. */
+/** The rotation that points -Z from `eye` at `target` with +Y toward `up`, as Bevy's Transform::looking_at computes it:
+ *  in f32, step by step as glam does (Dir3::new, cross, try_normalize, Quat::from_rotation_axes), so it is the same
+ *  quaternion to the bit, not one an ulp off (which a raymarch through the view's matrices shows). */
 function lookingAt(eye: Vec3, target: Vec3, up: Vec3): Quat {
-  const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-  const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-  // Bevy's fallbacks (look_to): a target at the eye looks down -Z, a zero up is +Y, and an up along the view takes glam's
-  // any_orthonormal_vector of up
-  const norm = (a: Vec3, or: () => Vec3): Vec3 => {
-    const n = Math.hypot(...a);
-    return n > 0 && Number.isFinite(n) ? [a[0] / n, a[1] / n, a[2] / n] : or();
+  const f = Math.fround;
+  const v = (a: Vec3): Vec3 => [f(a[0]), f(a[1]), f(a[2])];
+  const length = (a: Vec3) => f(Math.sqrt(f(f(f(a[0] * a[0]) + f(a[1] * a[1])) + f(a[2] * a[2]))));
+  const cross = (a: Vec3, b: Vec3): Vec3 => [f(f(a[1] * b[2]) - f(b[1] * a[2])), f(f(a[2] * b[0]) - f(b[2] * a[0])), f(f(a[0] * b[1]) - f(b[0] * a[1]))];
+  // Dir3::new: the vector over its length, or Bevy's fallback when it has none
+  const dir = (a: Vec3, or: Vec3): Vec3 => {
+    const n = length(a);
+    return n > 0 && Number.isFinite(n) ? [f(a[0] / n), f(a[1] / n), f(a[2] / n)] : or;
   };
-  const back = norm(sub(eye, target), () => [0, 0, 1]);
-  const up1 = norm(up, () => [0, 1, 0]);
-  const right = norm(cross(up1, back), () => {
+  const [e, t] = [v(eye), v(target)];
+  const d = dir([f(t[0] - e[0]), f(t[1] - e[1]), f(t[2] - e[2])], [0, 0, -1]);
+  const back: Vec3 = [-d[0], -d[1], -d[2]];
+  const up1 = dir(v(up), [0, 1, 0]);
+  const r0 = cross(up1, back);
+  const rcp = f(1 / length(r0));
+  // try_normalize, or glam's any_orthonormal_vector of up for an up along the view
+  const right: Vec3 = Number.isFinite(rcp) && rcp > 0 ? [f(r0[0] * rcp), f(r0[1] * rcp), f(r0[2] * rcp)] : (() => {
     const sign = up1[2] < 0 || Object.is(up1[2], -0) ? -1 : 1;
-    const a = -1 / (sign + up1[2]);
-    return [up1[0] * up1[1] * a, sign + up1[1] * up1[1] * a, -up1[1]];
-  });
-  const u = cross(back, right);
-  // the rotation matrix's columns are right, u, back; its quaternion (Shepperd's method)
-  const [m00, m10, m20, m01, m11, m21, m02, m12, m22] = [right[0], right[1], right[2], u[0], u[1], u[2], back[0], back[1], back[2]];
-  const t = m00 + m11 + m22;
-  if (t > 0) {
-    const s = Math.sqrt(t + 1) * 2;
-    return [(m21 - m12) / s, (m02 - m20) / s, (m10 - m01) / s, s / 4];
+    const a = f(-1 / f(sign + up1[2]));
+    return [f(f(up1[0] * up1[1]) * a), f(sign + f(f(up1[1] * up1[1]) * a)), -up1[1]];
+  })();
+  // Quat::from_rotation_axes(right, up, back), DirectXMath's XMQuaternionRotationMatrix as glam writes it
+  const [[m00, m01, m02], [m10, m11, m12], [m20, m21, m22]] = [right, cross(back, right), back];
+  const q = (sq: number, at: number, a: number, b: number, c: number): Quat => {
+    const inv = f(0.5 / f(Math.sqrt(sq)));
+    const out = [f(a * inv), f(b * inv), f(c * inv)];
+    out.splice(at, 0, f(sq * inv));
+    return out as Quat;
+  };
+  if (m22 <= 0) {
+    const dif10 = f(m11 - m00), omm22 = f(1 - m22);
+    return dif10 <= 0 ? q(f(omm22 - dif10), 0, f(m01 + m10), f(m02 + m20), f(m12 - m21)) : q(f(omm22 + dif10), 1, f(m01 + m10), f(m12 + m21), f(m20 - m02));
   }
-  if (m00 > m11 && m00 > m22) {
-    const s = Math.sqrt(1 + m00 - m11 - m22) * 2;
-    return [s / 4, (m01 + m10) / s, (m02 + m20) / s, (m21 - m12) / s];
-  }
-  if (m11 > m22) {
-    const s = Math.sqrt(1 + m11 - m00 - m22) * 2;
-    return [(m01 + m10) / s, s / 4, (m12 + m21) / s, (m02 - m20) / s];
-  }
-  const s = Math.sqrt(1 + m22 - m00 - m11) * 2;
-  return [(m02 + m20) / s, (m12 + m21) / s, s / 4, (m10 - m01) / s];
+  const sum10 = f(m11 + m00), opm22 = f(1 + m22);
+  return sum10 <= 0 ? q(f(opm22 - sum10), 2, f(m02 + m20), f(m12 + m21), f(m01 - m10)) : q(f(opm22 + sum10), 3, f(m12 - m21), f(m20 - m02), f(m01 - m10));
 }
 
 /** A Transform's value, as Bevy reflects it. */
@@ -263,10 +267,9 @@ export function Camera3d({ transform, projection = { Perspective: {} }, layers, 
   const q = transform?.rotation ?? Quat.IDENTITY;
   const f = Quat.mulVec3(q, [0, 0, -1]);
   const lookAt: Vec3 = [eye[0] + f[0], eye[1] + f[1], eye[2] + f[2]];
-  // `up` only for a camera that rolls: one that doesn't is placed as the old camera is (+Y up), and an `up` sends its
-  // row down the engine's roll path (matchmove.rs sync_view), which draws a moving camera elsewhere
-  const level = Math.abs(f[1]) < 1 - 1e-9 && Math.abs(qdot(q, lookingAt(eye, lookAt, [0, 1, 0]))) > 1 - 1e-9;
-  const look = { position: eye, lookAt, ...(level ? {} : { up: Quat.mulVec3(q, [0, 1, 0]) }), ...(layers ? { layers } : {}), ...(order ? { order } : {}), ...clear, ...(viewport ? { viewport } : {}) };
+  // its rotation as its Transform holds it, which the engine places it by (rolled or not), exactly; the look-at point
+  // is for what reads a camera by where it looks (its lens's focus, picking, sound)
+  const look = { position: eye, lookAt, rotation: q, ...(layers ? { layers } : {}), ...(order ? { order } : {}), ...clear, ...(viewport ? { viewport } : {}) };
   if ("Orthographic" in projection) {
     const o = projection.Orthographic;
     const height = o.scaling_mode?.FixedVertical.viewport_height;

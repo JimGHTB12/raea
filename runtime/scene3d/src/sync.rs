@@ -199,15 +199,21 @@ pub fn sync_meshes(
 /// once, and a row that moves (or moves back) writes every frame it changes. An entity with no entry always writes,
 /// so a render seeking straight to frame N places its camera.
 #[allow(clippy::type_complexity)]
-pub fn sync_camera(frame: Res<FrameRows>, edit: Option<Res<Edit>>, mut placed: Local<bevy::platform::collections::HashMap<Entity, (Vec3, Vec3)>>, mut q: Query<(Entity, &mut Transform, Option<&mut Projection>, Option<&mut AmbientLight>, Option<&mut bevy::post_process::dof::DepthOfField>, Option<&mut super::lens::Lens>, Option<&mut bevy::post_process::effect_stack::ChromaticAberration>, Option<&mut Camera>), (With<Camera3d>, Without<super::BareEntity>)>) {
+pub fn sync_camera(frame: Res<FrameRows>, edit: Option<Res<Edit>>, mut placed: Local<bevy::platform::collections::HashMap<Entity, (Vec3, Vec3, Option<Quat>)>>, mut q: Query<(Entity, &mut Transform, Option<&mut Projection>, Option<&mut AmbientLight>, Option<&mut bevy::post_process::dof::DepthOfField>, Option<&mut super::lens::Lens>, Option<&mut bevy::post_process::effect_stack::ChromaticAberration>, Option<&mut Camera>), (With<Camera3d>, Without<super::BareEntity>)>) {
     for (e, mut t, proj, amb, dof, lens, ab, cam) in &mut q {
         let Some(v) = frame.vals(e) else { continue };
         let v = &v;
         let pos = Vec3::new(num(v, "x", 0.0), num(v, "y", 2.0), num(v, "z", 9.0));
         let look = Vec3::new(num(v, "look_x", 0.0), num(v, "look_y", 1.0), num(v, "look_z", 0.0));
-        if (look - pos).length_squared() > 1e-12 && placed.get(&e) != Some(&(pos, look)) {
-            placed.insert(e, (pos, look));
-            let nt = Transform::from_translation(pos).looking_at(look, up_for(look - pos));
+        // a Camera3d's own rotation (rot_qx..qw), exactly as its Transform holds it: its look-at point rebuilt into a
+        // rotation in f32 is a millionth of a radian off, which a raymarch through the view's matrices shows
+        let rot = row_rotation(v);
+        if (rot.is_some() || (look - pos).length_squared() > 1e-12) && placed.get(&e) != Some(&(pos, look, rot)) {
+            placed.insert(e, (pos, look, rot));
+            let nt = match rot {
+                Some(r) => Transform::from_translation(pos).with_rotation(r),
+                None => Transform::from_translation(pos).looking_at(look, up_for(look - pos)),
+            };
             if *t != nt {
                 *t = nt;
             }
@@ -308,8 +314,12 @@ pub fn sync_lights(frame: Res<FrameRows>, mut commands: Commands, mut q: Query<(
         let v = &v;
         let pos = Vec3::new(num(v, "x", 0.0), num(v, "y", 0.0), num(v, "z", 0.0));
         let dir = Vec3::new(num(v, "dir_x", -0.5), num(v, "dir_y", -1.0), num(v, "dir_z", -0.4));
+        // a Bevy light's own rotation (rot_qx..qw), exactly as its Transform holds it, over its direction turned back
+        let rot = row_rotation(v);
         let nt = if p.is_some() {
             Transform::from_translation(pos)
+        } else if let Some(r) = rot {
+            Transform::from_translation(if d.is_some() { Vec3::ZERO } else { pos }).with_rotation(r)
         } else if s.is_some() || rect.is_some() {
             Transform::from_translation(pos).looking_to(dir, up_for(dir))
         } else {
@@ -457,4 +467,11 @@ pub fn sync_bones(
             }
         }
     }
+}
+
+/// A row's own rotation (rot_qx..qw: a Camera3d's or a Bevy light's Transform rotation, exact), normalized only between
+/// keyed frames, where its components were interpolated.
+fn row_rotation(v: &BTreeMap<String, V>) -> Option<Quat> {
+    let r = v.contains_key("rot_qw").then(|| Quat::from_xyzw(num(v, "rot_qx", 0.0), num(v, "rot_qy", 0.0), num(v, "rot_qz", 0.0), num(v, "rot_qw", 1.0)))?;
+    Some(if r.is_normalized() { r } else { r.normalize() })
 }

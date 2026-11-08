@@ -25,6 +25,9 @@ export interface DirectionalLightProps {
   position?: Vec3;
   /** where it shines towards (the origin by default) */
   target?: Vec3;
+  /** its rotation, a quaternion [x, y, z, w], as a Bevy light's Transform holds it: placed by it exactly over
+   *  `target` (raea/light sends it) */
+  rotation?: [number, number, number, number];
   intensity?: number;
   color?: string;
   /** shadows (on by default for a directional light) */
@@ -105,6 +108,9 @@ export function PointLight({ intensity = 1, color = "#ffffff", children, ...rest
 export interface SpotLightProps extends PointLightProps {
   /** where it points (the origin by default) */
   target?: Vec3;
+  /** its rotation, a quaternion [x, y, z, w], as a Bevy light's Transform holds it: placed by it exactly over
+   *  `target` (raea/light sends it) */
+  rotation?: [number, number, number, number];
   /** the cone's half-angle in radians (π/3 by default), up to π/2 */
   angle?: number;
   /** 0..1: how soft the cone's edge is */
@@ -124,6 +130,9 @@ export interface RectAreaLightProps {
   position?: Vec3;
   /** where its face looks (the origin by default) */
   target?: Vec3;
+  /** its rotation, a quaternion [x, y, z, w], as a Bevy light's Transform holds it: placed by it exactly over
+   *  `target` (raea/light sends it) */
+  rotation?: [number, number, number, number];
   /** its face's size in metres (1 x 1 by default) */
   width?: number;
   height?: number;
@@ -171,6 +180,9 @@ export interface PerspectiveCameraProps {
   focus?: number;
   /** which way is up for the camera ([0, 1, 0] by default): tilt it to roll the camera (a solved camera rolls) */
   up?: Vec3;
+  /** its rotation, a quaternion [x, y, z, w], which places it exactly (rolled or not) over `lookAt` and `up`, as a
+   *  Camera3d's Transform does; lookAt still says where it looks, for its focus */
+  rotation?: [number, number, number, number];
   /** the frame is a window on a larger view: the view's `width` x `height` (frame pixels; `fov` is its vertical field)
    * and the window's top-left `x`, `y` in it. A crop of footage that keeps its lens's centre (<Matchmove> in 9:16 from
    * 16:9 footage) */

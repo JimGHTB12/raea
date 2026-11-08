@@ -68,6 +68,13 @@ pub(crate) fn lights_rows(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
             for (k, name) in ["dir_x", "dir_y", "dir_z"].iter().enumerate() {
                 column(p, &mut row, &id, name, &pos.iter().zip(&target).map(|(a, b)| b[k] - a[k]).collect::<Vec<_>>());
             }
+            // a Bevy light's own rotation (`rotation`, its Transform's), exact, which the engine places it by over its
+            // direction: one rounded to 1e-6 and turned back into a rotation in f32 moves a sun's shadow cascades
+            if its.iter().all(|i| light_rotation(i).is_some()) {
+                for (k, name) in ["rot_qx", "rot_qy", "rot_qz", "rot_qw"].iter().enumerate() {
+                    exact(p, &mut row, &id, name, &its.iter().map(|i| light_rotation(i).map_or(0.0, |q| q[k])).collect::<Vec<_>>());
+                }
+            }
         }
         let first = &its[0].props;
         if let Some(c) = hex(first.get("color")).filter(|c| c != "#ffffff") {
@@ -384,5 +391,29 @@ pub(crate) fn texts_rows(tr: &Tracks, names: &[String], p: &mut Program) {
             pass_column(p, &mut row, &gid, &its, &names);
             p.spawns.push(("glyph".into(), vec![row]));
         }
+    }
+}
+
+/// A light's `rotation` quaternion, when it has one and sits in no turned or moved group (one in a group keeps its
+/// direction, which its group's transform doesn't turn either).
+pub(crate) fn light_rotation(i: &Item) -> Option<[f64; 4]> {
+    let q = i.props.get("rotation")?.as_array()?;
+    (q.len() == 4 && i.world == Mat4::IDENTITY).then(|| [0, 1, 2, 3].map(|k| q[k].as_f64().unwrap_or(0.0)))
+}
+
+#[cfg(test)]
+mod light_rotation_tests {
+    use super::*;
+
+    fn sun(props: serde_json::Value, world: Mat4) -> Item {
+        Item { kind: "directional", props: std::sync::Arc::new(props.as_object().unwrap().clone()), shape: None, material: None, world }
+    }
+
+    #[test]
+    fn a_light_keeps_its_quaternion_unless_a_group_moves_it() {
+        let q = [-0.42470818758010864, 0.33985114097595215, 0.17591990530490875, 0.8204732537269592];
+        assert_eq!(light_rotation(&sun(serde_json::json!({ "rotation": q }), Mat4::IDENTITY)), Some(q));
+        assert_eq!(light_rotation(&sun(serde_json::json!({ "rotation": q }), Mat4::from_translation(Vec3::X))), None);
+        assert_eq!(light_rotation(&sun(serde_json::json!({ "target": [0, 0, 0] }), Mat4::IDENTITY)), None);
     }
 }

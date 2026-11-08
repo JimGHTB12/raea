@@ -10,10 +10,12 @@ function refuseOld(owner: string, props: Record<string, unknown>, allowed: reado
   }
 }
 
-function forward(t: TransformValue | undefined): { position: Vec3; target: Vec3 } {
+function forward(t: TransformValue | undefined): { position: Vec3; target: Vec3; rotation: Quat } {
   const position: Vec3 = t?.translation ?? [0, 0, 0];
-  const f = Quat.mulVec3(t?.rotation ?? Quat.IDENTITY, [0, 0, -1]);
-  return { position, target: [position[0] + f[0], position[1] + f[1], position[2] + f[2]] };
+  const rotation = t?.rotation ?? Quat.IDENTITY;
+  const f = Quat.mulVec3(rotation, [0, 0, -1]);
+  // the rotation too, which the engine places the light by exactly (the target is for what reads where it shines)
+  return { position, target: [position[0] + f[0], position[1] + f[1], position[2] + f[2]], rotation };
 }
 
 /** The props every Bevy light shares beside its own fields. */

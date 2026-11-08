@@ -65,6 +65,11 @@ fn one(all: &[Vec<Item>], p: &mut Program, row: &mut BTreeMap<String, V>, k: usi
         }
         // which way is up (`up`; +Y by default): a camera that rolls, as a solved one does (raea-render's up_x/y/z, Matchmove)
         keyed_vec(p, row, id, &its, "up", &["up_x", "up_y", "up_z"], &[0.0, 1.0, 0.0]);
+        // a Camera3d's Transform rotation (`rotation`, a quaternion on every frame), exact, which the engine places it by over
+        // its look-at point
+        if its.iter().all(|c| c.props.get("rotation").and_then(Value::as_array).is_some_and(|q| q.len() == 4)) {
+            quat_columns(p, row, id, "rot", &its.iter().map(Some).collect::<Vec<_>>());
+        }
         // a window on a larger view (`view`: its full size and this frame's offset, in frame pixels): a crop of
         // footage keeps its lens's centre (raea-render's camera view_*, Matchmove's 9:16 from 16:9)
         if its.iter().any(|c| c.props.get("view").is_some_and(Value::is_object)) {

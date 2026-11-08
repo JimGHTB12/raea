@@ -51,9 +51,10 @@ describe("Quat and Transform", () => {
     const t = Transform.fromXyz(0, 2, 7).lookingAt([0, 0.5, 0]);
     const f = Quat.mulVec3(t.rotation, [0, 0, -1]);
     const want = [0, -1.5, -7].map((v) => v / Math.hypot(1.5, 7));
-    expect(close(f, want, 1e-9)).toBe(true);
+    // in f32, as glam computes it (glam.test.ts holds it to glam's own bits)
+    expect(close(f, want, 1e-6)).toBe(true);
     expect(Quat.mulVec3(t.rotation, [0, 1, 0])[1]).toBeGreaterThan(0.9);
-    expect(Math.hypot(...t.rotation)).toBeCloseTo(1, 12);
+    expect(Math.hypot(...t.rotation)).toBeCloseTo(1, 6);
     // Bevy's fallback, not a throw: a target at the eye looks down -Z (the identity)
     expect(Transform.fromXyz(0, 0, 0).lookingAt([0, 0, 0]).rotation.map((v) => v + 0)).toEqual([0, 0, 0, 1]);
   });
@@ -104,12 +105,12 @@ describe("Bevy's shapes draw the same args", () => {
 
 describe("Mesh3d, Camera3d and StandardMaterial", () => {
   test("Bevy's DepthOfField on a Camera3d: focal_distance is the camera's focus, its fields the old lens's", () => {
-    const cam = <PerspectiveCamera position={[0, 0, 0]} lookAt={[0, 0, -1]} fov={45} focus={7} />;
+    const cam = <PerspectiveCamera position={[0, 0, 0]} lookAt={[0, 0, -1]} rotation={[0, 0, 0, 1]} fov={45} focus={7} />;
     expect(html(<Camera3d><DepthOfField focal_distance={7} aperture_f_stops={2.8} mode="Gaussian" max_circle_of_confusion_diameter={32} /></Camera3d>)).toBe(
       html(<>{cam}<DepthOfField mode="gaussian" aperture={2.8} maxBlur={32} /></>),
     );
     // Bevy's defaults: focal_distance 10, f/1
-    expect(html(<Camera3d><DepthOfField /></Camera3d>)).toBe(html(<><PerspectiveCamera position={[0, 0, 0]} lookAt={[0, 0, -1]} fov={45} focus={10} /><DepthOfField aperture={1} /></>));
+    expect(html(<Camera3d><DepthOfField /></Camera3d>)).toBe(html(<><PerspectiveCamera position={[0, 0, 0]} lookAt={[0, 0, -1]} rotation={[0, 0, 0, 1]} fov={45} focus={10} /><DepthOfField aperture={1} /></>));
     expect(html(<Camera3d><DepthOfField aperture_f_stops={2} /></Camera3d>)).toContain(html(<DepthOfField aperture={2} />));
     expect(() => html(<DepthOfField focal_distance={3} />)).toThrow(/inside the Camera3d/);
     expect(() => html(<DepthOfField aperture={2} aperture_f_stops={2} />)).toThrow(/not both/);
@@ -143,14 +144,16 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
     const props = JSON.parse(cam.match(/data-props="([^"]*)"/)![1].replace(/&quot;/g, '"'));
     expect(props.fov).toBeCloseTo(45, 12);
     const dir = [props.lookAt[0] - 0, props.lookAt[1] - 2, props.lookAt[2] - 7];
-    expect(close(dir.map((v) => v / Math.hypot(...dir)), [0, -1.5, -7].map((v) => v / Math.hypot(1.5, 7)), 1e-9)).toBe(true);
-    expect(html(<Camera3d />)).toBe(html(<PerspectiveCamera position={[0, 0, 0]} lookAt={[0, 0, -1]} fov={45} />));
-    // no `up` for a camera that doesn't roll (one sends the row down the engine's roll path); a rolled one keeps it
-    expect(props.up).toBeUndefined();
+    expect(close(dir.map((v) => v / Math.hypot(...dir)), [0, -1.5, -7].map((v) => v / Math.hypot(1.5, 7)), 1e-6)).toBe(true);
+    expect(html(<Camera3d />)).toBe(html(<PerspectiveCamera position={[0, 0, 0]} lookAt={[0, 0, -1]} rotation={[0, 0, 0, 1]} fov={45} />));
+    // its rotation exactly as its Transform holds it, which the engine places it by (rolled or not), and no `up`
     const t = Transform.fromXyz(0, 2, 7).lookingAt([0, 0.5, 0]);
-    const rolled = html(<Camera3d transform={t.withRotation(Quat.mul(t.rotation, Quat.fromRotationZ(0.3)))} />);
-    const up = JSON.parse(rolled.match(/data-props="([^"]*)"/)![1].replace(/&quot;/g, '"')).up;
-    expect(up[0]).toBeCloseTo(-Math.sin(0.3), 9);
+    expect(props.rotation).toEqual(t.rotation.map((v) => v + 0)); // JSON has no -0
+    expect(props.up).toBeUndefined();
+    const turn = Quat.mul(t.rotation, Quat.fromRotationZ(0.3));
+    const rolled = JSON.parse(html(<Camera3d transform={t.withRotation(turn)} />).match(/data-props="([^"]*)"/)![1].replace(/&quot;/g, '"'));
+    expect(rolled.rotation).toEqual(turn.map((v) => v + 0));
+    expect(rolled.up).toBeUndefined();
   });
 
   test("StandardMaterial takes Bevy's fields and defaults; unlit is MeshBasicMaterial", () => {
@@ -327,11 +330,11 @@ describe("Bevy's lights, in Bevy's units", () => {
   test("SpotLight and DirectionalLight shine along their transform's -Z; the spot's angles are Bevy's", () => {
     const t = Transform.fromXyz(0, 4, 0).lookingAt([0, 0, 0], [0, 0, -1]);
     const spot = props(html(<SpotLight transform={t} outer_angle={0.6} inner_angle={0.3} />));
-    expect(close(spot.target, [0, 3, 0], 1e-9)).toBe(true);
+    expect(close(spot.target, [0, 3, 0], 1e-6)).toBe(true);
     expect(spot.angle).toBe(0.6);
     expect(spot.penumbra).toBeCloseTo(0.5, 12);
     const sun = props(html(<DirectionalLight transform={Transform.fromRotation(Quat.fromRotationX(-Math.PI / 2))} shadow_maps_enabled />));
-    expect(close(sun.target.map((v: number, i: number) => v - sun.position[i]), [0, -1, 0], 1e-9)).toBe(true);
+    expect(close(sun.target.map((v: number, i: number) => v - sun.position[i]), [0, -1, 0], 1e-6)).toBe(true);
     expect(sun.lux).toBe(10_000);
     expect(sun.castShadow).toBe(true);
   });
