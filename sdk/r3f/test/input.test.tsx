@@ -112,6 +112,21 @@ describe("the scene graph", () => {
     end(a.key);
   });
 
+  test("a mesh swapped into the same place with another shader program is another part; the same program keeps its", () => {
+    const vs = "void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }";
+    const shaded = (fs: string, uniforms: Record<string, THREE.IUniform>) => new THREE.Mesh(new THREE.PlaneGeometry(), new THREE.ShaderMaterial({ uniforms, vertexShader: vs, fragmentShader: fs }));
+    const a = shaded("uniform float k; void main() { gl_FragColor = vec4(k); }", { k: { value: 0.5 } });
+    const a2 = shaded("uniform float k; void main() { gl_FragColor = vec4(k); }", { k: { value: 0.9 } });
+    const b = shaded("uniform mat4 m; void main() { gl_FragColor = m[0]; }", { m: { value: new THREE.Matrix4() } });
+    const nameOf = (o: THREE.Mesh) => {
+      const r = partsOf(() => <primitive object={o} />);
+      end(r.key);
+      return flat(r.parts).find((p) => p.type === "Mesh")!.props.name;
+    };
+    expect(nameOf(a)).toBe(nameOf(a2));
+    expect(nameOf(a)).not.toBe(nameOf(b));
+  });
+
   test("Points are quads facing the camera with three's size, lines are gizmo lines, a sprite a quad", () => {
     const pts = new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0], 3));
     const line = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 1, 0)]);

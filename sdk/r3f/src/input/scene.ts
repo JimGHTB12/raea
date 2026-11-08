@@ -340,6 +340,17 @@ function spriteParts(s: THREE.Sprite, name: string, w: Walk): Part[] {
   return [{ type: "Mesh", props: { name, position: pos.toArray(), quaternion: q.toArray(), scale: [scale.x, scale.y, 1], castShadow: false, receiveShadow: false }, children: [{ type: "BufferMesh", props: { positions, uvs, normals: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], indices: [0, 1, 2, 0, 2, 3] } }, surface] }];
 }
 
+/** A mesh part with a three.js shader named for its program too: a part's shader and uniform layout are its first
+ * frame's, so a mesh swapped in at the same place in the tree (a <primitive object> given another mesh) with another
+ * program is another part, not the old one's layout fed the new one's uniforms. */
+function byProgram(p: Part): Part {
+  const sh = p.type === "Mesh" ? p.children?.find((c) => c.type === "ThreeShaderMaterial") : undefined;
+  if (!sh) return p;
+  const program = JSON.stringify(sh.props.glsl ?? sh.props.wgsl ?? null);
+  const h = [...program].reduce((a, c) => Math.imul(a ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0;
+  return { ...p, props: { ...p.props, name: `${p.props.name}~${h.toString(36)}` } };
+}
+
 /** one object and what hangs from it */
 function walk(o: THREE.Object3D, path: string, w: Walk): Part[] {
   if (!o.visible || !o.layers.test(w.camera.layers)) return [];
@@ -360,7 +371,7 @@ function walk(o: THREE.Object3D, path: string, w: Walk): Part[] {
   if (isTroikaText(o)) own = textParts(o, name);
   else if ((o as THREE.BatchedMesh).isBatchedMesh) own = batchedParts(o as THREE.BatchedMesh, name, w);
   else if ((o as THREE.InstancedMesh).isInstancedMesh) own = instancedParts(o as THREE.InstancedMesh, name, w, {});
-  else if ((o as THREE.Mesh).isMesh) own = meshParts(o as THREE.Mesh, name, w, {});
+  else if ((o as THREE.Mesh).isMesh) own = meshParts(o as THREE.Mesh, name, w, {}).map(byProgram);
   else if ((o as THREE.Points).isPoints) return [...pointParts(o as THREE.Points, name, w, at), ...kids.length ? [{ type: "Group", props: { name: `${name}/`, ...at }, children: kids }] : []];
   else if ((o as THREE.Line).isLine) return [...lineParts(o as THREE.Line, name), ...kids.length ? [{ type: "Group", props: { name: `${name}/`, ...at }, children: kids }] : []];
   else if ((o as THREE.Sprite).isSprite) return [...spriteParts(o as THREE.Sprite, name, w), ...kids.length ? [{ type: "Group", props: { name: `${name}/`, ...at }, children: kids }] : []];
