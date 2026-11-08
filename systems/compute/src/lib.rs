@@ -27,6 +27,7 @@ use raea_sys_material::shader_material::{ident, SLOTS};
 use raea_sys_shader::{accessors, register, Inputs};
 use serde_json::Value;
 
+mod slab;
 pub mod written;
 
 /// Buffers and images a compute may have.
@@ -151,15 +152,32 @@ pub fn install(app: &mut App) {
     let Some(render_app) = app.get_sub_app_mut(RenderApp) else { return };
     render_app.init_resource::<State>();
     render_app.add_systems(Render, queue.in_set(RenderSystems::Queue));
+    storage_slabs(render_app.world_mut());
     render_app.add_systems(RenderGraph, dispatch.before(camera_driver));
 }
 
+/// The mesh allocator's slabs storage buffers too, so a compute as written may bind one (as compute_mesh's plugin sets
+/// MeshAllocatorSettings::extra_buffer_usages); before the allocator is made from them, in MeshAllocatorPlugin's finish.
+fn storage_slabs(w: &mut World) {
+    use bevy::render::mesh::allocator::MeshAllocatorSettings;
+    match w.get_resource_mut::<MeshAllocatorSettings>() {
+        Some(mut s) => s.extra_buffer_usages |= BufferUsages::STORAGE,
+        None => w.insert_resource(MeshAllocatorSettings { extra_buffer_usages: BufferUsages::STORAGE, ..default() }),
+    }
+}
+
 /// Each compute as written's entry and bindings from its row's `entry` and `bind` this frame (keyed strings) (a bad one is
-/// logged, and it isn't dispatched until the columns change).
-fn follow(frame: Option<Res<raea_sys_frame::FrameRows>>, mut c: ResMut<Computes>) {
+/// logged, and it isn't dispatched until the columns change). Each mesh slab
+/// it binds follows the mesh its named part holds.
+fn follow(frame: Option<Res<raea_sys_frame::FrameRows>>, mut c: ResMut<Computes>, parts: Query<(&Name, &Mesh3d)>) {
     let Some(frame) = frame else { return };
     let cols = &frame.cols;
     for w in c.list.iter_mut().filter_map(|c| c.written.as_mut()) {
+        for b in w.buffers.values_mut() {
+            if let written::Bound::Mesh { name, id, .. } = b {
+                *id = parts.iter().find(|(n, _)| n.as_str() == name).map(|(_, m)| m.id());
+            }
+        }
         let Some(r) = cols.id.iter().position(|i| *i == w.id) else { continue };
         let s = |k: &str| raea_sys_frame::keyed(|c| cols.get(r, c), k).unwrap_or_default();
         if let Err(e) = written::follow(w, &s("entry"), &s("bind")) {
@@ -225,15 +243,39 @@ fn queue(c: Option<Res<Computes>>, mut s: ResMut<State>, cache: Res<PipelineCach
 }
 
 /// Each compute whose pipeline and images are ready, dispatched in order in one compute pass.
-fn dispatch(c: Option<Res<Computes>>, mut s: ResMut<State>, cache: Res<PipelineCache>, images: Res<RenderAssets<GpuImage>>, mut ctx: RenderContext) {
+fn dispatch(c: Option<Res<Computes>>, mut s: ResMut<State>, cache: Res<PipelineCache>, images: Res<RenderAssets<GpuImage>>, slabs: Slabs, mut ctx: RenderContext) {
     let Some(c) = c else { return };
     let device = ctx.render_device().clone();
     let mut groups = vec![];
-    for (n, k) in c.list.iter().enumerate() {
+    'computes: for (n, k) in c.list.iter().enumerate() {
         if let Some(w) = &k.written {
             let Some((layout, id)) = w.entry.as_ref().and_then(|e| s.written.get(&(k.shader, e.clone()))) else { continue };
             let (Some(pipeline), layout) = (cache.get_compute_pipeline(*id), cache.get_bind_group_layout(layout)) else { continue };
-            if let Some(group) = written::group(&device, &layout, w, &images) {
+            // its own buffers made once and kept; a mesh's slab once the allocator has placed it
+            let (mut bufs, mut ranges) = (std::collections::BTreeMap::new(), HashMap::new());
+            for (name, b) in &w.buffers {
+                let buf = match b {
+                    written::Bound::Own(bytes) => s.buffers.entry((n, k.shader, name.clone())).or_insert_with(|| storage(&device, bytes)).clone(),
+                    written::Bound::Mesh { id: Some(id), indices, .. } => {
+                        let Some((buf, r)) = slab::slab_of(&slabs.0, &slabs.1, *id, *indices) else { continue 'computes };
+                        ranges.insert(name.as_str(), r);
+                        buf
+                    }
+                    written::Bound::Mesh { id: None, .. } => continue 'computes,
+                };
+                bufs.insert(name.clone(), buf);
+            }
+            let uniforms = match &w.ranged {
+                Some(r) => match r.pack(&|b, end| ranges.get(b).map(|r| r[end as usize])) {
+                    Ok((u, _)) => u,
+                    Err(e) => {
+                        error!("Compute {}: {e}", w.id);
+                        continue;
+                    }
+                },
+                None => w.uniforms.clone(),
+            };
+            if let Some(group) = written::group(&device, &layout, w, &images, &bufs, &uniforms) {
                 groups.push((pipeline, group, k.workgroups));
             }
             continue;
@@ -243,7 +285,7 @@ fn dispatch(c: Option<Res<Computes>>, mut s: ResMut<State>, cache: Res<PipelineC
         let Some(views) = k.images.iter().map(|h| images.get(h.id())).collect::<Option<Vec<_>>>() else { continue };
         let layout = cache.get_bind_group_layout(layout);
         for (name, data) in &k.buffers {
-            s.buffers.entry((n, k.shader, name.clone())).or_insert_with(|| storage(&device, data));
+            s.buffers.entry((n, k.shader, name.clone())).or_insert_with(|| storage(&device, &data.iter().flat_map(|f| f.to_ne_bytes()).collect::<Vec<_>>()));
         }
         let mut bytes: Vec<u8> = Vec::with_capacity(UNIFORM_BYTES as usize);
         for v in std::iter::once(Vec4::new(c.time, 0.0, 0.0, 0.0)).chain(k.slots.iter().copied()) {
@@ -272,9 +314,11 @@ fn dispatch(c: Option<Res<Computes>>, mut s: ResMut<State>, cache: Res<PipelineC
     }
 }
 
-fn storage(device: &RenderDevice, data: &[f32]) -> Buffer {
-    let bytes: Vec<u8> = data.iter().flat_map(|f| f.to_ne_bytes()).collect();
-    device.create_buffer_with_data(&BufferInitDescriptor { label: Some("raea_compute_buffer"), contents: &bytes, usage: BufferUsages::STORAGE | BufferUsages::COPY_DST })
+/// The mesh allocator and the meshes on the GPU, for a compute that binds a mesh's slab.
+type Slabs<'w> = (Res<'w, bevy::render::mesh::allocator::MeshAllocator>, Res<'w, RenderAssets<bevy::render::mesh::RenderMesh>>);
+
+fn storage(device: &RenderDevice, bytes: &[u8]) -> Buffer {
+    device.create_buffer_with_data(&BufferInitDescriptor { label: Some("raea_compute_buffer"), contents: bytes, usage: BufferUsages::STORAGE | BufferUsages::COPY_DST })
 }
 
 #[cfg(test)]

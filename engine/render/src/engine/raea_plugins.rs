@@ -3,8 +3,7 @@
 //! its own: `app.add_plugins((DefaultPlugins, RaeaPlugins))`, or `RaeaPlugins.build().disable::<LookPlugin>()` as with
 //! Bevy's own groups. A plugin is the module's `install`, unchanged, so Engine::new and this group add the same things.
 //!
-//! RegisteredPlugins adds the Bevy ecosystem plugins this build registered (a project's package.json raea.bevy.plugins)
-//! and the frame clock they step by, as Engine::new's `plugins::install` does.
+//! RegisteredPlugins adds a project's Bevy plugins (package.json raea.bevy.plugins) and the clock they step by.
 //!
 //! Scene3dPlugin moves the 3D by the frame's rows (meshes, models, camera, lights, looks) each Update, as Engine::new
 //! does: Engine::new runs the same systems, scene3d_systems(), inside its frame's chain between its own marks.
@@ -70,6 +69,7 @@ raea_plugin! {
     ThreeShaderPlugin: raea_sys_three_shader::install, "three.js's shaders: a ShaderMaterial's GLSL (naga) and a node material's WGSL, with three's built-ins (raea-sys-three-shader).";
     FramePassPlugin: raea_sys_framepass::install, "Full-screen passes written in TypeScript (raea-sys-framepass).";
     ComputePlugin: raea_sys_compute::install, "Compute shaders written in TypeScript, run before the cameras draw (raea-sys-compute).";
+    PhaseItemPlugin: raea_sys_phase::install, "Your own draws in a camera's opaque phase, as Bevy's custom_phase_item queues one (raea-sys-phase).";
     LensPlugin: super::lens::install, "The camera's lens (Fisheye, LensDistortion), after tone mapping (lens.rs).";
     ParityPlugin: raea_sys_parity::install, "The parity probe: a frame's cost and World, written when RAEA_PARITY is set (raea-sys-parity, docs/control.feature FC0a).";
     MotionBlurPlugin: super::motion_blur::install, "Motion blur's frame counter pinned to the frame (motion_blur.rs).";

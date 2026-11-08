@@ -8,13 +8,14 @@ pub(crate) fn surface_shader_rows(all: &[Vec<Item>], p: &mut Program) {
 }
 
 /// the scene's <FramePass>es or <Compute>s (`kind` frame_pass or compute), from the first frame, in the order written:
-/// frame_pass0, frame_pass1, …; a compute as written's `entry` and `bind` keyed (strings that change frame by frame)
+/// frame_pass0, frame_pass1, …; a compute or pass as written's `entry`, `bind` and `uniforms` keyed (strings that change
+/// frame by frame)
 pub(crate) fn ordered_shader_rows(all: &[Vec<Item>], p: &mut Program, kind: &str) {
     let Some(f0) = all.first() else { return };
     let mut rows: Vec<_> = f0.iter().filter(|it| *it.kind == *kind).enumerate().map(|(i, it)| shader_row(format!("{kind}{i}"), it)).collect();
     for (i, row) in rows.iter_mut().enumerate() {
         let id = format!("{kind}{i}");
-        for prop in ["entry", "bind"].into_iter().filter(|k| f0.iter().filter(|it| *it.kind == *kind).nth(i).is_some_and(|it| it.props.contains_key(*k))) {
+        for prop in ["entry", "bind", "uniforms"].into_iter().filter(|k| f0.iter().filter(|it| *it.kind == *kind).nth(i).is_some_and(|it| it.props.contains_key(*k))) {
             let vals: Vec<String> = all.iter().map(|f| f.iter().filter(|it| *it.kind == *kind).nth(i).and_then(|it| it.props.get(prop)?.as_str()).unwrap_or("").to_string()).collect();
             keyed_strings(p, row, &id, prop, &vals);
         }

@@ -38,6 +38,7 @@ raea-sys-compose = { path = "../../systems/compose" }
 raea-sys-material = { path = "../../systems/material" }
 raea-sys-framepass = { path = "../../systems/framepass" }
 raea-sys-compute = { path = "../../systems/compute" }
+raea-sys-phase = { path = "../../systems/phase" }
 raea-sys-sampler = { path = "../../systems/sampler" }
 raea-sys-parity = { path = "../../systems/parity" }
 raea-sys-shader = { path = "../../systems/shader" }

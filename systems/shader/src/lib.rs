@@ -27,10 +27,13 @@ use std::hash::{Hash, Hasher};
 use raea_sys_material::shader_material::{defs, ident, uniform, Uniform, SLOTS, TEXTURES};
 
 mod ext_bind;
+pub mod bindings;
 mod layout;
 mod storage_layout;
 /// Uniforms packed in their declared types' WGSL layout (a compute's as written: raea-sys-compute written.rs).
 pub use layout::slots as uniform_slots;
+/// A storage buffer's words in its WGSL type's storage layout (a compute as written's own: raea-sys-compute slab.rs).
+pub use storage_layout::words as storage_words;
 pub mod own;
 pub mod own_live;
 pub mod ui;

@@ -81,7 +81,11 @@ fn pass_rows(world: &mut World, inserted: &[Tup]) -> Result<(), String> {
     let mut passes = Vec::new();
     for t in rows {
         let v = spec(t)?;
-        passes.push(raea_sys_framepass::build(world, &v, plugins::image).map_err(|e| format!("FramePass: {e}"))?);
+        let mut pass = raea_sys_framepass::build(world, &v, plugins::image).map_err(|e| format!("FramePass: {e}"))?;
+        if let Some(w) = pass.written.as_mut() {
+            w.id = t.id.clone();
+        }
+        passes.push(pass);
     }
     let cams: Vec<Entity> = world.query_filtered::<(Entity, &Camera), (With<Camera3d>, Without<BareEntity>)>().iter(world).filter(|(_, c)| c.order == 0).map(|(e, _)| e).collect();
     for c in cams {

@@ -178,6 +178,10 @@ pub struct SceneTarget {
 pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], dir: &Path) -> Result<(), String> {
     let vals = &t.vals;
     let g = |k: &str, d: f32| num(vals, k, d);
+    // its SDK name as Bevy's Name too: a BRP query, an observer, a saved world or a compute's mesh finds it by it
+    if let Some(V::S(n)) = vals.get("name") {
+        world.entity_mut(e).insert(Name::new(n.clone()));
+    }
     match t.kind.as_str() {
         // directional (as before), point or spot: scene3d
         "light" => scene3d::light(world, e, vals),
@@ -199,10 +203,6 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
         // a bare Bevy entity (<Entity>): placed, and given Bevy's own components by its component rows (plugins.rs)
         "entity" => {
             world.entity_mut(e).insert((transform_of(vals), Visibility::default(), BareEntity));
-            // its SDK name as Bevy's Name too, so a BRP query, an observer or a saved world finds it by it
-            if let Some(V::S(n)) = vals.get("name") {
-                world.entity_mut(e).insert(Name::new(n.clone()));
-            }
         }
         // text in the 3D world (<RichText>): its block laid out, then each glyph an entity under it (text3d.rs)
         "text" => text3d::spawn_text(world, e, vals)?,

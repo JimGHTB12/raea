@@ -7,7 +7,9 @@ publish = false
 description = "Full-screen passes written in TypeScript (docs/shaders.feature SH6): <FramePass>, a generic pass on the frame whose pipeline is specialized per shader, with the camera's depth and normal prepasses"
 
 [dependencies]
+raea-sys-frame = { path = "../frame" }
 raea-sys-material = { path = "../material" }
+raea-sys-sampler = { path = "../sampler" }
 raea-sys-shader = { path = "../shader" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
 serde_json = "1"

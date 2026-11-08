@@ -1,5 +1,5 @@
 //! A compute as written (docs/control.feature FC2d): a shader file compiled as it is, its `@group(0)` bindings its
-//! own (storage textures and uniforms, as Bevy's compute_shader_game_of_life declares them), the entry point and which
+//! own (storage textures and uniforms, as Bevy's compute_shader_game_of_life declares them, and storage buffers: slab.rs), the entry point and which
 //! image each storage texture binds given frame by frame (a <Compute file>'s `entry` and `bind`), as an example's
 //! render-graph node picks a pipeline and a bind group each frame.
 
@@ -7,11 +7,14 @@ use std::collections::BTreeMap;
 
 use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssets;
-use bevy::render::render_resource::binding_types::{texture_storage_2d, uniform_buffer_sized};
+use bevy::render::render_resource::binding_types::{storage_buffer_sized, texture_storage_2d, uniform_buffer_sized};
 use bevy::render::render_resource::*;
 use bevy::render::renderer::RenderDevice;
 use bevy::render::texture::GpuImage;
 use serde_json::Value;
+
+pub use crate::slab::{Bound, Ranged};
+use crate::slab::bound;
 
 /// One `@group(0) @binding(N) var...` of the source.
 #[derive(Clone, Debug, PartialEq)]
@@ -20,6 +23,8 @@ pub enum Decl {
     Storage { binding: u32, name: String, format: TextureFormat, access: StorageTextureAccess },
     /// `var<uniform> NAME: TYPE`
     Uniform { binding: u32, name: String, ty: String },
+    /// `var<storage(, read | read_write)> NAME: TYPE`
+    Buffer { binding: u32, name: String, ty: String, read_only: bool },
 }
 
 /// A compute as written: its declarations, its images by key, its uniforms' bytes by name, and this frame's entry
@@ -38,6 +43,9 @@ pub struct Written {
     pub seen: (String, String),
     /// the source's `@compute` entry points
     pub entries: Vec<String>,
+    /// each storage buffer's binding, by its name
+    pub buffers: BTreeMap<String, Bound>,
+    pub ranged: Option<Ranged>,
 }
 
 fn format(f: &str) -> Option<TextureFormat> {
@@ -55,22 +63,11 @@ fn format(f: &str) -> Option<TextureFormat> {
 /// The source's `@group(0)` declarations, in order; a binding of another kind is refused.
 pub fn decls(src: &str) -> Result<Vec<Decl>, String> {
     let mut out = Vec::new();
-    for (i, _) in src.match_indices("@binding(") {
-        let line = &src[src[..i].rfind('\n').map_or(0, |n| n + 1)..i];
-        if line.contains("//") || !line.contains("@group(0)") {
-            continue;
-        }
-        let stmt = &src[i..i + src[i..].find(';').ok_or("a @binding declaration has no ';'")?];
-        let binding: u32 = stmt["@binding(".len()..].split(')').next().and_then(|n| n.trim().parse().ok()).ok_or_else(|| format!("a binding number: {stmt}"))?;
-        let decl = stmt.split_once("var").map(|(_, d)| d.trim()).ok_or_else(|| format!("a compute's binding is a var: {stmt}"))?;
-        let (space, decl) = match decl.strip_prefix('<') {
-            Some(r) => r.split_once('>').map(|(s, d)| (s.trim(), d.trim())).ok_or_else(|| format!("var<...>: {stmt}"))?,
-            None => ("", decl),
-        };
-        let (name, ty) = decl.split_once(':').ok_or_else(|| format!("var NAME: TYPE: {stmt}"))?;
-        let (name, ty) = (name.trim().to_string(), ty.trim().to_string());
+    for raea_sys_shader::bindings::Binding { binding, space, name, ty } in raea_sys_shader::bindings::group0(src)? {
+        let space = space.as_str();
         out.push(match (space, ty.strip_prefix("texture_storage_2d<").and_then(|t| t.strip_suffix('>'))) {
             ("uniform", _) => Decl::Uniform { binding, name, ty },
+            (s, _) if s.split(',').next().map(str::trim) == Some("storage") => Decl::Buffer { binding, name, ty, read_only: !s.contains("read_write") },
             ("", Some(args)) => {
                 let (f, a) = args.split_once(',').map(|(f, a)| (f.trim(), a.trim())).ok_or_else(|| format!("{name}: texture_storage_2d<FORMAT, ACCESS>"))?;
                 let format = format(f).ok_or_else(|| format!("{name}: storage format {f} (rgba32float, rgba16float, rgba8unorm, r32float, r32uint, rgba32uint)"))?;
@@ -82,7 +79,7 @@ pub fn decls(src: &str) -> Result<Vec<Decl>, String> {
                 };
                 Decl::Storage { binding, name, format, access }
             }
-            _ => return Err(format!("{name}: a compute as written binds texture_storage_2d and var<uniform> (the rest are FC2d's to come), got var<{space}> {ty}")),
+            _ => return Err(format!("{name}: a compute as written binds texture_storage_2d, var<uniform> and var<storage>, got var<{space}> {ty}")),
         });
     }
     Ok(out)
@@ -181,13 +178,16 @@ pub fn build(world: &mut World, o: &serde_json::Map<String, Value>, id: &str, im
         }
         images.insert(k.clone(), h);
     }
-    let declared: Vec<(String, String)> = decls.iter().filter_map(|d| if let Decl::Uniform { name, ty, .. } = d { Some((name.clone(), ty.clone())) } else { None }).collect();
+    let buffers = bound(&src, &defs, &decls, o.get("buffers")).map_err(|e| format!("{path}: {e}"))?;
+    let declared = raea_sys_shader::bindings::uniforms(&src)?;
     let given = o.get("uniforms").and_then(Value::as_object).cloned().unwrap_or_default();
-    let slots = raea_sys_shader::uniform_slots(&src, &declared, &given, &defs).map_err(|e| format!("{path}: {e}"))?;
-    let uniforms = declared.iter().zip(slots).map(|((n, _), s)| (n.clone(), s.iter().flat_map(|v| v.to_array()).flat_map(f32::to_ne_bytes).collect())).collect();
+    let ranged = Ranged::new(&src, &defs, declared, given);
+    // packed with each slab range 0, to check them; a run's own ranges are packed frame by frame (lib.rs dispatch)
+    let (uniforms, has_ranges) = ranged.pack(&|b, _| matches!(buffers.get(b), Some(Bound::Mesh { .. })).then_some(0)).map_err(|e| format!("{path}: {e}"))?;
+    let ranged = has_ranges.then_some(ranged);
     let entries = entries(&src);
     let shader = raea_sys_shader::register(world, src, &defs, "raea compute as written", "raea_sys_compute");
-    Ok((shader, Written { decls, images, uniforms, entry: None, bind: BTreeMap::new(), id: id.to_string(), seen: Default::default(), entries }))
+    Ok((shader, Written { decls, images, uniforms, entry: None, bind: BTreeMap::new(), id: id.to_string(), seen: Default::default(), entries, buffers, ranged }))
 }
 
 /// The bind group layout its declarations make, in the compute stage.
@@ -195,24 +195,28 @@ pub fn layout(decls: &[Decl]) -> Vec<BindGroupLayoutEntry> {
     decls.iter().map(|d| match d {
         Decl::Storage { binding, format, access, .. } => texture_storage_2d(*format, *access).build(*binding, ShaderStages::COMPUTE),
         Decl::Uniform { binding, .. } => uniform_buffer_sized(false, None).build(*binding, ShaderStages::COMPUTE),
+        Decl::Buffer { binding, read_only, .. } => storage_buffer_sized(*read_only, None).build(*binding, ShaderStages::COMPUTE),
     }).collect()
 }
 
-/// This frame's bind group: each storage texture's bound image, each uniform's bytes (None while an image isn't on
-/// the GPU yet).
-pub fn group(device: &RenderDevice, layout: &BindGroupLayout, w: &Written, images: &RenderAssets<GpuImage>) -> Option<BindGroup> {
-    let buffers: Vec<(u32, Buffer)> = w.decls.iter().filter_map(|d| match d {
-        Decl::Uniform { binding, name, .. } => Some((*binding, device.create_buffer_with_data(&BufferInitDescriptor { label: Some("raea_compute_written"), contents: w.uniforms.get(name)?, usage: BufferUsages::UNIFORM }))),
-        _ => None,
-    }).collect();
+/// This frame's bind group: each storage texture's bound image, each uniform's bytes (`uniforms`: its own, or packed
+/// with this frame's slab ranges), each storage buffer's buffer (None while an image or a buffer isn't on the GPU yet).
+pub fn group(device: &RenderDevice, layout: &BindGroupLayout, w: &Written, images: &RenderAssets<GpuImage>, bufs: &BTreeMap<String, Buffer>, uniforms: &BTreeMap<String, Vec<u8>>) -> Option<BindGroup> {
+    let mut buffers: Vec<(u32, Buffer)> = Vec::new();
+    for d in &w.decls {
+        match d {
+            Decl::Uniform { binding, name, .. } => buffers.push((*binding, device.create_buffer_with_data(&BufferInitDescriptor { label: Some("raea_compute_written"), contents: uniforms.get(name)?, usage: BufferUsages::UNIFORM }))),
+            Decl::Buffer { binding, name, .. } => buffers.push((*binding, bufs.get(name)?.clone())),
+            Decl::Storage { .. } => {}
+        }
+    }
     let mut views = Vec::new();
     for d in &w.decls {
         if let Decl::Storage { binding, name, .. } = d {
             views.push((*binding, &images.get(w.images.get(w.bind.get(name)?)?.id())?.texture_view));
         }
     }
-    let mut entries: Vec<BindGroupEntry> = buffers.iter().map(|(b, buf)| BindGroupEntry { binding: *b, resource: buf.as_entire_binding() }).collect();
-    entries.extend(views.into_iter().map(|(b, v)| BindGroupEntry { binding: b, resource: BindingResource::TextureView(v) }));
+    let entries = raea_sys_shader::bindings::entries(&buffers, views);
     Some(device.create_bind_group("raea_compute_written", layout, &entries))
 }
 
@@ -227,8 +231,9 @@ mod tests {
         assert_eq!(d.len(), 3);
         assert_eq!(d[0], Decl::Storage { binding: 0, name: "input".into(), format: TextureFormat::Rgba32Float, access: StorageTextureAccess::ReadOnly });
         assert_eq!(d[2], Decl::Uniform { binding: 2, name: "config".into(), ty: "Cfg".into() });
-        assert!(decls("@group(0) @binding(0) var<storage, read> b: array<f32>;").unwrap_err().contains("FC2d"));
-        let mut w = Written { decls: d, images: [("a".to_string(), Handle::default()), ("b".to_string(), Handle::default())].into(), uniforms: BTreeMap::new(), entry: None, bind: BTreeMap::new(), id: "compute0".into(), seen: Default::default(), entries: vec!["init".into(), "update".into()] };
+        assert_eq!(decls("@group(0) @binding(1) var<storage, read_write> b: array<f32>;").unwrap()[0], Decl::Buffer { binding: 1, name: "b".into(), ty: "array<f32>".into(), read_only: false });
+        assert!(decls("@group(0) @binding(0) var<workgroup> b: f32;").unwrap_err().contains("var<storage>"));
+        let mut w = Written { decls: d, images: [("a".to_string(), Handle::default()), ("b".to_string(), Handle::default())].into(), uniforms: BTreeMap::new(), entry: None, bind: BTreeMap::new(), id: "compute0".into(), seen: Default::default(), entries: vec!["init".into(), "update".into()], buffers: BTreeMap::new(), ranged: None };
         assert_eq!(entries("@compute @workgroup_size(8, 8, 1)\nfn init(@builtin(x) i: u32) {}\n@compute @workgroup_size(1)\nfn update_2() {}"), ["init", "update_2"]);
         assert!(check(&mut w, &["init".into(), "".into()], &[r#"{"input": "a"}"#.into()]).is_ok());
         assert!(check(&mut w, &["main".into()], &[]).unwrap_err().contains("entry main"));

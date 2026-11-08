@@ -203,7 +203,8 @@ export const Capsule3d = /* @__PURE__ */ geometry<Capsule3dProps>("Capsule", [0.
 export interface BufferMeshProps {
   /** x, y, z of each vertex */
   positions: number[];
-  /** three vertex indices a triangle (counter-clockwise seen from its front); without them each three positions are one */
+  /** three vertex indices a triangle (counter-clockwise seen from its front); without them each three positions are one.
+   * With normals too it is Bevy's indexed Mesh, its index buffer kept, as a compute that writes a mesh expects */
   indices?: number[];
   /** x, y, z of each vertex's normal (without them each face is flat, facing its front) */
   normals?: number[];
@@ -249,7 +250,7 @@ function writeBufferShape(p: BufferMeshProps): string {
     const hex = c.every((x) => typeof x === "string" && /^#[0-9a-fA-F]{6}$/.test(x as string));
     if (hex ? c.length !== n : !(c.every((x) => typeof x === "number" && Number.isFinite(x)) && c.length === n * 4)) throw new RangeError(`BufferMesh: colors is r, g, b, a for each of the ${n} vertices, or one "#rrggbb" each`);
   }
-  if (p.indices && (p.indices.length % 3 !== 0 || p.indices.some((i) => !Number.isInteger(i) || i < 0 || i >= n))) throw new RangeError(`BufferMesh: indices are three a triangle, each a vertex 0..${n - 1}`);
+  if (p.indices && ((p.normals === undefined && p.indices.length % 3 !== 0) || p.indices.some((i) => !Number.isInteger(i) || i < 0 || i >= n))) throw new RangeError(`BufferMesh: indices are three a triangle (any number with normals), each a vertex 0..${n - 1}`);
   for (const [k, a] of Object.entries(p.attributes ?? {})) {
     if (!(a && Number.isInteger(a.size) && a.size >= 1 && a.size <= 4 && Array.isArray(a.values) && a.values.length === n * a.size)) throw new RangeError(`BufferMesh: attribute ${k} is {size: 1 to 4, values: size numbers for each of the ${n} vertices}`);
   }
@@ -257,7 +258,8 @@ function writeBufferShape(p: BufferMeshProps): string {
 }
 
 /** A mesh from its own vertex buffers, as the geometry of a <Mesh> (Bevy's Mesh built from attributes): a terrain from
- * a height field, a procedural shape, a ribbon, an imported point list. Drawn as flat triangles.
+ * a height field, a procedural shape, a ribbon, an imported point list. Drawn as flat triangles, or with indices and
+ * normals as Bevy's indexed Mesh.
  * @bevy bevy_mesh::mesh::Mesh */
 export function BufferMesh(props: BufferMeshProps) {
   bufferShape(props);

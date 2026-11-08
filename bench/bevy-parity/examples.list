@@ -138,3 +138,6 @@ shader/shader_prepass
 shader/shader_material_bindless
 shader/shader_material_2d_bindless
 shader/pipeline_constants
+shader_advanced/compute_mesh
+shader_advanced/custom_phase_item
+shader_advanced/custom_post_processing

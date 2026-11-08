@@ -14481,6 +14481,7 @@ dependencies = [
  "raea-sys-meshseq",
  "raea-sys-page",
  "raea-sys-parity",
+ "raea-sys-phase",
  "raea-sys-post",
  "raea-sys-procmat",
  "raea-sys-rt",
@@ -15232,7 +15233,9 @@ name = "raea-sys-framepass"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "raea-sys-frame",
  "raea-sys-material",
+ "raea-sys-sampler",
  "raea-sys-shader",
  "serde_json",
 ]
@@ -15445,6 +15448,15 @@ dependencies = [
  "raea-sys-vision",
  "rten",
  "rten-tensor",
+]
+
+[[package]]
+name = "raea-sys-phase"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bytemuck",
+ "raea-sys-shader",
 ]
 
 [[package]]

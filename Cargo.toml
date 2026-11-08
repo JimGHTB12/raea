@@ -23,6 +23,7 @@ members = [
     "systems/animate",
     "systems/framepass",
     "systems/compute",
+    "systems/phase",
     "systems/sampler",
     "systems/parity",
     "systems/shader",

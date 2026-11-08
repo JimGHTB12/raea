@@ -236,40 +236,6 @@ export function SurfaceShader(props: SurfaceShaderSpec) {
   return node3d("SurfaceShader", { shader: surfaceShader("SurfaceShader", props) });
 }
 
-/** A shader over the whole frame (raea-sys-framepass, docs/shaders.feature SH6). Its source defines
- *   fn shade(in: FullscreenVertexOutput) -> vec4<f32>
- * (or its own @fragment) and reads frame(uv), u_NAME(), tex_NAME / samp_NAME, and with `prepass` depth(uv) (metres
- * from the camera, 1e30 where nothing was drawn) and normal(uv) (world space). */
-export interface FramePassProps {
-  /** the source in WESL (a superset of WGSL) */
-  wesl?: string;
-  /** the same in plain WGSL */
-  wgsl?: string;
-  /** up to 16, as a surface shader's */
-  uniforms?: Record<string, number | number[] | string>;
-  /** up to 4, as a surface shader's, each read with its own sampler */
-  textures?: Record<string, string | Record<string, unknown>>;
-  /** shader defs, as a surface shader's */
-  defs?: ShaderDefs;
-  /** "after-tonemap" (display colours; the default) or "before-tonemap" (the HDR frame, after bloom) */
-  at?: "before-tonemap" | "after-tonemap";
-  /** the camera's depth and normal prepasses, for depth(uv) and normal(uv) (turns its multisampling off) */
-  prepass?: boolean | { depth?: boolean; normal?: boolean };
-}
-
-const PASS_HOOK = /(^|[^A-Za-z0-9_])fn\s+shade\s*\(|@fragment/;
-
-/** A full-screen pass over the scene camera's frame, beside the camera; several run in the order written. With a
- * frame <Look> they run on its cells, before the look's composite.
- * @bevy raea_sys_framepass::FramePasses */
-export function FramePass(props: FramePassProps) {
-  const { at, prepass, ...sh } = props;
-  if (at !== undefined && at !== "before-tonemap" && at !== "after-tonemap") throw new TypeError(`FramePass: at is "before-tonemap" or "after-tonemap", got ${JSON.stringify(at)}`);
-  if (prepass !== undefined && typeof prepass !== "boolean" && (typeof prepass !== "object" || prepass === null || Object.keys(prepass).some((k) => k !== "depth" && k !== "normal"))) throw new TypeError("FramePass: prepass is true or { depth, normal }");
-  const spec = surfaceShader("FramePass", sh, PASS_HOOK, "fn shade(in: FullscreenVertexOutput) -> vec4<f32>, or its own @fragment");
-  return node3d("FramePass", { shader: { ...spec, ...(at ? { at } : {}), ...(prepass !== undefined ? { prepass } : {}) } });
-}
-
 export function colours<T extends Record<string, unknown>>(owner: string, props: T, keys: string[]): T {
   const out: Record<string, unknown> = { ...props };
   for (const k of keys) if (out[k] !== undefined) out[k] = toHex(owner, k, out[k]);

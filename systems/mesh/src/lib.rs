@@ -3,11 +3,20 @@
 
 use bevy::prelude::*;
 
+mod indexed;
+pub use indexed::buffer_indexed;
+
 /// A <BufferMesh>'s vertex colours (`colors`: r, g, b, a in linear light for each vertex, or "#rrggbb" sRGB each),
 /// laid out per triangle corner as buffer_tris lays its positions; None without them. StandardMaterial multiplies its
 /// base colour by them (Bevy's VERTEX_COLORS).
 pub fn buffer_colors(json: &str) -> Result<Option<Vec<[f32; 4]>>, String> {
     let v: serde_json::Value = serde_json::from_str(json).map_err(|e| format!("a buffer mesh isn't JSON: {e}"))?;
+    let n = v.get("positions").and_then(|p| p.as_array()).map(|p| p.len() / 3).unwrap_or(0);
+    Ok(vertex_colors(&v)?.map(|per| buffer_corners(&v, n).iter().map(|&i| per[i.min(n.saturating_sub(1))]).collect()))
+}
+
+/// A buffer mesh's colours, one for each vertex (None without them).
+fn vertex_colors(v: &serde_json::Value) -> Result<Option<Vec<[f32; 4]>>, String> {
     let Some(c) = v.get("colors").filter(|c| !c.is_null()) else { return Ok(None) };
     let a = c.as_array().ok_or("a buffer mesh's colors: an array")?;
     let n = v.get("positions").and_then(|p| p.as_array()).map(|p| p.len() / 3).unwrap_or(0);
@@ -26,8 +35,7 @@ pub fn buffer_colors(json: &str) -> Result<Option<Vec<[f32; 4]>>, String> {
     if per.len() != n {
         return Err(format!("a buffer mesh's colors: one for each of its {n} vertices, got {}", per.len()));
     }
-    let idx = buffer_corners(&v, n);
-    Ok(Some(idx.iter().map(|&i| per[i.min(n.saturating_sub(1))]).collect()))
+    Ok(Some(per))
 }
 
 /// One of Bevy's primitive shapes as Bevy's mesher makes it, its reflected fields given over its default: {primitive:
@@ -279,6 +287,12 @@ pub fn shape_mesh(id: &str, expr: &str, uvs: bool, tangents: bool) -> Result<Mes
         // a plane alone: Bevy's one face, facing its normal (a box of no depth has two)
         .or_else(|| raea_core_shape::plane_of(expr).map(|(n, [w, h])| Ok(Mesh::from(Plane3d::new(Vec3::from(n), Vec2::new(w / 2.0, h / 2.0))))));
     if let Some(mut m) = ball.transpose()? {
+        if tangents {
+            m.generate_tangents().map_err(|e| format!("mesh {id}: normalMap: its tangents: {e}"))?;
+        }
+        return Ok(m);
+    }
+    if let Some(mut m) = expr.strip_prefix("buffer:").map(|b| indexed::buffer_indexed(b, uvs, vertex_colors)).transpose().map_err(|e| format!("mesh {id}: {e}"))?.flatten() {
         if tangents {
             m.generate_tangents().map_err(|e| format!("mesh {id}: normalMap: its tangents: {e}"))?;
         }

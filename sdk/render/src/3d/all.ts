@@ -9,6 +9,8 @@ export * from "./post";
 export * from "./look";
 export * from "./bevy";
 export * from "./compute";
+export * from "./framepass";
+export * from "./phase";
 export * from "./text";
 export * from "./shapes";
 export * from "./sprite";

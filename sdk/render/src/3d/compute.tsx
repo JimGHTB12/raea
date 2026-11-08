@@ -1,6 +1,6 @@
 // <Compute>: a compute shader written here, run once a frame before the cameras draw (docs/shaders.feature SH10).
 import { node3d, shaderDefs, type ShaderDefs } from "./all";
-import { assetPath, samplerSpec, type SamplerSpec } from "./materials";
+import { assetPath, samplerSpec, type SamplerSpec, type StorageValue } from "./materials";
 
 /** A compute shader (raea-sys-compute). Its source has one `@compute` entry point and reads `time()` (seconds),
  * `u_NAME()` for each uniform, each buffer as `NAME: array<f32>` (read and written) and each image as
@@ -20,10 +20,12 @@ export interface ComputeProps {
   wgsl?: string;
   /** how many workgroups a frame dispatches: [x], [x, y] or [x, y, z] */
   workgroups: number[];
-  /** up to 16, as a surface shader's */
-  uniforms?: Record<string, number | number[] | string | Record<string, number | number[] | string>>;
-  /** up to 4, the compute's own, kept from frame to frame: { size } (that many f32s, zeroed) or its first contents */
-  buffers?: Record<string, { size: number } | number[]>;
+  /** up to 16, as a surface shader's; a file's struct field may be { start: NAME } or { end: NAME }: the range of the
+   * mesh buffer NAME binds in its slab, in its array's elements (compute_mesh's `range.start * 8`) */
+  uniforms?: Record<string, number | number[] | string | Record<string, number | number[] | string | SlabRange>>;
+  /** up to 4, the compute's own, kept from frame to frame: { size } (that many f32s, zeroed) or its first contents.
+   * A file's: each `var<storage>` it declares, its first contents in its type's layout or a mesh's slab */
+  buffers?: Record<string, { size: number } | number[] | StorageValue | MeshSlab>;
   /** up to 4 "render:NAME" (or "render:NAME:WxH") images it writes, which any shader's texture reads by that name (a
    * file's may be { src, sampler }: the sampler it is drawn with) */
   images?: Record<string, string | { src: string; sampler?: SamplerSpec }>;
@@ -31,15 +33,28 @@ export interface ComputeProps {
   defs?: ShaderDefs;
 }
 
+/** A mesh's vertex or index buffer in Bevy's MeshAllocator, bound as a file's storage buffer (array<f32 | u32 | i32>)
+ * for its compute to write (shader_advanced/compute_mesh): the mesh the part named `mesh` holds, a <BufferMesh> with
+ * indices and normals (position, normal and uv interleaved, 8 floats a vertex).
+ * @bevy bevy_render::mesh::allocator::MeshBufferSlice */
+export interface MeshSlab { mesh: string; slab: "vertices" | "indices" }
+type SlabRange = { start: string } | { end: string };
+
+const storageValue = (x: unknown): boolean => Number.isFinite(x) || (Array.isArray(x) && x.every(storageValue)) || (typeof x === "object" && x !== null && Object.values(x).every(storageValue));
+
 function checkWorkgroups(workgroups: number[]) {
   if (!Array.isArray(workgroups) || workgroups.length < 1 || workgroups.length > 3 || !workgroups.every((n) => Number.isInteger(n) && n >= 1 && n <= 65535)) throw new TypeError(`Compute: workgroups are [x, y, z], each 1 to 65535, got ${JSON.stringify(workgroups)}`);
 }
 
 /** A compute as written (raea-sys-compute written.rs): its file, images by key, and this frame's entry and bind. */
 function written(props: ComputeProps) {
-  const { file, entry = null, bind = {}, workgroups, uniforms = {}, images = {}, defs } = props;
+  const { file, entry = null, bind = {}, workgroups, uniforms = {}, images = {}, buffers = {}, defs } = props;
   if (typeof file !== "string" || !file) throw new TypeError(`Compute: file is a shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(file)}`);
-  if (props.wesl !== undefined || props.wgsl !== undefined || props.buffers !== undefined) throw new TypeError("Compute: a file is its own source and bindings: no wesl, wgsl or buffers beside it");
+  if (props.wesl !== undefined || props.wgsl !== undefined) throw new TypeError("Compute: a file is its own source: no wesl or wgsl beside it");
+  for (const [k, b] of Object.entries(buffers)) {
+    const slab = typeof b === "object" && b !== null && "mesh" in b;
+    if (slab ? typeof b.mesh !== "string" || !["vertices", "indices"].includes((b as MeshSlab).slab) : !storageValue(b)) throw new TypeError(`Compute: buffer ${k} is its first contents (numbers, lists, { field: value }) or { mesh, slab: "vertices" | "indices" }, got ${JSON.stringify(b)}`);
+  }
   checkWorkgroups(workgroups);
   for (const [k, im] of Object.entries(images)) {
     const src = typeof im === "object" && im !== null ? im.src : im;
@@ -48,7 +63,7 @@ function written(props: ComputeProps) {
   }
   if (entry !== null && (typeof entry !== "string" || !IDENT.test(entry))) throw new TypeError(`Compute: entry is an entry point's name or null, got ${JSON.stringify(entry)}`);
   for (const [k, key] of Object.entries(bind)) if (typeof key !== "string" || !(key in images)) throw new TypeError(`Compute: bind ${k} is one of its images' keys (${Object.keys(images).join(", ")}), got ${JSON.stringify(key)}`);
-  const shader = { file: assetPath(file), workgroups, images, uniforms, ...(defs !== undefined ? { defs: shaderDefs("Compute", defs) } : {}) };
+  const shader = { file: assetPath(file), workgroups, images, uniforms, buffers,...(defs !== undefined ? { defs: shaderDefs("Compute", defs) } : {}) };
   return node3d("Compute", { shader, entry: entry ?? "", bind: JSON.stringify(bind) });
 }
 
@@ -68,7 +83,7 @@ export function Compute(props: ComputeProps) {
   if (bs.length > 4) throw new RangeError(`Compute: at most 4 buffers, got ${bs.length}`);
   for (const [k, b] of bs) {
     if (!IDENT.test(k)) throw new TypeError(`Compute: buffer ${JSON.stringify(k)} isn't a WGSL name`);
-    const ok = Array.isArray(b) ? b.length > 0 && b.every(Number.isFinite) : typeof b === "object" && b !== null && Number.isInteger(b.size) && b.size >= 1;
+    const ok = Array.isArray(b) ? b.length > 0 && b.every(Number.isFinite) : typeof b === "object" && b !== null && Number.isInteger((b as { size?: number }).size) && (b as { size: number }).size >= 1;
     if (!ok) throw new TypeError(`Compute: buffer ${k} is { size } or its first contents (numbers), got ${JSON.stringify(b)}`);
   }
   const is = Object.entries(images);

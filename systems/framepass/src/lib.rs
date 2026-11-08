@@ -31,6 +31,8 @@ use raea_sys_material::shader_material::{SLOTS, TEXTURES};
 use raea_sys_shader::{accessors, defines, register, Inputs};
 use serde_json::Value;
 
+pub mod written;
+
 /// Where in the frame a pass runs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum At {
@@ -48,6 +50,8 @@ pub struct Pass {
     pub textures: Vec<Handle<Image>>,
     /// the one texture array (docs/shaders.feature SH9)
     pub array: Option<Handle<Image>>,
+    /// a pass as written (a <FramePass file>): its own bindings (written.rs)
+    pub written: Option<written::Written>,
 }
 
 /// The camera's passes, in order.
@@ -99,15 +103,19 @@ pub fn module(source: &str, uniforms: &[(String, &'static str)], textures: &[Str
 /// Assets<Shader> under the uuid of its hash. `image` resolves a texture as raea-sys-sampler's `texture` does.
 pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>) -> Result<Pass, String> {
     let o = v.as_object().ok_or_else(|| format!("a frame pass is {{wesl, uniforms, textures, at, prepass}}, got {v}"))?;
-    let ins = Inputs::read(world, o, "a frame pass", &mut image)?;
-    if !(ins.src.contains("@fragment") || defines(&ins.src, "shade")) {
-        return Err("a frame pass defines fn shade(in: FullscreenVertexOutput) -> vec4<f32>, or its own @fragment".into());
-    }
     let at = match o.get("at").and_then(Value::as_str) {
         None | Some("after-tonemap") => At::AfterTonemap,
         Some("before-tonemap") => At::BeforeTonemap,
         Some(a) => return Err(format!("a frame pass's `at` is \"before-tonemap\" or \"after-tonemap\", got {a:?}")),
     };
+    if o.contains_key("file") {
+        let (shader, w) = written::build(world, o, &mut image)?;
+        return Ok(Pass { shader, at, prepass: false, slots: [Vec4::ZERO; SLOTS], textures: vec![], array: None, written: Some(w) });
+    }
+    let ins = Inputs::read(world, o, "a frame pass", &mut image)?;
+    if !(ins.src.contains("@fragment") || defines(&ins.src, "shade")) {
+        return Err("a frame pass defines fn shade(in: FullscreenVertexOutput) -> vec4<f32>, or its own @fragment".into());
+    }
     let prepass = match o.get("prepass") {
         None | Some(Value::Null) | Some(Value::Bool(false)) => false,
         Some(Value::Bool(true)) => true,
@@ -116,7 +124,7 @@ pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Va
     };
     let (names, tnames) = ins.names();
     let shader = register(world, module(&ins.src, &names, &tnames, ins.array.as_ref().map(|a| a.0.as_str()), prepass), &ins.defs, "raea frame pass", "raea_sys_framepass");
-    Ok(Pass { shader, at, prepass, slots: ins.slots(), textures: ins.textures.into_iter().map(|t| t.1).collect(), array: ins.array.map(|a| a.1) })
+    Ok(Pass { shader, at, prepass, slots: ins.slots(), textures: ins.textures.into_iter().map(|t| t.1).collect(), array: ins.array.map(|a| a.1), written: None })
 }
 
 /// The passes onto a camera: with a prepass, its depth and normal prepasses on and its multisampling off (a
@@ -131,11 +139,32 @@ pub fn put(world: &mut World, cam: Entity, passes: Vec<Pass>) {
 
 pub fn install(app: &mut App) {
     app.add_plugins(ExtractComponentPlugin::<FramePasses>::default());
+    app.add_systems(PostUpdate, follow);
     let Some(render_app) = app.get_sub_app_mut(RenderApp) else { return };
     render_app.add_systems(RenderStartup, init_pipelines);
     // queued before wait_pipelines (RenderSystems::Render), so a pass's first frame has its pipeline
     render_app.add_systems(Render, queue.in_set(RenderSystems::Queue));
     render_app.add_systems(Core3d, (draw::<true>.before(tonemapping), draw::<false>.after(tonemapping)).in_set(Core3dSystems::PostProcess));
+}
+
+/// Each pass as written's uniforms from its row's keyed `uniforms` this frame (a bad one is logged); the camera's
+/// passes marked changed only when one has, so they're extracted again.
+fn follow(frame: Option<Res<raea_sys_frame::FrameRows>>, mut cams: Query<&mut FramePasses>) {
+    let Some(frame) = frame else { return };
+    let cols = &frame.cols;
+    for mut passes in &mut cams {
+        let mut changed = false;
+        for w in passes.bypass_change_detection().0.iter_mut().filter_map(|p| p.written.as_mut()) {
+            let Some(r) = cols.id.iter().position(|i| *i == w.id) else { continue };
+            match w.follow(&raea_sys_frame::keyed(|c| cols.get(r, c), "uniforms").unwrap_or_default()) {
+                Ok(c) => changed |= c,
+                Err(e) => error!("FramePass {}: {e}", w.id),
+            }
+        }
+        if changed {
+            passes.set_changed();
+        }
+    }
 }
 
 #[derive(Resource)]
@@ -144,6 +173,9 @@ struct Pipelines {
     deep: BindGroupLayoutDescriptor,
     sampler: Sampler,
     ids: HashMap<(u128, TextureFormat, bool), CachedRenderPipelineId>,
+    /// a pass as written's pipeline and layout by its shader and format, and its samplers by its shader and their names
+    written: HashMap<(u128, TextureFormat), (BindGroupLayoutDescriptor, CachedRenderPipelineId)>,
+    samplers: HashMap<(u128, String), Sampler>,
 }
 
 const UNIFORM_BYTES: u64 = (16 * (1 + SLOTS)) as u64;
@@ -165,14 +197,27 @@ fn init_pipelines(mut commands: Commands, device: Res<RenderDevice>) {
         ),
     );
     let sampler = device.create_sampler(&SamplerDescriptor { mag_filter: FilterMode::Linear, min_filter: FilterMode::Linear, ..default() });
-    commands.insert_resource(Pipelines { plain, deep, sampler, ids: HashMap::new() });
+    commands.insert_resource(Pipelines { plain, deep, sampler, ids: HashMap::new(), written: HashMap::new(), samplers: HashMap::new() });
 }
 
-fn queue(views: Query<(&ViewTarget, &FramePasses)>, pipelines: Option<ResMut<Pipelines>>, fullscreen: Res<FullscreenShader>, cache: Res<PipelineCache>) {
+fn queue(views: Query<(&ViewTarget, &FramePasses)>, pipelines: Option<ResMut<Pipelines>>, fullscreen: Res<FullscreenShader>, cache: Res<PipelineCache>, device: Res<RenderDevice>) {
     let Some(mut p) = pipelines else { return };
     for (target, passes) in &views {
         let format = target.main_texture_format();
         for pass in &passes.0 {
+            if let Some(w) = &pass.written {
+                if !p.written.contains_key(&(pass.shader, format)) {
+                    let layout = BindGroupLayoutDescriptor::new("raea_frame_pass_written", &written::layout(&w.decls));
+                    let shader = Handle::Uuid(bevy::asset::uuid::Uuid::from_u128(pass.shader), core::marker::PhantomData);
+                    let fragment = FragmentState { shader, entry_point: Some(w.entry.clone().into()), targets: vec![Some(ColorTargetState { format, blend: None, write_mask: ColorWrites::ALL })], ..default() };
+                    let id = cache.queue_render_pipeline(RenderPipelineDescriptor { label: Some("raea_frame_pass_written".into()), layout: vec![layout.clone()], vertex: fullscreen.to_vertex_state(), fragment: Some(fragment), ..default() });
+                    p.written.insert((pass.shader, format), (layout, id));
+                }
+                for (name, d) in &w.samplers {
+                    p.samplers.entry((pass.shader, name.clone())).or_insert_with(|| device.create_sampler(&d.as_wgpu()));
+                }
+                continue;
+            }
             let key = (pass.shader, format, pass.prepass);
             if p.ids.contains_key(&key) {
                 continue;
@@ -204,6 +249,16 @@ fn draw<const BEFORE: bool>(view: Views<'_, '_>, p: Option<Res<Pipelines>>, cach
     // a perspective camera's near plane, from its infinite reverse-Z projection
     let near = extracted.clip_from_view.w_axis.z;
     for pass in passes.0.iter().filter(|x| x.at == at) {
+        if let Some(w) = &pass.written {
+            let Some((layout, id)) = p.written.get(&(pass.shader, target.main_texture_format())) else { continue };
+            let Some(rp) = cache.get_render_pipeline(*id) else { continue };
+            let post = target.post_process_write();
+            let sampler = |n: &str| p.samplers.get(&(pass.shader, n.to_string())).cloned();
+            if let Some(group) = written::group(ctx.render_device(), &cache.get_bind_group_layout(layout), w, post.source, &images, sampler) {
+                blit(&mut ctx, post.destination, rp, &group);
+            }
+            continue;
+        }
         let Some(rp) = p.ids.get(&(pass.shader, target.main_texture_format(), pass.prepass)).and_then(|id| cache.get_render_pipeline(*id)) else { continue };
         let (depth, normal) = match prepass {
             Some(t) => (t.depth_only_view(), t.normal_view()),
@@ -271,18 +326,23 @@ fn draw<const BEFORE: bool>(view: Views<'_, '_>, p: Option<Res<Pipelines>>, cach
                 )),
             )
         };
-        let mut rpass = ctx.command_encoder().begin_render_pass(&RenderPassDescriptor {
-            label: Some("raea_frame_pass"),
-            color_attachments: &[Some(RenderPassColorAttachment { view: post.destination, depth_slice: None, resolve_target: None, ops: Operations::default() })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        });
-        rpass.set_pipeline(rp);
-        rpass.set_bind_group(0, &group, &[]);
-        rpass.draw(0..3, 0..1);
+        blit(&mut ctx, post.destination, rp, &group);
     }
+}
+
+/// The pass's full-screen triangle drawn into `dest`.
+fn blit(ctx: &mut RenderContext, dest: &TextureView, rp: &RenderPipeline, group: &BindGroup) {
+    let mut rpass = ctx.command_encoder().begin_render_pass(&RenderPassDescriptor {
+        label: Some("raea_frame_pass"),
+        color_attachments: &[Some(RenderPassColorAttachment { view: dest, depth_slice: None, resolve_target: None, ops: Operations::default() })],
+        depth_stencil_attachment: None,
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
+    });
+    rpass.set_pipeline(rp);
+    rpass.set_bind_group(0, group, &[]);
+    rpass.draw(0..3, 0..1);
 }
 
 #[cfg(test)]
