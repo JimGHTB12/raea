@@ -12,7 +12,17 @@ pub fn parity_app() -> App {
     let fps = std::env::var("RAEA_PARITY_FPS").ok().and_then(|f| f.parse().ok()).unwrap_or(60.0);
     raea_sys_parity::fixed_clock(&mut app, fps);
     raea_sys_parity::install(&mut app);
+    if raea_sys_parity::headless() {
+        app.set_runner(raea_sys_parity::run);
+    }
     app
+}
+
+/// The example's DefaultPlugins, without WinitPlugin when it runs headless (raea_sys_parity::headless): no window
+/// opens, and the window's cameras draw into the probe's offscreen image as they do with one.
+pub fn plugins(g: impl PluginGroup) -> bevy::app::PluginGroupBuilder {
+    let g = g.build();
+    if raea_sys_parity::headless() { g.disable::<bevy::winit::WinitPlugin>().add_after::<bevy::winit::WinitPlugin>(raea_sys_parity::Reserve) } else { g }
 }
 
 fn main() {

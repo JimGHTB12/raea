@@ -42,6 +42,8 @@ fn main() {
             // the example is a module of the host, so its crate root is that module
             .replace("use crate::", "use self::")
             .replace("App::new()", "crate::parity_app()")
+            // DefaultPlugins without a window when headless (crate::plugins)
+            .replace("DefaultPlugins", "crate::plugins(DefaultPlugins)")
             .replace("\nfn main()", "\npub fn main()");
         // an example drawing from an unseeded rng draws differently every run (two runs of many_lights: SSIM 0.58), so
         // its draws are made a fixed sequence its port computes the same way: the n-th light's hue the golden angle

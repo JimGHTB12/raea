@@ -9,6 +9,7 @@
 //!   RAEA_PARITY_TYPES=A,B      also each listed Bevy type's value on every entity that has it, reflected as Bevy
 //!                              serializes it, one line a probed frame in FILE.world.jsonl (FC0c's defaults test)
 //!   RAEA_PARITY_INPUT=FILE     scripted input, the script `raea play --input-script` takes (input.rs)
+//!   RAEA_PARITY_WINDOW=1       with RAEA_PARITY_PNG, open the example's window to watch it (headless otherwise: `headless`)
 //!
 //! A line holds what decides a frame's cost, read from the main World:
 //!   entities          every entity
@@ -279,4 +280,58 @@ fn dump(world: &mut World) {
     if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(&out) {
         let _ = writeln!(file, "{}", serde_json::json!({"frame": f, "world": by_type}));
     }
+}
+
+/// Whether the example runs with no window (the host's DefaultPlugins without WinitPlugin, `run` its loop): whenever
+/// its pictures are taken (RAEA_PARITY_PNG), unless RAEA_PARITY_WINDOW=1 asks to watch it. They come from the
+/// offscreen image either way; a window per example took over the Mac while a suite ran (2026-11-08).
+pub fn headless() -> bool {
+    std::env::var("RAEA_PARITY_PNG").is_ok() && !std::env::var("RAEA_PARITY_WINDOW").is_ok_and(|v| v == "1")
+}
+
+/// The headless App's loop, as Bevy's ScheduleRunnerPlugin runs one with no wait: updates until it exits.
+pub fn run(mut app: App) -> AppExit {
+    if app.plugins_state() != bevy::app::PluginsState::Cleaned {
+        while app.plugins_state() == bevy::app::PluginsState::Adding {
+            bevy::tasks::tick_global_task_pools_on_main_thread();
+        }
+        app.finish();
+        app.cleanup();
+    }
+    loop {
+        app.update();
+        if let Some(exit) = app.should_exit() {
+            return exit;
+        }
+    }
+}
+
+/// How many entities WinitPlugin's window makes before an example's Startup: its observers and the like, and a
+/// Monitor for this Mac's display. 462 against 451 at frame 10 in scrollbars, image_node_resizing and split_screen.
+const WINIT_ENTITIES: usize = 11;
+
+/// In place of WinitPlugin when headless, as many empty entities as it makes, so the example's own entities get the
+/// indices they get with a window. A port matches some by index (UI debug outlines' colours), and an index decides
+/// ties in UI draw order (scrollbars' thumbs drew under the track without them). It also sends what winit says as
+/// it makes the window (`created`).
+pub struct Reserve;
+
+impl Plugin for Reserve {
+    fn build(&self, app: &mut App) {
+        for _ in 0..WINIT_ENTITIES {
+            app.world_mut().spawn_empty();
+        }
+        app.add_systems(First, created);
+    }
+}
+
+/// What winit says of the primary window as it makes it, once, before the example's first Update reads it:
+/// WindowCreated, then WindowResized to its logical size (split_screen lays its four viewports out on that resize).
+fn created(mut done: Local<bool>, windows: Query<(Entity, &Window), With<bevy::window::PrimaryWindow>>, mut made: MessageWriter<bevy::window::WindowCreated>, mut resized: MessageWriter<bevy::window::WindowResized>) {
+    let Ok((e, w)) = windows.single() else { return };
+    if std::mem::replace(&mut *done, true) {
+        return;
+    }
+    made.write(bevy::window::WindowCreated { window: e });
+    resized.write(bevy::window::WindowResized { window: e, width: w.width(), height: w.height() });
 }
