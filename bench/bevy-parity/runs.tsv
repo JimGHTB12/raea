@@ -136,3 +136,4 @@ shader/extended_material_bindless	-	30,60
 shader/automatic_instancing	-	30,60
 shader/pipeline_constants	-	10
 shader/compute_shader_game_of_life	-	10,11,30,60
+shader/gpu_component_array_buffer	-	60,180,240,400

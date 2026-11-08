@@ -46,8 +46,15 @@ pub fn struct_fields(src: &str, ty: &str, defs: &[ShaderDefVal]) -> Result<Vec<(
         if cond.is_some_and(|d| !set(d)) {
             continue;
         }
-        let Some((n, t)) = field.trim_end_matches(',').split_once(':') else { return Err(format!("struct {ty}: {line:?} isn't NAME: TYPE")) };
-        out.push((n.trim().to_string(), t.trim().to_string()));
+        // fields on one line too (`struct S { a: f32, b: vec2<f32> }`): split at the commas outside a type's <>
+        let mut depth = 0i32;
+        for part in field.split(|c: char| {
+            depth += (c == '<') as i32 - (c == '>') as i32;
+            c == ',' && depth == 0
+        }).map(str::trim).filter(|p| !p.is_empty()) {
+            let Some((n, t)) = part.split_once(':') else { return Err(format!("struct {ty}: {line:?} isn't NAME: TYPE")) };
+            out.push((n.trim().to_string(), t.trim().to_string()));
+        }
     }
     Ok(out)
 }

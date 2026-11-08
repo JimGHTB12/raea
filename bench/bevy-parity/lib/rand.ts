@@ -49,12 +49,48 @@ export class ChaCha8Rng {
     if (this.state[12] === 0) this.state[13] = (this.state[13]! + 1) >>> 0;
     return out;
   }
+  private refill() {
+    this.buf = [...this.block(), ...this.block(), ...this.block(), ...this.block()];
+  }
   next_u32(): number {
     if (this.at >= 64) {
-      this.buf = [...this.block(), ...this.block(), ...this.block(), ...this.block()];
+      this.refill();
       this.at = 0;
     }
     return this.buf[this.at++]!;
+  }
+  /** rand_core's next_u64_from_u32: two words, the low first; at the buffer's last word, the refill's first is the high */
+  next_u64(): bigint {
+    const at = this.at;
+    let lo: number, hi: number;
+    if (at < 63) {
+      [lo, hi] = [this.buf[at]!, this.buf[at + 1]!];
+      this.at = at + 2;
+    } else {
+      lo = this.buf[63] ?? 0;
+      this.refill();
+      [hi, this.at] = [this.buf[0]!, 1];
+      if (at >= 64) [lo, hi, this.at] = [hi, this.buf[1]!, 2];
+    }
+    return (BigInt(hi) << 32n) | BigInt(lo);
+  }
+  /** rand's random_bool(p): Bernoulli, a u64 under p * 2^64 (p = 1 draws nothing) */
+  random_bool(p: number): boolean {
+    if (p >= 1) return true;
+    return this.next_u64() < BigInt(p * 2 ** 64);
+  }
+  /** rand's random_range(..len) for a usize under 2^32 (IndexedRandom::choose's draw): a u32 times len, its high word,
+   *  one more draw when the low word lands in the biased zone (Lemire's, as rand 0.10 samples a single value) */
+  random_index(len: number): number {
+    const range = BigInt(len);
+    const m = BigInt(this.next_u32()) * range;
+    let result = m >> 32n;
+    const lo = m & 0xffffffffn;
+    if (lo > ((1n << 32n) - range)) {
+      const hi2 = (BigInt(this.next_u32()) * range) >> 32n;
+      if (lo + hi2 > 0xffffffffn) result += 1n;
+    }
+    return Number(result);
   }
   /** rand's random_range(low..high) for f32 */
   random_range(low: number, high: number): number {

@@ -17,10 +17,11 @@ argh = "0.1.12"
 accesskit = "0.24"
 rand = "0.10.0"
 chacha20 = { version = "0.10.0", default-features = false, features = ["rng"] }
+bytemuck = { version = "1", features = ["derive"] }
 
 # used by the ported examples, which build.rs copies in through include! where cargo-shear doesn't look
 [package.metadata.cargo-shear]
-ignored = ["argh", "accesskit", "rand", "chacha20"]
+ignored = ["argh", "accesskit", "rand", "chacha20", "bytemuck"]
 
 # Bevy's examples ask cfg(feature = "default_font") of the crate they're built in: in Bevy's repo that's bevy's own
 # feature, on by default; here the host's, so it has one, on (ui/text/text builds only its default-font branch)

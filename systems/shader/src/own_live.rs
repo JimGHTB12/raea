@@ -23,32 +23,11 @@ pub struct Packing {
     pub defs: Vec<ShaderDefVal>,
 }
 
-/// A storage buffer's contents for its WGSL type, `array<T, N>` or `array<T>` with T an f32, u32 or i32 or a vec2-4
-/// of one: each element a number or [x, y(, z(, w))], in WGSL's storage layout (a vec3 takes 16 bytes, as a vec4).
-/// An empty one is 16 zero bytes (a binding can't be empty).
-pub fn storage(name: &str, ty: &str, v: &Value) -> Result<ShaderBuffer, String> {
-    let inner = ty.strip_prefix("array<").and_then(|t| t.strip_suffix('>')).ok_or_else(|| format!("storage buffer {name}: its type is array<T> or array<T, N>, got {ty} (the rest are FC2a's to come)"))?;
-    let el = match inner.rfind(',') {
-        Some(i) if inner[i + 1..].trim().parse::<u64>().is_ok() => inner[..i].trim(),
-        _ => inner.trim(),
-    };
-    let (k, n) = layout::kind(el).ok_or_else(|| format!("storage buffer {name}: its element {el} isn't f32, u32, i32 or a vec2/3/4 of one"))?;
-    let stride = if n == 1 { 1 } else if n == 2 { 2 } else { 4 };
-    let items = v.as_array().ok_or_else(|| format!("storage buffer {name} is a list of its elements, got {v}"))?;
-    let mut words = vec![0u32; (items.len() * stride).max(4)];
-    for (i, it) in items.iter().enumerate() {
-        let comps: Vec<f64> = match it {
-            Value::Array(a) => a.iter().filter_map(Value::as_f64).collect(),
-            x => x.as_f64().into_iter().collect(),
-        };
-        if comps.len() != n {
-            return Err(format!("storage buffer {name}: element {i} is {n} numbers ({el}), got {it}"));
-        }
-        for (c, x) in comps.iter().enumerate() {
-            words[i * stride + c] = layout::word(k, *x as f32);
-        }
-    }
-    Ok(ShaderBuffer::from(words))
+/// A storage buffer's contents for its WGSL type as `src` declares it, in WGSL's storage layout (storage_layout.rs):
+/// `array<T, N>` or `array<T>` of numbers or [x, y(, z(, w))], a matrix, or a struct of the source's from {field: value}
+/// (a vec3 takes 16 bytes, as a vec4). An empty one is 16 zero bytes (a binding can't be empty).
+pub fn storage(src: &str, defs: &[ShaderDefVal], name: &str, ty: &str, v: &Value) -> Result<ShaderBuffer, String> {
+    Ok(ShaderBuffer::from(crate::storage_layout::words(src, defs, name, ty, v)?))
 }
 
 /// The frame's values for a part whose Material isn't on yet, applied when it is (own.rs put).
@@ -88,7 +67,7 @@ pub fn patch(world: &mut World, e: Entity, v: &Value) -> Result<(), String> {
     let given = v.get("buffers").and_then(Value::as_object).cloned().unwrap_or_default();
     for ((name, ty), b) in p.storages.iter().zip(bufs) {
         let Some(x) = given.get(name) else { continue };
-        let sb = storage(name, ty, x)?;
+        let sb = storage(&p.src, &p.defs, name, ty, x)?;
         if let Some(mut cur) = world.resource_mut::<Assets<ShaderBuffer>>().get_mut(&b) {
             *cur = sb;
         }
@@ -105,13 +84,13 @@ mod tests {
             _ => vec![],
         };
         let v = serde_json::json!([[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0]]);
-        let w = words(super::storage("colors", "array<vec4<f32>, 5>", &v).unwrap());
+        let w = words(super::storage("", &[], "colors", "array<vec4<f32>, 5>", &v).unwrap());
         assert_eq!(w[..8].iter().map(|x| f32::from_bits(*x)).collect::<Vec<_>>(), vec![1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]);
         // a vec3 takes 16 bytes; a u32 rounds
-        let w = words(super::storage("p", "array<vec3<f32>>", &serde_json::json!([[1, 2, 3], [4, 5, 6]])).unwrap());
+        let w = words(super::storage("", &[], "p", "array<vec3<f32>>", &serde_json::json!([[1, 2, 3], [4, 5, 6]])).unwrap());
         assert_eq!(f32::from_bits(w[4]), 4.0);
-        assert_eq!(words(super::storage("n", "array<u32>", &serde_json::json!([2.6, 7])).unwrap())[..2], [3, 7]);
-        assert!(super::storage("p", "array<vec3<f32>>", &serde_json::json!([[1, 2]])).unwrap_err().contains("element 0"));
-        assert!(super::storage("m", "array<mat4x4<f32>>", &serde_json::json!([])).is_err());
+        assert_eq!(words(super::storage("", &[], "n", "array<u32>", &serde_json::json!([2.6, 7])).unwrap())[..2], [3, 7]);
+        assert!(super::storage("", &[], "p", "array<vec3<f32>>", &serde_json::json!([[1, 2]])).unwrap_err().contains("element 0"));
+        assert!(super::storage("", &[], "m", "array<bool>", &serde_json::json!([])).is_err());
     }
 }

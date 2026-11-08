@@ -1,6 +1,7 @@
 // Your own Material (docs/control.feature FC2a): Bevy's Material, its shaders the author's files compiled as written.
 import { ExtendedMaterial, ShaderExtension, StandardMaterial, type AlphaMode } from "./materials";
 import { surfaceShader, type SurfaceShaderSpec } from "../3d";
+import type { StorageValue } from "../3d/materials";
 
 /** Your own Material (docs/control.feature FC2a): Bevy's `impl Material`, not an extension of StandardMaterial. Its
  *  fragment_shader() (and vertex_shader(), when `vertex` names one) is the file compiled as written: its imports (a
@@ -18,9 +19,11 @@ export interface MaterialProps {
   /** a vertex shader file, as Material::vertex_shader names one (Bevy's mesh vertex shader when not given) */
   vertex?: string;
   uniforms?: Record<string, number | number[] | string | Record<string, number | number[] | string>>;
-  /** its read-only storage buffers (`var<storage, read> NAME: array<T(, N)>`, up to 2): each a list of its elements, a
-   *  number or [x, y(, z(, w))] each, as Bevy's ShaderBuffer::from(Vec<[f32; 4]>) holds them */
-  buffers?: Record<string, (number | number[])[]>;
+  /** its read-only storage buffers (`var<storage, read> NAME: TYPE`, up to 2), each in TYPE's storage layout: an
+   *  array<T(, N)> a list of its elements, a number or [x, y(, z(, w))] each, as Bevy's ShaderBuffer::from(Vec<[f32; 4]>)
+   *  holds them; a struct of the source's { field: value } (gpu_component_array_buffer's { data_array: [...] }); a
+   *  matrix its columns */
+  buffers?: Record<string, StorageValue>;
   textures?: SurfaceShaderSpec["textures"];
   defs?: SurfaceShaderSpec["defs"];
   alpha_mode?: AlphaMode;
@@ -33,10 +36,13 @@ export interface MaterialProps {
 
 const ALPHA = ["Opaque", "Blend", "Premultiplied", "Add", "Multiply", "AlphaToCoverage"];
 
+/** A storage buffer's value: numbers, lists of them and { field: value } structs, as StorageValue. */
+const storageValue = (x: unknown): boolean => Number.isFinite(x) || (Array.isArray(x) && x.every(storageValue)) || (typeof x === "object" && x !== null && !Array.isArray(x) && Object.values(x).every(storageValue));
+
 /** A Material's props checked, as the shader spec it is drawn by (in a Mesh3d an OwnMaterial, in a Mesh2d its
  *  Material2d). */
 function ownSpec({ fragment, vertex, uniforms, buffers, textures, defs, alpha_mode, depth_bias, cull_mode, constants }: MaterialProps): SurfaceShaderSpec {
-  for (const [k, b] of Object.entries(buffers ?? {})) if (!Array.isArray(b) || !b.every((x) => Number.isFinite(x) || (Array.isArray(x) && x.length >= 2 && x.length <= 4 && x.every(Number.isFinite)))) throw new TypeError(`Material: buffer ${k} is a list of numbers or [x, y(, z(, w))], got ${JSON.stringify(b)}`);
+  for (const [k, b] of Object.entries(buffers ?? {})) if (typeof b !== "object" || b === null || !storageValue(b)) throw new TypeError(`Material: buffer ${k} is its elements' list or a struct's { field: value }, of numbers and lists, got ${JSON.stringify(b)}`);
   if (typeof fragment !== "string" || !fragment) throw new TypeError(`Material: fragment is the shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(fragment)}`);
   if (vertex !== undefined && (typeof vertex !== "string" || !vertex)) throw new TypeError(`Material: vertex is a shader file, got ${JSON.stringify(vertex)}`);
   const mask = typeof alpha_mode === "object" && alpha_mode !== null && Number.isFinite((alpha_mode as { Mask?: number }).Mask);

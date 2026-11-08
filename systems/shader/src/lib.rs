@@ -28,6 +28,7 @@ use raea_sys_material::shader_material::{defs, ident, uniform, Uniform, SLOTS, T
 
 mod ext_bind;
 mod layout;
+mod storage_layout;
 /// Uniforms packed in their declared types' WGSL layout (a compute's as written: raea-sys-compute written.rs).
 pub use layout::slots as uniform_slots;
 pub mod own;

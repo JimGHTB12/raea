@@ -271,7 +271,7 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     let mut b = Vec::new();
     for (name, ty) in &storages {
         let v = buffers.get(name).ok_or_else(|| format!("{path}'s storage buffer {name} has no value"))?;
-        b.push(world.resource_mut::<Assets<ShaderBuffer>>().add(storage(name, ty, v).map_err(|e| format!("{path}: {e}"))?));
+        b.push(world.resource_mut::<Assets<ShaderBuffer>>().add(storage(&src, &ins.defs, name, ty, v).map_err(|e| format!("{path}: {e}"))?));
     }
     while b.len() < 2 {
         b.push(world.resource_mut::<Assets<ShaderBuffer>>().add(ShaderBuffer::from(vec![0u32; 4])));

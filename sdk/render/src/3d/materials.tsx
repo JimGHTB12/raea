@@ -124,11 +124,13 @@ export interface SurfaceShaderSpec {
   /** shader defs: each NAME a WESL condition for `@if(NAME)` (a number is true), and a whole number also
    * `constants::NAME`; each set of defs compiles its own pipeline */
   defs?: ShaderDefs;
-  /** a <Material>'s own (docs/control.feature FC2a): its vertex shader file and what its Material methods give, and its
-   *  read-only storage buffers; set by <Material>, not on a ShaderExtension */
+  /** a <Material>'s own (FC2a): what its Material methods give, and its storage buffers; set by <Material> only */
   own?: OwnMaterialFields;
-  buffers?: Record<string, (number | number[])[]>;
+  buffers?: Record<string, StorageValue>;
 }
+
+/** A storage buffer's value in its WGSL type's layout: a number, a list or { field: value }. @bevy bevy_render::storage::ShaderBuffer */
+export type StorageValue = number | StorageValue[] | { [field: string]: StorageValue };
 
 /** What a <Material>'s Material methods give: vertex_shader, alpha_mode, depth_bias and the faces its specialize culls. */
 export type OwnMaterialFields = { vertex?: string; alpha_mode?: unknown; depth_bias?: number; cull_mode?: "Front" | "Back" | null };

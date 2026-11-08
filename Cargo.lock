@@ -13773,6 +13773,7 @@ dependencies = [
  "accesskit 0.24.1",
  "argh",
  "bevy",
+ "bytemuck",
  "chacha20 0.10.2",
  "raea-sys-parity",
  "rand 0.10.3",
