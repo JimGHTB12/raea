@@ -492,8 +492,11 @@ pub(crate) fn style(
         })
         .collect();
     // raea: a list whose faces are all missing is drawn in the browser's standard face (Chrome: Times), not the
-    // system's script fallback
-    if !families.iter().any(|f| matches!(f, parley::FontFamilyName::Generic(_))) {
+    // system's script fallback; but a list ending in "raea-bevy fallback" (bevy_text's FontSource::Family, which
+    // the SDK writes so) falls to the collection's fallback families, as bevy_text's does (parley keeps the name as a mark that asks no
+    // FallbackHook)
+    let bevy_fallback = families.iter().any(|f| matches!(f, parley::FontFamilyName::Named(n) if n.as_ref() == "raea-bevy fallback"));
+    if !bevy_fallback && !families.iter().any(|f| matches!(f, parley::FontFamilyName::Generic(_))) {
         families.push(parley::FontFamilyName::Generic(parley::GenericFamily::Serif));
     }
 

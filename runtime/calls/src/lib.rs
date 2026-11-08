@@ -169,6 +169,7 @@ pub fn call(name: &str, v: &Value) -> R<Value> {
             n if n.starts_with("ecs.") => ecs::call(n, v),
             // placement by relations (raea-core-place)
             "place.solve" => raea_core_place::solve_json(v),
+            "fonts.families" => Ok(families().into()),
             n if n.starts_with("solid.") || n.starts_with("section.") => solid::call(&mut st, n, v),
             n => media::call(&mut st, n, v),
         }
@@ -206,6 +207,7 @@ pub fn register() {
             ("section.op", "{ fn: \"make\" | \"circle\" | \"square\" | \"hull_points\" | \"union\" | \"minus\" | \"intersect\" | \"hull\" | \"minkowski\" | \"offset\" | \"simplify\" | \"translate\" | \"rotate\" | \"scale\" | \"mirror\" | \"decompose\"; polygons?: [number, number][][]; others?: [number, number][][][]; args?: number[] }", &format!("{SECTION} | {SECTION}[]"), "a 2D cross-section made, combined, offset or moved (Manifold's CrossSection), held by value"),
             ("solid.free", "{ id: number }", "null", "drop a solid"),
             ("place.solve", "{ objects: { id: string; size: [number, number, number]; at?: [number, number, number]; yaw?: number; fixed?: boolean }[]; rules: Record<string, string | number>[]; room?: { min: [number, number]; max: [number, number] } }", "{ objects: { id: string; at: [number, number, number]; yaw: number; size: [number, number, number] }[]; found: { part: string; check: string; level: string; says: string }[]; errors: number }", "boxes placed by relations (on, against, beside, near, apart, facing, align, clear), what can't hold found"),
+            ("fonts.families", "{}", "string[]", "the system's font families by name, sorted, as fontique (bevy_text's FontCx) lists them"),
             ("media.live", "{}", "{ vdecs: number; vencs: number; adecs: number; frames: number; solids: number; worlds: number }", "how many native coders, frames, solids and worlds are alive (for leak checks)"),
             ("media.size", "{ path: string }", "number", "a file's size in bytes"),
             ("media.read", "{ path: string; start: number; end: number }", "string", "bytes start..end of a file, base64"),
@@ -286,4 +288,14 @@ pub fn register() {
         // bevy.world.send, bevy.world.answer: a live game's queued world calls (engine/bevy-world, drained by raea-render)
         raea_runtime_plugins::register_world_natives();
     });
+}
+
+/// The system's font families, sorted and each once: Bevy's `FontCx` collection's `family_names()` as its
+/// ui/text/system_fonts example lists them, from a collection of the system's faces alone (none of raea's).
+fn families() -> Vec<String> {
+    let mut cx = parley::FontContext::new();
+    let mut out: Vec<String> = cx.collection.family_names().map(ToOwned::to_owned).collect();
+    out.sort_unstable();
+    out.dedup();
+    out
 }

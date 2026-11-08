@@ -72,6 +72,8 @@ export interface NativeCalls {
   "ecs.set": { args: { world: number; id: number; cols: Record<string, number | string | boolean> }; answer: null };
   /** a new entity: a kind with columns, and/or any components */
   "ecs.spawn": { args: { world: number; kind?: string; cols?: Record<string, number | string | boolean>; components?: Record<string, unknown>; parent?: number }; answer: { id: number } };
+  /** the system's font families by name, sorted, as fontique (bevy_text's FontCx) lists them */
+  "fonts.families": { args: {}; answer: string[] };
   /** drop an engine frame */
   "frame.free": { args: { frame: number }; answer: null };
   /** an engine frame's size */

@@ -269,6 +269,25 @@ pub fn set_fallback_hook(hook: FallbackHook) {
     let _ = hook;
 }
 
+/// raea: the family name that marks a list as bevy_text's (FontSource::Family): it names no face, and a list with it
+/// falls to the collection's fallback families as bevy_text's does, never asking the [`FallbackHook`].
+pub const NO_HOOK_FAMILY: &str = "raea-bevy fallback";
+
+pub(crate) fn is_no_hook(name: &str) -> bool {
+    name == NO_HOOK_FAMILY
+}
+
+/// The id [`NO_HOOK_FAMILY`] resolves to in a family stack: no collection's family has it.
+pub(crate) fn no_hook_id() -> fontique::FamilyId {
+    #[cfg(feature = "std")]
+    {
+        static ID: std::sync::OnceLock<fontique::FamilyId> = std::sync::OnceLock::new();
+        *ID.get_or_init(fontique::FamilyId::new)
+    }
+    #[cfg(not(feature = "std"))]
+    fontique::FamilyId::new()
+}
+
 fn fallback_hook() -> Option<FallbackHook> {
     #[cfg(feature = "std")]
     return FALLBACK_HOOK.read().ok().and_then(|h| *h);
@@ -509,6 +528,7 @@ impl<'a, 'b, B: Brush> parley_engine::FontSelector for FontSelector<'a, 'b, B> {
         let stack = self.rcx.stack(self.styles[self.style_index as usize].font_family).unwrap_or(&[]);
         if let (Some(hook), Some(font)) = (fallback_hook(), &picked)
             && !stack.is_empty()
+            && !stack.contains(&no_hook_id())
             && (!stack.contains(&font.family.0) || !covered)
         {
             let mut primary = None;

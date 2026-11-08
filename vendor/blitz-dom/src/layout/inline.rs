@@ -550,6 +550,14 @@ impl LayoutPassState<'_> {
                     content_sizes.min
                 };
                 let max_content_width = content_sizes.max;
+                // raea: a bevy_text box whose lines aren't a finite size (a face parley can't scale, as Apple's
+                // bitmap-only fonts with no head table: its advances are infinite) measures nothing, as bevy_text's
+                // buffer_dimensions has it, rather than an infinite box
+                let (min_content_width, max_content_width) = if unit == 1.0 && !(min_content_width.is_finite() && max_content_width.is_finite()) {
+                    (0.0, 0.0)
+                } else {
+                    (min_content_width, max_content_width)
+                };
 
                 #[cfg(feature = "floats")]
                 let float_width = match available_space.width {
@@ -931,7 +939,7 @@ impl LayoutPassState<'_> {
         // raea: a bevy_text box sized by its content (no width of its own), its lines broken in the space it was
         // given: as wide as its widest line with its trailing spaces (parley's full_width), as bevy_text measures it
         // (TextPipeline::compute_size), not that space
-        let width = if unit == 1.0 && known_dimensions.width.is_none() && node_size.width.is_none() && inline_layout.layout.len() > 1 {
+        let mut width = if unit == 1.0 && known_dimensions.width.is_none() && node_size.width.is_none() && inline_layout.layout.len() > 1 {
             let w = inline_layout.layout.full_width().ceil().min(width);
             inline_layout.layout.set_lines_max_advance(w);
             w
@@ -1017,9 +1025,14 @@ impl LayoutPassState<'_> {
         // `known_dimensions` must not be substituted in here: those are border-box sizes, and
         // using them for the scrollable overflow rect (which adds padding below) would
         // double-count padding, incorrectly making the container's content overflow it.
-        // raea: a bevy_text box's height rounded up as its width is (`unit` above)
+        // raea: a bevy_text box's height rounded up as its width is (`unit` above); one whose lines aren't a finite
+        // size is none (bevy_text's buffer_dimensions, above)
         if unit == 1.0 {
             height = height.ceil();
+            if !(inline_layout.layout.full_width().is_finite() && height.is_finite()) {
+                height = 0.0;
+                width = 0.0;
+            }
         }
         let measured_size = taffy::Size {
             width: width / scale,
@@ -1029,7 +1042,7 @@ impl LayoutPassState<'_> {
         // Unbreakable content (e.g. `white-space: pre` text) may overflow the max advance the
         // lines were broken at. `width` is the advance the lines were broken at, so the actual
         // extent of the line boxes must be taken from the laid-out lines for `content_size`.
-        let content_width = f32_max(width, inline_layout.layout.width()) / scale;
+        let content_width = f32_max(width, Some(inline_layout.layout.width()).filter(|w| unit != 1.0 || w.is_finite()).unwrap_or(0.0)) / scale;
 
         let clamped_size = inputs
             .known_dimensions

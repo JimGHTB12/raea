@@ -239,7 +239,9 @@ impl ResolveContext {
                 for family in FontFamilyName::parse_css_list(source).map_while(Result::ok) {
                     match family {
                         FontFamilyName::Named(name) => {
-                            if let Some(family) = fcx.collection.family_by_name(&name) {
+                            if crate::shape::is_no_hook(&name) {
+                                self.tmp_families.push(crate::shape::no_hook_id());
+                            } else if let Some(family) = fcx.collection.family_by_name(&name) {
                                 self.tmp_families.push(family.id());
                             }
                         }
@@ -252,7 +254,9 @@ impl ResolveContext {
             }
             FontFamily::Single(family) => match family {
                 FontFamilyName::Named(name) => {
-                    if let Some(family) = fcx.collection.family_by_name(name) {
+                    if crate::shape::is_no_hook(name) {
+                        self.tmp_families.push(crate::shape::no_hook_id());
+                    } else if let Some(family) = fcx.collection.family_by_name(name) {
                         self.tmp_families.push(family.id());
                     }
                 }
@@ -266,7 +270,9 @@ impl ResolveContext {
                 for family in families {
                     match family {
                         FontFamilyName::Named(name) => {
-                            if let Some(family) = fcx.collection.family_by_name(name) {
+                            if crate::shape::is_no_hook(name) {
+                                self.tmp_families.push(crate::shape::no_hook_id());
+                            } else if let Some(family) = fcx.collection.family_by_name(name) {
                                 self.tmp_families.push(family.id());
                             }
                         }

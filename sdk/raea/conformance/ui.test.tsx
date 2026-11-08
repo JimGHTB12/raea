@@ -268,7 +268,8 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
   });
   test("a Text's FontSource: a file as its own face, a family by name, a generic family as CSS's", () => {
     expect(html(<Text font={FontSource.fantasy()}>a</Text>)).toContain("font-family:&quot;raea-bevy fantasy&quot;, fantasy");
-    expect(html(<Text font={FontSource.family("Times")}>a</Text>)).toContain("font-family:&quot;Times&quot;");
+    // (a family falls to the script's fallback as bevy_text's does: "raea-bevy fallback" tells blitz and parley so)
+    expect(html(<Text font={FontSource.family("Times")}>a</Text>)).toContain("font-family:&quot;Times&quot;, &quot;raea-bevy fallback&quot;");
     expect(html(<Text font={FontSource.ui_rounded()}>a</Text>)).toContain("font-family:&quot;raea-bevy ui-rounded&quot;, ui-rounded");
     expect(() => html(<Text font={{ Generic: "Gothic" } as never}>a</Text>)).toThrow(/FontSource/);
   });

@@ -14661,6 +14661,7 @@ dependencies = [
  "bevy",
  "image",
  "manifold-rust",
+ "parley",
  "raea-core-place",
  "raea-core-scene",
  "raea-core-shape",

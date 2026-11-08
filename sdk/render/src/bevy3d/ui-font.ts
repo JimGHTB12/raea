@@ -1,5 +1,6 @@
 // bevy_text's FontSource on a Text: a font file (its Handle), a family by name, or a generic family, resolved as
 // Bevy's fontique resolves it (not as a page's CSS generic, which is Chrome's).
+import { native } from "@raea/app/native";
 import { BEVY_FONT_FAMILY, bevyFontFace } from "./fonts/default";
 
 /** bevy_text's GenericFontFamily. @bevy bevy_text::GenericFontFamily */
@@ -28,7 +29,9 @@ export function fontCss(who: string, font: FontSource | undefined): { family: st
     const f = familyOf(font);
     return { family: `"${f}"`, face: `@font-face { font-family: "${f}"; src: url("${font}"); font-weight: 1 1000; }` };
   }
-  if (typeof font === "object" && font && "Family" in font && typeof font.Family === "string" && font.Family !== "") return { family: JSON.stringify(font.Family), face: "" };
+  // (a face without a character falls to the script's fallback, as bevy_text's does, not to CSS's serif: blitz takes
+  // "raea-bevy fallback" to say so)
+  if (typeof font === "object" && font && "Family" in font && typeof font.Family === "string" && font.Family !== "") return { family: `${JSON.stringify(font.Family)}, "raea-bevy fallback"`, face: "" };
   // (fontique's own family for it, as Bevy resolves it, which raea registers as "raea-bevy <generic>" (raea-sys-fonts
   // bevy_generics.rs); a page's own CSS generic is Chrome's. Emoji is the page's own.)
   if (typeof font === "object" && font && "Generic" in font && GENERIC[font.Generic]) {
@@ -37,3 +40,10 @@ export function fontCss(who: string, font: FontSource | undefined): { family: st
   }
   throw new TypeError(`${who}: font is a font file (staticFile("fonts/x.ttf")), FontSource.family(name) or a generic one (FontSource.serif()), got ${JSON.stringify(font)}`);
 }
+
+/** bevy_text's FontCx, the font collection Bevy's text resolves families in: `family_names()` lists the system's
+ *  families (natively, by fontique as Bevy's collection has them), sorted and each once.
+ *  @bevy bevy_text::FontCx */
+export const FontCx = {
+  family_names: (): string[] => native("fonts.families", {}),
+};
