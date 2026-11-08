@@ -134,7 +134,14 @@ pub(crate) fn walk(react: &World, e: Entity, parent: u64, at: At, dir: &Path, ho
             out.put(Want { id, parent, kind: kind.to_string(), props: page, text: None, path }, None);
             i
         } else {
-            out.element(id, parent, at, tail, kind, props, None, || Want { id, parent, kind: kind.to_string(), props: page_props(kind, props, dir), text: None, path: String::new() })
+            let svg = svg_owned(kind, IN_SVG.with(|c| c.get()));
+            out.element(id, parent, at, tail, kind, props, None, || {
+                let mut page = page_props(kind, props, dir);
+                if svg {
+                    page.insert("$ns".into(), Value::from("svg"));
+                }
+                Want { id, parent, kind: kind.to_string(), props: page, text: None, path: String::new() }
+            })
         };
         list.push(id);
         // an element's own string: a text child of its own
@@ -145,10 +152,28 @@ pub(crate) fn walk(react: &World, e: Entity, parent: u64, at: At, dir: &Path, ho
             l.push(tid);
             out.order.insert(id, l);
         } else {
+            let was = IN_SVG.with(|c| c.replace(svg_inside(kind, c.get())));
             walk(react, k, id, At::In(me), dir, holders, out, videos, screens);
+            IN_SVG.with(|c| c.set(was));
         }
     }
     out.order.insert(parent, list);
+}
+
+/// Whether an element's children are inside an <svg>: from an <svg> down, until a <foreignObject> holds HTML again.
+pub(crate) fn svg_inside(kind: &str, inside: bool) -> bool {
+    match kind {
+        "svg" => true,
+        "foreignObject" => false,
+        _ => inside,
+    }
+}
+
+/// Whether an element is SVG's although HTML has its tag too: a `text`, `image` or `title` inside an <svg>. `in_svg`
+/// (raea-sys-page) leaves those three out as ambiguous, so the walk says so with `$ns`, as sdk/ui's host does; without
+/// it a composition's `textAnchor` and `fontSize` were lowercased as HTML attributes, which usvg doesn't know.
+pub(crate) fn svg_owned(kind: &str, inside: bool) -> bool {
+    inside && matches!(kind, "text" | "image" | "title")
 }
 
 /// A stylesheet's `url()`s that name the composition's files as what raea-runtime-js's @font-face and backgrounds read
@@ -240,6 +265,29 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
 /// border-image of staticFile("x.png")); one that isn't there refuses the render.
 fn css_urls(dir: &Path, s: &str) -> String {
     raea_runtime_react::scene::css_file_urls(s, dir, dir, |f| REFUSED.with(|c| c.borrow_mut().push(format!("missing image: {}", f.display()))))
+}
+
+#[cfg(test)]
+mod svg_namespace_tests {
+    use super::{svg_inside, svg_owned};
+
+    /// a text, image or title is SVG's only inside an <svg>, and not under its <foreignObject>, which holds HTML
+    #[test]
+    fn text_image_and_title_are_svgs_only_inside_an_svg() {
+        let mut inside = false;
+        for kind in ["div", "svg", "g"] {
+            inside = svg_inside(kind, inside);
+        }
+        assert!(inside);
+        for kind in ["text", "image", "title"] {
+            assert!(svg_owned(kind, inside), "{kind} inside an <svg>");
+            assert!(!svg_owned(kind, false), "{kind} in HTML");
+        }
+        assert!(!svg_owned("rect", inside), "a rect is SVG's anyway (in_svg)");
+        let html = svg_inside("foreignObject", inside);
+        assert!(!svg_owned("title", html), "a title under a <foreignObject> is HTML's");
+        assert!(svg_inside("svg", html), "an <svg> in that HTML starts SVG again");
+    }
 }
 
 #[cfg(test)]
