@@ -2587,8 +2587,8 @@ affects = "layout"
 
 [text-autospace]
 type = "TextAutospace"
-# raea: on servo too, with Chrome's initial value (normal; Gecko's is no-autospace), for parley's layout/autospace.rs
-initial = "computed::text::TextAutospace::NORMAL"
+# raea: on servo too, for parley's layout/autospace.rs; initial no-autospace, as Chrome's and Gecko's are (#44)
+initial = "computed::text::TextAutospace::NO_AUTOSPACE"
 struct = "inherited_text"
 animation_type = "discrete"
 gecko_pref = "layout.css.text-autospace.enabled"

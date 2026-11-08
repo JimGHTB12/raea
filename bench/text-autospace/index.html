@@ -1,0 +1,17 @@
+<!doctype html>
+<!-- #44: text-autospace's initial value is no-autospace, as Chrome's is: an unstyled "2026년" is drawn tight, as with
+     no-autospace, and only text-autospace: normal puts 1/8 em (6 px at 48 px) between the digits and the Hangul.
+     Chrome 148: getComputedStyle(body).textAutospace is "no-autospace", and the three lines measure 148.31, 154.31
+     and 148.31 px wide. check.sh compares where each line's ink ends. -->
+<meta charset="utf-8">
+<style>
+  body { margin: 0; background: #fff; color: #000; font: 48px sans-serif; }
+  div { height: 80px; padding-left: 20px; }
+</style>
+<body>
+<div data-composition-id="main" data-start="0" data-duration="1" data-width="320" data-height="240">
+  <div>2026년</div>
+  <div style="text-autospace: normal">2026년</div>
+  <div style="text-autospace: no-autospace">2026년</div>
+</div>
+</body>

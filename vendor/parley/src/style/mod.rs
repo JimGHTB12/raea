@@ -305,7 +305,7 @@ pub enum Hyphens {
 }
 
 /// raea: CSS Text 4 `text-autospace`: which boundaries between ideographs and other text get 1/8 em of space
-/// (layout/autospace.rs). Off by default; Blitz sets it from stylo (`normal`, Chrome's initial value, is both).
+/// (layout/autospace.rs). Off by default; Blitz sets it from stylo (initial `no-autospace`, as Chrome's).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct TextAutospace {
     /// Between an ideograph and a letter.

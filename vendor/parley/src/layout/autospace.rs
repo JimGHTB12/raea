@@ -1,10 +1,10 @@
 // raea: CSS Text 4 § 6.4 `text-autospace`: 1/8 em of space where an ideograph meets a letter or a decimal digit
-// (UTR #59's Wide against Narrow, parley_engine raea_autospace_class), as Chrome inserts it (its initial value is
-// `normal`). The space follows the logically earlier atom, so that it falls between the two: in a right-to-left run it
-// goes on the later one, and after one on the run's first atom (its right edge). It crosses an inline element's edges
-// but not an atomic inline. Both sides' styles must ask for it, and it takes the later atom's font size. The
-// line breaker adds it to the atom's advance (LayoutData::tab_extras), doesn't count it toward the line's fit and
-// drops it at the end of a line that wraps after the atom (line_break.rs).
+// (UTR #59's Wide against Narrow, parley_engine raea_autospace_class), as Chrome inserts it with `normal` (its
+// initial value is `no-autospace`: raea #44). The space follows the logically earlier atom, so that it falls between
+// the two: in a right-to-left run it goes on the later one, and after one on the run's first atom (its right edge).
+// It crosses an inline element's edges but not an atomic inline. Both sides' styles must ask for it, and it takes the
+// later atom's font size. The line breaker adds it to the atom's advance (LayoutData::tab_extras), doesn't count it
+// toward the line's fit and drops it at the end of a line that wraps after the atom (line_break.rs).
 
 use alloc::collections::BTreeMap;
 
