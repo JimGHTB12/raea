@@ -41,6 +41,11 @@ pub fn rebind(src: &str) -> Result<Rebound, String> {
 /// texture_2d or a sampler (with `dims`, also a texture of another dimension, DIMS), and more of each than raea has
 /// slots for (`what` names the material in errors).
 pub fn rebind_in(src: &str, groups: &[&str], what: &str, dims: bool) -> Result<Rebound, String> {
+    rebind_with(src, groups, what, dims, &|slot| Ok(slot + if dims { OWN_BASE } else { 0 }))
+}
+
+/// As rebind_in, each slot then placed by `place` (an extension's, ext_bind.rs), which may refuse it.
+pub fn rebind_with(src: &str, groups: &[&str], what: &str, dims: bool, place: &dyn Fn(usize) -> Result<usize, String>) -> Result<Rebound, String> {
     let mut others: Vec<(String, &'static str)> = Vec::new();
     let mut storages: Vec<(String, String)> = Vec::new();
     let max_samplers = if dims { SAMPLERS_WITH_DIMS } else { TEXTURES };
@@ -106,7 +111,7 @@ pub fn rebind_in(src: &str, groups: &[&str], what: &str, dims: bool) -> Result<R
             return Err(format!("{what}'s binding {name} is a var<uniform>, a texture_2d<f32> or a sampler, got {ty} (the rest are FC2a's to come)"));
         };
         out += &rest[..i];
-        out += &format!("@binding({})", slot + if dims { OWN_BASE } else { 0 });
+        out += &format!("@binding({})", place(slot).map_err(|e| format!("{what}'s binding {name}: {e}"))?);
         rest = &rest[close + 1..];
     }
     out += rest;
@@ -118,7 +123,7 @@ pub fn rebind_in(src: &str, groups: &[&str], what: &str, dims: bool) -> Result<R
 
 /// The spans of `src` under `@if(BINDLESS)`: the `{ ... }` block it opens, or the one statement it marks. raea's
 /// materials aren't bindless (Bevy sets BINDLESS only for one that is), so these compile out, their bindings as written.
-fn bindless_spans(src: &str) -> Vec<std::ops::Range<usize>> {
+pub(crate) fn bindless_spans(src: &str) -> Vec<std::ops::Range<usize>> {
     let mut out = Vec::new();
     for (i, m) in src.match_indices("@if(BINDLESS)") {
         let after = i + m.len();

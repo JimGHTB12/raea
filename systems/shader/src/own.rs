@@ -36,7 +36,7 @@ const PLACEHOLDER_2D: Handle<Shader> = uuid_handle!("5d1e7a3c-2b9f-4e6d-8a1c-3f7
 const STUB_2D: &str = "import bevy_sprite_render::mesh2d::vertex_output::VertexOutput;\n@fragment\nfn fragment(in: VertexOutput) -> @location(0) vec4<f32> { return vec4(1.0, 0.0, 1.0, 1.0); }\n";
 
 /// How a source may write the material's group: 3 in 3D, 2 in 2D.
-const GROUPS: &[&str] = &["constants::MATERIAL_BIND_GROUP", "#{MATERIAL_BIND_GROUP}", "3"];
+pub(crate) const GROUPS: &[&str] = &["constants::MATERIAL_BIND_GROUP", "#{MATERIAL_BIND_GROUP}", "3"];
 const GROUPS_2D: &[&str] = &["constants::MATERIAL_BIND_GROUP", "#{MATERIAL_BIND_GROUP}", "2"];
 
 /// One Rust type for every author's Material: eight uniform buffers of 256 bytes, four textures with their samplers,

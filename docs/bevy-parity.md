@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **133**, passing **133**, excluded **16** (docs/bevy-parity/excluded.tsv), left **289**.
+Examples: **438**, ported **134**, passing **134**, excluded **16** (docs/bevy-parity/excluded.tsv), left **288**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -179,34 +179,36 @@ doesn't pay.
 | 2d/sprite | 10 | 1.000000 | 0 | 0 / 0 | 441 / 518 | 5 / 7 | 1 / 1 | 45.738 / 2.552 = 2.552 + 0 | yes |  |
 | 2d/sprite_sheet | 30 | 1.000000 | 0 | 0 / 0 | 441 / 518 | 5 / 7 | 1 / 1 | 17.822 / 1.703 = 1.703 + 0 | yes |  |
 | 2d/sprite_sheet | 60 | 1.000000 | 0 | 0 / 0 | 441 / 518 | 5 / 7 | 1 / 1 | 2.696 / 1.576 = 1.576 + 0 | yes |  |
-| ui/ui_material | 10 | 0.999993 | 0 | 0 / 0 | 446 / 518 | 5 / 7 | 1 / 1 | 46.74 / 2.14 = 2.14 + 0 | yes |  |
 | ui/widgets/standard_widgets | 10 | 0.994691 | 17 | 0 / 0 | 487 / 516 | 5 / 7 | 1 / 1 | 45.788 / 2.282 = 2.282 + 0 | yes |  |
-| shader/extended_material | 30 | 1.000000 | 0 | 0 / 0 | 448 / 519 | 6 / 8 | 1 / 2 | 19.262 / 1.777 = 1.777 + 0 | yes |  |
-| shader/extended_material | 60 | 1.000000 | 0 | 0 / 0 | 448 / 519 | 6 / 8 | 1 / 2 | 3.421 / 1.354 = 1.354 + 0 | yes |  |
-| shader/animate_shader | 30 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 2 | 18.511 / 1.601 = 1.601 + 0 | yes |  |
-| shader/animate_shader | 60 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 2 | 3.445 / 1.537 = 1.537 + 0 | yes |  |
-| shader/shader_material | 30 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 2 | 18.188 / 1.683 = 1.683 + 0 | yes |  |
-| shader/shader_defs | 10 | 0.999999 | 0 | 0 / 0 | 448 / 520 | 7 / 8 | 1 / 3 | 49.678 / 1.841 = 1.841 + 0 | yes |  |
-| shader/shader_material_screenspace_texture | 10 | 0.998864 | 2 | 1 / 1 | 449 / 521 | 7 / 9 | 2 / 3 | 48.039 / 2.451 = 2.451 + 0 | yes |  |
-| shader/shader_material_screenspace_texture | 60 | 0.998929 | 2 | 1 / 1 | 449 / 521 | 7 / 9 | 2 / 3 | 3.478 / 1.579 = 1.579 + 0 | yes |  |
-| shader/shader_material_2d | 10 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 1 | 44.581 / 1.682 = 1.682 + 0 | yes |  |
-| shader/fallback_image | 10 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 2 | 45.892 / 1.614 = 1.614 + 0 | yes |  |
-| shader/storage_buffer | 30 | 0.999999 | 0 | 0 / 0 | 538 / 973 | 6 / 8 | 1 / 92 | 18.382 / 1.57 = 1.57 + 0 | yes |  |
-| shader/storage_buffer | 60 | 0.999999 | 0 | 0 / 0 | 538 / 973 | 6 / 8 | 1 / 92 | 3.609 / 1.318 = 1.318 + 0 | yes |  |
-| shader/array_texture | 100 | 1.000000 | 0 | 0 / 0 | 458 / 542 | 6 / 8 | 1 / 12 | 3.126 / 1.301 = 1.301 + 0 | yes |  |
-| shader/array_texture | 30 | 1.000000 | 0 | 0 / 0 | 458 / 542 | 6 / 8 | 1 / 12 | 19.532 / 2.113 = 2.113 + 0 | yes |  |
-| shader/sprite_material | 110 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.052 / 1.283 = 1.283 + 0 | yes |  |
-| shader/sprite_material | 130 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.37 / 1.26 = 1.26 + 0 | yes |  |
-| shader/sprite_material | 29 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 18.898 / 1.948 = 1.948 + 0 | yes |  |
-| shader/sprite_material | 40 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.503 / 1.571 = 1.571 + 0 | yes |  |
-| shader/sprite_material | 70 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.438 / 1.365 = 1.365 + 0 | yes |  |
-| shader/sprite_material | 95 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.371 / 1.441 = 1.441 + 0 | yes |  |
-| shader/shader_prepass | 10 | 0.995071 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 56.428 / 3.642 = 3.642 + 0 | yes |  |
-| shader/shader_prepass | 30 | 0.995869 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 5.487 / 2.948 = 2.948 + 0 | yes |  |
-| shader/shader_prepass | 50 | 0.994765 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 4.922 / 2.911 = 2.911 + 0 | yes |  |
-| shader/shader_prepass | 70 | 0.997658 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 4.821 / 2.659 = 2.659 + 0 | yes |  |
-| shader/shader_material_bindless | 10 | 1.000000 | 0 | 0 / 0 | 448 / 520 | 7 / 9 | 1 / 3 | 44.325 / 2.554 = 2.554 + 0 | yes |  |
-| shader/shader_material_2d_bindless | 10 | 1.000000 | 0 | 0 / 0 | 450 / 522 | 6 / 11 | 1 / 1 | 44.048 / 2.131 = 2.131 + 0 | yes |  |
+| shader/extended_material | 30 | 1.000000 | 0 | 0 / 0 | 448 / 519 | 6 / 8 | 1 / 2 | 18.358 / 1.357 = 1.357 + 0 | yes |  |
+| shader/extended_material | 60 | 1.000000 | 0 | 0 / 0 | 448 / 519 | 6 / 8 | 1 / 2 | 3.396 / 1.202 = 1.202 + 0 | yes |  |
+| shader/animate_shader | 30 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 2 | 18.494 / 1.388 = 1.388 + 0 | yes |  |
+| shader/animate_shader | 60 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 2 | 3.361 / 1.189 = 1.189 + 0 | yes |  |
+| ui/ui_material | 10 | 0.999993 | 0 | 0 / 0 | 446 / 518 | 5 / 7 | 1 / 1 | 45.352 / 1.988 = 1.988 + 0 | yes |  |
+| shader/shader_material | 30 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 2 | 18.349 / 1.759 = 1.759 + 0 | yes |  |
+| shader/shader_defs | 10 | 0.999999 | 0 | 0 / 0 | 448 / 520 | 7 / 8 | 1 / 3 | 45.272 / 2.473 = 2.473 + 0 | yes |  |
+| shader/shader_material_screenspace_texture | 10 | 0.998864 | 2 | 1 / 1 | 449 / 521 | 7 / 9 | 2 / 3 | 47.653 / 2.65 = 2.65 + 0 | yes |  |
+| shader/shader_material_screenspace_texture | 60 | 0.998929 | 2 | 1 / 1 | 449 / 521 | 7 / 9 | 2 / 3 | 3.266 / 1.446 = 1.446 + 0 | yes |  |
+| shader/shader_material_2d | 10 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 1 | 44.851 / 2.185 = 2.185 + 0 | yes |  |
+| shader/fallback_image | 10 | 1.000000 | 0 | 0 / 0 | 447 / 519 | 6 / 8 | 1 / 2 | 46.021 / 2.044 = 2.044 + 0 | yes |  |
+| shader/storage_buffer | 30 | 0.999999 | 0 | 0 / 0 | 538 / 973 | 6 / 8 | 1 / 92 | 17.882 / 1.502 = 1.502 + 0 | yes |  |
+| shader/storage_buffer | 60 | 0.999999 | 0 | 0 / 0 | 538 / 973 | 6 / 8 | 1 / 92 | 3.428 / 1.454 = 1.454 + 0 | yes |  |
+| shader/array_texture | 100 | 1.000000 | 0 | 0 / 0 | 458 / 542 | 6 / 8 | 1 / 12 | 3.166 / 1.437 = 1.437 + 0 | yes |  |
+| shader/array_texture | 30 | 1.000000 | 0 | 0 / 0 | 458 / 542 | 6 / 8 | 1 / 12 | 19.376 / 2.006 = 2.006 + 0 | yes |  |
+| shader/sprite_material | 110 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.06 / 1.367 = 1.367 + 0 | yes |  |
+| shader/sprite_material | 130 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.004 / 1.366 = 1.366 + 0 | yes |  |
+| shader/sprite_material | 29 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 18.162 / 1.709 = 1.709 + 0 | yes |  |
+| shader/sprite_material | 40 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.704 / 1.455 = 1.455 + 0 | yes |  |
+| shader/sprite_material | 70 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.495 / 1.373 = 1.373 + 0 | yes |  |
+| shader/sprite_material | 95 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.147 / 1.473 = 1.473 + 0 | yes |  |
+| shader/shader_prepass | 10 | 0.995071 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 56.096 / 3.86 = 3.86 + 0 | yes |  |
+| shader/shader_prepass | 30 | 0.995869 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 5.673 / 2.849 = 2.849 + 0 | yes |  |
+| shader/shader_prepass | 50 | 0.994765 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 5.344 / 2.891 = 2.891 + 0 | yes |  |
+| shader/shader_prepass | 70 | 0.997658 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 4.907 / 2.65 = 2.65 + 0 | yes |  |
+| shader/shader_material_bindless | 10 | 1.000000 | 0 | 0 / 0 | 448 / 520 | 7 / 9 | 1 / 3 | 44.647 / 1.952 = 1.952 + 0 | yes |  |
+| shader/shader_material_2d_bindless | 10 | 1.000000 | 0 | 0 / 0 | 450 / 522 | 6 / 11 | 1 / 1 | 44.265 / 2.323 = 2.323 + 0 | yes |  |
+| shader/extended_material_bindless | 30 | 1.000000 | 0 | 0 / 0 | 448 / 519 | 6 / 8 | 1 / 2 | 18.593 / 1.623 = 1.623 + 0 | yes |  |
+| shader/extended_material_bindless | 60 | 1.000000 | 0 | 0 / 0 | 448 / 519 | 6 / 8 | 1 / 2 | 3.328 / 1.389 = 1.389 + 0 | yes |  |
 
 ## Excluded
 

@@ -9,7 +9,9 @@ use bevy::shader::ShaderDefVal;
 /// The fields of the struct `src` binds at `@binding(100)` as a uniform, in order, each `(name, type)`: a field under
 /// `@if(DEF)` only when DEF is set true in `defs`. None when the source declares no such binding (raea's own layout).
 pub fn own_struct(src: &str, defs: &[ShaderDefVal]) -> Option<Result<Vec<(String, String)>, String>> {
-    let at = src.find("@binding(100)")?;
+    // the first not under @if(BINDLESS), which compiles out (ui_bind.rs bindless_spans)
+    let dead = crate::ui_bind::bindless_spans(src);
+    let at = src.match_indices("@binding(100)").map(|(i, _)| i).find(|i| !dead.iter().any(|s| s.contains(i)))?;
     let rest = &src[at..];
     let decl = &rest[..rest.find(';')?];
     let ty = match decl.find("var<uniform>").and_then(|v| decl[v..].split_once(':')) {

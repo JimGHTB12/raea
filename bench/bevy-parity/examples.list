@@ -6,6 +6,7 @@ stress_tests/many_lights
 stress_tests/many_foxes
 animation/animated_mesh
 shader/extended_material
+shader/extended_material_bindless
 3d/orthographic
 3d/parenting
 2d/mesh2d

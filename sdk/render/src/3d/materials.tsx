@@ -110,8 +110,10 @@ export interface SurfaceShaderSpec {
   /** the same in plain WGSL */
   wgsl?: string;
   /** the source as an asset path (staticFile("shaders/x.wesl")), as Bevy's MaterialExtension::fragment_shader names one:
-   *  read as written, so a source that declares its own @binding(100) uniform struct gets its uniforms packed in that
-   *  struct's layout (docs/control.feature FC2b); in place of wesl or wgsl */
+   *  read as written but for its own bindings' numbers (any, in the order declared: one uniform struct, which gets its
+   *  uniforms packed in its layout, up to 4 texture_2d and their one sampler; one under @if(BINDLESS) compiles out),
+   *  as Bevy's extended_material and extended_material_bindless declare theirs (docs/control.feature FC2b); in place
+   *  of wesl or wgsl */
   fragment?: string;
   /** up to 16: a number (f32), [x, y], [x, y, z], [x, y, z, w] or "#rrggbb" (a linear vec4) */
   uniforms?: Record<string, number | number[] | string>;

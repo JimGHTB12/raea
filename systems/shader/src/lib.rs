@@ -26,6 +26,7 @@ use std::hash::{Hash, Hasher};
 
 use raea_sys_material::shader_material::{defs, ident, uniform, Uniform, SLOTS, TEXTURES};
 
+mod ext_bind;
 mod layout;
 pub mod own;
 pub mod own_live;
@@ -289,15 +290,20 @@ pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Va
     // and a file (`fragment`) always as written, as Bevy's fragment_shader() names one: its imports first, its own
     // bindings or none (a uniform it doesn't declare is refused)
     let file = o.contains_key("fragment");
-    let (src, slots) = match layout::own_struct(&ins.src, &ins.defs).or_else(|| file.then(|| Ok(vec![]))) {
+    // a file's own bindings in ShaderExt's slots, and its textures in their order (ext_bind.rs)
+    let (own, tex) = match file {
+        true => ext_bind::fit(&ins.src, &ins.textures)?,
+        false => (ins.src.clone(), ins.textures.iter().map(|x| Some(x.1.clone())).collect()),
+    };
+    let (src, slots) = match layout::own_struct(&own, &ins.defs).or_else(|| file.then(|| Ok(vec![]))) {
         Some(fields) => {
             let vals: Vec<(String, Vec4)> = ins.uniforms.iter().map(|u| (u.name.clone(), u.value)).collect();
-            (ins.src.clone(), layout::pack(&fields?, &vals)?)
+            (own, layout::pack(&fields?, &vals)?)
         }
         None => (module(&ins.src, &names, &tnames, ins.array.as_ref().map(|a| a.0.as_str())), ins.slots()),
     };
     let id = register(world, src, &ins.defs, "raea surface shader", "raea_sys_shader");
-    let mut t = ins.textures.iter().map(|x| Some(x.1.clone()));
+    let mut t = tex.into_iter();
     Ok(ShaderExt { slots, tex0: t.next().flatten(), tex1: t.next().flatten(), tex2: t.next().flatten(), tex3: t.next().flatten(), arr: ins.array.map(|a| a.1), shader: id })
 }
 
