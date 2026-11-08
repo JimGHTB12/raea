@@ -1263,13 +1263,9 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                             None,
                             None,
                             |scene| {
-                                // Now that background has been drawn, offset pos and cx in order to draw our contents scrolled
-                                let content_position = Point {
-                                    x: content_position.x - node.scroll_offset().x,
-                                    y: content_position.y - node.scroll_offset().y,
-                                };
-
-                                // raea: scrolled in the element's axes (#18)
+                                // raea: now that the background has been drawn, the contents scrolled, in the element's
+                                // axes (#18), by the transform alone: content_position stays put, since inline text is
+                                // placed by both and was scrolled twice (#46)
                                 cx.transform = cx.transform.pre_translate(Vec2 {
                                     x: -node.scroll_offset().x * self.scale,
                                     y: -node.scroll_offset().y * self.scale,
@@ -1651,7 +1647,8 @@ impl ElementCx<'_, '_> {
 
     /// raea: the element's text as a mask (background-clip: text, #37): its glyphs where they're drawn, opaque and
     /// without their shadows, for the background group under them to keep only what they cover (DestIn). Its own
-    /// inline layout and, as Chrome's, the text of every element inside it at its place (a scroller's offset aside).
+    /// inline layout and, as Chrome's, the text of every element inside it at its place, unscrolled: Chrome 148 masks
+    /// a scroller's background with its text as at scrollTop 0 (bench/background-clip-text/check.sh's scrolled case).
     pub(super) fn draw_text_mask(&self, scene: &mut impl PaintScene) {
         if let Some(text_layout) = self.element.inline_layout_data.as_ref().filter(|_| self.node.flags.is_inline_root()) {
             let l = self.node.final_layout();
