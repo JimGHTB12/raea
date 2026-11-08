@@ -410,3 +410,13 @@ export function Viewport({ physical_position, physical_size, children }: { physi
   const [[left, top], [width, height]] = [physical_position, physical_size];
   return <div style={{ position: "absolute", left, top, width, height, overflow: "hidden" }}>{children}</div>;
 }
+
+/** The roots inside drawn by their own Camera2d (bevy_ui's UiTargetCamera): a layer over the whole window, stacked by
+ *  the camera's `order` as Bevy draws its cameras, lowest first. Cameras on one window share its main texture, which
+ *  only the first of them clears (bevy_render's ViewTarget, its first call), so the window's clear is the layered
+ *  <Canvas3D clearColor>'s and a later camera's own clear colour shows nowhere. Roots outside any are the default
+ *  camera's (the highest order). @bevy bevy_ui::UiTargetCamera */
+export function UiTargetCamera({ order = 0, children }: { order?: number; children?: ReactNode }) {
+  if (!Number.isInteger(order)) throw new RangeError(`UiTargetCamera: order is a whole number, got ${order}`);
+  return <div style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", zIndex: order, isolation: "isolate" }}>{children}</div>;
+}

@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { AngularColorStop, GhostNode, Viewport, UiRect as GradRect, FontSource, GridPlacement, GridTrack, RepeatedGridTrack, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { AngularColorStop, GhostNode, Viewport, UiTargetCamera, UiRect as GradRect, FontSource, GridPlacement, GridTrack, RepeatedGridTrack, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { Canvas3D } from "raea/3d";
 import { renderFrame } from "../src/test";
@@ -258,6 +258,12 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     const out = html(<Viewport physical_position={[200, 100]} physical_size={[600, 500]}><Node /></Viewport>);
     expect(out).toContain("position:absolute;left:200px;top:100px;width:600px;height:500px;overflow:hidden");
     expect(() => html(<Viewport physical_position={[0, 0]} physical_size={[0, 5]} />)).toThrow(/physical_size/);
+  });
+  test("UiTargetCamera is a layer over the window stacked by its camera's order, its roots roots", () => {
+    const out = html(<UiTargetCamera order={3}><Node width={px(9)} /></UiTargetCamera>);
+    expect(out).toContain("z-index:3;isolation:isolate");
+    expect(out).toContain('data-raea-blend="linear"');
+    expect(() => html(<UiTargetCamera order={1.5} />)).toThrow(/whole number/);
   });
   test("BorderColor takes a colour per side", () => {
     const out = html(<Node border={UiRect.all(px(2))} border_color={{ top: new Srgba(1, 0, 0), right: new Srgba(0, 0, 1), bottom: new Srgba(1, 1, 0), left: new Srgba(0, 1, 0) }} />);
