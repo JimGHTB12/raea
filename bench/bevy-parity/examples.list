@@ -92,3 +92,4 @@ ui/images/image_node_resizing
 ui/render_ui_to_texture
 ui/ui_drag_and_drop
 ui/navigation/directional_navigation
+ui/navigation/directional_navigation_overrides

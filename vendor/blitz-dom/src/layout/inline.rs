@@ -540,7 +540,15 @@ impl LayoutPassState<'_> {
                 // and a min-content or max-content constraint. So if we want to compute both widths in one pass then
                 // we need to store both a min-content and max-content size on each box.
                 let content_sizes = inline_layout.layout.calculate_content_widths();
-                let min_content_width = content_sizes.min;
+                // raea: a bevy_text box's min-content is its lines broken at no width, as wide as the widest with its
+                // trailing spaces (TextMeasureInfo::compute_size at 0: parley's full_width), so a wrapped word with a
+                // space after it keeps the box that much wider than the space it's given, as Bevy lays it out
+                let min_content_width = if unit == 1.0 {
+                    inline_layout.layout.break_all_lines(Some(0.0));
+                    inline_layout.layout.full_width().max(content_sizes.min)
+                } else {
+                    content_sizes.min
+                };
                 let max_content_width = content_sizes.max;
 
                 #[cfg(feature = "floats")]
