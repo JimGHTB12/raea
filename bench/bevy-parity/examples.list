@@ -84,3 +84,4 @@ ui/text/text
 ui/text/text_debug
 ui/ui_transform
 ui/scroll_and_overflow/scroll
+ui/scroll_and_overflow/drag_to_scroll
