@@ -22,6 +22,7 @@ impl ElementCx<'_, '_> {
             .as_srgb_color();
         let bg_is_opaque = bg_color.components[3] >= 1.0;
         let needs_clip = opacity < 1.0 || !bg_is_opaque;
+        let bevy = self.node.attr(blitz_dom::LocalName::from("data-raea-bevy-shadow")).is_some();
 
         let max_shadow_rect = box_shadow.iter().fold(Rect::ZERO, |prev, shadow| {
             let x = shadow.base.horizontal.px() as f64 * self.scale;
@@ -30,7 +31,11 @@ impl ElementCx<'_, '_> {
             let spread = shadow.spread.px() as f64 * self.scale;
             let offset = spread + blur * 2.5;
 
-            let rect = self.frame.border_box.inflate(offset, offset) + Vec2::new(x, y);
+            // raea: a bevy_ui node's shadow spreads by bevy_ui's rule, its height by the width's ratio
+            let rect = match bevy.then(|| bevy_spread(self.frame.border_box, 0.0, spread)).flatten() {
+                Some((r, _)) => r.inflate(blur * 2.5, blur * 2.5) + Vec2::new(x, y),
+                None => self.frame.border_box.inflate(offset, offset) + Vec2::new(x, y),
+            };
 
             prev.union(rect)
         });
@@ -78,10 +83,17 @@ impl ElementCx<'_, '_> {
                         }
 
                         // TODO draw shadows with matching individual radii instead of averaging
-                        // raea: the shadow's corners grow and shrink with its spread, as its box does
+                        // raea: the shadow's corners grow and shrink with its spread, as its box does; a bevy_ui
+                        // node's (data-raea-bevy-shadow) by bevy_ui's rule, which may leave no shadow at all
                         let radius = self.frame.border_radii.average();
-                        let radius = if radius > 0.0 { (radius + spread).max(0.0) } else { 0.0 };
-                        let rect = self.frame.border_box.inflate(spread, spread);
+                        let (rect, radius) = if bevy {
+                            match bevy_spread(self.frame.border_box, radius, spread) {
+                                Some(s) => s,
+                                None => continue,
+                            }
+                        } else {
+                            (self.frame.border_box.inflate(spread, spread), if radius > 0.0 { (radius + spread).max(0.0) } else { 0.0 })
+                        };
 
                         // Fill the color
                         scene.draw_box_shadow(transform, rect, shadow_color, radius, blur);
@@ -160,5 +172,38 @@ impl ElementCx<'_, '_> {
             scene.pop_layer();
             scene.pop_layer();
         }
+    }
+}
+
+/// bevy_ui's spread (box_shadow.rs extract_shadows): the shadow `spread` wider than the node, half each side, its height
+/// and corners scaled by the same ratio, about the node's centre; none when that leaves it no size.
+pub(crate) fn bevy_spread(border_box: Rect, radius: f64, spread: f64) -> Option<(Rect, f64)> {
+    let (w, h) = (border_box.width(), border_box.height());
+    if w <= 0.0 {
+        return None;
+    }
+    let ratio = (spread + w) / w;
+    let (sw, sh) = (w + spread, h * ratio);
+    if sw <= 0.0 || sh <= 0.0 {
+        return None;
+    }
+    let c = border_box.center();
+    Some((Rect::from_center_size(c, (sw, sh)), radius * ratio))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bevy_spread_grows_width_by_spread_and_height_by_its_ratio() {
+        // a 200 x 100 node spread 20: 220 wide, 110 high (ratio 1.1), corners 4 -> 4.4, about the same centre
+        let (r, radius) = bevy_spread(Rect::new(10.0, 10.0, 210.0, 110.0), 4.0, 20.0).unwrap();
+        for (got, want) in [(r.x0, 0.0), (r.y0, 5.0), (r.x1, 220.0), (r.y1, 115.0)] {
+            assert!((got - want).abs() < 1e-9, "{r:?}");
+        }
+        assert!((radius - 4.4).abs() < 1e-12);
+        // a spread that takes the whole width leaves no shadow
+        assert!(bevy_spread(Rect::new(0.0, 0.0, 10.0, 10.0), 0.0, -10.0).is_none());
     }
 }

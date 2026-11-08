@@ -74,16 +74,21 @@ const pxOf = (who: string, k: string, v: Val) => {
 };
 
 /** A BoxShadow as CSS's box-shadow. Bevy's blur radius is its Gaussian's standard deviation, CSS's twice that. Bevy
- *  spreads the shadow by spread_radius across its width and scales its height and corners by the same ratio, which
- *  CSS's spread (even on every side, corners grown by it) matches only at zero; any other spread is to do. */
+ *  grows the shadow's width by spread_radius (half each side) and scales its height and corners by the same ratio,
+ *  where CSS's spread grows every side by it; the spread is sent as it is, and a node with one marked
+ *  data-raea-bevy-shadow (shadowSpread), which raea's Blitz paints by Bevy's rule (vendor/blitz-paint box_shadow.rs). */
 export function shadowCss(who: string, b: BoxShadow): string {
   if (!Array.isArray(b)) throw new TypeError(`${who}: box_shadow is a BoxShadow (BoxShadow.new(color, px(30), px(30), px(0), px(4))), got ${JSON.stringify(b)}`);
   // CSS lists the shadow on top first, Bevy draws its list back to front
   return [...b].reverse().map((s, i) => {
     const k = `box_shadow[${b.length - 1 - i}]`;
-    if (pxOf(who, `${k}.spread_radius`, s.spread_radius) !== 0) throw new TypeError(`${who}: ${k}.spread_radius other than 0 is to do (Bevy scales the shadow's height and corners by the width's spread ratio)`);
     const blur = pxOf(who, `${k}.blur_radius`, s.blur_radius);
     if (blur < 0) throw new RangeError(`${who}: ${k}.blur_radius is at least 0, got ${blur}`);
-    return `${pxOf(who, `${k}.x_offset`, s.x_offset)}px ${pxOf(who, `${k}.y_offset`, s.y_offset)}px ${blur * 2}px 0px ${colorCss(who, `${k}.color`, s.color)}`;
+    return `${pxOf(who, `${k}.x_offset`, s.x_offset)}px ${pxOf(who, `${k}.y_offset`, s.y_offset)}px ${blur * 2}px ${pxOf(who, `${k}.spread_radius`, s.spread_radius)}px ${colorCss(who, `${k}.color`, s.color)}`;
   }).join(", ");
+}
+
+/** whether a BoxShadow spreads, so its node is marked data-raea-bevy-shadow for Bevy's spread rule */
+export function shadowSpread(b: BoxShadow): boolean {
+  return Array.isArray(b) && b.some((s) => parseFloat(String(s.spread_radius)) !== 0);
 }

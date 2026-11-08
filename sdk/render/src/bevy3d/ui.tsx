@@ -12,7 +12,7 @@ import {
 import { LinearRgba, type Srgba } from "./colors";
 import { gradientsCss, gradientsOpaque, type Gradient } from "./ui-gradient";
 import { gridCss, type GridAutoFlow, type GridPlacement, type GridTrack, type RepeatedGridTrack } from "./ui-grid";
-import { shadowCss, transformCss, type BoxShadow, type UiTransform } from "./ui-transform";
+import { shadowCss, shadowSpread, transformCss, type BoxShadow, type UiTransform } from "./ui-transform";
 import { featuresCss } from "./ui-features";
 import { scrollCss, type IgnoreScroll } from "./ui-scroll";
 import { useDebugAttr, type UiDebugOptions } from "./ui-debug";
@@ -138,6 +138,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): 
   // them; a GlobalZIndex ranks it in the root's (raea's Blitz hoists it past every other, layout/paint_tree.rs)
   s.zIndex = p.global_z_index ?? p.z_index ?? 0;
   const attrs: Record<string, string | number> = p.global_z_index ? { "data-raea-bevy-global-z": "" } : {};
+  if (p.box_shadow !== undefined && shadowSpread(p.box_shadow)) attrs["data-raea-bevy-shadow"] = "";
   if (p.margin !== undefined) s.margin = rectCss(who, "margin", p.margin);
   if (p.padding !== undefined) s.padding = rectCss(who, "padding", p.padding);
   if (p.border !== undefined) {
@@ -157,6 +158,8 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): 
     s.outline = `${checkVal(who, "outline.width", p.outline.width)} solid ${over(who, "outline.color", p.outline.color ?? "#ffffff", undefined).css}`;
     if (p.outline.offset !== undefined) s.outlineOffset = checkVal(who, "outline.offset", p.outline.offset);
   }
+  // (what lies under the node, which its border blends over: Bevy keeps the background inside the border)
+  const under = back;
   if (p.background_color !== undefined) ({ css: s.backgroundColor, back } = over(who, "background_color", p.background_color, back));
   if (p.background_gradient !== undefined) {
     s.backgroundImage = gradientsCss(who, p.background_gradient);
@@ -176,12 +179,13 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): 
     s.backgroundOrigin = "border-box";
     s.backgroundClip = [...own.map(() => "padding-box"), ...p.border_gradient.map(() => "border-box")].join(", ");
   }
-  // (the border over its own background, as Bevy draws it)
+  // (the border over what lies under the node, not its own background, which Bevy draws inside the border only: a
+  // translucent border on a translucent background shows one blend, as feathers' disabled switch slide does)
   const bc = p.border_color;
   if (bc !== undefined && typeof bc === "object" && "top" in bc) {
-    const side = (k: "top" | "right" | "bottom" | "left") => over(who, `border_color.${k}`, bc[k], back).css;
+    const side = (k: "top" | "right" | "bottom" | "left") => over(who, `border_color.${k}`, bc[k], under).css;
     s.borderColor = `${side("top")} ${side("right")} ${side("bottom")} ${side("left")}`;
-  } else if (bc !== undefined) s.borderColor = over(who, "border_color", bc, back).css;
+  } else if (bc !== undefined) s.borderColor = over(who, "border_color", bc, under).css;
   if (p.overflow !== undefined) {
     const o = p.overflow;
     for (const a of ["x", "y"] as const) if (!OVERFLOW_AXIS.includes(o?.[a])) throw new TypeError(`${who}: overflow.${a} is one of ${OVERFLOW_AXIS.join(", ")}, got ${JSON.stringify(o?.[a])}`);

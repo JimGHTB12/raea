@@ -85,3 +85,8 @@ export function VirtualKeyboard({ keys }: { keys: string[][] }) {
     </Node>
   );
 }
+
+/** A FeathersButton for a toolbar: 4 px each side and at least ROW_HEIGHT wide. @bevy bevy_feathers::controls::FeathersToolButton */
+export function FeathersToolButton({ children, ...props }: FeathersButtonProps) {
+  return <FeathersButton padding={UiRect.horizontal(px(4))} min_width={size.ROW_HEIGHT} {...props}>{children}</FeathersButton>;
+}

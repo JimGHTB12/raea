@@ -1,6 +1,7 @@
 // bevy_ui's gradients (BackgroundGradient: LinearGradient, RadialGradient, ConicGradient with their ColorStops) as the
 // page's CSS gradients, which raea's Blitz paints in the colour space each names (blitz-paint gradient.rs).
 import { checkVal, colorCss, type Val } from "./ui-val";
+import { okhslStopsCss } from "./ui-gradient-okhsl";
 import type { LinearRgba, Srgba } from "./colors";
 
 type Color = Srgba | LinearRgba | string;
@@ -22,9 +23,11 @@ export const AngularColorStop = {
 };
 
 /** bevy_ui's InterpolationColorSpace: Oklaba by default. @bevy bevy_ui::gradients::InterpolationColorSpace */
-export type InterpolationColorSpace = "Oklaba" | "Oklcha" | "OklchaLong" | "Srgba" | "LinearRgba" | "Hsla" | "HslaLong";
+export type InterpolationColorSpace = "Oklaba" | "Oklcha" | "OklchaLong" | "Srgba" | "LinearRgba" | "Hsla" | "HslaLong" | "Okhsla" | "OkhslaLong";
 const SPACE: Record<InterpolationColorSpace, string> = {
   Oklaba: "in oklab", Oklcha: "in oklch", OklchaLong: "in oklch longer hue", Srgba: "in srgb", LinearRgba: "in srgb-linear", Hsla: "in hsl", HslaLong: "in hsl longer hue",
+  // (okhsl has no CSS space: its stops are sampled in okhsl, ui-gradient-okhsl.ts, and CSS goes between them in Oklab)
+  Okhsla: "in oklab", OkhslaLong: "in oklab",
 };
 
 /** bevy_ui's UiPosition: a point of the node, `anchor` from its centre (each axis -0.5 to 0.5 of its size), moved `x`
@@ -123,16 +126,22 @@ function shapeCss(who: string, s: RadialGradientShape): string {
   throw new TypeError(`${who}: shape is a RadialGradientShape, got ${JSON.stringify(s)}`);
 }
 
+/** A gradient's stops as CSS's: an Okhsla one sampled in okhsl. */
+function stopList(who: string, g: Gradient, at: (s: ColorStop | AngularColorStop) => string | undefined): string {
+  const long = g.color_space === "OkhslaLong";
+  return long || g.color_space === "Okhsla" ? okhslStopsCss(who, g.stops, at, long) : stopsCss(who, g.stops, at);
+}
+
 /** One gradient as CSS's. */
 function gradientCss(who: string, g: Gradient): string {
   if (g?.kind === "Linear") {
     if (!Number.isFinite(g.angle)) throw new TypeError(`${who}: a LinearGradient's angle is radians, got ${g.angle}`);
-    return `linear-gradient(${g.angle}rad ${space(who, g)}, ${stopsCss(who, g.stops, (s) => (s as ColorStop).point && checkVal(who, "stop.point", (s as ColorStop).point))})`;
+    return `linear-gradient(${g.angle}rad ${space(who, g)}, ${stopList(who, g, (s) => (s as ColorStop).point && checkVal(who, "stop.point", (s as ColorStop).point))})`;
   }
-  if (g?.kind === "Radial") return `radial-gradient(${shapeCss(who, g.shape)} at ${positionCss(who, g.position)} ${space(who, g)}, ${stopsCss(who, g.stops, (s) => (s as ColorStop).point && checkVal(who, "stop.point", (s as ColorStop).point))})`;
+  if (g?.kind === "Radial") return `radial-gradient(${shapeCss(who, g.shape)} at ${positionCss(who, g.position)} ${space(who, g)}, ${stopList(who, g, (s) => (s as ColorStop).point && checkVal(who, "stop.point", (s as ColorStop).point))})`;
   if (g?.kind === "Conic") {
     if (!Number.isFinite(g.start)) throw new TypeError(`${who}: a ConicGradient's start is radians, got ${g.start}`);
-    return `conic-gradient(from ${g.start}rad at ${positionCss(who, g.position)} ${space(who, g)}, ${stopsCss(who, g.stops, (s) => ((s as AngularColorStop).angle === undefined ? undefined : `${(s as AngularColorStop).angle}rad`))})`;
+    return `conic-gradient(from ${g.start}rad at ${positionCss(who, g.position)} ${space(who, g)}, ${stopList(who, g, (s) => ((s as AngularColorStop).angle === undefined ? undefined : `${(s as AngularColorStop).angle}rad`))})`;
   }
   throw new TypeError(`${who}: a gradient is a LinearGradient, RadialGradient or ConicGradient, got ${JSON.stringify(g)}`);
 }

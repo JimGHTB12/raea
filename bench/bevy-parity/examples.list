@@ -102,3 +102,4 @@ ui/widgets/standard_widgets_observers
 ui/widgets/standard_widgets
 ui/widgets/feathers_counter
 ui/widgets/feathers_number_input
+ui/widgets/feathers_gallery

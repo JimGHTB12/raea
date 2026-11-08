@@ -3,7 +3,8 @@
 // padding, spaced around) of two light-blue (tailwind BLUE_100) groups 75% wide and 30% high: four icon.png
 // ImageNodes in NodeImageMode::Auto, then four in Stretch, 10%, 20%, 30% and 40% wide and the group's height. Bevy's
 // GlobalUiDebugOptions outlines every node but the text's, each coloured by its entity's index: setup's Commands
-// reserve them in spawn order from the camera's, 430 (DefaultPlugins' startup entities before it; the text's
+// reserve them in spawn order from the camera's, 429 (DefaultPlugins' startup entities before it in the parity
+// host, a count that moves with what the host links: 430 before later examples joined it; the text's
 // observer comes later, when the commands apply). The arrows resize the groups only while held. Bevy's Camera2d over
 // the default clear colour is the layered <Canvas3D>. In Bevy's default 1280 x 720 window.
 import type { ReactNode } from "react";
@@ -17,7 +18,7 @@ const ICON = staticFile("branding/icon.png");
 const BLUE_100 = new Srgba(0xdb / 255, 0xea / 255, 0xfe / 255);
 const PREFIX = "Compare NodeImageMode(Auto, Stretch) press `Up`/`Down` to resize height, press `Left`/`Right` to resize width\n";
 // each node's entity index: the camera's, then setup's spawns in order
-const CAMERA = 430;
+const CAMERA = 429;
 const at = (k: number) => CAMERA + k;
 
 const Group = ({ index, children }: { index: number; children: ReactNode }) => (

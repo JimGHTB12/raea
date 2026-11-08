@@ -55,6 +55,11 @@ export function InheritableText({ children, ...style }: Inherited & { children?:
   return <InheritedCx.Provider value={{ ...outer, ...Object.fromEntries(Object.entries(style).filter(([, v]) => v !== undefined)) }}>{children}</InheritedCx.Provider>;
 }
 
+/** the text colour the feathers widget around the caller propagates (a ThemedIcon's tint), or none */
+export function useInheritedColor(): TextStyleProps["color"] {
+  return useContext(InheritedCx).color;
+}
+
 /** A Text with ThemedText: it takes the font and colour the feathers widget around it propagates.
  *  @bevy bevy_feathers::theme::ThemedText */
 export function ThemedText(props: TextProps) {

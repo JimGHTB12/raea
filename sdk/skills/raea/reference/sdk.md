@@ -39,11 +39,11 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/color` (sdk/raea/src/color.ts)
 
-`Hsla`, `LinearRgba`, `Oklaba`, `Oklcha`, `Srgba`, `Xyza`, `kelvin`, `toHex`
+`Hsla`, `LinearRgba`, `Okhsla`, `Oklaba`, `Oklcha`, `Srgba`, `Xyza`, `kelvin`, `toHex`
 
 ## `raea/feathers` (sdk/raea/src/feathers.ts)
 
-`AngleDegrees`, `Dimensionless`, `FeathersButton`, `FeathersNumberInput`, `LengthMeters`, `NumberInputRange`, `NumberInputValue`, `StandardUnitKind`, `ThemeBackgroundColor`, `ThemeBorderColor`, `ThemeContext`, `ThemeTextColor`, `ThemedText`, `TimeSeconds`, `UiTheme`, `VirtualKeyboard`, `caption`, `context_color`, `create_dark_theme`, `fonts`, `label`, `label_dim`, `label_small`, `palette`, `size`, `to_border_radius`, `tokens`, `useThemeColor`
+`AngleDegrees`, `Dimensionless`, `FeathersButton`, `FeathersCheckbox`, `FeathersColorInput`, `FeathersColorPlane`, `FeathersColorSlider`, `FeathersColorSwatch`, `FeathersDisclosureToggle`, `FeathersLazyMenu`, `FeathersListRow`, `FeathersListView`, `FeathersMenu`, `FeathersMenuButton`, `FeathersMenuDivider`, `FeathersMenuItem`, `FeathersMenuPopup`, `FeathersMenuToolButton`, `FeathersNumberInput`, `FeathersRadio`, `FeathersScrollbar`, `FeathersSelect`, `FeathersSlider`, `FeathersTextInput`, `FeathersTextInputContainer`, `FeathersToggleSwitch`, `FeathersToolButton`, `LengthMeters`, `NumberInputRange`, `NumberInputValue`, `StandardUnitKind`, `ThemeBackgroundColor`, `ThemeBorderColor`, `ThemeContext`, `ThemeTextColor`, `ThemedText`, `TimeSeconds`, `UiTheme`, `VirtualKeyboard`, `caption`, `channel_range`, `context_color`, `create_dark_theme`, `flex_spacer`, `fonts`, `gradient_ends`, `group`, `group_body`, `group_header`, `icon`, `icon_untinted`, `icons`, `label`, `label_dim`, `label_small`, `list_rows_from_strings`, `palette`, `pane`, `pane_body`, `pane_header`, `pane_header_divider`, `size`, `slider_label`, `subpane`, `subpane_body`, `subpane_header`, `to_border_radius`, `tokens`, `useInheritedColor`, `useThemeColor`
 
 ## `raea/gizmos` (sdk/raea/src/gizmos.ts)
 

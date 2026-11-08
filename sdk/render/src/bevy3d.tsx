@@ -20,7 +20,7 @@ export { TextureView } from "./layers";
 // your own Material (docs/control.feature FC2a)
 export { Material, type MaterialProps } from "./bevy3d/all";
 // bevy_color's other spaces (docs/control.feature FC1f)
-export { Hsla, Oklaba, Oklcha, Xyza } from "./bevy3d/all";
+export { Hsla, Okhsla, Oklaba, Oklcha, Xyza } from "./bevy3d/all";
 // FogFalloff, Bevy's constructors, for a <Fog> inside the <Camera3d> (docs/control.feature FC0a)
 export { FogFalloff } from "./bevy3d/fog";
 // Bevy's Hdr camera marker, inside the <Camera3d> (docs/control.feature FC0a)

@@ -56,7 +56,7 @@ exit = "a bevy_ui_widgets release on parley 0.12"
 path = "vendor/blitz-paint"
 upstream = "crates.io:0.3.0-beta.4"
 kind = "patch"
-reason = "angled tile gradients, many-tile gradient layers as one brush, text-shadow, ellipsis, inline-box opacity, box-shadow blur as Chrome's; filters by GPU passes (B4a/B4b); z-index boxes clipped by the overflow between them and their stacking context; a range input's thumb; what an element paints at an offset of its own (background position and tiles, box and text shadows, scroll, inline SVG) placed in its own axes under a rotated ancestor (#18); background-clip: text, its background masked by the text of the element and everything in it (#37); a rounded corner where one side has no width (a left-only border on a rounded box), which drew nothing"
+reason = "angled tile gradients, many-tile gradient layers as one brush, text-shadow, ellipsis, inline-box opacity, box-shadow blur as Chrome's; filters by GPU passes (B4a/B4b); z-index boxes clipped by the overflow between them and their stacking context; a range input's thumb; what an element paints at an offset of its own (background position and tiles, box and text shadows, scroll, inline SVG) placed in its own axes under a rotated ancestor (#18); background-clip: text, its background masked by the text of the element and everything in it (#37); a rounded corner where one side has no width (a left-only border on a rounded box), which drew nothing; a bevy_ui node's spreading box shadow (data-raea-bevy-shadow) spread as bevy_ui spreads it, its width by the spread and its height and corners by the same ratio"
 exit = "a Blitz release that draws these"
 
 [blitz-dom]

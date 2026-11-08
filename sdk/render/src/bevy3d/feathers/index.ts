@@ -1,9 +1,20 @@
 // bevy_feathers (docs/control.feature FC0a): Bevy's widget set, its theme and fonts, drawn by the page.
 export { tokens, type ThemeToken } from "./tokens";
 export { palette, create_dark_theme, type ThemeProps, type SurfaceLevel } from "./dark_theme";
-export { UiTheme, ThemeContext, ThemedText, context_color, useThemeColor } from "./theme";
+export { UiTheme, ThemeContext, ThemedText, context_color, useThemeColor, useInheritedColor } from "./theme";
 export { fonts, size } from "./constants";
-export { FeathersButton, VirtualKeyboard, to_border_radius, type ButtonVariant, type RoundedCorners, type FeathersButtonProps } from "./controls";
-export { caption, label, label_dim, label_small, ThemeBackgroundColor, ThemeBorderColor, ThemeTextColor } from "./display";
+export { FeathersButton, FeathersToolButton, VirtualKeyboard, to_border_radius, type ButtonVariant, type RoundedCorners, type FeathersButtonProps } from "./controls";
+export { caption, label, label_dim, label_small, icon, icon_untinted, ThemeBackgroundColor, ThemeBorderColor, ThemeTextColor } from "./display";
 export { FeathersNumberInput, type FeathersNumberInputProps, type NumberInputWrap } from "./number-input";
 export { NumberInputValue, NumberInputRange, StandardUnitKind, Dimensionless, LengthMeters, TimeSeconds, AngleDegrees, type NumberKind, type UnitsFormat, type StandardUnitItem } from "./number-value";
+export { icons, type FeathersIcon } from "./icons";
+export { pane, pane_header, pane_header_divider, pane_body, subpane, subpane_header, subpane_body, group, group_header, group_body, flex_spacer } from "./containers";
+export { FeathersMenu, FeathersLazyMenu, FeathersMenuButton, FeathersMenuToolButton, FeathersMenuPopup, FeathersMenuItem, FeathersMenuDivider, type FeathersMenuButtonProps } from "./menu";
+export { FeathersCheckbox, FeathersRadio, FeathersToggleSwitch, FeathersDisclosureToggle, type FeathersToggleProps } from "./toggles";
+export { FeathersSlider, slider_label, type FeathersSliderProps } from "./slider";
+export { FeathersScrollbar, FeathersListView, FeathersListRow, type FeathersScrollbarProps, type FeathersListViewProps, type FeathersListRowProps } from "./listview";
+export { FeathersSelect, list_rows_from_strings, type FeathersSelectProps } from "./select";
+export { FeathersColorSwatch, FeathersColorSlider, channel_range, gradient_ends, type FeathersColor, type ColorChannel, type FeathersColorSwatchProps, type FeathersColorSliderProps } from "./color";
+export { FeathersColorPlane, type FeathersColorPlaneProps } from "./color-plane";
+export { FeathersColorInput, type FeathersColorInputProps } from "./color-input";
+export { FeathersTextInputContainer, FeathersTextInput, type FeathersTextInputContainerProps, type FeathersTextInputProps } from "./text-input";

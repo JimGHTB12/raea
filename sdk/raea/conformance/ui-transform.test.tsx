@@ -40,8 +40,12 @@ describe("BoxShadow: drop shadows under a node", () => {
     expect(out).toMatch(/box-shadow:-4px 5px 0px 0px rgba\(0, 0, 255, 1\), 1px 2px 6px 0px rgba\(255, 0, 0, 1\)/);
     expect(html(<Node box_shadow={BoxShadow.new(new Srgba(0, 0, 0), px(30), px(30), px(0), px(4))} />)).toMatch(/box-shadow:30px 30px 8px 0px /);
   });
-  test("a spread, a percent or a negative blur is refused, not drawn wrong", () => {
-    expect(() => html(<Node box_shadow={BoxShadow.new(new Srgba(0, 0, 0), px(1), px(1), px(2), px(4))} />)).toThrow(/spread_radius/);
+  test("a spread is sent as it is and its node marked, for raea's Blitz to spread it by bevy_ui's rule", () => {
+    const out = html(<Node box_shadow={BoxShadow.new(new Srgba(0, 0, 0), px(1), px(1), px(2), px(4))} />);
+    expect(out).toMatch(/box-shadow:1px 1px 8px 2px /);
+    expect(out).toContain("data-raea-bevy-shadow");
+  });
+  test("a percent or a negative blur is refused, not drawn wrong", () => {
     expect(() => html(<Node box_shadow={BoxShadow.new(new Srgba(0, 0, 0), percent(20), px(1), px(0), px(4))} />)).toThrow(/x_offset/);
     expect(() => html(<Node box_shadow={BoxShadow.new(new Srgba(0, 0, 0), px(1), px(1), px(0), px(-1))} />)).toThrow(/blur_radius/);
   });

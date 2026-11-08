@@ -8,3 +8,4 @@ export * from "./material";
 export * from "./lights";
 export * from "./mesh2d";
 export * from "./colorspaces";
+export * from "./okhsla";

@@ -224,8 +224,9 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
         // root's stacking context, vendor/blitz-dom layout/paint_tree.rs; a bevy_ui root's data-raea-blend kept: its page
         // blends in linear light, systems/page paint; a bevy_ui scroller's data-raea-bevy-scroll and an IgnoreScroll node's
         // data-raea-bevy-ignore-scroll kept: Blitz floors its offset and keeps the node in place, vendor/blitz-dom resolve.rs;
+        // a spreading box shadow's data-raea-bevy-shadow kept: Blitz spreads it as bevy_ui does, vendor/blitz-paint render/box_shadow.rs;
         // the source stamps data-raea-loc and data-raea-use kept for the render manifest, engine/bundle stamp.rs)
-        const KEPT: [&str; 12] = ["data-raea-start", "data-raea-bevy-debug", "data-raea-bevy-text", "data-raea-bevy-slice", "data-raea-bevy-global-z", "data-raea-blend", "data-raea-bevy-scroll", "data-raea-bevy-ignore-scroll", "data-raea-bevy-scrollbar", "data-raea-bevy-thumb", "data-raea-loc", "data-raea-use"];
+        const KEPT: [&str; 13] = ["data-raea-start", "data-raea-bevy-debug", "data-raea-bevy-shadow", "data-raea-bevy-text", "data-raea-bevy-slice", "data-raea-bevy-global-z", "data-raea-blend", "data-raea-bevy-scroll", "data-raea-bevy-ignore-scroll", "data-raea-bevy-scrollbar", "data-raea-bevy-thumb", "data-raea-loc", "data-raea-use"];
         if k == "children" || k == "key" || (k.starts_with("data-raea") && !KEPT.contains(&k.as_str())) || k == "data-props" || k == "data-shape" || k == "data-anim" || v.is_null() {
             continue;
         }
