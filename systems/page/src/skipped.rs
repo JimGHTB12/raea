@@ -30,6 +30,19 @@ pub fn settle() {
     }
 }
 
+/// The last draw's sentinel read back, as submitted (`wait_drawn` waits for it).
+static LAST: std::sync::Mutex<Option<wgpu::SubmissionIndex>> = std::sync::Mutex::new(None);
+
+/// Every draw's read back answered, waiting for the last one: the fed render's check (export fed.rs), made before its
+/// frame is handed to the encoder, since once encoded there's no frame left to draw again. It waits only for the page
+/// draws the frame's composite waits for anyway.
+pub fn wait_drawn() {
+    let last = LAST.lock().unwrap_or_else(|e| e.into_inner()).take();
+    if let (Some(d), Some(i)) = (DEVICE.get(), last) {
+        let _ = d.poll(wgpu::PollType::Wait { submission_index: Some(i), timeout: None });
+    }
+}
+
 /// `scene` drawn by Vello into `target` with `params`, its sentinel's read back on its way (`what` names it).
 pub fn render(renderer: &mut vello::Renderer, device: &wgpu::Device, queue: &wgpu::Queue, scene: &vello::Scene, target: &wgpu::Texture, params: &vello::RenderParams, what: &str) -> Result<(), String> {
     let check = std::env::var_os("RAEA_PAGE_DRAWN_CHECK").is_none_or(|v| v != "0");
@@ -47,7 +60,7 @@ pub fn render(renderer: &mut vello::Renderer, device: &wgpu::Device, queue: &wgp
     let buf = device.create_buffer(&wgpu::BufferDescriptor { label: Some("raea-page drawn?"), size: 4, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
     let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("raea-page drawn?") });
     enc.copy_texture_to_buffer(texel, wgpu::TexelCopyBufferInfo { buffer: &buf, layout }, one);
-    queue.submit([enc.finish()]);
+    *LAST.lock().unwrap_or_else(|e| e.into_inner()) = Some(queue.submit([enc.finish()]));
     let (read, what, (w, h)) = (buf.clone(), what.to_string(), (params.width, params.height));
     buf.slice(..).map_async(wgpu::MapMode::Read, move |r| {
         let skipped = r.is_ok() && read.slice(..).get_mapped_range().is_ok_and(|d| d[..4] == SENTINEL);

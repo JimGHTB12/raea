@@ -18,6 +18,7 @@
 
 mod draw;
 mod skipped;
+pub use skipped::wait_drawn;
 /// a page's loads (raea-sys-page-net: FileNet, FrameNet, the page's fetch, the image decoder)
 pub use raea_sys_page_net as net;
 pub use blitz_dom::not_applied; // what the page asked for and didn't get, said once when a render ends (#34)

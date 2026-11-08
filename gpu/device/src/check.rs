@@ -156,6 +156,26 @@ pub fn on_settle(settle: fn()) {
     let _ = SETTLE.set(settle);
 }
 
+/// The fed render's frame `first`, checked before it goes to the encoder, where `skip_checked` could only draw the frames
+/// after (a skipped first frame went out black): once `wait` (raea-page's `wait_drawn`) has every draw's read back
+/// answered, a skipped draw has `paint` paint the frame again with Vello's own sizes; Err naming the frame when that's
+/// skipped too (#23).
+pub fn fed_checked<T>(f: i64, first: T, wait: fn(), redraw_full: fn(bool), paint: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
+    wait();
+    if take_skipped().is_none() {
+        return Ok(first);
+    }
+    redraw_full(true);
+    let again = paint();
+    redraw_full(false);
+    let again = again?;
+    wait();
+    match take_skipped() {
+        Some(why) => Err(format!("frame {f}: {why}")),
+        None => Ok(again),
+    }
+}
+
 fn take_skipped() -> Option<String> {
     if let Some(settle) = SETTLE.get() {
         settle();

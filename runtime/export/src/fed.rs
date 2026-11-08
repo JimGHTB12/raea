@@ -189,13 +189,11 @@ pub(crate) fn engine_before(app: &App, cx: &mut Ctx, f: i64) {
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn render_fed(app: &mut App, js: &Path, w: u32, h: u32, fps: f64, total: i64, cx: &mut Ctx, out: &Path, work: &Path, wanted: &[i64], bevy: &mut raea_runtime_page::BevyPage) -> R<String> {
     let page = bevy_fed_buffer(w, h)?;
-    // the 3D made from the scene's rows beforehand (not a game's, stepped frame by frame): stepped again once a camera's
-    // box in the page is known
+    // the 3D made from the scene's rows beforehand (not a game's): stepped again once a camera's box in the page is known
     let programmed = cx.scene3d.is_some() && cx.live3d.is_none();
     let mut restepped = false;
     let frames: std::cell::RefCell<Vec<(i64, Frame)>> = std::cell::RefCell::new(Vec::with_capacity(total.max(0) as usize));
-    // the sound is the one mixer core's bounce of the frames' sounds and notes, as live play mixes the same frames
-    // (raea-mixer)
+    // the sound is the one mixer core's bounce of the frames' sounds and notes, as live play mixes them (raea-mixer)
     let notes: std::cell::RefCell<Vec<raea_sys_mix::ToneCue>> = std::cell::RefCell::new(Vec::new());
     let dir = cx.dir.to_path_buf();
     // the sound bounced as the frames come, on its own thread (it was mixed after the last frame: 3 s on the export)
@@ -252,6 +250,8 @@ pub(crate) fn render_fed(app: &mut App, js: &Path, w: u32, h: u32, fps: f64, tot
                     fr = bevy_fed(app.world_mut(), bevy, cx, &page, fps)?;
                 }
             }
+            // a page draw past Vello's bump buffers, painted again at Vello's own sizes before the frame is encoded (#23)
+            fr = raea_gpu_device::check::fed_checked(f, fr, raea_sys_page::wait_drawn, raea_sys_page::redraw_full, || { cx.manifest.as_mut().map(|m| m.pop()); bevy_fed(app.world_mut(), bevy, cx, &page, fps) })?;
             // a video's 3D made live keeps each frame's scene for the clipping check
             if LIVE_CLIPS.load(std::sync::atomic::Ordering::Relaxed) { fr.scene = scene_of(app.world_mut()); }
             if cx.scene3d.is_none() && cx.live3d.is_none() && !cx.scene.is_empty() && BEVY_3D_PROBE.load(std::sync::atomic::Ordering::Relaxed) {
