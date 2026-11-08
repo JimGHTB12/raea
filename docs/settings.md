@@ -48,3 +48,4 @@ libraries (pianos, General MIDI instruments, orchestral and percussion samples, 
 |---|---|
 | `RAEA_VELLO_BUMP=full` | Pages are drawn with Vello's own buffer sizes from the first frame, instead of raea's smaller ones (about 100 MB less GPU memory). A page past raea's sizes is found and drawn again at Vello's anyway, with a line on stderr, so this only saves that redraw |
 | `RAEA_PAGE_DRAWN_CHECK=0` | Pages are drawn without checking that Vello drew them. For measuring what the check costs (about 2% in one test): a page past Vello's buffers then shows the frame before it again, or nothing |
+| `RAEA_PANIC_FAULT=N` | A panic while frame N draws, for checking what a failing render keeps (bench/frame-panic). The render then ends with an error naming the frame and the panic, and keeps the frames drawn before it |

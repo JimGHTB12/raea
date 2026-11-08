@@ -258,6 +258,7 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
             std::fs::create_dir_all(out).map_err(|e| format!("{}: {e}", out.display()))?;
         }
         for (i, &f) in wanted.iter().enumerate() {
+            let px = raea_gpu_device::check::frame_caught(f, || { // a panic drawing it an error naming it (#33)
             engine_before(&app, &mut cx, f);
             app.world().resource::<ReactOutbox>().send(json!({"t": "event", "name": "raea-frame", "value": f}));
             settle(&mut app, Some(f), 20.0)?;
@@ -274,14 +275,13 @@ pub(crate) fn render_bundle_with(js: &Path, dir: &Path, out: &Path, wanted: Opti
                 }
             }
             let (px, twice) = raea_gpu_device::check::black_checked(f, px, raea_sys_page::redraw_full, || bevy_over_3d(app.world_mut(), pg, &mut cx, fps))?;
-            if twice {
-                raea_gpu_device::check::black_twice(f, pg.canary().and_then(|()| cx.scene3d.as_ref().map_or(Ok(()), |e| e.canary())))?;
-            }
+            if twice { raea_gpu_device::check::black_twice(f, pg.canary().and_then(|()| cx.scene3d.as_ref().map_or(Ok(()), |e| e.canary())))?; }
+            Ok(px)
+            })
+            .map_err(|e| if i == 0 { format!("{e}; no frame was written") } else { format!("{e}; the {i} frames before it are in {}", out.display()) })?;
             let dest = if folder { out.join(format!("frame-{i:05}.png")) } else { out.to_path_buf() };
             image::save_buffer(&dest, &px, w, h, image::ColorType::Rgba8).map_err(|e| format!("{}: {e}", dest.display()))?;
-            if folder {
-                write_aov(out, i, cx.scene3d.as_mut())?;
-            }
+            if folder { write_aov(out, i, cx.scene3d.as_mut())?; }
         }
         // with --manifest, its file as a 2D render writes it (it wrote none, and an older one stayed looking current, #28)
         let clipping = FED_CLIPPING.lock().unwrap().take().and_then(|t| t.join().ok()).unwrap_or_default();

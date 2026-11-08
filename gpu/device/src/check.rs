@@ -79,6 +79,32 @@ pub fn injected(mut px: Vec<u8>, redraw: bool) -> Vec<u8> {
     px
 }
 
+/// RAEA_PANIC_FAULT=N, the panicking-frame check (bench/frame-panic): a panic as frame N draws, as the page engine's
+/// was in #24 (#33).
+pub fn panic_fault(f: i64) {
+    static AT: std::sync::OnceLock<Option<i64>> = std::sync::OnceLock::new();
+    if *AT.get_or_init(|| std::env::var("RAEA_PANIC_FAULT").ok().and_then(|v| v.parse().ok())) == Some(f) {
+        panic!("RAEA_PANIC_FAULT at frame {f}");
+    }
+}
+
+/// A panic caught while frame `f` drew (`p`, catch_unwind's payload) as the render's error (#33): the frame and the
+/// panic's message. The hook has printed the panic and where it was, so the render ends naming both, and its caller
+/// keeps the frames it has.
+pub fn panicked(p: Box<dyn std::any::Any + Send>, f: i64) -> String {
+    let msg = p.downcast_ref::<&str>().map(|s| s.to_string()).or_else(|| p.downcast_ref::<String>().cloned()).unwrap_or_else(|| "a panic with no message".into());
+    format!("raea panicked drawing frame {f}: {msg}")
+}
+
+/// `draw`, frame `f`'s drawing, with a panic in it as the render's error (`panicked`) rather than the process's end.
+pub fn frame_caught<T>(f: i64, draw: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        panic_fault(f);
+        draw()
+    }))
+    .map_err(|p| panicked(p, f))?
+}
+
 static SCENE_BLACK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 /// Whether this render's scene is known to draw black: a black frame of it was drawn black twice and the GPU passed its

@@ -15,6 +15,29 @@ pub fn render(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &RenderO
 /// textures). `prog` is the picture's program (its size, rate, length and background; no rows: the page is the
 /// picture), and `sound_of` the sound's, asked for once the last frame is made (the caller learns it from the frames):
 /// a track mixed and mastered already (the one mixer core's bounce, raea-mixer).
+/// A direct render's frame `f`: to the encoder's queue, or with none (an .txt out) its NV12 hash to `lines`.
+fn direct_sink(tx: Option<&std::sync::mpsc::SyncSender<Vec<u8>>>, lines: &mut Vec<String>, f: i64, px: Vec<u8>) -> Result<(), String> {
+    if let Some(tx) = tx {
+        return tx.send(px).map_err(|_| "the encoder stopped".to_string());
+    }
+    let mut hsh = 0xcbf2_9ce4_8422_2325u64;
+    for b in &px {
+        hsh ^= *b as u64;
+        hsh = hsh.wrapping_mul(0x100_0000_01b3);
+    }
+    lines.push(format!("{f} {hsh:016x}"));
+    Ok(())
+}
+
+/// A render that failed after `n` frames reached `out` (#33): its error, and what of it is there, so a long render that
+/// fails near its end keeps what it drew and says so
+fn kept_note(e: String, out: &Path, n: usize) -> String {
+    match n {
+        0 => format!("{e}; no frame was written"),
+        _ => format!("{e}; the {n} frames drawn before it are in {} (the render stops there)", out.display()),
+    }
+}
+
 pub fn render_fed(
     prog: &Program,
     dir: &Path,
@@ -57,17 +80,10 @@ pub fn render_fed(
         }));
     }
     let t_frames = std::time::Instant::now();
+    let mut n = 0;
     let dt = v.render_nv12_fed(&list, feed, |f, px| {
-        if let Some(tx) = tx.as_ref() {
-            return tx.send(px).map_err(|_| "the encoder stopped".to_string());
-        }
-        let mut hsh = 0xcbf2_9ce4_8422_2325u64;
-        for b in &px {
-            hsh ^= *b as u64;
-            hsh = hsh.wrapping_mul(0x100_0000_01b3);
-        }
-        lines.push(format!("{f} {hsh:016x}"));
-        Ok(())
+        n += 1;
+        direct_sink(tx.as_ref(), &mut lines, f, px)
     });
     drop(tx);
     let sent = match dt {
@@ -77,13 +93,23 @@ pub fn render_fed(
             let _ = mix_tx.send(mix);
             Some(ta.elapsed().as_secs_f64())
         }
-        _ => None,
+        // a failed render's frames are finished as they are, without sound (#33)
+        _ => {
+            let _ = mix_tx.send(None);
+            None
+        }
     };
     drop(mix_tx);
     let joined = match enc_thread {
         Some(j) => Some(j.join().map_err(|_| "the encoder panicked".to_string())?),
         None => None,
     };
+    if let Err(e) = dt {
+        if hashes {
+            let _ = std::fs::write(out, lines.join("\n") + "\n");
+        }
+        return Err(kept_note(e, out, n));
+    }
     let dt = dt?;
     let joined = joined.transpose()?;
     let finish_s = joined.as_ref().map(|j| j.1).unwrap_or(0.0);
@@ -209,25 +235,27 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
             }));
         }
         let t_frames = std::time::Instant::now();
+        let mut n = 0;
         let dt = v
             .render_nv12(&list, |f, px| {
-                if let Some(tx) = tx.as_ref() {
-                    return tx.send(px).map_err(|_| "the encoder stopped".to_string());
-                }
-                let mut hsh = 0xcbf2_9ce4_8422_2325u64;
-                for b in &px {
-                    hsh ^= *b as u64;
-                    hsh = hsh.wrapping_mul(0x100_0000_01b3);
-                }
-                lines.push(format!("{f} {hsh:016x}"));
-                Ok(())
-            })
-            ?;
+                n += 1;
+                direct_sink(tx.as_ref(), &mut lines, f, px)
+            });
         let t = std::time::Instant::now();
         drop(tx);
         let joined = match enc_thread {
             Some(j) => Some(j.join().map_err(|_| "the encoder panicked".to_string())??),
             None => None,
+        };
+        // a failed render: the encoder has finished the frames it got (#33)
+        let dt = match dt {
+            Ok(dt) => dt,
+            Err(e) => {
+                if hashes {
+                    let _ = std::fs::write(out, lines.join("\n") + "\n");
+                }
+                return Err(kept_note(e, out, n));
+            }
         };
         // frames: until the last frame is encoded (the queue drained), without the file's finishing
         let finish_s = joined.as_ref().map(|j| j.1).unwrap_or(0.0);
@@ -268,7 +296,9 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
         let keep = ro.ssim;
         let mut kept: Vec<(i64, Vec<u8>)> = Vec::new();
         let nv12 = e.nv12;
-        e.frames(&list, |f, px| {
+        let mut n = 0;
+        let drawn = e.frames(&list, |f, px| {
+            n += 1;
             if keep && f % 30 == 0 {
                 kept.push((f, px.clone()));
             }
@@ -276,8 +306,11 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
             let r = if nv12 { enc.push_nv12(&px, w as usize, h as usize) } else { enc.push(&px) };
             encode_s += t.elapsed().as_secs_f64();
             r
-        })
-        ?;
+        });
+        if let Err(e) = drawn {
+            // the frames encoded so far finished as a file (#33)
+            return Err(kept_note(e, &out, enc.finish(mix.as_ref()).map_or(0, |_| n)));
+        }
         let render_s = t_all.elapsed().as_secs_f64() - encode_s;
         let t = std::time::Instant::now();
         let stats = enc.finish(mix.as_ref())?;
@@ -323,7 +356,7 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
     } else if out.extension().is_some_and(|x| x == "txt") {
         // hash-only: one line per frame, "frame fnv64-of-rgba", nothing else on disk
         let mut lines = Vec::new();
-        e.frames(&list, |f, px| {
+        let drawn = e.frames(&list, |f, px| {
             let mut h = 0xcbf2_9ce4_8422_2325u64;
             for b in &px {
                 h ^= *b as u64;
@@ -331,9 +364,11 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
             }
             lines.push(format!("{f} {h:016x}"));
             Ok(())
-        })
-        ?;
+        });
         std::fs::write(&out, lines.join("\n") + "\n").map_err(|e| e.to_string())?;
+        if let Err(e) = drawn {
+            return Err(kept_note(e, &out, lines.len()));
+        }
     } else {
         std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
         let nv12 = e.nv12;
@@ -354,7 +389,13 @@ pub fn render_with(prog: &Program, rows: &[Tup], dir: &Path, out: &Path, ro: &Re
             }
             px
         };
-        e.frames(&list, |f, px| save_png(&out.join(format!("frame-{f:05}.png")), &rgba_of(px), w, h))?;
+        let mut n = 0;
+        e.frames(&list, |f, px| {
+            save_png(&out.join(format!("frame-{f:05}.png")), &rgba_of(px), w, h)?;
+            n += 1;
+            Ok(())
+        })
+        .map_err(|e| kept_note(e, &out, n))?;
     }
     eprintln!("{} ({} frames) in {:.2}s", out.display(), list.len(), t0.elapsed().as_secs_f64());
     Ok(())

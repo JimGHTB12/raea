@@ -123,6 +123,7 @@ impl Engine {
     pub fn frame(&mut self, f: i64) -> Result<Vec<u8>, String> {
         self.catch_up(f)?;
         self.app.world_mut().resource_mut::<Clock>().0 = f;
+        raea_gpu_device::check::panic_fault(f);
         let want = tag_colour(f, self.app.world().resource::<Gen>().0);
         let mut prev: Option<Vec<u8>> = None;
         for i in 0..240 {
@@ -130,9 +131,7 @@ impl Engine {
                 eprintln!("trace frame {f} update {i}");
             }
             self.step();
-            if let Some(e) = self.app.world_mut().resource_mut::<Error>().0.take() {
-                return Err(e);
-            }
+            self.app.world_mut().resource_mut::<Error>().0.take().map_or(Ok(()), Err)?;
             let got = std::mem::take(&mut self.app.world_mut().resource_mut::<Out>().0);
             // the first frame after a load: readbacks the warm-up queued carry its tag but can predate parts that take a
             // few updates to show (a spot light's first frames drew without it), so the first few updates' are dropped
@@ -198,7 +197,8 @@ impl Engine {
             if many {
                 self.warm = false;
             }
-            self.frames_run(r, &mut sink)?;
+            // a panic drawing a frame an error naming the newest frame sent, the one drawing (#33)
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.frames_run(r, &mut sink))).map_err(|p| raea_gpu_device::check::panicked(p, self.app.world().resource::<Clock>().0))??;
         }
         Ok(())
     }
@@ -219,6 +219,7 @@ impl Engine {
             if sent < list.len() && sent < next + 3 {
                 self.catch_up(list[sent])?;
                 self.app.world_mut().resource_mut::<Clock>().0 = list[sent];
+                raea_gpu_device::check::panic_fault(list[sent]);
                 sent += 1;
             }
             if std::env::var_os("RAEA_TRACE").is_some() {
@@ -232,9 +233,7 @@ impl Engine {
                 let dev = self.app.sub_app(bevy::render::RenderApp).world().resource::<bevy::render::renderer::RenderDevice>().clone();
                 let _ = dev.wgpu_device().poll(bevy::render::render_resource::PollType::wait_indefinitely());
             }
-            if let Some(e) = self.app.world_mut().resource_mut::<Error>().0.take() {
-                return Err(e);
-            }
+            self.app.world_mut().resource_mut::<Error>().0.take().map_or(Ok(()), Err)?;
             for d in std::mem::take(&mut self.app.world_mut().resource_mut::<Out>().0) {
                 // only this load's frames (a motion-blur pre-step's carry generation 0)
                 if let Some(t) = self.tag_at(&d).filter(|t| t.2 == generation) {

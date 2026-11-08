@@ -80,13 +80,26 @@ impl GpuView {
             if flight.len() == depth {
                 drain(self, &mut flight, &mut dt)?;
             }
-            self.ts_uploads = 0;
-            if let Some(feed) = feed.as_mut() {
-                let t = Instant::now();
-                self.fed = Some(feed(f)?);
-                dt.fed += t.elapsed().as_secs_f64() * 1e3;
-            }
-            let ft = self.frame_wait(f, false)?;
+            // the frame's page and overlay, a panic in them an error naming the frame (#33); on any failure the frames
+            // in flight reach the sink first, so the render keeps every frame drawn before this one
+            let drawn = raea_gpu_device::check::frame_caught(f, || {
+                self.ts_uploads = 0;
+                if let Some(feed) = feed.as_mut() {
+                    let t = Instant::now();
+                    self.fed = Some(feed(f)?);
+                    dt.fed += t.elapsed().as_secs_f64() * 1e3;
+                }
+                self.frame_wait(f, false)
+            });
+            let ft = match drawn {
+                Ok(ft) => ft,
+                Err(e) => {
+                    while !flight.is_empty() {
+                        drain(self, &mut flight, &mut dt)?;
+                    }
+                    return Err(e);
+                }
+            };
             dt.rules += ft.rules;
             dt.overlay += ft.overlay;
             dt.decode_upload += ft.decode_upload;
