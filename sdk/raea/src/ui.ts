@@ -11,3 +11,4 @@ export { LinearGradient, RadialGradient, ConicGradient, ColorStop, AngularColorS
 export { GridTrack, RepeatedGridTrack, GridPlacement, type GridTrackRepetition, type GridAutoFlow, type MinTrackSizingFunction, type MaxTrackSizingFunction, FontSource, type GenericFontFamily } from "@raea/render/bevy3d";
 export { Rot2, Val2, UiTransform, BoxShadow, type ShadowStyle } from "@raea/render/bevy3d";
 export { FontFeatureTag } from "@raea/render/bevy3d";
+export type { IgnoreScroll } from "@raea/render/bevy3d";

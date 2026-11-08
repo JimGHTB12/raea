@@ -14,6 +14,7 @@ import { gradientsCss, gradientsOpaque, type Gradient } from "./ui-gradient";
 import { gridCss, type GridAutoFlow, type GridPlacement, type GridTrack, type RepeatedGridTrack } from "./ui-grid";
 import { shadowCss, transformCss, type BoxShadow, type UiTransform } from "./ui-transform";
 import { featuresCss } from "./ui-features";
+import { scrollCss, type IgnoreScroll } from "./ui-scroll";
 import type { TransformValue } from "./core";
 import { eulerOf } from "../3d/model";
 import { useVideoConfig } from "@raea/app/clock";
@@ -43,6 +44,10 @@ export interface NodeProps {
   overflow?: Overflow;
   /** the box its overflow clip clips to, grown by a margin (OverflowClipMargin.border_box().with_margin(25)) */
   overflow_clip_margin?: OverflowClipMargin;
+  /** the gutter taffy keeps beside a Scroll axis for its scrollbar, in px (0 by default) */
+  scrollbar_width?: number;
+  /** IgnoreScroll: the axes it keeps its place on while its parent scrolls */
+  ignore_scroll?: IgnoreScroll;
   row_gap?: Val; column_gap?: Val;
   /** the grid's tracks (display Grid): RepeatedGridTracks (RepeatedGridTrack.fr(3, 1)) or GridTracks */
   grid_template_rows?: (RepeatedGridTrack | GridTrack)[]; grid_template_columns?: (RepeatedGridTrack | GridTrack)[];
@@ -168,6 +173,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
     s.overflowX = o.x.toLowerCase();
     s.overflowY = o.y.toLowerCase();
   }
+  scrollCss(who, p, s);
   const m = p.overflow_clip_margin;
   if (m !== undefined) {
     if (!["BorderBox", "PaddingBox", "ContentBox"].includes(m?.visual_box) || !(Number.isFinite(m.margin) && m.margin >= 0)) throw new TypeError(`${who}: overflow_clip_margin is OverflowClipMargin.border_box(), padding_box() or content_box(), with_margin(px >= 0), got ${JSON.stringify(m)}`);

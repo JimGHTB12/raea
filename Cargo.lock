@@ -13771,6 +13771,7 @@ dependencies = [
 name = "raea-bevy-parity"
 version = "0.1.0"
 dependencies = [
+ "accesskit 0.24.1",
  "argh",
  "bevy",
  "chacha20 0.10.2",

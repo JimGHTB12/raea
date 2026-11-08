@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's UiTransform and BoxShadow on the page (ui/scroll_and_overflow/overflow_transform),
 // and bevy_color's Luminance darker and lighter.
 import { describe, expect, test } from "bun:test";
-import { BoxShadow, Node, Rot2, UiTransform, Val2, percent, px } from "raea/ui";
+import { BoxShadow, Node, Overflow, Rot2, UiRect, UiTransform, Val2, percent, px } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { renderFrame } from "../src/test";
 
@@ -60,5 +60,23 @@ describe("Luminance: darker and lighter mix toward black or white in linear ligh
     expect(a.lighter(0.1).luminance()).toBeCloseTo(a.luminance() + 0.1, 5);
     const w = a.lighter(2);
     expect([w.red, w.green, w.blue]).toEqual([1, 1, 1]);
+  });
+});
+
+describe("Scrolling: no scrollbar drawn, scrollbar_width a gutter beside a Scroll axis, IgnoreScroll", () => {
+  test("a Scroll axis draws no scrollbar (bevy_ui draws none); Clip and Hidden leave it alone", () => {
+    expect(html(<Node overflow={Overflow.scroll_y()} />)).toContain("scrollbar-width:none");
+    expect(html(<Node overflow={Overflow.clip()} />)).not.toContain("scrollbar-width");
+  });
+  test("scrollbar_width is kept on the right of a y scroller and below an x scroller, past its padding", () => {
+    expect(html(<Node overflow={Overflow.scroll_y()} scrollbar_width={20} />)).toContain("padding-right:20px");
+    expect(html(<Node overflow={Overflow.scroll_x()} scrollbar_width={20} padding={UiRect.all(px(5))} />)).toMatch(/padding:5px 5px 5px 5px;[^"]*padding-bottom:25px/);
+    expect(html(<Node overflow={Overflow.scroll()} scrollbar_width={8} padding={UiRect.all(percent(10))} />)).toMatch(/padding-right:calc\(10% \+ 8px\);padding-bottom:calc\(10% \+ 8px\)/);
+    expect(html(<Node overflow={Overflow.clip_y()} scrollbar_width={20} />)).not.toContain("padding-right");
+    expect(() => html(<Node overflow={Overflow.scroll()} scrollbar_width={-1} />)).toThrow(/scrollbar_width/);
+  });
+  test("IgnoreScroll is { x, y } booleans", () => {
+    expect(() => html(<Node ignore_scroll={{ x: true, y: true }} />)).not.toThrow();
+    expect(() => html(<Node ignore_scroll={{ x: 1 } as never} />)).toThrow(/ignore_scroll/);
   });
 });
