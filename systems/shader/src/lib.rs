@@ -302,7 +302,8 @@ pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Va
 
 /// A mesh row's shader put on its part: a <Material>'s own (own.rs) or a ShaderExtension over its standard material.
 pub fn put(world: &mut World, e: Entity, v: &Value, mut image: impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>, made: &mut HashMap<(AssetId<StandardMaterial>, u128), Handle<ShadedMaterial>>) -> Result<(), String> {
-    if own::is_own(v) {
+    // a <Material>'s spec has its `own` (own.rs)
+    if v.get("own").is_some() {
         let m = own::build(world, v, &mut image, false)?;
         own::put(world, e, m);
         return Ok(());

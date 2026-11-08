@@ -91,8 +91,14 @@ impl From<&OwnMaterial> for OwnKey {
     }
 }
 
-fn uuid(id: u128) -> Handle<Shader> {
-    Handle::Uuid(bevy::asset::uuid::Uuid::from_u128(id), core::marker::PhantomData)
+/// Material's and Material2d's specialize, one body for both (each trait takes its own pipeline and key types): the
+/// material's shaders put where that trait's placeholder is (`swap`).
+macro_rules! specialize {
+    ($pipeline:ty, $key:ident, $placeholder:expr) => {
+        fn specialize(_: &$pipeline, descriptor: &mut RenderPipelineDescriptor, _: &MeshVertexBufferLayoutRef, key: $key<Self>) -> Result<(), SpecializedMeshPipelineError> {
+            swap(descriptor, &$placeholder, key.bind_group_data)
+        }
+    };
 }
 
 impl Material for OwnMaterial {
@@ -105,9 +111,7 @@ impl Material for OwnMaterial {
     fn depth_bias(&self) -> f32 {
         self.depth_bias
     }
-    fn specialize(_: &MaterialPipeline, descriptor: &mut RenderPipelineDescriptor, _: &MeshVertexBufferLayoutRef, key: MaterialPipelineKey<Self>) -> Result<(), SpecializedMeshPipelineError> {
-        swap(descriptor, &PLACEHOLDER, key.bind_group_data)
-    }
+    specialize!(MaterialPipeline, MaterialPipelineKey, PLACEHOLDER);
 }
 
 impl Material2d for OwnMaterial {
@@ -124,18 +128,17 @@ impl Material2d for OwnMaterial {
     fn depth_bias(&self) -> f32 {
         self.depth_bias
     }
-    fn specialize(_: &Material2dPipeline, descriptor: &mut RenderPipelineDescriptor, _: &MeshVertexBufferLayoutRef, key: Material2dKey<Self>) -> Result<(), SpecializedMeshPipelineError> {
-        swap(descriptor, &PLACEHOLDER_2D, key.bind_group_data)
-    }
+    specialize!(Material2dPipeline, Material2dKey, PLACEHOLDER_2D);
 }
 
 /// A pipeline given the material's own shaders: its fragment where it is `placeholder`, its vertex shader (if any) in
 /// that same pipeline (the main pass's: the prepass and shadow pipelines keep Bevy's), and the faces it culls.
 fn swap(descriptor: &mut RenderPipelineDescriptor, placeholder: &Handle<Shader>, k: OwnKey) -> Result<(), SpecializedMeshPipelineError> {
     let Some(f) = descriptor.fragment.as_mut().filter(|f| f.shader.id() == placeholder.id()) else { return Ok(()) };
-    f.shader = uuid(k.shader);
+    let shader = |id: u128| Handle::Uuid(bevy::asset::uuid::Uuid::from_u128(id), core::marker::PhantomData);
+    f.shader = shader(k.shader);
     if k.vertex != 0 {
-        descriptor.vertex.shader = uuid(k.vertex);
+        descriptor.vertex.shader = shader(k.vertex);
     }
     if let Some(c) = k.cull {
         descriptor.primitive.cull_mode = c;
@@ -147,11 +150,6 @@ pub fn install(app: &mut App) {
     let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER, Shader::from_wesl(STUB, "embedded://raea_sys_shader/own_placeholder.wesl"));
     let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER_2D, Shader::from_wesl(STUB_2D, "embedded://raea_sys_shader/own_placeholder_2d.wesl"));
     app.add_plugins((MaterialPlugin::<OwnMaterial>::default(), Material2dPlugin::<OwnMaterial>::default()));
-}
-
-/// Whether a mesh's shader spec is a `<Material>`'s (its `own`), not a ShaderExtension's.
-pub fn is_own(spec: &Value) -> bool {
-    spec.get("own").is_some()
 }
 
 /// The material a `<Material>` spec asks for: {fragment, vertex?, uniforms, textures, defs, own: {alpha_mode,
