@@ -77,7 +77,9 @@ export class LinearRgba {
   }
   /** Bevy's LinearRgba::from(Srgba) */
   static from(c: Srgba): LinearRgba {
-    const l = new LinearRgba(srgbToLinear(c.red), srgbToLinear(c.green), srgbToLinear(c.blue), c.alpha);
+    // a hex string here read as NaN channels and drew nothing, silently: name the form that works
+    if (!(c instanceof Srgba)) throw new TypeError(`LinearRgba.from takes an Srgba, as Bevy's does: LinearRgba.from(Srgba.hex(${JSON.stringify(c)})), got ${typeof c === "string" ? "a string" : JSON.stringify(c)}`);
+    const l =new LinearRgba(srgbToLinear(c.red), srgbToLinear(c.green), srgbToLinear(c.blue), c.alpha);
     l[MADE_FROM] = c[MADE_FROM];
     return l;
   }

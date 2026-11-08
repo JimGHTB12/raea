@@ -204,6 +204,8 @@ describe("Mesh3d, Camera3d and StandardMaterial", () => {
       html(<MeshStandardMaterial color="#ffffff" roughness={0.5} metalness={0} emissive="#ff4070" {...nits(1)} animate={{ emissive_nits: track({ 0: 0, 30: 2.5 }, "out-cubic") } as never} />),
     );
     const F = LinearRgba.from(Srgba.hex("#00ff00"));
+    // a hex string, not an Srgba, once made NaN channels and a glow that drew nothing: it names the form that works
+    expect(() => LinearRgba.from("#ff3fa4" as never)).toThrow(/LinearRgba.from\(Srgba.hex\("#ff3fa4"\)\)/);
     expect(() => html(<StandardMaterial animate={{ emissive: track({ 0: E, 30: F }) }} />)).toThrow(/one colour/);
     expect(() => html(<StandardMaterial animate={{ metallic: track({ 0: "#fff", 30: "#000" }) as never }} />)).toThrow(/numbers/);
     expect(() => html(<StandardMaterial animate={{ roughness: track({ 0: 0, 30: 1 }) } as never} />)).toThrow(/not roughness/);
