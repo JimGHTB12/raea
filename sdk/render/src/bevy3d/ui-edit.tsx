@@ -34,6 +34,12 @@ export interface EditableTextProps extends NodeProps, TextStyleProps {
   visible_width?: number | null;
   /** allow_newlines (false by default): Enter adds a line, under input */
   allow_newlines?: boolean;
+  /** max_characters (None by default): the most characters typing can make it hold, under input */
+  max_characters?: number | null;
+  /** EditableTextFilter: the characters typing may add (each tested alone), under input */
+  filter?: (c: string) => boolean;
+  /** TextReadWriteMode ("Editable" by default): ReadOnly takes no edits, under input; Static draws no caret either */
+  read_write_mode?: "Editable" | "ReadOnly" | "Static";
   /** cursor_width: the caret's width as a share of the font size (0.2 by default) */
   cursor_width?: number;
   /** cursor_blink_period in seconds (1 by default) */
@@ -48,12 +54,15 @@ export interface EditableTextProps extends NodeProps, TextStyleProps {
 }
 
 /** A text input's text, its caret drawn while it has focus. @bevy bevy_text::EditableText */
-export function EditableText({ children = "", visible_lines = 1, visible_width = null, allow_newlines = false, cursor_width = 0.2, cursor_blink_period = 1, cursor_style, auto_focus = false, justify, linebreak, font, font_size, weight, style, font_width, color, line_height, font_variations, font_features, letter_spacing, ...node }: EditableTextProps) {
+export function EditableText({ children = "", visible_lines = 1, visible_width = null, allow_newlines = false, max_characters = null, filter, read_write_mode = "Editable", cursor_width = 0.2, cursor_blink_period = 1, cursor_style, auto_focus = false, justify, linebreak, font, font_size, weight, style, font_width, color, line_height, font_variations, font_features, letter_spacing, ...node }: EditableTextProps) {
   if (typeof children !== "string") throw new TypeError(`EditableText: its text is one string, got ${JSON.stringify(children)}`);
   if (visible_lines !== null && !(visible_lines > 0 && Number.isFinite(visible_lines))) throw new RangeError(`EditableText: visible_lines is above 0 or null, got ${visible_lines}`);
   if (visible_width !== null && !(visible_width > 0 && Number.isFinite(visible_width))) throw new RangeError(`EditableText: visible_width is above 0 or null, got ${visible_width}`);
   if (!(cursor_width >= 0 && Number.isFinite(cursor_width))) throw new RangeError(`EditableText: cursor_width is 0 or more, got ${cursor_width}`);
   if (!(cursor_blink_period > 0 && Number.isFinite(cursor_blink_period))) throw new RangeError(`EditableText: cursor_blink_period is above 0 (seconds), got ${cursor_blink_period}`);
+  if (max_characters !== null && !(Number.isInteger(max_characters) && max_characters >= 0)) throw new RangeError(`EditableText: max_characters is a whole number, 0 or more, or null, got ${max_characters}`);
+  if (filter !== undefined && typeof filter !== "function") throw new TypeError("EditableText: filter (EditableTextFilter) is a function of one character");
+  if (!["Editable", "ReadOnly", "Static"].includes(read_write_mode)) throw new RangeError(`EditableText: read_write_mode is Editable, ReadOnly or Static, got ${JSON.stringify(read_write_mode)}`);
   void allow_newlines;
   const textStyle: TextStyleProps = { font, font_size, weight, style, font_width, color, line_height, font_variations, font_features, letter_spacing };
   const { css } = textCss("EditableText", textStyle);
@@ -72,7 +81,7 @@ export function EditableText({ children = "", visible_lines = 1, visible_width =
   if (visible_lines !== null) box.height = exact ? `${Math.ceil(visible_lines * linePx)}px` : `calc(${visible_lines} * ${line})`;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const shown = auto_focus && (frame / fps) % cursor_blink_period < cursor_blink_period / 2;
+  const shown = auto_focus && read_write_mode !== "Static" && (frame / fps) % cursor_blink_period < cursor_blink_period / 2;
   const caret = shown ? <Caret width={cursor_width * sizePx} height={line} color={cursor_style?.color ?? SLATE_700} /> : null;
   return (
     <Node {...node}>

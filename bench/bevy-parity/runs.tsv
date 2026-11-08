@@ -103,3 +103,8 @@ ui/widgets/feathers_counter	-	10
 ui/widgets/feathers_number_input	-	10
 ui/widgets/feathers_gallery	-	10
 ui/styling/box_shadow	-	10
+ui/text/editable_text_filter	-	10
+ui/text/ime_support	-	10
+ui/text/multiline_text_input	-	10
+ui/text/multiple_text_inputs	-	10
+ui/text/text_input	-	10

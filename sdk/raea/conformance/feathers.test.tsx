@@ -71,6 +71,24 @@ describe("EditableText", () => {
   test("refuses a text that isn't a string, or visible_lines that aren't above 0", () => {
     expect(() => html(<EditableText visible_lines={0} />)).toThrow(/visible_lines/);
   });
+  test("a Static one draws no caret even with focus; ReadOnly and Editable do", () => {
+    expect(html(<EditableText auto_focus read_write_mode="Static">hi</EditableText>)).not.toContain("data-raea-caret");
+    expect(html(<EditableText auto_focus read_write_mode="ReadOnly">hi</EditableText>)).toContain("data-raea-caret");
+    expect(() => html(<EditableText read_write_mode={"Locked" as "Static"} />)).toThrow(/read_write_mode/);
+  });
+  test("max_characters and its filter act on typing: a starting text past them is kept, as Bevy keeps it; bad ones are refused", () => {
+    expect(html(<EditableText max_characters={2} filter={(c) => c === "a"}>hello</EditableText>)).toContain("hello");
+    expect(() => html(<EditableText max_characters={1.5} />)).toThrow(/max_characters/);
+    expect(() => html(<EditableText filter={"0-9" as unknown as (c: string) => boolean} />)).toThrow(/filter/);
+  });
+});
+
+describe("an empty Text", () => {
+  test("is parley's empty line, 16 px high and 0 wide, whatever its font; a Text with anything in it is not", () => {
+    expect(html(<Text font_size={{ Px: 24 }}>{""}</Text>)).toMatch(/data-raea-empty-text="" style="width:0;height:16px"/);
+    expect(html(<Text font_size={{ Px: 24 }} />)).toContain("data-raea-empty-text");
+    expect(html(<Text>{" "}</Text>)).not.toContain("data-raea-empty-text");
+  });
 });
 
 describe("feathers' display", () => {

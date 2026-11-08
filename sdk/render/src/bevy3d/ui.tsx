@@ -384,7 +384,11 @@ export function Text({ children, font, font_size, weight, style, font_width, col
   // Its own strings carry its lines and background (runOf), inside the block: Blitz draws a line from the run's
   // inline root down, not from a block above it, as thick as the font says (bevy_text's underline_size, not em/10)
   const run = { underline, strikethrough, underline_color, strikethrough_color, text_background_color };
-  const own = Children.map(children, (c) => (typeof c === "string" || typeof c === "number" ? runOf("Text", run, n.back, c) : c));
+  let own = Children.map(children, (c) => (typeof c === "string" || typeof c === "number" ? runOf("Text", run, n.back, c) : c));
+  // an empty Text: bevy_text leaves its empty span out, so parley lays out no text in its own default style, a line
+  // 16 px high and 0 wide whatever the Text's font (Bevy 0.20 text_input's empty output box: 16 px inside its padding,
+  // at a scale factor of 1). A block that high, not a line, so the Text's own font adds no line box
+  if (Children.toArray(children).every((c) => c === "")) own = [<div key="empty" data-raea-empty-text="" style={{ width: 0, height: "16px" }} />];
   const css: CSSProperties = { ...n.css, ...t.css, textAlign };
   if (shadow !== undefined) {
     const [x, y] = shadow.offset ?? [];
