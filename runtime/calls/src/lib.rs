@@ -170,6 +170,7 @@ pub fn call(name: &str, v: &Value) -> R<Value> {
             // placement by relations (raea-core-place)
             "place.solve" => raea_core_place::solve_json(v),
             "fonts.families" => Ok(families().into()),
+            "fonts.atlases" => font_atlases(v),
             n if n.starts_with("solid.") || n.starts_with("section.") => solid::call(&mut st, n, v),
             n => media::call(&mut st, n, v),
         }
@@ -208,6 +209,7 @@ pub fn register() {
             ("solid.free", "{ id: number }", "null", "drop a solid"),
             ("place.solve", "{ objects: { id: string; size: [number, number, number]; at?: [number, number, number]; yaw?: number; fixed?: boolean }[]; rules: Record<string, string | number>[]; room?: { min: [number, number]; max: [number, number] } }", "{ objects: { id: string; at: [number, number, number]; yaw: number; size: [number, number, number] }[]; found: { part: string; check: string; level: string; says: string }[]; errors: number }", "boxes placed by relations (on, against, beside, near, apart, facing, align, clear), what can't hold found"),
             ("fonts.families", "{}", "string[]", "the system's font families by name, sorted, as fontique (bevy_text's FontCx) lists them"),
+            ("fonts.atlases", "{ font: string; size: number; text: string }", "{ width: number; height: number; src: string }[]", "bevy_text's glyph atlases for a text in a font file at a size px, each page a PNG data: URL, as Bevy's FontAtlasSet holds them"),
             ("media.live", "{}", "{ vdecs: number; vencs: number; adecs: number; frames: number; solids: number; worlds: number }", "how many native coders, frames, solids and worlds are alive (for leak checks)"),
             ("media.size", "{ path: string }", "number", "a file's size in bytes"),
             ("media.read", "{ path: string; start: number; end: number }", "string", "bytes start..end of a file, base64"),
@@ -298,4 +300,22 @@ fn families() -> Vec<String> {
     out.sort_unstable();
     out.dedup();
     out
+}
+
+/// bevy_text's atlas pages for `text` in the font file `font` (an asset path: staticFile's /media/x) at `size` px
+/// (raea-sys-fonts atlas.rs), each a PNG data: URL.
+fn font_atlases(v: &Value) -> R<Value> {
+    use base64::Engine as _;
+    let bytes = std::fs::read(asset_path(s(v, "font")?)?).map_err(|e| format!("fonts.atlases: {e}"))?;
+    let size = v.get("size").and_then(Value::as_f64).ok_or("fonts.atlases: size in px")? as f32;
+    let pages = raea_sys_fonts::atlas::atlases(bytes, size, s(v, "text")?)?;
+    let mut out = Vec::new();
+    for (w, h, rgba) in pages {
+        let img = image::RgbaImage::from_raw(w, h, rgba).ok_or("an atlas page's pixels don't fill it")?;
+        let mut png = std::io::Cursor::new(Vec::new());
+        img.write_to(&mut png, image::ImageFormat::Png).map_err(|e| e.to_string())?;
+        let src = format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png.into_inner()));
+        out.push(serde_json::json!({ "width": w, "height": h, "src": src }));
+    }
+    Ok(out.into())
 }

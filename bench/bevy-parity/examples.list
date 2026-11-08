@@ -111,3 +111,4 @@ ui/text/multiple_text_inputs
 ui/text/text_input
 ui/ui_material
 ui/text/system_fonts
+ui/text/font_atlas_debug

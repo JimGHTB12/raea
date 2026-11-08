@@ -14669,6 +14669,7 @@ dependencies = [
  "raea-io-net",
  "raea-native",
  "raea-runtime-plugins",
+ "raea-sys-fonts",
  "raea-sys-mix",
  "raea-sys-ml",
  "raea-sys-speech",
@@ -15183,6 +15184,7 @@ dependencies = [
  "parley",
  "raea-io-net",
  "serde_json",
+ "swash",
  "wuff",
 ]
 

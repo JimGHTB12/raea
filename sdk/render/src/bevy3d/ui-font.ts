@@ -47,3 +47,21 @@ export function fontCss(who: string, font: FontSource | undefined): { family: st
 export const FontCx = {
   family_names: (): string[] => native("fonts.families", {}),
 };
+
+/** One page of bevy_text's glyph atlas: its texture (a PNG data: URL, which an ImageNode shows) and its size.
+ *  @bevy bevy_text::FontAtlas */
+export interface FontAtlas {
+  texture: string;
+  width: number;
+  height: number;
+}
+
+/** bevy_text's FontAtlasSet, the glyph atlases Bevy's text is drawn from, for one face at one size:
+ *  `atlases(font, font_size, text)` is the pages a Text of `text` in the font file `font` at `font_size` px fills,
+ *  each glyph rasterized and packed by bevy_text's own code (natively) in the order its layout meets them. A text that
+ *  grows a character at a time fills them as its last version does.
+ *  @bevy bevy_text::FontAtlasSet */
+export const FontAtlasSet = {
+  atlases: (font: string, font_size: number, text: string): FontAtlas[] =>
+    native("fonts.atlases", { font, size: font_size, text }).map((a) => ({ texture: a.src, width: a.width, height: a.height })),
+};

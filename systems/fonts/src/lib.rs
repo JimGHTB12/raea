@@ -6,6 +6,8 @@
 pub mod google;
 /// fontique's own generic families under names of their own, for bevy_ui's generic FontSources
 pub mod bevy_generics;
+/// bevy_text's glyph atlases for a text, as Bevy's FontAtlasSet holds them (the fonts.atlases native call)
+pub mod atlas;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

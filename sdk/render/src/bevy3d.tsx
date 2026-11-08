@@ -41,4 +41,4 @@ export { FontFeatureTag, FontWidth } from "./bevy3d/ui-features";
 export { GlobalUiDebugOptions, type UiDebugOptions } from "./bevy3d/ui-debug";
 export type { IgnoreScroll } from "./bevy3d/ui-scroll";
 export { Scrollbar, ScrollbarThumb, type ScrollbarProps, type ScrollbarThumbProps, type ControlOrientation } from "./bevy3d/ui-scrollbar";
-export { FontCx, FontSource, type GenericFontFamily } from "./bevy3d/ui-font";
+export { FontAtlasSet, type FontAtlas, FontCx, FontSource, type GenericFontFamily } from "./bevy3d/ui-font";

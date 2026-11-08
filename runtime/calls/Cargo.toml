@@ -19,6 +19,7 @@ raea-core-scene = { path = "../../core/scene" }
 raea-io-media = { path = "../../io/media", default-features = false, features = ["soft-audio", "apple"] }
 raea-io-net = { path = "../../io/net" }
 raea-sys-mix = { path = "../../systems/mix" }
+raea-sys-fonts = { path = "../../systems/fonts" }
 raea-sys-ml = { path = "../../systems/ml", optional = true }
 raea-sys-speech = { path = "../../systems/speech", optional = true }
 bevy = { version = "=0.20.0", default-features = false, features = ["std"] }

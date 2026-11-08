@@ -8,7 +8,7 @@ export * from "@raea/video/panel";
 // bevy_ui's Node and Text, and bevy_text's TextSpan, with their values (Val, UiRect, BorderRadius, Overflow)
 export { Node, GhostNode, Text, TextSpan, TextShadow, Text2d, UiScale, Viewport, UiTargetCamera, UiTexture, targetImage, ImageNode, InlineImage, type TextureSlicer, type SliceScaleMode, ImagePlugin, FontVariationTag, TextureAtlasLayout, type ImageNodeProps, px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadius, Overflow, OverflowClipMargin, type NodeProps, type TextProps, type TextStyleProps, type TextRunProps, type Text2dProps, type Val } from "@raea/render/bevy3d";
 export { LinearGradient, RadialGradient, ConicGradient, ColorStop, AngularColorStop, UiPosition, type Gradient, type RadialGradientShape, type InterpolationColorSpace } from "@raea/render/bevy3d";
-export { GridTrack, RepeatedGridTrack, GridPlacement, type GridTrackRepetition, type GridAutoFlow, type MinTrackSizingFunction, type MaxTrackSizingFunction, FontCx, FontSource, type GenericFontFamily } from "@raea/render/bevy3d";
+export { GridTrack, RepeatedGridTrack, GridPlacement, type GridTrackRepetition, type GridAutoFlow, type MinTrackSizingFunction, type MaxTrackSizingFunction, FontAtlasSet, type FontAtlas, FontCx, FontSource, type GenericFontFamily } from "@raea/render/bevy3d";
 export { Rot2, Val2, UiTransform, BoxShadow, BoxShadowSamples, type ShadowStyle } from "@raea/render/bevy3d";
 export { MaterialNode, type MaterialNodeProps } from "@raea/render/bevy3d";
 export { FontFeatureTag, FontWidth } from "@raea/render/bevy3d";

@@ -16,6 +16,8 @@ serde_json = "1"
 # the bundled faces (fonts.rs): one parley font context, Blitz's parley (B0d)
 parley = { version = "=0.12.0", default-features = false, features = ["std"] }
 wuff = "0.2"
+# bevy_text's glyph rasterizer, for its atlases (atlas.rs)
+swash = "=0.2.10"
 
 [dev-dependencies]
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_core_pipeline", "bevy_log", "png", "bevy_window"] }

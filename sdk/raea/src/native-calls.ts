@@ -72,6 +72,8 @@ export interface NativeCalls {
   "ecs.set": { args: { world: number; id: number; cols: Record<string, number | string | boolean> }; answer: null };
   /** a new entity: a kind with columns, and/or any components */
   "ecs.spawn": { args: { world: number; kind?: string; cols?: Record<string, number | string | boolean>; components?: Record<string, unknown>; parent?: number }; answer: { id: number } };
+  /** bevy_text's glyph atlases for a text in a font file at a size px, each page a PNG data: URL, as Bevy's FontAtlasSet holds them */
+  "fonts.atlases": { args: { font: string; size: number; text: string }; answer: { width: number; height: number; src: string }[] };
   /** the system's font families by name, sorted, as fontique (bevy_text's FontCx) lists them */
   "fonts.families": { args: {}; answer: string[] };
   /** drop an engine frame */
