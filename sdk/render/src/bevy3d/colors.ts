@@ -24,6 +24,14 @@ export class Srgba {
     return s;
   }
   /** Bevy's Alpha::with_alpha */
+  /** Bevy's Luminance::darker on an Srgba: its linear colour's, encoded again */
+  darker(amount: number): Srgba {
+    return LinearRgba.from(this).darker(amount).to_srgba();
+  }
+  /** Bevy's Luminance::lighter on an Srgba: its linear colour's, encoded again */
+  lighter(amount: number): Srgba {
+    return LinearRgba.from(this).lighter(amount).to_srgba();
+  }
   with_alpha(alpha: number): Srgba {
     const s = new Srgba(this.red, this.green, this.blue, alpha);
     s[MADE_FROM] = this[MADE_FROM];
@@ -68,6 +76,26 @@ export class LinearRgba {
   to_srgba(): Srgba {
     const g = (c: number) => (c <= 0 ? c : Math.fround(linearToSrgb(c)));
     return new Srgba(g(this.red), g(this.green), g(this.blue), this.alpha);
+  }
+  /** Bevy's Luminance::luminance: Rec. 709's weights over the linear channels */
+  luminance(): number {
+    return this.red * 0.2126 + this.green * 0.7152 + this.blue * 0.0722;
+  }
+  /** Bevy's Luminance::darker: mixed toward black until its luminance is `amount` lower (at least 0) */
+  darker(amount: number): LinearRgba {
+    return this.lightness(-amount);
+  }
+  /** Bevy's Luminance::lighter: mixed toward white until its luminance is `amount` higher (at most 1) */
+  lighter(amount: number): LinearRgba {
+    return this.lightness(amount);
+  }
+  private lightness(amount: number): LinearRgba {
+    if (!Number.isFinite(amount)) throw new RangeError(`LinearRgba.darker/lighter: amount is a finite number, got ${amount}`);
+    const l = this.luminance();
+    const t = Math.max(0, Math.min(1, l + amount));
+    if (t < l) return this.mix(new LinearRgba(0, 0, 0, this.alpha), (l - t) / l);
+    if (t > l) return this.mix(new LinearRgba(1, 1, 1, this.alpha), (t - l) / (1 - l));
+    return new LinearRgba(this.red, this.green, this.blue, this.alpha);
   }
   /** Bevy's Mix: each channel lerped, in f32 */
   mix(o: LinearRgba, t: number): LinearRgba {

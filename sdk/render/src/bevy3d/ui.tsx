@@ -12,6 +12,7 @@ import {
 import { LinearRgba, type Srgba } from "./colors";
 import { gradientsCss, gradientsOpaque, type Gradient } from "./ui-gradient";
 import { gridCss, type GridAutoFlow, type GridPlacement, type GridTrack, type RepeatedGridTrack } from "./ui-grid";
+import { shadowCss, transformCss, type BoxShadow, type UiTransform } from "./ui-transform";
 import type { TransformValue } from "./core";
 import { eulerOf } from "../3d/model";
 import { useVideoConfig } from "@raea/app/clock";
@@ -63,6 +64,10 @@ export interface NodeProps {
   /** Visibility: Inherited (its parent's, the default), Hidden (laid out, not drawn) or Visible (drawn under a hidden
    *  parent), as CSS's visibility inherits */
   visibility?: "Inherited" | "Hidden" | "Visible";
+  /** UiTransform: turned, scaled and moved about its centre after layout */
+  ui_transform?: UiTransform;
+  /** BoxShadow: drop shadows under it, back to front */
+  box_shadow?: BoxShadow;
   /** FixedNode: laid out as a root wherever it is in the tree (its own viewport, the window's), drawn with its parent */
   fixed?: boolean;
   children?: ReactNode;
@@ -110,6 +115,8 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
   if (p.aspect_ratio !== undefined) s.aspectRatio = p.aspect_ratio;
   gridCss(who, p, s);
   if (p.visibility !== undefined && p.visibility !== "Inherited") s.visibility = keyword(who, "visibility", p.visibility, ["Hidden", "Visible"]);
+  if (p.ui_transform !== undefined) s.transform = transformCss(who, p.ui_transform);
+  if (p.box_shadow !== undefined && p.box_shadow.length) s.boxShadow = shadowCss(who, p.box_shadow);
   // every node a stacking context, so a ZIndex ranks it among its siblings above their parent, as bevy_ui stacks
   // them; a GlobalZIndex ranks it in the root's (raea's Blitz hoists it past every other, layout/paint_tree.rs)
   s.zIndex = p.global_z_index ?? p.z_index ?? 0;

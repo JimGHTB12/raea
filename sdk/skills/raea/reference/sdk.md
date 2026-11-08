@@ -99,7 +99,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/ui` (sdk/raea/src/ui.ts)
 
-`AbsoluteFill`, `AngularColorStop`, `BorderRadius`, `ColorStop`, `ConicGradient`, `CornerRadius`, `FontSource`, `FontVariationTag`, `GhostNode`, `GridPlacement`, `GridTrack`, `ImageNode`, `ImagePlugin`, `InlineImage`, `LinearGradient`, `Node`, `Overflow`, `OverflowClipMargin`, `RadialGradient`, `RepeatedGridTrack`, `Text`, `Text2d`, `TextShadow`, `TextSpan`, `TextureAtlasLayout`, `UiPosition`, `UiRect`, `UiScale`, `UiTargetCamera`, `Viewport`, `auto`, `percent`, `px`, `vh`, `vmax`, `vmin`, `vw`
+`AbsoluteFill`, `AngularColorStop`, `BorderRadius`, `BoxShadow`, `ColorStop`, `ConicGradient`, `CornerRadius`, `FontSource`, `FontVariationTag`, `GhostNode`, `GridPlacement`, `GridTrack`, `ImageNode`, `ImagePlugin`, `InlineImage`, `LinearGradient`, `Node`, `Overflow`, `OverflowClipMargin`, `RadialGradient`, `RepeatedGridTrack`, `Rot2`, `Text`, `Text2d`, `TextShadow`, `TextSpan`, `TextureAtlasLayout`, `UiPosition`, `UiRect`, `UiScale`, `UiTargetCamera`, `UiTransform`, `Val2`, `Viewport`, `auto`, `percent`, `px`, `vh`, `vmax`, `vmin`, `vw`
 
 ## `raea/video` (sdk/raea/src/video.ts)
 
