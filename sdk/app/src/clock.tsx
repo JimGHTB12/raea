@@ -125,6 +125,14 @@ export function useClockTick(clock: ClockState | null): void {
     return () => void t.subs.delete(cb);
   }, [t]);
 }
+/** Calls `cb` each time `clock`'s frame moves on (in the batch that renders the new frame), until the returned stop is
+ * called: for a store whose value can change only from frame to frame (useWorldAnswer). */
+export function onClockTick(clock: ClockState, cb: () => void): () => void {
+  const t = TICKERS.get(clock);
+  if (!t) return () => {};
+  t.subs.add(cb);
+  return () => void t.subs.delete(cb);
+}
 export const LocalTimeContext = createContext<LocalTime | null>(null);
 
 /** Where a subtree sits in time, as data that changes only when its place does (not every frame): the composition

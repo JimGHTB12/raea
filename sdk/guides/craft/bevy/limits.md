@@ -62,7 +62,9 @@ Mesh3d, Model, light or camera (`raea/bevy-own`). A bare `<Entity name>` takes a
 fields as an asset path, an inline asset (`{ base_color: ..., unlit: true }`) or a Mesh as `"shape:box(1, 1, 1)"`, and
 its Entity fields as another part's name (a `ChildOf` naming its parent). `<BufferMesh positions indices normals uvs>`
 builds a mesh from vertices. `useInput()` has `buttons`, `wheel`, `gamepads` and `touches`. A live game reaches the
-Bevy World with `raea/world` (`send` a BRP method, read `answer(ticket)` a frame later).
+Bevy World with `raea/world`: `send` a BRP method for a ticket, then read its answer in a component with
+`useWorldAnswer(ticket)`, which renders that component again the frame the answer arrives (`world.answer(ticket)` is
+the plain read for code outside React; in a component it's only as fresh as whatever else makes it render).
 `<Model animations={[{ clip, time, weight }]}>` blends up to 4 clips (a transition is weights moved over frames), and
 `<Model morphs={{ smile: 0.8 }}>` sets morph targets. `<Gizmo lines strip color width depthBias>` draws debug lines.
 A second camera is `<Entity position>` with `<BevyComponent type="bevy_camera::components::Camera3d" value={{}} />` and

@@ -8,7 +8,7 @@
 // probe: 48 8 g>150 r<100
 import { AbsoluteFill, Composition, registerRoot } from "raea";
 import { Canvas3D, Entity } from "raea/3d";
-import { world } from "raea/world";
+import { useWorldAnswer, world } from "raea/world";
 import { StandardMaterial } from "raea/pbr";
 import { Cuboid, Mesh3d } from "raea/mesh";
 import { Transform } from "raea/transform";
@@ -21,8 +21,8 @@ const back = world.send("world.get_components", { entity: "marker", components: 
 type Got = { components: Record<string, { translation: [number, number, number] }> };
 
 function Shot() {
-  const a = world.answer<Got>(read)?.value?.components[T]?.translation[0];
-  const b = world.answer<Got>(back)?.value?.components[T]?.translation[0];
+  const a = useWorldAnswer<Got>(read)?.value?.components[T]?.translation[0];
+  const b = useWorldAnswer<Got>(back)?.value?.components[T]?.translation[0];
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <Canvas3D layered>

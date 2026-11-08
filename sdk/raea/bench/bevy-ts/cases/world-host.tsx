@@ -14,7 +14,7 @@
 // probe: 48 8 g>150 r<100
 import { AbsoluteFill, Composition, registerRoot } from "raea";
 import { Canvas3D, Entity } from "raea/3d";
-import { world } from "raea/world";
+import { useWorldAnswer, world } from "raea/world";
 import { Transform } from "raea/transform";
 import { Camera3d } from "raea/camera";
 
@@ -30,10 +30,10 @@ const diag = world.send("raea/diagnostics", {});
 
 function Shot() {
   // DynamicWorldSerializer's JSON: { resources: {}, entities: { bits: { components } } }
-  const s = world.answer<{ entities: Record<string, { components: Record<string, unknown> }> }>(saved)?.value;
+  const s = useWorldAnswer<{ entities: Record<string, { components: Record<string, unknown> }> }>(saved)?.value;
   const names = Object.values(s?.entities ?? {}).map((e) => JSON.stringify(e.components["bevy_ecs::name::Name"] ?? ""));
   const okSave = names.some((n) => n.includes("marker")) && names.some((n) => n.includes("other"));
-  const d = world.answer<Record<string, unknown>>(diag)?.value ?? {};
+  const d = useWorldAnswer<Record<string, unknown>>(diag)?.value ?? {};
   const okDiag = "fps" in d && "entity_count" in d;
   return (
     <AbsoluteFill style={{ background: "#000" }}>
