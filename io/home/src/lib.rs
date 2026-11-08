@@ -101,24 +101,19 @@ pub fn src(p: &std::path::Path) -> String {
 /// `src` of the path `s` as Windows writes it (`windows`) or as Unix does, whichever system asks (a test of Windows'
 /// form runs on the Mac too)
 pub fn src_on(s: &str, windows: bool) -> String {
-    let u = url_path_on(s, windows);
-    if u != s && u.as_bytes().get(2) == Some(&b':') { format!("file://{u}") } else { s.to_string() }
-}
-
-/// A local file as a page names it in a URL's path: its path on Unix; on Windows `/C:/x/y` (the path of the file URL
-/// file:///C:/x/y, which a page's file:/// base joins it to), its verbatim prefix gone and its backslashes slashes.
-/// Written `C:\x`, a URL reads `c` as its scheme and CSS reads the backslashes as escapes (#40, #41, #42).
-pub fn url_path(p: &std::path::Path) -> String {
-    url_path_on(&p.display().to_string(), cfg!(windows))
-}
-
-/// `url_path` of the path `s` as Windows writes it (`windows`) or as Unix does, whichever system asks
-pub fn url_path_on(s: &str, windows: bool) -> String {
     if !windows {
         return s.to_string();
     }
     let s = drive(s).unwrap_or(s);
-    if s.as_bytes().get(1) == Some(&b':') { format!("/{}", s.replace('\\', "/")) } else { s.to_string() }
+    if s.as_bytes().get(1) == Some(&b':') { format!("file:///{}", s.replace('\\', "/")) } else { s.to_string() }
+}
+
+/// A local file as a page names it in a URL's path: its path on Unix; on Windows `/C:/x/y` (the path of the file URL
+/// file:///C:/x/y, `src`'s, which a page's file:/// base joins it to). Written `C:\x`, a URL reads `c` as its scheme
+/// and CSS reads the backslashes as escapes (#40, #41, #42).
+pub fn url_path(p: &std::path::Path) -> String {
+    let s = src(p);
+    s.strip_prefix("file://").map_or_else(|| s.clone(), str::to_string)
 }
 
 /// A path a page named (`url_path`'s `/C:/x`, or any other) as the file it is
@@ -146,7 +141,9 @@ mod tests {
 
     #[test]
     fn a_page_names_a_windows_file_by_its_url_path() {
-        use super::{from_url_path_on, url_path_on};
+        use super::from_url_path_on;
+        // url_path is src's file URL without its scheme
+        let url_path_on = |s: &str, w: bool| super::src_on(s, w).trim_start_matches("file://").to_string();
         assert_eq!(url_path_on("/Users/a/page", false), "/Users/a/page");
         assert_eq!(url_path_on(r"D:\work\page", true), "/D:/work/page");
         assert_eq!(url_path_on(r"\\?\D:\06.AI\banana-hf5", true), "/D:/06.AI/banana-hf5");
