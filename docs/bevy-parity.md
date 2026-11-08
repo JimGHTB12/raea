@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **146**, passing **146**, excluded **17** (docs/bevy-parity/excluded.tsv), left **275**.
+Examples: **438**, ported **147**, passing **147**, excluded **17** (docs/bevy-parity/excluded.tsv), left **274**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -239,6 +239,9 @@ doesn't pay.
 | shader_advanced/deferred_raymarch | 10 | 1.000000 | 0 | 2 / 2 | 445 / 530 | 7 / 9 | 3 / 3 | 4.989 / 6.005 = 6.005 + 0 | yes |  |
 | shader_advanced/deferred_raymarch | 30 | 1.000000 | 0 | 2 / 2 | 443 / 530 | 7 / 9 | 3 / 3 | 5.479 / 3.62 = 3.62 + 0 | yes |  |
 | shader_advanced/deferred_raymarch | 5 | 1.000000 | 0 | 2 / 2 | 443 / 530 | 7 / 9 | 3 / 3 | 59.743 / 8.363 = 8.363 + 0 | yes |  |
+| shader_advanced/manual_material | 10 | 1.000000 | 0 | 0 / 0 | 448 / 526 | 6 / 8 | 1 / 2 | 2.824 / 2.925 = 2.925 + 0 | yes |  |
+| shader_advanced/manual_material | 30 | 1.000000 | 0 | 0 / 0 | 448 / 526 | 6 / 8 | 1 / 2 | 2.425 / 1.489 = 1.489 + 0 | yes |  |
+| shader_advanced/manual_material | 5 | 1.000000 | 0 | 0 / 0 | 448 / 526 | 6 / 8 | 1 / 2 | 39.949 / 3.358 = 3.358 + 0 | yes |  |
 
 ## Excluded
 

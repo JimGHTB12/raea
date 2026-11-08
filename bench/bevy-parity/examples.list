@@ -146,3 +146,4 @@ shader_advanced/fullscreen_material
 shader_advanced/custom_render_phase
 shader_advanced/custom_shader_instancing
 shader_advanced/deferred_raymarch
+shader_advanced/manual_material
