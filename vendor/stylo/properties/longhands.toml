@@ -2348,7 +2348,7 @@ affects = ""
 type = "VectorEffect"
 initial = "computed::VectorEffect::none()"
 struct = "svg"
-engine = "gecko"
+# raea: on servo too, so a stylesheet's reaches the serialized SVG (blitz-dom svg_css_paint, #45)
 animation_type = "discrete"
 spec = "https://svgwg.org/svg2-draft/coords.html#VectorEffects"
 affects = "layout"

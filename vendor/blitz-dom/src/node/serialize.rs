@@ -290,6 +290,41 @@ impl Node {
         }
     }
 
+    /// raea: the SVG paint properties CSS sets on this svg element, as declarations for its style attribute: a
+    /// stylesheet's or a class's were left out of the serialized SVG, which usvg reads (attributes and the style
+    /// attribute only), so `#b path { fill: none; stroke: … }` drew a black silhouette (#45). An inherited one is
+    /// written where its computed value differs from the parent's: presentation attributes aren't in this cascade,
+    /// so one still beats what the element inherits and loses to a rule on the element itself, as in Chrome.
+    #[cfg(feature = "svg")]
+    fn svg_css_paint(&self, current_color: Option<&str>) -> String {
+        const INHERITED: [&str; 11] = [
+            "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity", "stroke-linecap",
+            "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray", "stroke-dashoffset",
+        ];
+        fn value(st: &style::properties::ComputedValues, name: &str) -> Option<String> {
+            let id = style::properties::PropertyId::parse_enabled_for_all_content(name).ok()?;
+            Some(st.computed_value_to_string(id.as_shorthand().err()?))
+        }
+        let (Some(st), Some(parent)) = (self.primary_styles(), self.parent.and_then(|p| self.tree()[p].primary_styles())) else {
+            return String::new();
+        };
+        let mut out = Vec::new();
+        for name in INHERITED {
+            if let Some(v) = value(&st, name).filter(|v| value(&parent, name).as_ref() != Some(v)) {
+                out.push(format!("{name}:{v}"));
+            }
+        }
+        // not inherited: where it isn't the initial value
+        if let Some(v) = value(&st, "vector-effect").filter(|v| v != "none") {
+            out.push(format!("vector-effect:{v}"));
+        }
+        let out = out.join(";");
+        match current_color {
+            Some(c) => out.replace("currentcolor", c),
+            None => out,
+        }
+    }
+
     /// `stroke-width` in user units, when the element is stroked (as an attribute or in its style).
     #[cfg(feature = "svg")]
     fn svg_stroke_width(&self) -> f64 {
@@ -406,6 +441,13 @@ impl Node {
                     writer.push('"');
                 }
 
+                // raea: the SVG paint properties CSS sets on it (a stylesheet's, a class's), into its style attribute (#45)
+                #[cfg(feature = "svg")]
+                let css_paint = (opts.resolve_current_color && data.name.ns == ns!(svg))
+                    .then(|| self.svg_css_paint(current_color.as_deref()))
+                    .unwrap_or_default();
+                #[cfg(not(feature = "svg"))]
+                let css_paint = String::new();
                 for attr in data.attrs() {
                     if css_transform.is_some()
                         && attr.name.ns == ns!()
@@ -442,6 +484,14 @@ impl Node {
                     } else {
                         encode_quoted_attribute_to_string(&attr.value, writer);
                     }
+                    if !css_paint.is_empty() && attr.name.ns == ns!() && &*attr.name.local == "style" {
+                        encode_quoted_attribute_to_string(&format!(";{css_paint}"), writer);
+                    }
+                    writer.push('"');
+                }
+                if !css_paint.is_empty() && !data.attrs().iter().any(|a| a.name.ns == ns!() && &*a.name.local == "style") {
+                    writer.push_str(" style=\"");
+                    encode_quoted_attribute_to_string(&css_paint, writer);
                     writer.push('"');
                 }
                 if !has_children {

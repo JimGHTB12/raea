@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- #45: an inline SVG's fill and stroke from a stylesheet, as Chrome draws them. a and b set them on the path from a
+     stylesheet rule (a with vector-effect too), c as attributes; all three are a green outline on white, empty inside
+     (raea drew a and b as black squares: the rule wasn't in the serialized SVG usvg reads). d sets a stylesheet fill
+     on the svg and an attribute fill on the path, which wins over what it inherits (orange); e's rule on the path
+     beats its attribute (green). bench/svg-css-paint/check.sh -->
+<html><head><style>
+  #a path { fill: none; stroke: #13502B; stroke-width: 6; vector-effect: non-scaling-stroke }
+  #b path { fill: none; stroke: #13502B; stroke-width: 6 }
+  #d { fill: #13502B }
+  #e path { fill: #13502B }
+  svg { width: 100px; height: 100px; position: absolute; top: 20px }
+</style></head>
+<body style="margin:0;background:#fff">
+<div data-composition-id="main" data-start="0" data-duration="1" data-width="600" data-height="140" style="position:relative;width:600px;height:140px">
+  <svg id="a" style="left:0" viewBox="0 0 100 100"><path d="M20 20 H80 V80 H20 Z"/></svg>
+  <svg id="b" style="left:120px" viewBox="0 0 100 100"><path d="M20 20 H80 V80 H20 Z"/></svg>
+  <svg id="c" style="left:240px" viewBox="0 0 100 100"><path d="M20 20 H80 V80 H20 Z" fill="none" stroke="#13502B" stroke-width="6" vector-effect="non-scaling-stroke"/></svg>
+  <svg id="d" style="left:360px" viewBox="0 0 100 100"><path d="M20 20 H80 V80 H20 Z" fill="#f08000"/></svg>
+  <svg id="e" style="left:480px" viewBox="0 0 100 100"><path d="M20 20 H80 V80 H20 Z" fill="#f08000"/></svg>
+</div>
+</body></html>
