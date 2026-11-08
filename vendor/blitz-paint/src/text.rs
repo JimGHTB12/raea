@@ -434,6 +434,8 @@ pub(crate) struct DrawTextContext {
     /// raea: -webkit-line-clamp, the index of the last line drawn and where the box's content ends (layout units): that
     /// line ends in an ellipsis, after its text or cutting what doesn't fit before it, as Chrome's clamp does
     pub(crate) clamp: Option<(usize, f32)>,
+    /// raea: the glyphs as a mask (background-clip: text, #37): in `color`, without their text-shadow
+    pub(crate) mask: bool,
 }
 
 /// raea: synthetic bold as Chrome draws it on macOS, in glyph space (it grows with the text): a weight of 600 or more
@@ -817,7 +819,9 @@ pub(crate) fn stroke_text<'a>(
         color: color_override,
         ellipsis,
         clamp,
+        mask,
     } = context;
+    let mask = *mask;
     let color_override = *color_override;
     let ellipsis = *ellipsis;
     let clamp = *clamp;
@@ -962,7 +966,7 @@ pub(crate) fn stroke_text<'a>(
                 let normalized_coords: &[i16] = bytemuck::cast_slice(run.normalized_coords());
                 // raea: text-shadow, under the run's glyphs, the last shadow first so the first is on top; a blurred
                 // one drawn in a layer the blur filter runs on (blitz-paint drew no text shadows)
-                let shadows = stack.last().map(|e| e.shadows.as_slice()).unwrap_or(&[]);
+                let shadows = stack.last().filter(|_| !mask).map(|e| e.shadows.as_slice()).unwrap_or(&[]);
                 for &(dx, dy, blur, color) in shadows.iter().rev() {
                     if color.components[3] == 0.0 {
                         continue;

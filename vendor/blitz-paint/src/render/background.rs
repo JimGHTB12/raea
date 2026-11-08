@@ -51,6 +51,8 @@ impl From<StyloBackgroundClip> for BoxModelBox {
 
             // TODO: support BorderArea
             StyloBackgroundClip::BorderArea => Self::BorderBox,
+            // raea: text (#37) paints the border box, kept under the glyphs by draw_background's mask
+            StyloBackgroundClip::Text => Self::BorderBox,
         }
     }
 }
@@ -146,7 +148,10 @@ impl ElementCx<'_, '_> {
         // raea: background-blend-mode blends a layer with the layers and the colour under it, never with what's behind
         // the element: the background is a group of its own when any layer blends
         let blends: Vec<_> = (0..layer_count).map(|i| crate::blend::background_blend(&self.style, i)).collect();
-        let isolated = blends.iter().any(Option::is_some);
+        // raea: background-clip: text (#37), on any layer: the background is a group the element's glyphs then mask
+        // (a later group composed DestIn), so it shows only through the text, colour and every layer alike
+        let text = (0..layer_count).any(|i| matches!(get_cyclic(&bg_styles.background_clip.0, i), StyloBackgroundClip::Text));
+        let isolated = blends.iter().any(Option::is_some) || text;
         let bounds = self.frame.border_box_path().bounding_box();
         self.context.layer_manager.maybe_with_blend_layer(scene, isolated, 1.0, Some(peniko::Mix::Normal.into()), self.transform, &bounds, None, None, |scene| {
             // Draw background color (if any)
@@ -172,6 +177,10 @@ impl ElementCx<'_, '_> {
                         self.draw_image_layer(scene, &layer);
                     },
                 );
+            }
+            if text {
+                let dest_in = peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::DestIn);
+                self.context.layer_manager.maybe_with_blend_layer(scene, true, 1.0, Some(dest_in), self.transform, &bounds, None, None, |scene| self.draw_text_mask(scene));
             }
         });
     }

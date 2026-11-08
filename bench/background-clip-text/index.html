@@ -1,0 +1,10 @@
+<!doctype html><html><body style="margin:0;background:#111">
+<!-- #37: gradient text. The first line clips its background to its text with background-clip, the second with
+     -webkit-background-clip alone (as older Tailwind and most snippets write it), the third through a block inside
+     the clipped one, whose text is in the clip too. bench/background-clip-text/check.sh -->
+<div data-composition-id="main" data-start="0" data-duration="1" data-width="640" data-height="360" style="font:bold 96px sans-serif;line-height:120px;color:transparent">
+  <div style="background:linear-gradient(90deg,#f0c,#0cf);background-clip:text">Gradient</div>
+  <div style="background:linear-gradient(90deg,#f0c,#0cf);-webkit-background-clip:text">Gradient</div>
+  <div style="background:linear-gradient(90deg,#f0c,#0cf);background-clip:text"><div>Gradient</div></div>
+</div>
+</body></html>

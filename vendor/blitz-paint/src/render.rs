@@ -1621,6 +1621,59 @@ impl ElementCx<'_, '_> {
         }
     }
 
+    /// Where an inline root's text is drawn from `pos` (its content box's place): the place, its block offset added,
+    /// and the transform its glyphs are drawn with
+    fn inline_text_at(&self, pos: Point, block_offset: f32) -> (Point, Affine) {
+        // raea: the text at its box's place as laid out, not as rounded to whole pixels for its background (each
+        // box's place here is its rounded one): Chrome snaps a box's background and border but draws its text from
+        // the fractional place (a button at x 78.4 has its label at 86.4, not 86)
+        let pos = if crate::text::chrome_glyphs().text_unrounded {
+            let (mut dx, mut dy) = (0.0f32, 0.0f32);
+            let mut current = Some(self.node.id);
+            while let Some(id) = current {
+                let Some(n) = self.context.dom.get_node(id) else { break };
+                dx += n.unrounded_layout().location.x - n.final_layout().location.x;
+                dy += n.unrounded_layout().location.y - n.final_layout().location.y;
+                current = n.containing_block();
+            }
+            Point::new(pos.x + dx as f64, pos.y + dy as f64)
+        } else {
+            pos
+        };
+        let pos = Point {
+            x: pos.x,
+            y: pos.y + block_offset as f64,
+        };
+        let transform =
+            self.transform * Affine::translate((pos.x * self.scale, pos.y * self.scale));
+        (pos, transform)
+    }
+
+    /// raea: the element's text as a mask (background-clip: text, #37): its glyphs where they're drawn, opaque and
+    /// without their shadows, for the background group under them to keep only what they cover (DestIn). Its own
+    /// inline layout and, as Chrome's, the text of every element inside it at its place (a scroller's offset aside).
+    pub(super) fn draw_text_mask(&self, scene: &mut impl PaintScene) {
+        if let Some(text_layout) = self.element.inline_layout_data.as_ref().filter(|_| self.node.flags.is_inline_root()) {
+            let l = self.node.final_layout();
+            let at = Point::new((l.padding.left + l.border.left) as f64, (l.padding.top + l.border.top) as f64);
+            let (_, transform) = self.inline_text_at(at, text_layout.block_offset);
+            let mut cx = self.context.draw_text_context.borrow_mut();
+            (cx.color, cx.mask) = (Some(peniko::color::palette::css::BLACK), true);
+            crate::text::stroke_text(scene, text_layout.layout.lines(), self.context.dom, transform, self.scale, self.node.id, &mut cx);
+            (cx.color, cx.mask) = (None, false);
+        }
+        let Some(children) = self.node.paint_children.borrow().clone() else { return };
+        for id in children {
+            let child = &self.context.dom.as_ref().tree()[id];
+            if child.element_data().is_none() || child.primary_styles().is_none() || matches!(child.taffy_display(), taffy::Display::None) {
+                continue;
+            }
+            let at = child.final_layout().location;
+            let transform = self.transform * Affine::translate(Vec2::new(at.x as f64, at.y as f64) * self.scale) * child.transform().as_deref().copied().unwrap_or_default();
+            self.context.element_cx(child, *child.final_layout(), transform, None).draw_text_mask(scene);
+        }
+    }
+
     fn draw_inline_layout(&self, scene: &mut impl PaintScene, pos: Point) {
         if self.node.flags.is_inline_root() {
             let text_layout = self.element
@@ -1630,28 +1683,7 @@ impl ElementCx<'_, '_> {
                     panic!("Tried to render node marked as inline root that does not have an inline layout: {:?}", self.node);
                 });
 
-            // raea: the text at its box's place as laid out, not as rounded to whole pixels for its background (each
-            // box's place here is its rounded one): Chrome snaps a box's background and border but draws its text from
-            // the fractional place (a button at x 78.4 has its label at 86.4, not 86)
-            let pos = if crate::text::chrome_glyphs().text_unrounded {
-                let (mut dx, mut dy) = (0.0f32, 0.0f32);
-                let mut current = Some(self.node.id);
-                while let Some(id) = current {
-                    let Some(n) = self.context.dom.get_node(id) else { break };
-                    dx += n.unrounded_layout().location.x - n.final_layout().location.x;
-                    dy += n.unrounded_layout().location.y - n.final_layout().location.y;
-                    current = n.containing_block();
-                }
-                Point::new(pos.x + dx as f64, pos.y + dy as f64)
-            } else {
-                pos
-            };
-            let pos = Point {
-                x: pos.x,
-                y: pos.y + text_layout.block_offset as f64,
-            };
-            let transform =
-                self.transform * Affine::translate((pos.x * self.scale, pos.y * self.scale));
+            let (pos, transform) = self.inline_text_at(pos, text_layout.block_offset);
 
             // Render inline element backgrounds (e.g. `<span style="background: ...">`)
             // behind the text and selection highlight.
