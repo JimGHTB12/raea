@@ -128,9 +128,19 @@ pub(crate) fn walk(react: &World, e: Entity, parent: u64, at: At, dir: &Path, ho
         let src = (kind == "video").then(|| props.and_then(|p| p.get("src")).and_then(Value::as_str)).flatten();
         let me = if let Some(src) = src {
             let at_s = props.and_then(|p| p.get("data-source-time")).and_then(|v| v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok()))).unwrap_or(0.0);
-            let file = raea_runtime_react::scene::media_path(dir, src);
-            let fit = video_fit(props, &file, at_s);
-            videos.push(VideoAt { id, file, at: at_s, fit });
+            // an http(s) src is fetched once into raea's URL cache (#57), never read as a path beside the composition
+            let file = match raea_io_net::cache::remote(src) {
+                None => Some(raea_runtime_react::scene::media_path(dir, src)),
+                Some(Ok(f)) => Some(f),
+                Some(Err(e)) => {
+                    REFUSED.with(|c| c.borrow_mut().push(format!("video {e}")));
+                    None
+                }
+            };
+            let fit = file.as_ref().and_then(|f| video_fit(props, f, at_s));
+            if let Some(file) = file {
+                videos.push(VideoAt { id, file, at: at_s, fit });
+            }
             let mut page = page_props(kind, props, dir);
             // a framed video shows its crop, whose aspect is its box's, stretched to the box
             if fit.is_some() {

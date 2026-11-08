@@ -182,7 +182,7 @@ fn push_sound(cx: &mut Ctx, props: &Map<String, Value>, skey: &str) {
     // linear gain, any non-negative (above 1 boosts); data-gain-db, when the element carries one, wins
     let volume = num(props, "data-gain-db").map(|db| 10f64.powf(db / 20.0)).or_else(|| num(props, "data-volume")).unwrap_or(1.0);
     if let (Some(src), Some(at)) = (props.get("src").and_then(|v| v.as_str()), num(props, "data-source-time")) {
-        let file = media_path(cx.dir, src);
+        let Some(file) = raea_io_net::cache::remote(src).map_or_else(|| Some(media_path(cx.dir, src)), Result::ok) else { return }; // http(s): raea's URL cache (#57)
         // a sound track with samples: a short window says so (decoding the whole take for it held a long take whole)
         let audible = *cx.audible.entry(file.clone()).or_insert_with(|| raea_io_media::decode_audio_window(&file, 0.0, 0.05).is_ok_and(|a| a.len() > 0));
         if !muted && volume > 0.0 && audible {

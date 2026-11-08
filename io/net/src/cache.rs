@@ -19,6 +19,13 @@ fn fnv(s: &str) -> String {
     format!("{h:016x}")
 }
 
+/// A media src (a <Video>'s, a sound's) that names an http(s) URL: Some(its file, fetched once into the cache, or why
+/// not: offline and not cached, an HTTP status), None when it names a file. The URL is the cache key, and it is in the
+/// composition's source, so a render that names it stays a function of its code.
+pub fn remote(src: &str) -> Option<Result<PathBuf, String>> {
+    (src.starts_with("http://") || src.starts_with("https://")).then(|| fetch(src))
+}
+
 /// An http(s) URL's bytes, from the cache or fetched into it; the cached file's path.
 pub fn fetch(url: &str) -> Result<PathBuf, String> {
     let google = url.starts_with("https://fonts.googleapis.com/");
@@ -43,7 +50,11 @@ pub fn fetch(url: &str) -> Result<PathBuf, String> {
     #[cfg(not(target_arch = "wasm32"))]
     {
     let agent = ureq::AgentBuilder::new().redirects(10).timeout(Duration::from_secs(300)).build();
-    let r = agent.get(url).set("User-Agent", if google { CHROME_UA } else { PLAIN_UA }).call().map_err(|e| format!("{url}: {e}"))?;
+    let r = agent.get(url).set("User-Agent", if google { CHROME_UA } else { PLAIN_UA }).call().map_err(|e| match e {
+        // ureq's message names the URL again: the status alone
+        ureq::Error::Status(code, r) => format!("{url}: HTTP {code} {}", r.status_text()),
+        e => format!("{url}: {e}"),
+    })?;
     let mut bytes = Vec::new();
     std::io::Read::read_to_end(&mut r.into_reader(), &mut bytes).map_err(|e| format!("{url}: {e}"))?;
     if bytes.is_empty() {

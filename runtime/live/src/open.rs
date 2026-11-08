@@ -195,7 +195,13 @@ impl Live {
                 }
                 let Some(src) = p.0.get("src").and_then(Value::as_str) else { continue };
                 let at = p.0.get("data-source-time").and_then(|v| v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok()))).unwrap_or(0.0);
-                out.push((raea_runtime_react::scene::media_path(&self.dir, src), at));
+                // an http(s) src from raea's URL cache (#57)
+                let file = match raea_io_net::cache::remote(src) {
+                    None => raea_runtime_react::scene::media_path(&self.dir, src),
+                    Some(Ok(f)) => f,
+                    Some(Err(_)) => continue,
+                };
+                out.push((file, at));
             }
         }
         out

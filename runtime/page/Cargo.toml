@@ -10,6 +10,7 @@ description = "A composition's page in Bevy: React's elements laid out and paint
 raea-runtime-view = { path = "../view" }
 raea-sys-frame = { path = "../../systems/frame" }
 raea-io-assets = { path = "../../io/assets" }
+raea-io-net = { path = "../../io/net" }
 raea-io-home = { path = "../../io/home" }
 raea-runtime-react = { path = "../../runtime/react", default-features = false }
 raea-render = { path = "../../engine/render", default-features = false, features = ["native"] }

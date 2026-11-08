@@ -14,6 +14,7 @@ raea-runtime-export = { path = "../export" }
 raea-runtime-bake = { path = "../bake" }
 raea-render = { path = "../../engine/render", default-features = false, features = ["native"] }
 raea-gpu-device = { path = "../../gpu/device" }
+raea-io-net = { path = "../../io/net" }
 raea-io-trace = { path = "../../io/trace" }
 raea-core-program = { path = "../../core/program" }
 raea-sys-mix = { path = "../../systems/mix" }
