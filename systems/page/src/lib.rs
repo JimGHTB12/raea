@@ -158,7 +158,8 @@ pub fn resolve(mut docs: NonSendMut<Docs>, pages: Query<(Entity, &Page)>, time: 
         let t0 = std::time::Instant::now();
         doc.resolve(at);
         // families it names that no face here has, from Google Fonts by name (raea-sys-fonts google.rs), looked for when its
-        // nodes change: the second resolve below lays its text out in them. Only with RAEA_PAGE_GOOGLE_FONTS=1: Chrome
+        // nodes change: the second resolve below lays its text out in them. Only those raea/text loadFont asked for (or
+        // every one with RAEA_PAGE_GOOGLE_FONTS=1): Chrome
         // loads only what a page links, so a family that isn't installed falls back there (ui-parity's p12 cases name
         // Inter, and so does every composition's root through sdk/react)
         if raea_sys_fonts::google::enabled() && scanned.insert(e, doc.tree().len()) != Some(doc.tree().len()) && raea_sys_fonts::google::load_missing(doc) {

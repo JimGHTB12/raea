@@ -76,6 +76,8 @@ export interface NativeCalls {
   "fonts.atlases": { args: { font: string; size: number; text: string }; answer: { width: number; height: number; src: string }[] };
   /** the system's font families by name, sorted, as fontique (bevy_text's FontCx) lists them */
   "fonts.families": { args: {}; answer: string[] };
+  /** a Google Fonts family the page loads (its Latin faces, every weight and style, fetched once through raea's URL cache), as a stylesheet link loads it in Chrome (raea/text loadFont) */
+  "fonts.google": { args: { family: string }; answer: { family: string } };
   /** drop an engine frame */
   "frame.free": { args: { frame: number }; answer: null };
   /** an engine frame's size */

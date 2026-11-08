@@ -3,3 +3,4 @@
 // raea/text (bevy_text): text in the world, and time anchored to the words said.
 export { Text3D, RichText, Span, type Text3DProps, type RichTextProps, type SpanProps, type GlyphInfo, type GlyphStyle } from "./3d";
 export * from "@raea/video/words";
+export { loadFont } from "@raea/video/fonts";

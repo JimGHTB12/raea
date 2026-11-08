@@ -23,10 +23,31 @@ static FAMILIES: Mutex<Option<HashMap<String, Faces>>> = Mutex::new(None);
 /// Every weight, upright and italic: Google's CSS API answers with the ones the family has
 const WEIGHTS: &str = "100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i";
 
-/// RAEA_PAGE_GOOGLE_FONTS=1 turns it on (off by default: Chrome loads only what a page links)
-pub fn enabled() -> bool {
+/// Families a composition asked for by name (raea/text loadFont, the `fonts.google` call), as a stylesheet link
+/// asks Chrome for them: fetched whatever RAEA_PAGE_GOOGLE_FONTS says, and only these when it's off
+static WANTED: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// RAEA_PAGE_GOOGLE_FONTS=1: every family a page names (off by default: Chrome loads only what a page links)
+fn every() -> bool {
     static ON: std::sync::LazyLock<bool> = std::sync::LazyLock::new(|| std::env::var("RAEA_PAGE_GOOGLE_FONTS").as_deref() == Ok("1"));
     *ON
+}
+
+/// `family` wanted from Google Fonts (case aside), as a page that links its stylesheet wants it
+pub fn want(family: &str) {
+    let mut w = WANTED.lock().unwrap();
+    if !w.iter().any(|f| f.eq_ignore_ascii_case(family)) {
+        w.push(family.to_string());
+    }
+}
+
+fn wanted(family: &str) -> bool {
+    every() || WANTED.lock().unwrap().iter().any(|f| f.eq_ignore_ascii_case(family))
+}
+
+/// Whether a page looks for missing families at all: RAEA_PAGE_GOOGLE_FONTS=1, or a family asked for by name
+pub fn enabled() -> bool {
+    every() || !WANTED.lock().unwrap().is_empty()
 }
 
 /// Gives `doc` the faces of each family its elements name that it has none of and Google Fonts has; true when one
@@ -34,6 +55,9 @@ pub fn enabled() -> bool {
 pub fn load_missing(doc: &mut BaseDocument) -> bool {
     let mut loaded = false;
     for family in doc.missing_font_families() {
+        if !wanted(&family) {
+            continue;
+        }
         let faces = FAMILIES.lock().unwrap().get_or_insert_default().get(&family).cloned();
         let faces = faces.unwrap_or_else(|| {
             let found = Arc::new(fetch(&family));

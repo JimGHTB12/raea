@@ -19,7 +19,8 @@
     "./codecs": "./src/codecs.ts",
     "./arena": "./src/arena.tsx",
     "./input-region": "./src/input-region.tsx",
-    "./css": "./src/css.ts"
+    "./css": "./src/css.ts",
+    "./fonts": "./src/fonts.ts"
   },
   "peerDependencies": { "react": "19.2.0" }
 }

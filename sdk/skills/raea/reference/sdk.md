@@ -91,7 +91,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/text` (sdk/raea/src/text.ts)
 
-`RichText`, `Span`, `Text3D`
+`RichText`, `Span`, `Text3D`, `loadFont`
 
 ## `raea/time` (sdk/raea/src/time.ts)
 
