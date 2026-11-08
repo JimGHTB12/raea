@@ -130,3 +130,4 @@ shader/fallback_image
 shader/storage_buffer
 shader/array_texture
 shader/sprite_material
+shader/shader_prepass

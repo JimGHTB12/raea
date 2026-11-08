@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **130**, passing **130**, excluded **16** (docs/bevy-parity/excluded.tsv), left **292**.
+Examples: **438**, ported **131**, passing **131**, excluded **16** (docs/bevy-parity/excluded.tsv), left **291**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -147,7 +147,6 @@ doesn't pay.
 | ui/widgets/vertical_slider | 10 | 0.999004 | 11 | 0 / 0 | 459 / 508 | 5 / 7 | 1 / 1 | 45.692 / 1.516 = 1.516 + 0 | yes |  |
 | ui/widgets/virtual_keyboard | 10 | 0.993705 | 13 | 0 / 0 | 646 / 508 | 5 / 7 | 1 / 1 | 44.736 / 2.209 = 2.209 + 0 | yes |  |
 | ui/widgets/standard_widgets_observers | 10 | 0.998736 | 14 | 0 / 0 | 473 / 508 | 5 / 7 | 1 / 1 | 44.781 / 1.474 = 1.474 + 0 | yes |  |
-| ui/widgets/standard_widgets | 10 | 0.994691 | 17 | 0 / 0 | 487 / 508 | 5 / 7 | 1 / 1 | 43.391 / 1.133 = 1.133 + 0 | yes |  |
 | ui/widgets/feathers_counter | 10 | 0.999941 | 1 | 0 / 0 | 493 / 508 | 5 / 7 | 1 / 1 | 41.503 / 1.368 = 1.368 + 0 | yes |  |
 | ui/widgets/feathers_number_input | 10 | 0.997483 | 6 | 0 / 0 | 972 / 508 | 5 / 7 | 1 / 1 | 44.783 / 1.825 = 1.825 + 0 | yes |  |
 | ui/widgets/feathers_gallery | 10 | 0.995606 | 9 | 0 / 0 | 1060 / 508 | 5 / 7 | 1 / 1 | 49.123 / 1.55 = 1.55 + 0 | yes |  |
@@ -195,12 +194,17 @@ doesn't pay.
 | shader/array_texture | 30 | 1.000000 | 0 | 0 / 0 | 458 / 542 | 6 / 8 | 1 / 12 | 19.391 / 1.975 = 1.975 + 0 | yes |  |
 | shader/storage_buffer | 30 | 0.999999 | 0 | 0 / 0 | 538 / 973 | 6 / 8 | 1 / 92 | 19.664 / 2.053 = 2.053 + 0 | yes |  |
 | shader/storage_buffer | 60 | 0.999999 | 0 | 0 / 0 | 538 / 973 | 6 / 8 | 1 / 92 | 3.572 / 1.798 = 1.798 + 0 | yes |  |
-| shader/sprite_material | 110 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.304 / 1.727 = 1.727 + 0 | yes |  |
-| shader/sprite_material | 130 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.359 / 1.654 = 1.654 + 0 | yes |  |
-| shader/sprite_material | 29 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 19.17 / 1.813 = 1.813 + 0 | yes |  |
-| shader/sprite_material | 40 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.813 / 1.612 = 1.612 + 0 | yes |  |
-| shader/sprite_material | 70 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.645 / 1.691 = 1.691 + 0 | yes |  |
-| shader/sprite_material | 95 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.425 / 1.391 = 1.391 + 0 | yes |  |
+| ui/widgets/standard_widgets | 10 | 0.994691 | 17 | 0 / 0 | 487 / 516 | 5 / 7 | 1 / 1 | 45.788 / 2.282 = 2.282 + 0 | yes |  |
+| shader/sprite_material | 110 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.188 / 1.566 = 1.566 + 0 | yes |  |
+| shader/sprite_material | 130 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.472 / 1.413 = 1.413 + 0 | yes |  |
+| shader/sprite_material | 29 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 17.195 / 1.746 = 1.746 + 0 | yes |  |
+| shader/sprite_material | 40 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.863 / 1.279 = 1.279 + 0 | yes |  |
+| shader/sprite_material | 70 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.457 / 1.325 = 1.325 + 0 | yes |  |
+| shader/sprite_material | 95 | 0.999832 | 7 | 0 / 0 | 455 / 520 | 5 / 7 | 1 / 1 | 2.122 / 1.418 = 1.418 + 0 | yes |  |
+| shader/shader_prepass | 10 | 0.995071 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 53.512 / 4.148 = 4.148 + 0 | yes |  |
+| shader/shader_prepass | 30 | 0.995869 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 5.599 / 2.778 = 2.778 + 0 | yes |  |
+| shader/shader_prepass | 50 | 0.994765 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 5.082 / 2.869 = 2.869 + 0 | yes |  |
+| shader/shader_prepass | 70 | 0.997658 | 7 | 2 / 2 | 465 / 533 | 10 / 11 | 3 / 6 | 4.626 / 2.77 = 2.77 + 0 | yes |  |
 
 ## Excluded
 

@@ -145,10 +145,20 @@ impl BlitzPage {
         self.place_texture_at(id, src, (0, 0), w, h, false)
     }
 
+    /// `place_texture` drawn opaque: the 3D under a whole page (live play's), whose alpha a window would ignore (a
+    /// Material's own shader may write any, shader/shader_prepass's custom_material 0.5).
+    pub fn place_under(&mut self, id: u64, src: &bevy::render::render_resource::Texture, w: u32, h: u32) {
+        self.placed(id, src, (0, 0), w, h, (false, true))
+    }
+
     /// `place_texture` for the box of `src` at `origin` (a camera's view in its element's box: docs/sdk.feature S3a),
     /// and for a camera's picture, premultiplied in its stored values, made straight on the way as raea-runtime-js's page
     /// makes it (B5: `place_premultiplied`). The box is kept inside the texture.
     pub fn place_texture_at(&mut self, id: u64, src: &bevy::render::render_resource::Texture, origin: (u32, u32), w: u32, h: u32, premultiplied: bool) {
+        self.placed(id, src, origin, w, h, (premultiplied, false))
+    }
+
+    fn placed(&mut self, id: u64, src: &bevy::render::render_resource::Texture, origin: (u32, u32), w: u32, h: u32, (premultiplied, opaque): (bool, bool)) {
         let (x, y) = (origin.0.min(src.width().saturating_sub(1)), origin.1.min(src.height().saturating_sub(1)));
         let (w, h) = (w.min(src.width() - x).max(1), h.min(src.height() - y).max(1));
         let image = match self.views.get(&id) {
@@ -161,7 +171,7 @@ impl BlitzPage {
             }
         };
         self.views.insert(id, image.clone());
-        raea_sys_page::view_at(&mut self.app, image, Some(raea_sys_page::Placed { texture: (**src).clone(), origin: (x, y), premultiplied }));
+        raea_sys_page::view_at(&mut self.app, image, Some(raea_sys_page::Placed { texture: (**src).clone(), origin: (x, y), premultiplied, opaque }));
     }
 
     /// Element `id` drawn as an image: `data` (RGBA8) as its raster, its layout made again for the picture's size.

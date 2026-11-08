@@ -217,7 +217,7 @@ impl BevyPage {
     /// The 3D frame under the page: the top left `w` x `h` of `src` (raea-render's target on the shared device), copied there on
     /// the GPU.
     pub fn set_under(&mut self, src: &wgpu::Texture, w: u32, h: u32) {
-        self.page.place_texture(UNDER, &src.clone().into(), w, h);
+        self.page.place_under(UNDER, &src.clone().into(), w, h);
     }
 
     /// The layered Canvas3D's frame as its slot's picture, made straight on the GPU as the render's is (live play;

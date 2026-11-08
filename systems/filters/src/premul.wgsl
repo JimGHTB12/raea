@@ -30,3 +30,8 @@ fn encoded(c: vec3f) -> vec3f {
     }
     return vec4f(linear(min(floor((e * 255.0 + floor(a / 2.0)) / a), vec3f(255.0)) / 255.0), a / 255.0);
 }
+// the 3D under a whole page (live play's, which a window would show): its colour as stored, opaque, as a window
+// presents it whatever alpha a material wrote (a Material's own shader may write any)
+@fragment fn fs_opaque(@builtin(position) p: vec4f) -> @location(0) vec4f {
+    return vec4f(textureLoad(src, vec2i(p.xy), 0).rgb, 1.0);
+}

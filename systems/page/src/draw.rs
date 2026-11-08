@@ -39,7 +39,7 @@ pub struct Vello {
 /// copied on the GPU into its atlas each frame it's drawn (a 3D scene, a game, live video); None ends it. `image` is
 /// the placeholder an element holds (its size and blob are the key). Both live on the App's device.
 pub fn view(app: &mut App, image: vello::peniko::ImageData, texture: Option<wgpu::Texture>) {
-    view_at(app, image, texture.map(|t| Placed { texture: t, origin: (0, 0), premultiplied: false }));
+    view_at(app, image, texture.map(|t| Placed { texture: t, origin: (0, 0), premultiplied: false, opaque: false }));
 }
 
 /// A texture an element shows (`view_at`): its box from `origin` at the placeholder's size, and whether it's a
@@ -49,6 +49,8 @@ pub struct Placed {
     pub texture: wgpu::Texture,
     pub origin: (u32, u32),
     pub premultiplied: bool,
+    /// drawn opaque, its alpha 1 (the 3D under a whole page, as a window shows it)
+    pub opaque: bool,
 }
 
 /// `view`, the element's picture a box of the texture, straight or made so.
@@ -80,7 +82,7 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: ResMut<Vello>, device: Res<Re
     let mut straighten = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("raea-page views made straight") });
     straightened.retain(|id, _| image_views.iter().any(|v| v.2 && v.1.id() == *id));
     // the premultiplied texture made straight into `out` (its whole size, so a box of it is cut as from the texture)
-    let unpremul = |encoder: &mut wgpu::CommandEncoder, src: &wgpu::TextureView, out: &wgpu::Texture| {
+    let unpremul = |encoder: &mut wgpu::CommandEncoder, pipeline: &wgpu::RenderPipeline, src: &wgpu::TextureView, out: &wgpu::Texture| {
         let bind = device.create_bind_group(&wgpu::BindGroupDescriptor { label: Some("raea-page view made straight"), layout: &premul.layout, entries: &[wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(src) }] });
         let view = out.create_view(&default());
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -88,7 +90,7 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: ResMut<Vello>, device: Res<Re
             color_attachments: &[Some(wgpu::RenderPassColorAttachment { view: &view, depth_slice: None, resolve_target: None, ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT), store: wgpu::StoreOp::Store } })],
             ..default()
         });
-        pass.set_pipeline(&premul.unpremul);
+        pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &bind, &[]);
         pass.draw(0..3, 0..1);
     };
@@ -100,25 +102,26 @@ pub fn draw(mut scenes: ResMut<Scenes>, mut vello: ResMut<Vello>, device: Res<Re
     for (placeholder, handle, premultiplied) in image_views.drain(..) {
         let Some(gpu) = images.get(&handle) else { continue };
         if !premultiplied {
-            pending.push((placeholder, Some(Placed { texture: (*gpu.texture).clone(), origin: (0, 0), premultiplied: false })));
+            pending.push((placeholder, Some(Placed { texture: (*gpu.texture).clone(), origin: (0, 0), premultiplied: false, opaque: false })));
             continue;
         }
         let size = gpu.texture.size();
         let out = straightened.entry(handle.id()).or_insert_with(|| straight_target(device, size));
         sized(out, size);
-        unpremul(&mut straighten, &gpu.texture_view, out);
-        pending.push((placeholder, Some(Placed { texture: out.clone(), origin: (0, 0), premultiplied: false })));
+        unpremul(&mut straighten, &premul.unpremul, &gpu.texture_view, out);
+        pending.push((placeholder, Some(Placed { texture: out.clone(), origin: (0, 0), premultiplied: false, opaque: false })));
     }
-    // placed textures (`view_at`) that are premultiplied: their straight copies, a placeholder gone with its own
-    straight_placed.retain(|id, _| pending.iter().any(|(i, p)| i.data.id() == *id && p.as_ref().is_some_and(|p| p.premultiplied)));
+    // placed textures (`view_at`) that are premultiplied or drawn opaque: their copies so, a placeholder gone with its own
+    let copied = |p: &Placed| p.premultiplied || p.opaque;
+    straight_placed.retain(|id, _| pending.iter().any(|(i, p)| i.data.id() == *id && p.as_ref().is_some_and(copied)));
     for (placeholder, placed) in pending.iter_mut() {
-        let Some(p) = placed.as_mut().filter(|p| p.premultiplied) else { continue };
+        let Some(p) = placed.as_mut().filter(|p| copied(p)) else { continue };
         let size = p.texture.size();
         let out = straight_placed.entry(placeholder.data.id()).or_insert_with(|| straight_target(device, size));
         sized(out, size);
-        unpremul(&mut straighten, &p.texture.create_view(&default()), out);
+        unpremul(&mut straighten, if p.opaque { &premul.opaque } else { &premul.unpremul }, &p.texture.create_view(&default()), out);
         p.texture = out.clone();
-        p.premultiplied = false;
+        (p.premultiplied, p.opaque) = (false, false);
     }
     queue.submit([straighten.finish()]);
     // a view's texture changes under the same paint: any view placed this frame draws every page again

@@ -11,6 +11,8 @@ pub struct Premul {
     pub straight: wgpu::RenderPipeline,
     /// a premultiplied picture (a camera's) made straight for Vello, which takes an element's picture so
     pub unpremul: wgpu::RenderPipeline,
+    /// a picture made opaque, as a window shows it (the 3D under a whole page)
+    pub opaque: wgpu::RenderPipeline,
     pub layout: wgpu::BindGroupLayout,
 }
 
@@ -45,8 +47,8 @@ impl Premul {
             multiview_mask: None,
             cache: None,
         });
-        let (pipeline, straight, unpremul) = (make("fs"), make("fs_straight"), make("fs_unpremul"));
-        Premul { pipeline, straight, unpremul, layout }
+        let (pipeline, straight, unpremul, opaque) = (make("fs"), make("fs_straight"), make("fs_unpremul"), make("fs_opaque"));
+        Premul { pipeline, straight, unpremul, opaque, layout }
     }
 }
 
