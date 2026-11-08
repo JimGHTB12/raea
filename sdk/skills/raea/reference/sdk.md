@@ -43,7 +43,7 @@ with a capital, hooks with `use`. A component's props are in its file.
 
 ## `raea/feathers` (sdk/raea/src/feathers.ts)
 
-`FeathersButton`, `ThemeContext`, `ThemedText`, `UiTheme`, `VirtualKeyboard`, `context_color`, `create_dark_theme`, `fonts`, `palette`, `size`, `to_border_radius`, `tokens`, `useThemeColor`
+`FeathersButton`, `ThemeBackgroundColor`, `ThemeBorderColor`, `ThemeContext`, `ThemeTextColor`, `ThemedText`, `UiTheme`, `VirtualKeyboard`, `caption`, `context_color`, `create_dark_theme`, `fonts`, `label`, `label_dim`, `label_small`, `palette`, `size`, `to_border_radius`, `tokens`, `useThemeColor`
 
 ## `raea/gizmos` (sdk/raea/src/gizmos.ts)
 

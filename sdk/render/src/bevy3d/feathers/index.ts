@@ -4,3 +4,4 @@ export { palette, create_dark_theme, type ThemeProps, type SurfaceLevel } from "
 export { UiTheme, ThemeContext, ThemedText, context_color, useThemeColor } from "./theme";
 export { fonts, size } from "./constants";
 export { FeathersButton, VirtualKeyboard, to_border_radius, type ButtonVariant, type RoundedCorners, type FeathersButtonProps } from "./controls";
+export { caption, label, label_dim, label_small, ThemeBackgroundColor, ThemeBorderColor, ThemeTextColor } from "./display";

@@ -72,3 +72,20 @@ describe("EditableText", () => {
     expect(() => html(<EditableText visible_lines={0} />)).toThrow(/visible_lines/);
   });
 });
+
+describe("feathers' display", () => {
+  test("label is Fira Sans 14 px in TEXT_MAIN, label_small 11 px, and a caption outside a widget keeps Bevy's font", async () => {
+    const { label, label_small, caption } = await import("raea/feathers");
+    const l = html(<UiTheme theme={create_dark_theme()}>{label("a")}</UiTheme>);
+    expect(l).toContain("Fira Sans");
+    expect(l).toMatch(/font-size:\s*14px/);
+    expect(html(<UiTheme theme={create_dark_theme()}>{label_small("a")}</UiTheme>)).toMatch(/font-size:\s*11px/);
+    expect(html(<UiTheme theme={create_dark_theme()}>{caption("a")}</UiTheme>)).not.toContain("Fira Sans");
+  });
+  test("ThemeBackgroundColor colours the one element inside from the theme, and refuses anything else", async () => {
+    const { ThemeBackgroundColor } = await import("raea/feathers");
+    const { Node } = await import("raea/ui");
+    expect(html(<UiTheme theme={create_dark_theme()}><ThemeBackgroundColor token={tokens.WINDOW_BG}><Node /></ThemeBackgroundColor></UiTheme>)).toContain("rgba(31, 31, 36, 1)");
+    expect(() => html(<ThemeBackgroundColor token={tokens.WINDOW_BG}>{"x" as never}</ThemeBackgroundColor>)).toThrow(/one element/);
+  });
+});
