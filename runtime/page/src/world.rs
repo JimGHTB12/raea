@@ -199,6 +199,8 @@ pub fn world_page_sync(world: &mut World) {
     if let Some(surf) = surf {
         let (mut videos, mut screens) = (Vec::new(), Vec::new());
         SCENE_SLOT.with(|c| c.set(None));
+        IN_3D.with(|c| c.set(0));
+        IN_SVG.with(|c| c.set(false));
         TEXTURE_SLOTS.with(|c| c.borrow_mut().clear());
         REFUSED.with(|c| c.borrow_mut().clear());
         let mut w = std::mem::take(&mut wp.walk);

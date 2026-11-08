@@ -290,25 +290,45 @@ mod svg_namespace_tests {
     }
 
     /// An SVG <text> keeps SVG's attribute names from frame to frame, as an animated `fontSize` changes them: the walk
-    /// gives it `$ns`, and a later frame's diff sends only what changed, so the page tells it's SVG's by its namespace
+    /// gives it `$ns` (and not an HTML <title> under a <foreignObject>), and a later frame's diff sends only what
+    /// changed, so the page tells it's SVG's by its namespace. The frames are the walk's, of a React tree as a
+    /// composition's commit leaves it, through Tree::diff to ops::apply, as a render's are.
     #[test]
     fn an_svg_texts_attributes_keep_their_svg_names_from_frame_to_frame() {
-        use bevy::prelude::{Entity, UVec2};
-        use raea_core_wire::tree::{Tree, Want};
-        use serde_json::{Value, json};
+        use super::super::*;
+        use bevy::prelude::{ChildOf, UVec2};
+        use raea_core_wire::tree::Tree;
+        use serde_json::json;
+        let mut react = World::new();
+        let mut node = |n: u64, kind: &str, props: Value, parent: Option<Entity>| {
+            let mut e = react.spawn((ReactNode(n), ReactKind(kind.into()), ReactProps(props.as_object().unwrap().clone())));
+            if let Some(p) = parent {
+                e.insert(ChildOf(p));
+            }
+            e.id()
+        };
+        let surf = node(0, "surface", json!({}), None);
+        let svg = node(1, "svg", json!({"width": 640, "height": 360}), Some(surf));
+        let text = node(2, "text", json!({}), Some(svg));
+        let html = node(3, "foreignObject", json!({"width": 640, "height": 40}), Some(svg));
+        node(4, "title", json!({"lang": "en"}), Some(html));
+        react.entity_mut(text).insert(ReactText("Middle".into()));
         let mut docs = raea_sys_page::Docs::default();
         let doc = docs.open(Entity::PLACEHOLDER, raea_sys_page::Page { size: UVec2::new(640, 360), scale: 1.0 });
         let mut nodes = raea_sys_page::ops::Nodes::new(doc.root_node().id);
-        let (mut tree, order) = (Tree::default(), std::collections::HashMap::from([(0, vec![1]), (1, vec![2]), (2, vec![3])]));
-        let want = |id, parent, kind: &str, props: Value, text: Option<&str>| Want { id, parent, kind: kind.into(), props: props.as_object().unwrap().clone(), text: text.map(Into::into), path: String::new() };
+        let (mut tree, mut out, dir) = (Tree::default(), Walk::default(), std::env::temp_dir());
+        let (text_id, title_id) = (2 + REACT_IDS, 4 + REACT_IDS);
         let mut attrs_at = |size: u32, anchor: &str| {
-            let frame = [
-                want(1, 0, "svg", json!({"width": 640, "height": 360}), None),
-                want(2, 1, "text", json!({"$ns": "svg", "x": 320, "y": 190, "fontSize": size, "textAnchor": anchor}), None),
-                want(3, 2, "text", json!({}), Some("Middle")),
-            ];
-            raea_sys_page::ops::apply(doc, &mut nodes, tree.diff(&frame, &order).0);
-            let el = doc.get_node(nodes.by_id[&2]).unwrap().element_data().unwrap();
+            react.entity_mut(text).insert(ReactProps(json!({"x": 320, "y": 190, "fontSize": size, "textAnchor": anchor}).as_object().unwrap().clone()));
+            IN_SVG.with(|c| c.set(false));
+            out.begin(640, 360, None, false);
+            walk(&react, surf, BODY, At::Str(""), &dir, &HashMap::new(), &mut out, &mut Vec::new(), &mut Vec::new());
+            out.end();
+            let ns = |id| out.wants().iter().find(|w| w.id == id).map(|w| w.props.get("$ns").cloned());
+            assert_eq!(ns(text_id), Some(Some(json!("svg"))), "the walk names the <text> SVG's");
+            assert_eq!(ns(title_id), Some(None), "a <title> under a <foreignObject> is HTML's");
+            raea_sys_page::ops::apply(doc, &mut nodes, tree.diff(out.wants(), &out.order).0);
+            let el = doc.get_node(nodes.by_id[&text_id]).unwrap().element_data().unwrap();
             el.attrs().iter().map(|a| format!("{}={}", a.name.local, a.value)).collect::<Vec<_>>()
         };
         let first = attrs_at(48, "middle");
