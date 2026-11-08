@@ -63,11 +63,16 @@ pub fn settle(world: &mut World, e: Entity) -> Result<(), String> {
     }
 }
 
+/// The part's own Material, if it holds it as `C` (a 3D, 2D or sprite's).
+fn handle<C: Component + std::ops::Deref<Target = Handle<OwnMaterial>>>(world: &World, e: Entity) -> Option<Handle<OwnMaterial>> {
+    world.get::<C>(e).map(|m| (**m).clone())
+}
+
 /// An `own:uniforms` component row: the frame's {uniforms, buffers} packed into the part's own Material (3D, 2D or a
 /// sprite's) and its storage buffers.
 pub fn patch(world: &mut World, e: Entity, v: &Value) -> Result<(), String> {
-    let h = world.get::<MeshMaterial3d<OwnMaterial>>(e).map(|m| m.0.clone());
-    let h = h.or_else(|| world.get::<MeshMaterial2d<OwnMaterial>>(e).map(|m| m.0.clone())).or_else(|| world.get::<SpriteMaterial<OwnMaterial>>(e).map(|m| m.0.clone()));
+    let h = [handle::<MeshMaterial3d<OwnMaterial>>(world, e), handle::<MeshMaterial2d<OwnMaterial>>(world, e), handle::<SpriteMaterial<OwnMaterial>>(world, e)];
+    let h = h.into_iter().flatten().next();
     // a row applied before the part's Material is put on (shade_rows runs after the rows): kept for `put`
     let Some(h) = h else {
         world.entity_mut(e).insert(Pending(v.clone()));
