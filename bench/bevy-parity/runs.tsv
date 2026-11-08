@@ -127,3 +127,4 @@ shader/shader_material_screenspace_texture	-	10,60
 shader/shader_material_2d	-	10
 shader/fallback_image	-	10
 shader/storage_buffer	-	30,60
+shader/array_texture	-	30,100
