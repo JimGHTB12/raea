@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **142**, passing **142**, excluded **17** (docs/bevy-parity/excluded.tsv), left **279**.
+Examples: **438**, ported **143**, passing **143**, excluded **17** (docs/bevy-parity/excluded.tsv), left **278**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -229,6 +229,9 @@ doesn't pay.
 | shader_advanced/custom_post_processing | 60 | 0.999954 | 0 | 1 / 1 | 443 / 522 | 6 / 8 | 2 / 2 | 3.697 / 2.305 = 2.305 + 0 | yes |  |
 | shader_advanced/custom_vertex_attribute | 10 | 1.000000 | 0 | 0 / 0 | 449 / 521 | 6 / 8 | 1 / 2 | 2.875 / 1.367 = 1.367 + 0 | yes |  |
 | shader_advanced/custom_vertex_attribute | 5 | 1.000000 | 0 | 0 / 0 | 447 / 521 | 6 / 8 | 1 / 2 | 41.257 / 2.953 = 2.953 + 0 | yes |  |
+| shader_advanced/fullscreen_material | 10 | 0.999748 | 6 | 1 / 1 | 444 / 522 | 6 / 8 | 2 / 2 | 23.02 / 0.953 = 0.953 + 0 | yes |  |
+| shader_advanced/fullscreen_material | 30 | 0.999749 | 6 | 1 / 1 | 444 / 522 | 6 / 8 | 2 / 2 | 1.521 / 0.746 = 0.746 + 0 | yes |  |
+| shader_advanced/fullscreen_material | 60 | 0.999749 | 6 | 1 / 1 | 444 / 522 | 6 / 8 | 2 / 2 | 1.584 / 0.658 = 0.658 + 0 | yes |  |
 
 ## Excluded
 
