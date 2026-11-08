@@ -34,7 +34,7 @@ export { px, percent, vw, vh, vmin, vmax, auto, UiRect, BorderRadius, CornerRadi
 export { LinearGradient, RadialGradient, ConicGradient, ColorStop, AngularColorStop, UiPosition, type Gradient, type RadialGradientShape, type InterpolationColorSpace } from "./bevy3d/ui-gradient";
 export { GridTrack, RepeatedGridTrack, GridPlacement, type GridTrackRepetition, type GridAutoFlow, type MinTrackSizingFunction, type MaxTrackSizingFunction } from "./bevy3d/ui-grid";
 export { Rot2, Val2, UiTransform, BoxShadow, type ShadowStyle } from "./bevy3d/ui-transform";
-export { FontFeatureTag } from "./bevy3d/ui-features";
+export { FontFeatureTag, FontWidth } from "./bevy3d/ui-features";
 export type { IgnoreScroll } from "./bevy3d/ui-scroll";
 export { Scrollbar, ScrollbarThumb, type ScrollbarProps, type ScrollbarThumbProps, type ControlOrientation } from "./bevy3d/ui-scrollbar";
 export { FontSource, type GenericFontFamily } from "./bevy3d/ui-font";

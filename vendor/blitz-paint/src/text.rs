@@ -886,8 +886,11 @@ pub(crate) fn stroke_text<'a>(
                 let metrics = run.font_metrics();
                 let style = glyph_run.style();
                 let synthesis = run.synthesis();
+                // raea: a bevy_ui <Text> draws its glyphs upright, as bevy_text does: it takes no synthetic italic's
+                // skew from parley (an Italic or Oblique run of a face with no slant drawn as its upright face)
                 let glyph_xform = synthesis
                     .skew()
+                    .filter(|_| !bevy)
                     .map(|angle| Affine::skew(angle.to_radians().tan() as f64, 0.0));
 
                 let css_font_size = font_size as f64 / scale;

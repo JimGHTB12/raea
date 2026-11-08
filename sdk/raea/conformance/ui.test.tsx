@@ -1,7 +1,7 @@
 // docs/control.feature FC0a: bevy_ui's Node, Text and TextSpan on the page, with Bevy's defaults, values and blend
 // (ui/styling/transparency_ui, ui/layout/fixed_node).
 import { describe, expect, test } from "bun:test";
-import { AngularColorStop, FontFeatureTag, GhostNode, Viewport, UiTargetCamera, UiRect as GradRect, FontSource, GridPlacement, GridTrack, RepeatedGridTrack, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
+import { AngularColorStop, FontFeatureTag, FontWidth, GhostNode, Viewport, UiTargetCamera, UiRect as GradRect, FontSource, GridPlacement, GridTrack, RepeatedGridTrack, ColorStop, ConicGradient, LinearGradient, RadialGradient, UiPosition, BorderRadius, CornerRadius, FontVariationTag, ImageNode, InlineImage, ImagePlugin, Node, TextureAtlasLayout, Overflow, OverflowClipMargin, Text, TextShadow, Text2d, UiScale, TextSpan, UiRect, auto, percent, px, vw } from "raea/ui";
 import { LinearRgba, Srgba } from "raea/color";
 import { Canvas3D } from "raea/3d";
 import { renderFrame } from "../src/test";
@@ -128,6 +128,12 @@ describe("ImageNode, Underline and Strikethrough", () => {
     expect(html(<Text>a</Text>)).not.toContain("font-feature-settings");
     expect(() => html(<Text font_features={{ sc: 1 }}>a</Text>)).toThrow(/four characters/);
     expect(() => html(<Text font_features={{ smcp: 0.5 }}>a</Text>)).toThrow(/whole number/);
+  });
+  test("TextFont's width (font_width, FontWidth's shares) is CSS's font-stretch, on a Text or a TextSpan", () => {
+    expect(html(<Text font_width={FontWidth.CONDENSED}>a</Text>)).toContain("font-stretch:75%");
+    expect(html(<Text>a<TextSpan font_width={FontWidth.ULTRA_EXPANDED}>b</TextSpan></Text>)).toMatch(/<span style="[^"]*font-stretch:200%[^"]*">b<\/span>/);
+    expect(html(<Text>a</Text>)).not.toContain("font-stretch");
+    expect(() => html(<Text font_width={0}>a</Text>)).toThrow(/font_width is above 0/);
   });
   test("a TextSpan of size 0 or less is left out, as bevy_text leaves it, and its Text's other runs drawn", () => {
     const out = html(<Text>a<TextSpan font_size={{ Px: 0 }}>zero</TextSpan><TextSpan font_size={-42}>negative</TextSpan><TextSpan>b</TextSpan></Text>);

@@ -21,3 +21,10 @@ export function featuresCss(who: string, f: Record<string, number> | undefined):
   });
   return all.length ? all.join(", ") : undefined;
 }
+
+/** bevy_text's FontWidth: a face's width as a share of its normal one (CSS's font-stretch), for a Text's font_width.
+ *  @bevy bevy_text::FontWidth */
+export const FontWidth = {
+  ULTRA_CONDENSED: 0.5, EXTRA_CONDENSED: 0.625, CONDENSED: 0.75, SEMI_CONDENSED: 0.875, NORMAL: 1,
+  SEMI_EXPANDED: 1.125, EXPANDED: 1.25, EXTRA_EXPANDED: 1.5, ULTRA_EXPANDED: 2,
+} as const;
