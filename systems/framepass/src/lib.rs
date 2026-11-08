@@ -156,7 +156,7 @@ fn follow(frame: Option<Res<raea_sys_frame::FrameRows>>, mut cams: Query<&mut Fr
         let mut changed = false;
         for w in passes.bypass_change_detection().0.iter_mut().filter_map(|p| p.written.as_mut()) {
             let Some(r) = cols.id.iter().position(|i| *i == w.id) else { continue };
-            match w.follow(&raea_sys_frame::keyed(|c| cols.get(r, c), "uniforms").unwrap_or_default()) {
+            match w.follow(&raea_sys_frame::keyed(|c| frame.at(r, c), "uniforms").unwrap_or_default()) {
                 Ok(c) => changed |= c,
                 Err(e) => error!("FramePass {}: {e}", w.id),
             }

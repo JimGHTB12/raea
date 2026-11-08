@@ -64,7 +64,7 @@ function written(props: ComputeProps) {
   if (entry !== null && (typeof entry !== "string" || !IDENT.test(entry))) throw new TypeError(`Compute: entry is an entry point's name or null, got ${JSON.stringify(entry)}`);
   for (const [k, key] of Object.entries(bind)) if (typeof key !== "string" || !(key in images)) throw new TypeError(`Compute: bind ${k} is one of its images' keys (${Object.keys(images).join(", ")}), got ${JSON.stringify(key)}`);
   const shader = { file: assetPath(file), workgroups, images, uniforms, buffers,...(defs !== undefined ? { defs: shaderDefs("Compute", defs) } : {}) };
-  return node3d("Compute", { shader, entry: entry ?? "", bind: JSON.stringify(bind) });
+  return node3d("Compute", { shader, entry: entry ?? "", bind: JSON.stringify(bind), uniforms: JSON.stringify(uniforms) });
 }
 
 const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -93,5 +93,6 @@ export function Compute(props: ComputeProps) {
     if (typeof im !== "string" || !im.startsWith("render:")) throw new TypeError(`Compute: image ${k} is a "render:NAME", got ${JSON.stringify(im)}`);
   }
   const shader = { ...(wesl !== undefined ? { wesl } : { wgsl }), workgroups, uniforms, buffers, images, ...(defs !== undefined ? { defs: shaderDefs("Compute", defs) } : {}) };
-  return node3d("Compute", { shader });
+  // its uniforms again as a keyed column, so a value that changes from frame to frame reaches it (the spec is its first frame's)
+  return node3d("Compute", { shader, uniforms: JSON.stringify(uniforms) });
 }

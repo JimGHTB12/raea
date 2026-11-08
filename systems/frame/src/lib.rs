@@ -100,6 +100,15 @@ impl FrameRows {
         }
     }
 
+    /// A row's value this frame by its place (`cols.id`'s): a live row's as a live frame set it, else the timeline's at the
+    /// clock. A system following a row's keyed column reads it here: `cols` alone holds a live render's first frame.
+    pub fn at(&self, r: usize, c: &str) -> Option<V> {
+        match &self.live {
+            Some(rows) => rows.get(r)?.get(c).cloned(),
+            None => self.cols.get(r, c),
+        }
+    }
+
     /// One of a row's values this frame, copying only it (with its frame look laid on, as `vals` has it).
     pub fn get(&self, e: Entity, c: &str) -> Option<V> {
         let r = *self.ix.get(&e)?;

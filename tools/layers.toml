@@ -165,6 +165,7 @@ ui-parity = "tools"
 ui-parity-compare = "tools"
 conformance-fake = "tools"
 rtools = "tools"
+skillcheck = "tools"
 seetool = "tools"
 
 # systems that hold only a facility another system may build on (docs/overhaul.md: the mixer graph, ONNX sessions,

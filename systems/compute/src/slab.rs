@@ -31,7 +31,7 @@ pub struct Ranged {
     src: String,
     defs: Vec<ShaderDefVal>,
     declared: Vec<(String, String)>,
-    given: Map<String, Value>,
+    pub given: Map<String, Value>,
 }
 
 impl Ranged {

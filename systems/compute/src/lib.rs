@@ -45,6 +45,11 @@ pub struct Compute {
     pub images: Vec<Handle<Image>>,
     /// a compute as written (a <Compute file>): its own bindings, entry and images (written.rs)
     pub written: Option<written::Written>,
+    /// its row's id, whose keyed `uniforms` column it follows frame by frame; its uniforms' names, in slot order; the
+    /// column last followed
+    pub id: String,
+    pub names: Vec<String>,
+    pub given: String,
 }
 
 /// The frame's computes, in order, and the frame's time.
@@ -80,7 +85,7 @@ pub fn build(world: &mut World, v: &Value, id: &str, mut image: impl FnMut(&mut 
     let workgroups = workgroups(o)?;
     if o.contains_key("file") {
         let (shader, w) = written::build(world, o, id, &mut image)?;
-        return Ok(Compute { shader, workgroups, slots: [Vec4::ZERO; SLOTS], buffers: vec![], images: vec![], written: Some(w) });
+        return Ok(Compute { shader, workgroups, slots: [Vec4::ZERO; SLOTS], buffers: vec![], images: vec![], written: Some(w), id: id.to_string(), names: vec![], given: String::new() });
     }
     let ins = Inputs::read(world, o, "a compute", &mut image)?;
     if !ins.textures.is_empty() || ins.array.is_some() {
@@ -131,7 +136,8 @@ pub fn build(world: &mut World, v: &Value, id: &str, mut image: impl FnMut(&mut 
     let (names, _) = ins.names();
     let bnames: Vec<String> = buffers.iter().map(|b| b.0.clone()).collect();
     let shader = register(world, module(&ins.src, &names, &bnames, &inames), &ins.defs, "raea compute", "raea_sys_compute");
-    Ok(Compute { shader, workgroups, slots: ins.slots(), buffers, images, written: None })
+    let uniforms = names.iter().map(|(n, _)| n.clone()).collect();
+    Ok(Compute { shader, workgroups, slots: ins.slots(), buffers, images, written: None, id: id.to_string(), names: uniforms, given: String::new() })
 }
 
 /// A spec's workgroups, [x(, y(, z))], each 1 to 65535.
@@ -172,19 +178,40 @@ fn storage_slabs(w: &mut World) {
 fn follow(frame: Option<Res<raea_sys_frame::FrameRows>>, mut c: ResMut<Computes>, parts: Query<(&Name, &Mesh3d)>) {
     let Some(frame) = frame else { return };
     let cols = &frame.cols;
-    for w in c.list.iter_mut().filter_map(|c| c.written.as_mut()) {
+    for c in c.list.iter_mut() {
+        let Some(r) = cols.id.iter().position(|i| *i == c.id) else { continue };
+        let s = |k: &str| raea_sys_frame::keyed(|col| frame.at(r, col), k).unwrap_or_default();
+        let Some(w) = c.written.as_mut() else {
+            if let Err(e) = inline_uniforms(c, &s("uniforms")) {
+                error!("Compute {}: {e}", c.id);
+            }
+            continue;
+        };
         for b in w.buffers.values_mut() {
             if let written::Bound::Mesh { name, id, .. } = b {
                 *id = parts.iter().find(|(n, _)| n.as_str() == name).map(|(_, m)| m.id());
             }
         }
-        let Some(r) = cols.id.iter().position(|i| *i == w.id) else { continue };
-        let s = |k: &str| raea_sys_frame::keyed(|c| cols.get(r, c), k).unwrap_or_default();
-        if let Err(e) = written::follow(w, &s("entry"), &s("bind")) {
+        if let Err(e) = written::follow(w, &s("entry"), &s("bind")).and_then(|_| written::follow_uniforms(w, &s("uniforms"))) {
             error!("Compute {}: {e}", w.id);
             w.entry = None;
         }
     }
+}
+
+/// This frame's `uniforms` column (JSON, {NAME: value}) into an inline compute's slots, when it has changed; a name
+/// it wasn't built with is refused (its slots are fixed at build).
+fn inline_uniforms(c: &mut Compute, uniforms: &str) -> Result<(), String> {
+    if uniforms.is_empty() || c.given == uniforms {
+        return Ok(());
+    }
+    c.given = uniforms.to_string();
+    let given: serde_json::Map<String, Value> = serde_json::from_str(uniforms).map_err(|e| format!("uniforms: {e}"))?;
+    for (k, x) in &given {
+        let i = c.names.iter().position(|n| n == k).ok_or_else(|| format!("uniform {k} isn't one it was built with ({:?})", c.names))?;
+        c.slots[i] = raea_sys_material::shader_material::uniform(k, x)?.value;
+    }
+    Ok(())
 }
 
 /// The frame's time onto the computes (so they're extracted each frame).
@@ -265,15 +292,15 @@ fn dispatch(c: Option<Res<Computes>>, mut s: ResMut<State>, cache: Res<PipelineC
                 };
                 bufs.insert(name.clone(), buf);
             }
-            let uniforms = match &w.ranged {
-                Some(r) => match r.pack(&|b, end| ranges.get(b).map(|r| r[end as usize])) {
+            let uniforms = match w.ranged {
+                true => match w.packer.pack(&|b, end| ranges.get(b).map(|r| r[end as usize])) {
                     Ok((u, _)) => u,
                     Err(e) => {
                         error!("Compute {}: {e}", w.id);
                         continue;
                     }
                 },
-                None => w.uniforms.clone(),
+                false => w.uniforms.clone(),
             };
             if let Some(group) = written::group(&device, &layout, w, &images, &bufs, &uniforms) {
                 groups.push((pipeline, group, k.workgroups));

@@ -45,7 +45,12 @@ pub struct Written {
     pub entries: Vec<String>,
     /// each storage buffer's binding, by its name
     pub buffers: BTreeMap<String, Bound>,
-    pub ranged: Option<Ranged>,
+    /// its uniforms' values, packed again when its row's keyed `uniforms` column changes (follow_uniforms), and each
+    /// frame when a field is a mesh's range in its slab (`ranged`)
+    pub packer: Ranged,
+    pub ranged: bool,
+    /// the `uniforms` column last followed
+    pub given: String,
 }
 
 fn format(f: &str) -> Option<TextureFormat> {
@@ -123,6 +128,19 @@ pub fn follow(w: &mut Written, entry: &str, bind: &str) -> Result<(), String> {
     frame(w, &o)
 }
 
+/// This frame's `uniforms` column (JSON, {NAME: value}) packed into its uniforms, when it has changed ("": as built).
+pub fn follow_uniforms(w: &mut Written, uniforms: &str) -> Result<(), String> {
+    if uniforms.is_empty() || w.given == uniforms {
+        return Ok(());
+    }
+    w.given = uniforms.to_string();
+    w.packer.given = serde_json::from_str(uniforms).map_err(|e| format!("uniforms: {e}"))?;
+    if !w.ranged {
+        w.uniforms = w.packer.pack(&|_, _| Some(0))?.0;
+    }
+    Ok(())
+}
+
 /// Every entry and binding its row's columns take over the run (raea-sys-frame's keyed_all), checked at load; that a
 /// frame's binding binds every storage texture its entry needs is checked frame by frame (follow).
 pub fn check(w: &mut Written, entries: &[String], binds: &[String]) -> Result<(), String> {
@@ -184,10 +202,10 @@ pub fn build(world: &mut World, o: &serde_json::Map<String, Value>, id: &str, im
     let ranged = Ranged::new(&src, &defs, declared, given);
     // packed with each slab range 0, to check them; a run's own ranges are packed frame by frame (lib.rs dispatch)
     let (uniforms, has_ranges) = ranged.pack(&|b, _| matches!(buffers.get(b), Some(Bound::Mesh { .. })).then_some(0)).map_err(|e| format!("{path}: {e}"))?;
-    let ranged = has_ranges.then_some(ranged);
+    let (packer, ranged) = (ranged, has_ranges);
     let entries = entries(&src);
     let shader = raea_sys_shader::register(world, src, &defs, "raea compute as written", "raea_sys_compute");
-    Ok((shader, Written { decls, images, uniforms, entry: None, bind: BTreeMap::new(), id: id.to_string(), seen: Default::default(), entries, buffers, ranged }))
+    Ok((shader, Written { decls, images, uniforms, entry: None, bind: BTreeMap::new(), id: id.to_string(), seen: Default::default(), entries, buffers, packer, ranged, given: String::new() }))
 }
 
 /// The bind group layout its declarations make, in the compute stage.
@@ -233,7 +251,7 @@ mod tests {
         assert_eq!(d[2], Decl::Uniform { binding: 2, name: "config".into(), ty: "Cfg".into() });
         assert_eq!(decls("@group(0) @binding(1) var<storage, read_write> b: array<f32>;").unwrap()[0], Decl::Buffer { binding: 1, name: "b".into(), ty: "array<f32>".into(), read_only: false });
         assert!(decls("@group(0) @binding(0) var<workgroup> b: f32;").unwrap_err().contains("var<storage>"));
-        let mut w = Written { decls: d, images: [("a".to_string(), Handle::default()), ("b".to_string(), Handle::default())].into(), uniforms: BTreeMap::new(), entry: None, bind: BTreeMap::new(), id: "compute0".into(), seen: Default::default(), entries: vec!["init".into(), "update".into()], buffers: BTreeMap::new(), ranged: None };
+        let mut w = Written { decls: d, images: [("a".to_string(), Handle::default()), ("b".to_string(), Handle::default())].into(), uniforms: BTreeMap::new(), entry: None, bind: BTreeMap::new(), id: "compute0".into(), seen: Default::default(), entries: vec!["init".into(), "update".into()], buffers: BTreeMap::new(), packer: super::Ranged::new("", &[], vec![], Default::default()), ranged: false, given: String::new() };
         assert_eq!(entries("@compute @workgroup_size(8, 8, 1)\nfn init(@builtin(x) i: u32) {}\n@compute @workgroup_size(1)\nfn update_2() {}"), ["init", "update_2"]);
         assert!(check(&mut w, &["init".into(), "".into()], &[r#"{"input": "a"}"#.into()]).is_ok());
         assert!(check(&mut w, &["main".into()], &[]).unwrap_err().contains("entry main"));
