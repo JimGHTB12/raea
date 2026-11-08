@@ -2,7 +2,7 @@
 //! naga translates (glsl.rs), and a node material's WGSL, which three's own TSL builder writes in the SDK. Either is
 //! a vertex and a fragment source meeting module.rs's contract; this crate's Material runs them with three's built-ins
 //! (the model, view and projection matrices, the camera, the mesh's attributes and its own), the material's uniforms
-//! in 62 vec4 slots (changed frame by frame by `three:uniforms` component rows, `patch`), up to four textures, and
+//! in 254 vec4 slots (changed frame by frame by `three:uniforms` component rows, `patch`), up to four textures, and
 //! three's time.
 //!
 //! What three puts on screen is what shows: a ShaderMaterial's colour is the value its canvas gets (`display`), so the

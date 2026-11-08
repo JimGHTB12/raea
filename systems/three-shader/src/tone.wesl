@@ -1,7 +1,7 @@
 // How a three shader's colour reaches the screen as three puts it there (docs/r3f.feature R3F11). A ShaderMaterial
 // writes the value the canvas shows (three applies no tone mapping or colour space to it unless its GLSL includes
 // them), where Bevy tone-maps and encodes every pixel of the frame after the fact. So a "display" colour is decoded
-// from sRGB and taken back through the camera's tone mapping: the linear value Bevy's curve turns into it. Slot 63:
+// from sRGB and taken back through the camera's tone mapping: the linear value Bevy's curve turns into it. Slot DISPLAY_SLOT (the last):
 // x is 0 for a linear (scene-referred) colour, left as it is, or 1 + the camera's tone mapping (lib.rs's `display`).
 // The curves are Bevy 0.20's own (bevy_core_pipeline tonemapping.wesl), inverted by a damped fixed point, so one
 // method covers the LUT-based ones too; the LUT is the camera's (TonemappingLuts), at bindings 9 and 10.
@@ -103,8 +103,8 @@ fn three_exposure() -> f32 {
 fn three_untone(c: vec4<f32>) -> vec4<f32> {
     // a camera without HDR tone-maps in its materials' own shaders (Bevy's pbr_functions), which this one isn't:
     // nothing maps it after, so the canvas's value is only decoded to the sRGB target's linear
-    let mode = u32(three_slots.s[63].x + 0.5);
-    let display = three_slots.s[63].y > 0.5;
+    let mode = u32(three_slots.s[DISPLAY_SLOT].x + 0.5);
+    let display = three_slots.s[DISPLAY_SLOT].y > 0.5;
     @if(TONEMAP_IN_SHADER) {
         // and a linear (scene-light) colour is mapped here, as Bevy's own materials map theirs
         if !display {

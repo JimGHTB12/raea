@@ -11,12 +11,13 @@
 //! Z), `three_camera_position()`, `three_viewport()`, `three_time()`, a `u_NAME()` per uniform (`u_NAME(i)` for an
 //! array), and `tex_NAME` / `samp_NAME` per texture.
 
-/// vec4 slots in the uniform buffer, and the two the material keeps for itself: 62 is three's time (time, delta,
-/// frame), 63 how the fragment's colour is read (lib.rs's `display`)
-pub const SLOTS: usize = 64;
-pub const USER_SLOTS: usize = 62;
-pub const TIME_SLOT: usize = 62;
-pub const DISPLAY_SLOT: usize = 63;
+/// vec4 slots in the uniform buffer (4 KB, under every device's 16 KB uniform binding; lettra's default scramble pool
+/// takes 78), and the two the material keeps for itself, its last: three's time (time, delta, frame), then how the
+/// fragment's colour is read (lib.rs's `display`)
+pub const SLOTS: usize = 256;
+pub const USER_SLOTS: usize = SLOTS - 2;
+pub const TIME_SLOT: usize = SLOTS - 2;
+pub const DISPLAY_SLOT: usize = SLOTS - 1;
 /// textures a material may bind, and a mesh's own attributes (each up to four floats)
 pub const TEXTURES: usize = 4;
 pub const ATTRIBUTES: usize = 4;
@@ -238,7 +239,7 @@ pub fn vertex_entry(attributes: usize) -> String {
 /// The fragment entry: the source's `three_fragment`, its colour read as `display` says (tone.wesl's three_untone).
 pub fn fragment_entry() -> String {
     let mut m = String::from(TONE);
-    m = m.replace("GROUP", GROUP);
+    m = m.replace("GROUP", GROUP).replace("DISPLAY_SLOT", &DISPLAY_SLOT.to_string());
     m + "\n@fragment\nfn fragment(in: ThreeVaryings, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {\n    return three_untone(three_fragment(in, front));\n}\n"
 }
 
@@ -352,6 +353,8 @@ mod tests {
         assert!(p.contains("fn u_m() -> mat3x3<f32> { return mat3x3<f32>(three_slots.s[1u + 0u].xyz, three_slots.s[1u + 1u].xyz, three_slots.s[1u + 2u].xyz); }"));
         assert!(p.contains("fn u_pts(i: u32) -> vec2<f32> { let k = 4u + i * 1u; return three_slots.s[k].xy; }"));
         assert!(p.contains("var tex_map: texture_2d<f32>;"));
-        assert!(layout(&[("big".into(), Ty::Mat(4), Some(16))]).is_err());
+        // 63 mat4s fit in the 254 slots of its own, 64 don't
+        assert!(layout(&[("big".into(), Ty::Mat(4), Some(63))]).is_ok());
+        assert!(layout(&[("big".into(), Ty::Mat(4), Some(64))]).is_err());
     }
 }

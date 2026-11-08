@@ -5,7 +5,7 @@
 //   the vertex stage   fn three_vertex(v: ThreeVertex) -> ThreeVaryings
 //   the fragment stage fn three_fragment(in: ThreeVaryings, front: bool) -> vec4<f32>   (linear: `output: "linear"`)
 //   both declare       struct ThreeVaryings { @builtin(position) clip: vec4<f32>, @location(0) ... }
-// three's uniform groups and textures become the prelude's u_NAME() accessors (64 vec4 slots) and tex_NAME/samp_NAME;
+// three's uniform groups and textures become the prelude's u_NAME() accessors (254 vec4 slots of the 256: three-shader module.rs) and tex_NAME/samp_NAME;
 // the camera's projection and view and the model's world matrix become three_projection(), three_view() and
 // three_model(instance), so Bevy's own camera and transform place it (Bevy's projection is reverse-Z). Every other
 // uniform takes the value three's own node updates give it this frame (time from R3F's clock, a light's colour), so a
@@ -48,7 +48,7 @@ export interface ShaderSpec {
 }
 
 /** the engine's limits (systems/three-shader) */
-export const SLOTS = 64;
+export const SLOTS = 254;
 export const TEXTURES = 4;
 
 type AnyNode = { isNode?: boolean; name?: string; value?: unknown; uniformNode?: AnyNode; scope?: string };
