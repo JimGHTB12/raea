@@ -9,7 +9,7 @@ use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
 use bevy_hanabi::prelude::*;
 
-/// A fountain of particles from the entity it's on (a Mesh), built into a hanabi effect when added.
+/// A fountain of particles from the entity it's on (a Mesh), built into a hanabi effect (on a child of it) when added.
 #[derive(Component, Reflect, Clone, Debug)]
 #[reflect(Component, Default)]
 pub struct Particles {
@@ -95,7 +95,10 @@ fn build_particles(mut commands: Commands, mut effects: ResMut<Assets<EffectAsse
         let handle = effects.add(asset);
         let mut effect = ParticleEffect::new(handle);
         effect.prng_seed = Some(p.seed);
-        commands.entity(e).insert(effect);
+        // on a child of its own, not on the part: a mesh and an effect on one entity are binned twice in one phase
+        // (Bevy's mesh queue and hanabi's), and Bevy panics when the effect comes after the mesh's first frame (a
+        // <Particles> mounted part way through a render); the child follows the part's transform
+        commands.spawn((effect, Transform::default(), ChildOf(e)));
     }
 }
 
