@@ -229,6 +229,9 @@ export interface ModelProps {
  *  StandardMaterial sends the rest's defaults on a Mesh3d, which would overwrite the model's). */
 export const InModel = createContext(false);
 
+/** Inside a layered <Canvas3D>: what's there is read as 3D parts, so a page element there isn't drawn (Text2d says so). */
+export const InCanvas3D = createContext(false);
+
 /** A node of a <Model graph>. */
 export type AnimGraphNode =
   | { clip: string | number; time?: number; weight?: number; mask?: string[] }

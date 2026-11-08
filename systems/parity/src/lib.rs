@@ -190,6 +190,7 @@ fn probe(
     let (mut mesh_entities, mut visible, mut other) = (0u64, 0u64, 0u64);
     let mut keys = HashSet::new();
     let mut extents = BTreeSet::new();
+    let mut seen = HashSet::new();
     for (mesh, mat, vis, aabb) in &meshes_q {
         mesh_entities += 1;
         if !vis.is_some_and(|v| v.get()) {
@@ -202,8 +203,11 @@ fn probe(
             }
             None => other += 1,
         }
+        // a size already seen isn't formatted again (a string a mesh was 53 203 formats a frame, in the frame's own
+        // time: automatic_instancing)
         if let Some(a) = aabb
             && extents.len() < 8
+            && seen.insert(a.half_extents.to_array().map(f32::to_bits))
         {
             let h = a.half_extents;
             extents.insert(format!("{:.4} {:.4} {:.4}", h.x, h.y, h.z));

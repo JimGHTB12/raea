@@ -3,6 +3,7 @@ no_std/library	a no_std library crate, no app: nothing runs or draws
 app/no_renderer	no renderer: draws no frame (its behaviour is a schedule, the world check's, not a picture)
 app/headless	no window or renderer: draws no frame
 app/without_winit	no window: the app runs its schedule once and draws no frame
+shader/gpu_readback	no camera: draws no frame (its behaviour is the GPU results it reads back and logs, the world check's, not a picture)
 app/drag_and_drop	the OS's file drops: window-manager-only
 window/monitor_info	lists the OS's monitors: window-manager-only
 window/multiple_windows	several OS windows: window-manager-only

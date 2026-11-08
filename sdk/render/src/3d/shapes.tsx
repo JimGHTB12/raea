@@ -4,6 +4,7 @@ import { Solid } from "../solid";
 import { useAnimation3d, type Keys, type Move, type TrackSpec } from "@raea/math/animate";
 import { Place3d, usePlace3d, usePointer3d, type LocalBounds, type PointerHandlers3d } from "../events3d";
 import { Canvas3DProps, Vec3, checkArgs, checkPass, checkVec, node3d, serialisable } from "./all";
+import { InCanvas3D } from "./model";
 
 const FILL = { position: "absolute", left: 0, top: 0, width: "100%", height: "100%" } as const;
 
@@ -23,7 +24,7 @@ export function Canvas3D(props: Canvas3DProps) {
   return (
     <div data-3d="Canvas3D" data-props={JSON.stringify(serialisable(props))} style={props.clearColor === undefined ? FILL : { ...FILL, zIndex: -2147483648 }}>
       <img data-raea-scene="" data-clear={props.clearColor} alt="" style={{ ...FILL, objectFit: "fill" }} />
-      {props.children}
+      <InCanvas3D.Provider value={true}>{props.children}</InCanvas3D.Provider>
     </div>
   );
 }

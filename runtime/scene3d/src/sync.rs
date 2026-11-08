@@ -40,7 +40,8 @@ pub fn sync_pictures(
     }
 }
 
-/// A still row's entity whose values sync_meshes or sync_lights has applied: it isn't read again (FrameRows::still).
+/// A row's entity whose values sync_meshes or sync_lights has applied: a still row isn't read again (FrameRows::still),
+/// one only its placement moves has just its transform read (FrameRows::moves_only).
 #[derive(Component)]
 pub struct StillSynced;
 
@@ -72,11 +73,21 @@ pub fn sync_meshes(
         Or<(With<Mesh3d>, With<Model3d>, With<Instanced>)>,
     >,
 ) {
+    let place = frame.placer();
     for (e, mut t, mut vis, mut mat, mut fogged, driven, mut painted, decal, shaded, shared, synced) in &mut q {
         // a row the same on every frame is applied once (10 000 still cubes made their values every frame); a live
         // scene's rows are never still
         let still = frame.still(e);
         if still && synced {
+            continue;
+        }
+        // a row only its placement moves, its other values applied once: its transform alone (FrameRows::moves_only)
+        let placed = !still && frame.moves_only(e, &raea_sys_frame::PLACE);
+        if placed && synced {
+            let Some(nt) = place(e) else { continue };
+            if *t != nt && !driven {
+                *t = nt;
+            }
             continue;
         }
         let Some(v) = frame.vals(e) else { continue };
@@ -97,12 +108,12 @@ pub fn sync_meshes(
         // (and a decal's, decal.rs, and a shaded one's, raea-sys-shader)
         let Some(h) = mat.as_ref().map(|m| m.0.clone()).or(painted.as_ref().map(|p| p.std.clone())).or(fogged.as_ref().map(|(f, _)| f.std.clone())).or(decal.map(|d| d.0.clone())).or(shaded.map(|s| s.std.clone())) else {
             // no material yet: a still row with material columns waits for one (a painted or shaded copy comes later)
-            if still && !MATERIAL_COLS.iter().any(|k| v.contains_key(*k)) {
+            if (still || placed) && !MATERIAL_COLS.iter().any(|k| v.contains_key(*k)) {
                 commands.entity(e).insert(StillSynced);
             }
             continue;
         };
-        if still {
+        if still || placed {
             commands.entity(e).insert(StillSynced);
         }
         let h = &h;

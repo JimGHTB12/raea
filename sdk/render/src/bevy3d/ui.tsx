@@ -18,7 +18,7 @@ import { handlersOf, popoverAttr, type PickProps } from "./ui-pick";
 import { scrollCss, type IgnoreScroll } from "./ui-scroll";
 import { useDebugAttr, type UiDebugOptions } from "./ui-debug";
 import type { TransformValue } from "./core";
-import { eulerOf } from "../3d/model";
+import { InCanvas3D, eulerOf } from "../3d/model";
 import { useVideoConfig } from "@raea/app/clock";
 
 type Color = Srgba | LinearRgba | string;
@@ -439,6 +439,7 @@ export interface Text2dProps extends TextStyleProps, TextRunProps {
  *  <AbsoluteFill>: it draws over the 2D and 3D parts, where Bevy orders it with the 2D ones by z.
  * @bevy bevy_sprite::text2d::Text2d */
 export function Text2d({ transform, justify, anchor = [0, 0], children, ...text }: Text2dProps) {
+  if (useContext(InCanvas3D)) throw new TypeError("Text2d: put it after the <Canvas3D>, in the <AbsoluteFill>: inside a layered Canvas3D it would be read as a 3D part and not drawn");
   if (!(Array.isArray(anchor) && anchor.length === 2 && anchor.every(Number.isFinite))) throw new TypeError(`Text2d: anchor is Bevy's Anchor as [x, y] (-0.5 to 0.5), got ${JSON.stringify(anchor)}`);
   const { width, height } = useVideoConfig();
   const [tx, ty] = transform?.translation ?? [0, 0, 0];

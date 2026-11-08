@@ -26,13 +26,16 @@ export interface MaterialProps {
   alpha_mode?: AlphaMode;
   depth_bias?: number;
   cull_mode?: "Front" | "Back" | null;
+  /** its fragment stage's pipeline-overridable constants (WGSL `override NAME: f32 = ...;`), each a number: compiled
+   *  into its pipeline, as a Material's specialize pushes them into descriptor.fragment.constants */
+  constants?: Record<string, number>;
 }
 
 const ALPHA = ["Opaque", "Blend", "Premultiplied", "Add", "Multiply", "AlphaToCoverage"];
 
 /** A Material's props checked, as the shader spec it is drawn by (in a Mesh3d an OwnMaterial, in a Mesh2d its
  *  Material2d). */
-function ownSpec({ fragment, vertex, uniforms, buffers, textures, defs, alpha_mode, depth_bias, cull_mode }: MaterialProps): SurfaceShaderSpec {
+function ownSpec({ fragment, vertex, uniforms, buffers, textures, defs, alpha_mode, depth_bias, cull_mode, constants }: MaterialProps): SurfaceShaderSpec {
   for (const [k, b] of Object.entries(buffers ?? {})) if (!Array.isArray(b) || !b.every((x) => Number.isFinite(x) || (Array.isArray(x) && x.length >= 2 && x.length <= 4 && x.every(Number.isFinite)))) throw new TypeError(`Material: buffer ${k} is a list of numbers or [x, y(, z(, w))], got ${JSON.stringify(b)}`);
   if (typeof fragment !== "string" || !fragment) throw new TypeError(`Material: fragment is the shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(fragment)}`);
   if (vertex !== undefined && (typeof vertex !== "string" || !vertex)) throw new TypeError(`Material: vertex is a shader file, got ${JSON.stringify(vertex)}`);
@@ -40,7 +43,8 @@ function ownSpec({ fragment, vertex, uniforms, buffers, textures, defs, alpha_mo
   if (alpha_mode !== undefined && !mask && !ALPHA.includes(alpha_mode as string)) throw new TypeError(`Material: alpha_mode is ${ALPHA.join(", ")} or { Mask: cutoff }, got ${JSON.stringify(alpha_mode)}`);
   if (depth_bias !== undefined && !Number.isFinite(depth_bias)) throw new TypeError(`Material: depth_bias is a number, got ${depth_bias}`);
   if (cull_mode !== undefined && cull_mode !== null && cull_mode !== "Front" && cull_mode !== "Back") throw new TypeError(`Material: cull_mode is "Front", "Back" or null, got ${JSON.stringify(cull_mode)}`);
-  const own = { ...(vertex !== undefined ? { vertex } : {}), ...(alpha_mode !== undefined ? { alpha_mode } : {}), ...(depth_bias !== undefined ? { depth_bias } : {}), ...(cull_mode !== undefined ? { cull_mode } : {}) };
+  for (const [k, n] of Object.entries(constants ?? {})) if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k) || !Number.isFinite(n)) throw new TypeError(`Material: constant ${k} is a WGSL name with a number, got ${JSON.stringify(n)}`);
+  const own = { ...(vertex !== undefined ? { vertex } : {}), ...(alpha_mode !== undefined ? { alpha_mode } : {}), ...(depth_bias !== undefined ? { depth_bias } : {}), ...(cull_mode !== undefined ? { cull_mode } : {}), ...(constants !== undefined ? { constants } : {}) };
   return { fragment, uniforms: uniforms as SurfaceShaderSpec["uniforms"], textures, defs, own, ...(buffers ? { buffers } : {}) };
 }
 

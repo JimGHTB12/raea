@@ -133,3 +133,5 @@ shader/shader_prepass	-	10,30,50,70	bench/bevy-parity/input/shader_prepass.json
 shader/shader_material_bindless	-	10
 shader/shader_material_2d_bindless	-	10
 shader/extended_material_bindless	-	30,60
+shader/automatic_instancing	-	30,60
+shader/pipeline_constants	-	10

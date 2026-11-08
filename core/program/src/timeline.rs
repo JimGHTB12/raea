@@ -15,6 +15,9 @@ pub struct Timeline {
     /// per row: true when no frame changes any of its values from the base, so a system that applies a row's values
     /// to the World each frame can apply a still row's once
     still: Vec<bool>,
+    /// per row: the columns some frame changes from the base (none for a still row), so a system can read only those
+    /// once it has applied the rest (FrameRows::moves_only)
+    moving: Vec<Vec<String>>,
 }
 
 impl Timeline {
@@ -24,26 +27,35 @@ impl Timeline {
 
     pub fn from_cols(prog: &Program, base: Cols) -> Result<Timeline, String> {
         let frames = prog.frames.max(0);
-        let per: Vec<(HashMap<String, std::sync::Arc<Col>>, Vec<usize>)> = parallel(frames as usize, |f| {
+        let per: Vec<(HashMap<String, std::sync::Arc<Col>>, Vec<(usize, String)>)> = parallel(frames as usize, |f| {
             let raw = eval::frame_cols(prog, &base, f as i64);
             let w: HashMap<String, std::sync::Arc<Col>> = raw.cols.into_iter().filter(|(c, v)| base.cols.get(c) != Some(v)).collect();
-            // the rows this frame moves: a written column's value differing from the base's at that row
-            let moved = (0..base.len()).filter(|r| w.iter().any(|(c, col)| !col.same_at(base.cols.get(c).map(|b| &**b), *r))).collect();
+            // the rows this frame moves and by which columns: a written column's value differing from the base's there
+            let moved = w.iter().flat_map(|(c, col)| (0..base.len()).filter(|r| !col.same_at(base.cols.get(c).map(|b| &**b), *r)).map(move |r| (r, c.clone()))).collect();
             Ok((w, moved))
         })?;
         let mut still = vec![true; base.len()];
+        let mut moving: Vec<Vec<String>> = vec![Vec::new(); base.len()];
         let written = per.into_iter().map(|(w, moved)| {
-            for r in moved {
+            for (r, c) in moved {
                 still[r] = false;
+                if !moving[r].contains(&c) {
+                    moving[r].push(c);
+                }
             }
             w
         }).collect();
-        Ok(Timeline { frames, base, written, still })
+        Ok(Timeline { frames, base, written, still, moving })
     }
 
     /// Whether row r's value of any of `cols` differs from its base on some frame (it moves over the edit).
     pub fn moves(&self, r: usize, cols: &[&str]) -> bool {
         self.written.iter().any(|w| cols.iter().any(|c| w.get(*c).is_some_and(|col| col.get(r) != self.base.get(r, c))))
+    }
+
+    /// The columns some frame changes row r's value of (none for a still row or one out of range).
+    pub fn moving(&self, r: usize) -> &[String] {
+        self.moving.get(r).map_or(&[], Vec::as_slice)
     }
 
     /// Whether row r's values are the same on every frame (out of range: false).
@@ -121,6 +133,8 @@ mod tests {
         assert!(!t.still(1));
         assert!(t.still(2));
         assert!(!t.still(3), "a row past the end is never still");
+        assert_eq!(t.moving(1), ["x".to_string()]);
+        assert!(t.moving(0).is_empty() && t.moving(2).is_empty() && t.moving(3).is_empty());
     }
 
     #[test]

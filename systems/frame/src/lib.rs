@@ -82,6 +82,24 @@ impl FrameRows {
         self.live.is_some() || !self.looks.is_empty() || self.cols.cols.contains_key(c)
     }
 
+    /// Whether the only columns of a row any frame changes are among `cols` (and some do): a system that applied its
+    /// other values once reads just those after (`placer`; automatic_instancing's 65 536 cubes move only in z, FC1b)
+    pub fn moves_only(&self, e: Entity, cols: &[&str]) -> bool {
+        let Some(r) = self.ix.get(&e) else { return false };
+        let moving = |t: &raea_core_program::timeline::Timeline| { let m = t.moving(*r); !m.is_empty() && m.iter().all(|c| cols.contains(&c.as_str())) };
+        self.live.is_none() && !self.looks.contains_key(r) && self.timeline.as_deref().is_some_and(moving)
+    }
+
+    /// A row's transform this frame read straight from the columns (transform_by), the 14 found once: for the rows only
+    /// their placement moves (moves_only), where `vals` made all of 65 536 rows' values each frame.
+    pub fn placer(&self) -> impl Fn(Entity) -> Option<Transform> + '_ {
+        let cols = PLACE.map(|c| self.cols.cols.get(c).map(|a| &**a));
+        move |e| {
+            let r = *self.ix.get(&e)?;
+            Some(transform_by(|i| cols[i]?.get(r).map(|v| v.num() as f32)))
+        }
+    }
+
     /// One of a row's values this frame, copying only it (with its frame look laid on, as `vals` has it).
     pub fn get(&self, e: Entity, c: &str) -> Option<V> {
         let r = *self.ix.get(&e)?;
@@ -319,22 +337,46 @@ pub fn flag(vals: &BTreeMap<String, V>, k: &str, d: bool) -> bool {
 }
 
 pub fn scale_of(vals: &BTreeMap<String, V>) -> Vec3 {
-    let s = num(vals, "scale", 1.0);
-    Vec3::new(num(vals, "scale_x", s), num(vals, "scale_y", s), num(vals, "scale_z", s))
+    scale_by(&|i| at(vals, i))
+}
+
+fn scale_by(n: &impl Fn(usize) -> Option<f32>) -> Vec3 {
+    let s = n(10).unwrap_or(1.0);
+    Vec3::new(n(11).unwrap_or(s), n(12).unwrap_or(s), n(13).unwrap_or(s))
 }
 
 /// A row's rotation: its quaternion (q_x q_y q_z q_w, what runtime/scene writes: docs/control.feature FC1d), or
 /// rot_x rot_y rot_z (radians, YXZ) where a row was written that way
 pub fn rot_of(vals: &BTreeMap<String, V>) -> Quat {
-    if vals.contains_key("q_w") {
-        return Quat::from_xyzw(num(vals, "q_x", 0.0), num(vals, "q_y", 0.0), num(vals, "q_z", 0.0), num(vals, "q_w", 1.0)).normalize();
-    }
-    Quat::from_euler(EulerRot::YXZ, num(vals, "rot_y", 0.0), num(vals, "rot_x", 0.0), num(vals, "rot_z", 0.0))
+    rot_by(&|i| at(vals, i))
 }
+
+fn rot_by(n: &impl Fn(usize) -> Option<f32>) -> Quat {
+    let g = |i, d| n(i).unwrap_or(d);
+    if n(9).is_some() {
+        return Quat::from_xyzw(g(6, 0.0), g(7, 0.0), g(8, 0.0), g(9, 1.0)).normalize();
+    }
+    Quat::from_euler(EulerRot::YXZ, g(4, 0.0), g(3, 0.0), g(5, 0.0))
+}
+
+/// The columns a row's transform reads (transform_of), in transform_by's order.
+pub const PLACE: [&str; 14] = ["x", "y", "z", "rot_x", "rot_y", "rot_z", "q_x", "q_y", "q_z", "q_w", "scale", "scale_x", "scale_y", "scale_z"];
 
 /// A mesh or model row's transform.
 pub fn transform_of(vals: &BTreeMap<String, V>) -> Transform {
-    Transform::from_xyz(num(vals, "x", 0.0), num(vals, "y", 0.0), num(vals, "z", 0.0)).with_rotation(rot_of(vals)).with_scale(scale_of(vals))
+    transform_by(|i| at(vals, i))
+}
+
+/// PLACE[i] of a row's values, as a number.
+fn at(vals: &BTreeMap<String, V>, i: usize) -> Option<f32> {
+    vals.get(PLACE[i]).map(|x| x.num() as f32)
+}
+
+/// A transform from its PLACE columns by index (`n(i)` PLACE[i]'s value, when the row has it): transform_of's, and a
+/// placed row's read straight from the frame's columns (FrameRows::placer).
+pub fn transform_by(n: impl Fn(usize) -> Option<f32>) -> Transform {
+    let g = |i, d| n(i).unwrap_or(d);
+    Transform::from_xyz(g(0, 0.0), g(1, 0.0), g(2, 0.0)).with_rotation(rot_by(&n)).with_scale(scale_by(&n))
 }
 
 /// A row's render layers (`layers`: "0,2"), as Bevy's RenderLayers on its entity (a mesh, a light, the camera).

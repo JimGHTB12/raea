@@ -100,6 +100,24 @@ pub struct OwnMaterial {
     depth_bias: f32,
     /// the faces it culls (the pipeline's primitive.cull_mode); None keeps the pipeline's (3D culls Back, 2D none)
     cull: Option<Option<Face>>,
+    /// its fragment stage's pipeline-overridable constants (WGSL `override`): their hash in CONSTANTS, 0 for none
+    constants: u64,
+}
+
+/// Each Material's constants by their hash: its key holds the hash, as a key is Copy (SpriteMaterial's combined key,
+/// a packed struct, needs it).
+static CONSTANTS: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<u64, Vec<(String, f64)>>>> = std::sync::LazyLock::new(Default::default);
+
+/// Constants kept in CONSTANTS under their hash (0 for none).
+fn intern(c: Vec<(String, f64)>) -> u64 {
+    if c.is_empty() {
+        return 0;
+    }
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    c.iter().for_each(|(n, v)| (n, v.to_bits()).hash(&mut h));
+    let id = h.finish().max(1);
+    CONSTANTS.lock().map(|mut m| m.insert(id, c)).ok();
+    id
 }
 
 impl OwnMaterial {
@@ -113,19 +131,20 @@ impl OwnMaterial {
     }
 }
 
-/// What picks a pipeline: the material's shaders and the faces it culls (opaque to reflection, as SpriteMaterial's
-/// extension reflects its material's key).
+/// What picks a pipeline: the material's shaders, the faces it culls and its constants (opaque to reflection, as
+/// SpriteMaterial's extension reflects its material's key).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Reflect)]
 #[reflect(opaque)]
 pub struct OwnKey {
     shader: u128,
     vertex: u128,
     cull: Option<Option<Face>>,
+    constants: u64,
 }
 
 impl From<&OwnMaterial> for OwnKey {
     fn from(m: &OwnMaterial) -> Self {
-        OwnKey { shader: m.shader, vertex: m.vertex, cull: m.cull }
+        OwnKey { shader: m.shader, vertex: m.vertex, cull: m.cull, constants: m.constants }
     }
 }
 
@@ -189,11 +208,15 @@ fn alpha2d(a: AlphaMode) -> AlphaMode2d {
 }
 
 /// A pipeline given the material's own shaders: its fragment where it is `placeholder`, its vertex shader (if any) in
-/// that same pipeline (the main pass's: the prepass and shadow pipelines keep Bevy's), and the faces it culls.
+/// that same pipeline (the main pass's: the prepass and shadow pipelines keep Bevy's), the faces it culls, and its
+/// fragment's pipeline-overridable constants (as Bevy's pipeline_constants pushes LEVELS in its specialize).
 fn swap(descriptor: &mut RenderPipelineDescriptor, placeholder: &Handle<Shader>, k: OwnKey) -> Result<(), SpecializedMeshPipelineError> {
     let Some(f) = descriptor.fragment.as_mut().filter(|f| f.shader.id() == placeholder.id()) else { return Ok(()) };
     let shader = |id: u128| Handle::Uuid(bevy::asset::uuid::Uuid::from_u128(id), core::marker::PhantomData);
     f.shader = shader(k.shader);
+    if let Some(c) = CONSTANTS.lock().ok().and_then(|m| m.get(&k.constants).cloned()) {
+        f.constants.extend(c.into_iter().map(|(n, v)| (n.into(), v)));
+    }
     if k.vertex != 0 {
         descriptor.vertex.shader = shader(k.vertex);
     }
@@ -275,9 +298,15 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
         Some(v) if v == "Back" => Some(Some(Face::Back)),
         Some(v) => return Err(format!("a Material's cull_mode is \"Front\", \"Back\" or null (none), got {v}")),
     };
+    let mut constants = Vec::new();
+    for (k, v) in own.get("constants").and_then(Value::as_object).into_iter().flatten() {
+        let n = v.as_f64().ok_or_else(|| format!("a Material's constant {k} is a number, got {v}"))?;
+        constants.push((k.clone(), n));
+    }
+    let constants = intern(constants);
     let [t0, t1, t2, t3] = t;
     let [d1, d2a, cube, cube_array, d3] = dims;
-    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, b0: b[0].clone(), b1: b[1].clone(), packing, shader, vertex, alpha, depth_bias, cull })
+    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, b0: b[0].clone(), b1: b[1].clone(), packing, shader, vertex, alpha, depth_bias, cull, constants })
 }
 
 /// Bevy's AlphaMode as the SDK writes it: "Opaque", "Blend", {"Mask": cutoff}, "Premultiplied", "AlphaToCoverage",
