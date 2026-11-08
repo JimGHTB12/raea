@@ -287,6 +287,6 @@ mod tests {
     /// render's page.
     #[test]
     fn premul_wgsl_parses() {
-        wgpu::naga::front::wgsl::parse_str(super::PREMUL_WGSL).unwrap();
+        wgpu::naga::front::wgsl::parse_str(raea_sys_filters::PREMUL_WGSL).unwrap();
     }
 }
