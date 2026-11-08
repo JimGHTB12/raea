@@ -89,10 +89,15 @@ describe("Text and TextSpan: bevy_text's defaults, and a span takes nothing from
 });
 
 describe("ImageNode, Underline and Strikethrough", () => {
-  test("an ImageNode is its picture on a Node, filling its content box; a root one sits in its viewport", () => {
+  test("an ImageNode is its picture on a Node, contained in its content box (Auto); a root one sits in its viewport", () => {
     const out = html(<ImageNode image="branding/icon.png" width={px(256)} padding={UiRect.all(px(10))} flip_x />);
     expect(out).toContain('<img src="branding/icon.png"');
-    for (const s of ["display:grid", "width:256px", "padding:10px 10px 10px 10px", "object-fit:fill", "transform:scaleX(-1)"]) expect(out).toContain(s);
+    for (const s of ["display:grid", "width:256px", "padding:10px 10px 10px 10px", "object-fit:contain", "transform:scaleX(-1)"]) expect(out).toContain(s);
+    // Stretch: no <img> (no picture size for layout), the picture stretched over the content box
+    const st = html(<Node><ImageNode image="a.png" image_mode="Stretch" width={percent(10)} /></Node>);
+    expect(st).not.toContain("<img");
+    for (const s of ["background-image:url(&quot;a.png&quot;)", "background-size:100% 100%", "background-origin:content-box"]) expect(st).toContain(s);
+    expect(() => html(<ImageNode image="a.png" image_mode={"Fit" as "Auto"} />)).toThrow(/image_mode is "Auto", "Stretch" or/);
     expect(html(<Node><ImageNode image="a.png" color={new Srgba(0.5, 0.5, 0.5)} /></Node>)).toContain("filter:brightness(0.5)");
   });
   test("an ImageNode with children, a coloured tint or no picture is refused", () => {

@@ -1,4 +1,5 @@
 mod background;
+mod bevy_debug;
 mod border;
 mod border_image;
 mod box_shadow;
@@ -142,6 +143,8 @@ pub struct BlitzDomPainter<'dom, 'a> {
     pub(crate) plane: Cell<Option<NodeId>>,
     /// raea: the in-flow block being drawn in one of its parent's paint phases, not whole (RAEA_PAGE_PAINT_PHASES)
     pub(crate) split: Cell<Option<(NodeId, Phase)>>,
+    /// raea: bevy_ui debug outlines recorded as their elements are drawn, drawn over the document (bevy_debug.rs)
+    pub(crate) bevy_debug: RefCell<Vec<bevy_debug::DebugOutline>>,
 }
 
 /// raea: the steps of CSS 2.1 Appendix E an element paints its descendants in: the in-flow blocks' backgrounds and
@@ -493,6 +496,7 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
             rooting: Cell::new(None),
             plane: Cell::new(None),
             split: Cell::new(None),
+            bevy_debug: RefCell::new(Vec::new()),
         }
     }
 
@@ -571,6 +575,7 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                 }),
             viewport_clip_rect,
         );
+        bevy_debug::draw(scene, &self.bevy_debug.take());
 
         // Render debug overlay
         if self.dom.devtools().highlight_hover {
@@ -1005,6 +1010,9 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
         // Apply CSS transform property (where transforms are 2d)
 
         let mut cx = self.element_cx(node, *node.final_layout(), transform, custom_widget_scene);
+        if let Some(o) = node.attr(blitz_dom::LocalName::from("data-raea-bevy-debug")).and_then(|a| bevy_debug::outline(a, &cx.frame, cx.transform, clip_rect, self.scale)) {
+            self.bevy_debug.borrow_mut().push(o);
+        }
         if hidden_face {
             if blitz_dom::preserves_3d(&styles) {
                 cx.draw_children(scene, cx.transform, clip_rect);

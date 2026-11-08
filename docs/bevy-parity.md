@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **88**, passing **84**, excluded **16** (docs/bevy-parity/excluded.tsv), left **338**.
+Examples: **438**, ported **89**, passing **85**, excluded **16** (docs/bevy-parity/excluded.tsv), left **337**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -97,14 +97,10 @@ doesn't pay.
 | ui/styling/transparency_ui | 5 | 0.999721 | 3 | 0 / 0 | 445 / 492 | 5 / 7 | 1 / 1 | 58.038 / 2.091 = 1.908 + 0.183 | yes |  |
 | ui/layout/fixed_node | 10 | 1.000000 | 0 | 0 / 0 | 444 / 492 | 5 / 7 | 1 / 1 | 1.826 / 1.813 = 1.658 + 0.155 | yes |  |
 | ui/layout/fixed_node | 5 | 1.000000 | 0 | 0 / 0 | 444 / 492 | 5 / 7 | 1 / 1 | 59.165 / 2.544 = 2.294 + 0.250 | yes |  |
-| ui/images/image_node | 10 | 0.999965 | 0 | 0 / 0 | 442 / 492 | 5 / 7 | 1 / 1 | 2.492 / 2.281 = 2.117 + 0.164 | yes |  |
-| ui/images/image_node | 5 | 0.999965 | 0 | 0 / 0 | 442 / 492 | 5 / 7 | 1 / 1 | 64.462 / 2.143 = 1.943 + 0.200 | yes |  |
 | ui/text/text_background_colors | 10 | 0.998841 | 7 | 0 / 0 | 505 / 492 | 5 / 7 | 1 / 1 | 1.94 / 1.302 = 1.129 + 0.173 | yes |  |
 | ui/text/text_background_colors | 5 | 0.998841 | 7 | 0 / 0 | 505 / 492 | 5 / 7 | 1 / 1 | 64.804 / 2.805 = 2.572 + 0.233 | yes |  |
 | ui/scroll_and_overflow/overflow | 10 | 0.998763 | 4 | 0 / 0 | 461 / 492 | 5 / 7 | 1 / 1 | 2.902 / 1.514 = 1.278 + 0.236 | yes |  |
 | ui/scroll_and_overflow/overflow | 5 | 0.998763 | 4 | 0 / 0 | 461 / 492 | 5 / 7 | 1 / 1 | 65.578 / 3.526 = 3.193 + 0.333 | yes |  |
-| ui/images/ui_texture_atlas | 10 | 0.999776 | 6 | 0 / 0 | 445 / 492 | 5 / 7 | 1 / 1 | 2.056 / 1.477 = 1.213 + 0.264 | yes |  |
-| ui/images/ui_texture_atlas | 5 | 0.999776 | 6 | 0 / 0 | 445 / 492 | 5 / 7 | 1 / 1 | 62.032 / 2.768 = 2.601 + 0.167 | yes |  |
 | 2d/mesh2d_vertex_color_texture | 10 | 0.998651 | 6 | 0 / 0 | 442 / 495 | 6 / 9 | 1 / 1 | 37.793 / 2.711 = 1.347 + 1.364 | yes |  |
 | 2d/mesh2d_repeated_texture | 10 | 0.991205 | 17 | 0 / 0 | 437 / 496 | 8 / 10 | 1 / 1 | 26.298 / 1.893 = 1.62 + 0.273 | yes |  |
 | ui/layout/flex_layout | 10 | 0.992327 | 8 | 0 / 0 | 602 / 492 | 5 / 7 | 1 / 1 | 35.062 / 1.343 = 1.252 + 0.091 | yes |  |
@@ -113,7 +109,6 @@ doesn't pay.
 | ui/text/letter_spacing | 10 | 0.996458 | 13 | 0 / 0 | 455 / 492 | 5 / 7 | 1 / 1 | 33.285 / 1.088 = 0.961 + 0.127 | yes |  |
 | ui/styling/borders | 10 | 0.992828 | 9 | 0 / 0 | 591 / 492 | 5 / 7 | 1 / 1 | 33.521 / 1.111 = 1.02 + 0.091 | yes |  |
 | ui/window_fallthrough | 10 | 0.992068 | 16 | 0 / 0 | 441 / 492 | 5 / 7 | 1 / 1 | 32.32 / 1.116 = 0.98 + 0.136 | yes |  |
-| ui/text/inline_image | 10 | 0.998473 | 8 | 0 / 0 | 446 / 492 | 5 / 7 | 1 / 1 | 32.909 / 1.345 = 1.127 + 0.218 | yes |  |
 | ui/layout/z_index | 10 | 1.000000 | 0 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 32.169 / 1.386 = 1.231 + 0.155 | yes |  |
 | ui/styling/stacked_gradients | 10 | 0.994550 | 1 | 0 / 0 | 442 / 492 | 5 / 7 | 1 / 1 | 46.978 / 1.428 = 1.255 + 0.173 | yes |  |
 | ui/styling/gradients | 10 | 0.988141 | 14 | 0 / 0 | 553 / 492 | 5 / 7 | 1 / 1 | 40.253 / 4.425 = 2.089 + 2.336 | yes |  |
@@ -123,18 +118,12 @@ doesn't pay.
 | ui/layout/grid | 10 | 0.995059 | 14 | 0 / 0 | 482 / 492 | 5 / 7 | 1 / 1 | 34.457 / 1.496 = 1.496 + 0 | yes |  |
 | ui/layout/anchor_layout | 10 | 0.997421 | 9 | 0 / 0 | 468 / 492 | 5 / 7 | 1 / 1 | 33.145 / 1.417 = 1.417 + 0 | yes |  |
 | ui/layout/size_constraints | 10 | 0.991466 | 19 | 0 / 0 | 608 / 492 | 5 / 7 | 1 / 1 | 31.358 / 0.993 = 0.993 + 0 | yes |  |
-| ui/scroll_and_overflow/overflow_transform | 10 | 0.995397 | 12 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 41.134 / 1.724 = 1.724 + 0 | yes |  |
 | ui/text/text_debug | 10 | 0.984022 | 18 | 0 / 0 | 458 / 492 | 5 / 7 | 1 / 1 | 35.188 / 1.093 = 1.093 + 0 | yes |  |
 | ui/ui_transform | 10 | 0.999095 | 6 | 0 / 0 | 463 / 492 | 5 / 7 | 1 / 1 | 36.534 / 1.372 = 1.372 + 0 | yes |  |
 | ui/scroll_and_overflow/scroll | 10 | 0.997196 | 14 | 0 / 0 | 1988 / 492 | 5 / 7 | 1 / 1 | 35.528 / 1.129 = 1.129 + 0 | yes |  |
 | ui/scroll_and_overflow/drag_to_scroll | 10 | 0.999993 | 1 | 0 / 0 | 7644 / 492 | 5 / 7 | 1 / 1 | 35.892 / 1.362 = 1.362 + 0 | yes |  |
 | ui/text/text_wrap_debug | 10 | 0.986254 | 15 | 0 / 0 | 589 / 492 | 5 / 7 | 1 / 1 | 33.656 / 1.328 = 1.328 + 0 | yes |  |
-| ui/ui_scaling | 10 | 0.999856 | 5 | 0 / 0 | 446 / 492 | 5 / 7 | 1 / 1 | 35.618 / 1.41 = 1.41 + 0 | yes |  |
-| ui/images/ui_texture_slice_flip_and_tile | 10 | 1.000000 | 0 | 0 / 0 | 461 / 492 | 5 / 7 | 1 / 1 | 36.761 / 1.341 = 1.341 + 0 | yes |  |
-| ui/images/ui_texture_slice | 10 | 0.998941 | 8 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 33.914 / 0.905 = 0.905 + 0 | yes |  |
-| ui/images/ui_texture_atlas_slice | 10 | 0.990813 | 16 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 36.454 / 1.397 = 1.397 + 0 | yes |  |
 | ui/scroll_and_overflow/scrollbars | 10 | 0.994524 | 21 | 0 / 0 | 462 / 492 | 5 / 7 | 1 / 1 | 43.63 / 1.382 = 1.382 + 0 | yes |  |
-| ui/scroll_and_overflow/overflow_debug | 10 | 0.996511 | 10 | 0 / 0 | 463 / 492 | 5 / 7 | 1 / 1 | 38.277 / 1.215 = 1.215 + 0 | yes |  |
 | ui/text/font_weights | 10 | 0.991774 | 17 | 0 / 0 | 454 / 492 | 5 / 7 | 1 / 1 | 2.498 / 1.731 = 1.731 + 0 | yes |  |
 | ui/text/font_weights | 5 | 0.991774 | 17 | 0 / 0 | 454 / 492 | 5 / 7 | 1 / 1 | 72.229 / 2.06 = 2.06 + 0 | yes |  |
 | ui/text/strikethrough_and_underline | 10 | 0.990823 | 15 | 0 / 0 | 454 / 492 | 5 / 7 | 1 / 1 | 2.3 / 2.548 = 2.548 + 0 | yes |  |
@@ -144,6 +133,18 @@ doesn't pay.
 | ui/text/font_variations | 10 | 0.993984 | 20 | 0 / 0 | 452 / 492 | 5 / 7 | 1 / 1 | 2.066 / 1.468 = 1.468 + 0 | yes |  |
 | ui/text/font_variations | 5 | 0.993984 | 20 | 0 / 0 | 452 / 492 | 5 / 7 | 1 / 1 | 73.631 / 2.268 = 2.268 + 0 | yes |  |
 | ui/text/font_query | 10 | 0.993297 | 19 | 0 / 0 | 467 / 492 | 5 / 7 | 1 / 1 | 53.646 / 2.847 = 2.847 + 0 | yes |  |
+| ui/images/image_node | 10 | 0.999965 | 0 | 0 / 0 | 442 / 492 | 5 / 7 | 1 / 1 | 2.37 / 1.44 = 1.44 + 0 | yes |  |
+| ui/images/image_node | 5 | 0.999965 | 0 | 0 / 0 | 442 / 492 | 5 / 7 | 1 / 1 | 80.896 / 2.154 = 2.154 + 0 | yes |  |
+| ui/images/ui_texture_atlas | 10 | 0.999776 | 6 | 0 / 0 | 445 / 492 | 5 / 7 | 1 / 1 | 1.721 / 1.091 = 1.091 + 0 | yes |  |
+| ui/images/ui_texture_atlas | 5 | 0.999776 | 6 | 0 / 0 | 445 / 492 | 5 / 7 | 1 / 1 | 67.844 / 3.078 = 3.078 + 0 | yes |  |
+| ui/images/ui_texture_slice | 10 | 0.998941 | 8 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 38.224 / 1.264 = 1.264 + 0 | yes |  |
+| ui/images/ui_texture_atlas_slice | 10 | 0.990813 | 16 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 42.832 / 2.831 = 2.831 + 0 | yes |  |
+| ui/images/ui_texture_slice_flip_and_tile | 10 | 1.000000 | 0 | 0 / 0 | 461 / 492 | 5 / 7 | 1 / 1 | 45.245 / 2.59 = 2.59 + 0 | yes |  |
+| ui/text/inline_image | 10 | 0.998473 | 8 | 0 / 0 | 446 / 492 | 5 / 7 | 1 / 1 | 43.171 / 2.018 = 2.018 + 0 | yes |  |
+| ui/ui_scaling | 10 | 0.999856 | 5 | 0 / 0 | 446 / 492 | 5 / 7 | 1 / 1 | 42.162 / 2.411 = 2.411 + 0 | yes |  |
+| ui/scroll_and_overflow/overflow_transform | 10 | 0.995397 | 12 | 0 / 0 | 447 / 492 | 5 / 7 | 1 / 1 | 45.188 / 2.255 = 2.255 + 0 | yes |  |
+| ui/scroll_and_overflow/overflow_debug | 10 | 0.996511 | 10 | 0 / 0 | 463 / 492 | 5 / 7 | 1 / 1 | 39.92 / 1.736 = 1.736 + 0 | yes |  |
+| ui/images/image_node_resizing | 10 | 0.998112 | 9 | 0 / 0 | 455 / 492 | 5 / 7 | 1 / 1 | 31.752 / 1.604 = 1.604 + 0 | yes |  |
 
 ## Excluded
 

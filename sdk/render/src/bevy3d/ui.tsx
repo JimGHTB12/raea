@@ -15,6 +15,7 @@ import { gridCss, type GridAutoFlow, type GridPlacement, type GridTrack, type Re
 import { shadowCss, transformCss, type BoxShadow, type UiTransform } from "./ui-transform";
 import { featuresCss } from "./ui-features";
 import { scrollCss, type IgnoreScroll } from "./ui-scroll";
+import { useDebugAttr, type UiDebugOptions } from "./ui-debug";
 import type { TransformValue } from "./core";
 import { eulerOf } from "../3d/model";
 import { useVideoConfig } from "@raea/app/clock";
@@ -26,6 +27,10 @@ type Color = Srgba | LinearRgba | string;
 export interface NodeProps {
   /** bevy_ecs's Name, as a Scrollbar's target names its scroller (the element's id) */
   name?: string;
+  /** UiDebugOptions: this node's debug overlay, in place of the GlobalUiDebugOptions it's in */
+  ui_debug?: UiDebugOptions;
+  /** the index its debug outline is coloured by (Hsla::sequential_dispersed), as Bevy colours it by its entity's */
+  debug_color_index?: number;
   display?: (typeof DISPLAY)[number];
   box_sizing?: "BorderBox" | "ContentBox";
   position_type?: (typeof POSITION_TYPE)[number];
@@ -180,6 +185,8 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop, scale = 1): 
     s.overflowY = o.y.toLowerCase();
   }
   if (p.name !== undefined) attrs.id = p.name;
+  const dbg = useDebugAttr(who, p.ui_debug, p.debug_color_index, useContext(UiScaleCx));
+  if (dbg) attrs["data-raea-bevy-debug"] = dbg;
   scrollCss(who, p, s, attrs, scale);
   const m = p.overflow_clip_margin;
   if (m !== undefined) {

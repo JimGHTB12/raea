@@ -17,9 +17,11 @@ export interface ImageNodeProps extends NodeProps {
   flip_y?: boolean;
   /** TextureAtlas: the one cell of a sheet laid out by a TextureAtlasLayout to draw (the picture is the sheet) */
   texture_atlas?: { layout: TextureAtlasLayout; index: number };
-  /** NodeImageMode: Sliced cuts the picture in nine by a TextureSlicer (its corners kept, its sides and centre
-   *  stretched or tiled), drawn as CSS border-image with bevy_ui's scale; a sliced ImageNode holds children */
-  image_mode?: { Sliced: TextureSlicer };
+  /** NodeImageMode: "Auto" (the default) sizes the node by the picture and draws it contained in the content box,
+   *  its aspect kept; "Stretch" gives the node no size of its own and stretches the picture over its content box;
+   *  Sliced cuts the picture in nine by a TextureSlicer (its corners kept, its sides and centre stretched or tiled),
+   *  drawn as CSS border-image with bevy_ui's scale; a sliced ImageNode holds children */
+  image_mode?: "Auto" | "Stretch" | { Sliced: TextureSlicer };
 }
 
 /** bevy_ui's SliceScaleMode: a side or the centre stretched, or tiled every slice x stretch_value px from its start */
@@ -56,7 +58,8 @@ export function ImageNode({ image, color, flip_x, flip_y, children, fixed, textu
     const filter = s.filter === "nearest" ? "Nearest" : s.filter === "linear" ? "Linear" : outer;
     return <Sampler.Provider value={filter}><ImageNode image={image.path} color={color} flip_x={flip_x} flip_y={flip_y} fixed={fixed} texture_atlas={texture_atlas} image_mode={image_mode} {...p}>{children}</ImageNode></Sampler.Provider>;
   }
-  if (image_mode !== undefined) return SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atlas, image_mode, ...p });
+  if (image_mode !== undefined && image_mode !== "Auto" && image_mode !== "Stretch" && typeof image_mode?.Sliced !== "object") throw new TypeError(`ImageNode: image_mode is "Auto", "Stretch" or { Sliced }, got ${JSON.stringify(image_mode)}`);
+  if (typeof image_mode === "object") return SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atlas, image_mode, ...p });
   if (texture_atlas !== undefined) return AtlasNode({ image, color, flip_x, flip_y, children, fixed, texture_atlas, ...p });
   if (typeof image !== "string" || image === "") throw new TypeError(`ImageNode: image is a picture file (staticFile("x.png")), got ${JSON.stringify(image)}`);
   if (children !== undefined && children !== null && children !== false) throw new TypeError("ImageNode: takes no children here (a picture on a Node with children: put the ImageNode beside them)");
@@ -66,8 +69,12 @@ export function ImageNode({ image, color, flip_x, flip_y, children, fixed, textu
   const n = nodeCss("ImageNode", p, ui?.back);
   const flips = [flip_x && "scaleX(-1)", flip_y && "scaleY(-1)"].filter(Boolean).join(" ");
   const rendering = RENDERING[useContext(Sampler)];
-  const css: CSSProperties = { ...n.css, objectFit: "fill", ...(rendering ? { imageRendering: rendering } : {}), ...(flips ? { transform: flips } : {}), ...(color && color.red !== 1 ? { filter: `brightness(${color.red})` } : {}) };
-  const img = <img src={image} style={css} {...n.attrs} />;
+  const look: CSSProperties = { ...(rendering ? { imageRendering: rendering } : {}), ...(flips ? { transform: flips } : {}), ...(color && color.red !== 1 ? { filter: `brightness(${color.red})` } : {}) };
+  // Auto: contained, its aspect kept, as bevy_ui draws it; Stretch: no picture size for layout, the picture over the
+  // content box as a background
+  const img = image_mode === "Stretch"
+    ? <div style={{ ...n.css, ...look, backgroundImage: `url("${image}")`, backgroundSize: "100% 100%", backgroundOrigin: "content-box", backgroundClip: "content-box", backgroundRepeat: "no-repeat" }} {...n.attrs} />
+    : <img src={image} style={{ ...n.css, objectFit: "contain", ...look }} {...n.attrs} />;
   const root = fixed ? "fixed" : ui === null;
   return root ? <div style={root === "fixed" ? { ...VIEWPORT, position: "fixed" } : VIEWPORT}>{img}</div> : img;
 }
@@ -114,7 +121,7 @@ export function ImagePlugin({ default_sampler, children }: { default_sampler?: "
 // over its background, as Bevy draws the picture), mirrored there, so the flip doesn't turn the label.
 function SlicedNode({ image, color, flip_x, flip_y, children, fixed, texture_atlas, image_mode, ...p }: ImageNodeProps) {
   if (typeof image !== "string" || image === "") throw new TypeError(`ImageNode: image is a picture file (staticFile("x.png")), got ${JSON.stringify(image)}`);
-  const sl = image_mode?.Sliced;
+  const sl = typeof image_mode === "object" ? image_mode.Sliced : undefined;
   const b = sl?.border;
   if (!sl || !b || ![b.left, b.right, b.top, b.bottom].every((v) => Number.isFinite(v) && v >= 0)) throw new TypeError(`ImageNode: image_mode is { Sliced: { border: { left, right, top, bottom } } } (px >= 0), got ${JSON.stringify(image_mode)}`);
   // a sliced atlas cell: its rect in the layout, which Blitz scales to the sheet as Bevy's atlas UVs are
