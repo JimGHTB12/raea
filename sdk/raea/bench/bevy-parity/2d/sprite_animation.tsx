@@ -36,8 +36,8 @@ function Shot() {
     <AbsoluteFill>
       <style>{FONT}</style>
       <Canvas3D layered clearColor="rgb(43, 44, 47)">
-        <Sprite src={SHEET} grid={[7, 1]} frame={cellAt(f, 10)} x={640 - 70} y={360} scale={6} />
-        <Sprite src={SHEET} grid={[7, 1]} frame={cellAt(f, 20)} x={640 + 70} y={360} scale={6} />
+        <Sprite src={SHEET} sampler={{ filter: "nearest" }} grid={[7, 1]} frame={cellAt(f, 10)} x={640 - 70} y={360} scale={6} />
+        <Sprite src={SHEET} sampler={{ filter: "nearest" }} grid={[7, 1]} frame={cellAt(f, 20)} x={640 + 70} y={360} scale={6} />
       </Canvas3D>
       <div style={{ position: "absolute", top: 12, left: 12, fontFamily: "Fira Mono", fontSize: 20, lineHeight: 1.2, color: "#fff", whiteSpace: "pre" }}>{"Left Arrow: Animate Left Sprite\nRight Arrow: Animate Right Sprite"}</div>
     </AbsoluteFill>

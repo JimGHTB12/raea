@@ -15,8 +15,17 @@ const linearToSrgb = (c: number) => (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.p
 export class Srgba {
   [MADE_FROM]?: MadeFrom;
   constructor(public red: number, public green: number, public blue: number, public alpha = 1) {}
-  /** Bevy's Srgba::hex: #rgb, #rrggbb, rgb() or a common name */
+  /** Bevy's Srgba::hex: rgb, rgba, rrggbb or rrggbbaa (the # optional), and also rgb() or a common name */
   static hex(hex: string): Srgba {
+    // Bevy's own forms: 3, 4, 6 or 8 hex digits, with or without the #, the last of 4 or 8 its alpha
+    const raw = typeof hex === "string" ? hex.trim().replace(/^#/, "") : "";
+    if (/^([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(raw)) {
+      const d = (raw.length <= 4 ? [...raw].map((x) => x + x).join("") : raw).toLowerCase();
+      const c = [0, 2, 4, 6].map((i) => (i < d.length ? parseInt(d.slice(i, i + 2), 16) / 255 : 1));
+      const s = new Srgba(c[0], c[1], c[2], c[3]);
+      s[MADE_FROM] = { hex: "#" + d.slice(0, 6), k: 1 };
+      return s;
+    }
     const h = toHex("Srgba.hex", "hex", hex);
     const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
     const s = new Srgba(c[0], c[1], c[2]);

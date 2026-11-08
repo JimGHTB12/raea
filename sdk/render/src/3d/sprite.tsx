@@ -44,6 +44,39 @@ export interface SpriteProps extends Place2dProps {
   tileX?: boolean;
   tileY?: boolean;
   tileStretch?: number;
+  /** Bevy's SpriteImageMode, as its reflected value: "Auto" (stretched to the size), { Scale: "FillCenter" } (and
+   * FillStart, FillEnd, FitCenter, FitStart, FitEnd: the picture kept to its shape, cropped or fitted), { Sliced:
+   * TextureSlicer } (nine-slice: border a number of px or { min_inset: [x, y], max_inset: [x, y] }; center_scale_mode
+   * and sides_scale_mode "Stretch" or { Tile: { stretch_value } }; max_corner_scale) or { Tiled: { tile_x, tile_y,
+   * stretch_value } }. Not with tileX or tileY */
+  image_mode?: SpriteImageMode;
+  /** the picture's sampler (Bevy's load_with_settings: { filter, mipmap, wrap, anisotropy }), Bevy's default (linear)
+   * otherwise; { filter: "nearest" } is pixel art as Bevy's ImagePlugin::default_nearest() draws it */
+  sampler?: SamplerSpec;
+}
+
+type SliceScaleMode = "Stretch" | { Tile: { stretch_value: number } };
+/** Bevy's SpriteImageMode, as its reflected value
+ * @bevy bevy_sprite::sprite::SpriteImageMode */
+export type SpriteImageMode =
+  | "Auto"
+  | { Scale: "FillCenter" | "FillStart" | "FillEnd" | "FitCenter" | "FitStart" | "FitEnd" }
+  | { Sliced: { border?: number | { min_inset: [number, number]; max_inset: [number, number] }; center_scale_mode?: SliceScaleMode; sides_scale_mode?: SliceScaleMode; max_corner_scale?: number } }
+  | { Tiled: { tile_x: boolean; tile_y: boolean; stretch_value: number } };
+
+function checkImageMode(m: unknown): void {
+  const bad = () => new TypeError(`Sprite: image_mode is Bevy's SpriteImageMode ("Auto", { Scale: "FillCenter" }, { Sliced: { border: 30 } } or { Tiled: { tile_x, tile_y, stretch_value } }), got ${JSON.stringify(m)}`);
+  if (m === "Auto") return;
+  if (typeof m !== "object" || m === null || Object.keys(m).length !== 1) throw bad();
+  const [k, v] = Object.entries(m)[0] as [string, unknown];
+  const o = (typeof v === "object" && v !== null ? v : {}) as Record<string, unknown>;
+  const slice = (s: unknown) => s === undefined || s === "Stretch" || Number.isFinite((s as { Tile?: { stretch_value?: number } } | null)?.Tile?.stretch_value);
+  const pair = (p: unknown) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite);
+  const border = (b: unknown) => b === undefined || Number.isFinite(b) || (typeof b === "object" && b !== null && pair((b as { min_inset?: unknown }).min_inset) && pair((b as { max_inset?: unknown }).max_inset));
+  if (k === "Scale" && ["FillCenter", "FillStart", "FillEnd", "FitCenter", "FitStart", "FitEnd"].includes(v as string)) return;
+  if (k === "Sliced" && typeof v === "object" && border(o.border) && slice(o.center_scale_mode) && slice(o.sides_scale_mode) && (o.max_corner_scale === undefined || Number.isFinite(o.max_corner_scale))) return;
+  if (k === "Tiled" && typeof o.tile_x === "boolean" && typeof o.tile_y === "boolean" && Number.isFinite(o.stretch_value)) return;
+  throw bad();
 }
 
 /** A picture in 2D, over the 3D: Bevy's Sprite, drawn as a quad with its sprite material, a sprite sheet's cells cut
@@ -60,6 +93,11 @@ export function Sprite(props: SpriteProps) {
   for (const k of ["width", "height"] as const) if (props[k] !== undefined && !(Number.isFinite(props[k]) && props[k] > 0)) throw new RangeError(`Sprite: ${k} is px above 0, got ${props[k]}`);
   if (props.tileStretch !== undefined && !(Number.isFinite(props.tileStretch) && props.tileStretch > 0)) throw new RangeError(`Sprite: tileStretch is above 0, got ${props.tileStretch}`);
   if (props.tileStretch !== undefined && !props.tileX && !props.tileY) throw new TypeError("Sprite: tileStretch is for a tiled sprite: give tileX or tileY");
+  if (props.image_mode !== undefined) {
+    if (props.tileX || props.tileY) throw new TypeError("Sprite: image_mode or tileX/tileY, not both");
+    checkImageMode(props.image_mode);
+  }
+  if (props.sampler !== undefined) samplerSpec("Sprite: sampler", props.sampler);
   check2d("Sprite", props);
   const id = useId();
   const handled = Object.keys(props).some((k) => /^on[A-Z]/.test(k));

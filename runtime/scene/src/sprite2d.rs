@@ -45,6 +45,14 @@ pub(super) fn sprites(tracks: &[Track], p: &mut Program) {
             }
         }
         sheet(p, &mut row, &id, &its);
+        // the picture's sampler (Bevy's load_with_settings), as JSON for raea-sys-sampler
+        if let Some(s) = first.get("sampler") {
+            row.insert("texture_sampler".into(), V::S(s.to_string()));
+        }
+        // Bevy's SpriteImageMode as given (systems/sprite reads it)
+        if let Some(m) = first.get("image_mode") {
+            row.insert("image_mode".into(), V::S(m.to_string()));
+        }
         for (prop, col) in [("flipX", "flip_x"), ("flipY", "flip_y"), ("tileX", "tile_x"), ("tileY", "tile_y")] {
             if first.get(prop) == Some(&Value::Bool(true)) {
                 row.insert(col.into(), V::N(1.0));

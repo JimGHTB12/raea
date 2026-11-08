@@ -92,6 +92,7 @@ pub(crate) fn models_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         }
         // screens on its materials and nodes hidden (<Model screens hide>, raea-render's screen.rs): the first frame's
         screen_columns(p, &mut row, &id, &its);
+        node_columns(p, &mut row, &id, &its);
         if let Some(s) = first.get("surfaces") {
             row.insert("surfaces".into(), V::S(s.to_string()));
         }
@@ -319,5 +320,24 @@ pub(crate) fn fires_rows(tr: &Tracks, p: &mut Program) {
         placement(p, &mut row, &id, &its);
         visible(p, &mut row, &id, &track);
         p.spawns.push(("fire".into(), vec![row]));
+    }
+}
+
+/// <Model nodes>: glTF nodes' local transforms by name, each frame's (a joint turned by hand, Bevy's gltf_skinned_mesh):
+/// node{i} the i-th name, and node{i}_x/_y/_z (translation), node{i}_q_x.._q_w (rotation) and node{i}_s_x.._s_z (scale)
+/// keyed, each part given only when the first frame gives it, so the rest of the node stays as its file has it.
+fn node_columns(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item]) {
+    let Some(Value::Object(first)) = its[0].props.get("nodes") else { return };
+    for (i, (name, f)) in first.iter().enumerate() {
+        row.insert(format!("node{i}"), V::S(name.clone()));
+        for (field, cols) in [("translation", ["x", "y", "z", ""]), ("rotation", ["q_x", "q_y", "q_z", "q_w"]), ("scale", ["s_x", "s_y", "s_z", ""])] {
+            if f.get(field).is_none() {
+                continue;
+            }
+            for (k, c) in cols.iter().enumerate().filter(|(_, c)| !c.is_empty()) {
+                let at = |it: &Item| it.props.get("nodes").and_then(|n| n.get(name)).and_then(|n| n.get(field)).and_then(|v| v.get(k)).and_then(Value::as_f64).unwrap_or(f64::NAN);
+                exact(p, row, id, &format!("node{i}_{c}"), &its.iter().map(at).collect::<Vec<_>>());
+            }
+        }
     }
 }

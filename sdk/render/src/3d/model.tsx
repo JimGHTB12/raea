@@ -173,6 +173,10 @@ export interface ModelProps {
   screens?: ModelScreens;
   /** nodes of the glTF hidden, by name (a robot's painted-on eyes under the screen that replaces them) */
   hide?: string[];
+  /** glTF nodes' local transforms, by name, set each frame (a joint turned by hand: Bevy's gltf_skinned_mesh turns
+   * GltfNode2). Bevy's loader names an unnamed node GltfNode{index}. A part left out stays as the file has it; give
+   * the same nodes and parts every frame */
+  nodes?: Record<string, { translation?: Vec3; rotation?: [number, number, number, number]; scale?: Vec3 }>;
   /** graph paper over the model's surfaces, as MeshStandardMaterial's `grid`, but drawn in the model's own texture
    * coordinates (taken as metres), so the lines stay on the surface as it moves; no outlines. `toon`: its light in
    * three flat bands (toon shading) */
@@ -322,6 +326,7 @@ export function Model(props: ModelProps) {
     p.morphs = entries.map(([k, w]) => ({ target: k, weight: w }));
   }
   checkGrid("Model", p);
+  if (props.nodes !== undefined) checkNodes(props.nodes);
   if (props.hide !== undefined && !(Array.isArray(props.hide) && props.hide.every((h) => typeof h === "string"))) throw new TypeError(`Model: hide is a list of node names, got ${JSON.stringify(props.hide)}`);
   const kids = <InModel.Provider value={true}>{props.children}</InModel.Provider>;
   if (props.screens === undefined) return node3d("Model", p, kids);
@@ -360,4 +365,15 @@ export interface ImagePlaneProps {
   /** with `grid`: which cell shows (0 is the top left; whole numbers, wrapping); animate it to play the sheet, as
    * Bevy's TextureAtlas index does: frame={Math.floor(f / 3)} */
   frame?: number;
+}
+
+function checkNodes(nodes: NonNullable<ModelProps["nodes"]>): void {
+  if (typeof nodes !== "object" || nodes === null || Array.isArray(nodes)) throw new TypeError(`Model: nodes maps a node's name to its transform, got ${JSON.stringify(nodes)}`);
+  const len = { translation: 3, rotation: 4, scale: 3 } as const;
+  for (const [name, t] of Object.entries(nodes))
+    for (const [k, v] of Object.entries(t ?? {})) {
+      const n = len[k as keyof typeof len];
+      if (n === undefined) throw new TypeError(`Model: nodes.${name} takes translation, rotation and scale, got ${k}`);
+      if (!Array.isArray(v) || v.length !== n || !v.every(Number.isFinite)) throw new RangeError(`Model: nodes.${name}.${k} is ${n} numbers, got ${JSON.stringify(v)}`);
+    }
 }

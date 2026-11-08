@@ -16,7 +16,7 @@ function Shot() {
   return (
     <AbsoluteFill>
       <Canvas3D layered clearColor="rgb(43, 44, 47)">
-        <Sprite src={staticFile("textures/rpg/chars/gabe/gabe-idle-run.png")} grid={[7, 1]} frame={cellAt(useCurrentFrame())} x={640} y={360} scale={6} />
+        <Sprite src={staticFile("textures/rpg/chars/gabe/gabe-idle-run.png")} sampler={{ filter: "nearest" }} grid={[7, 1]} frame={cellAt(useCurrentFrame())} x={640} y={360} scale={6} />
       </Canvas3D>
     </AbsoluteFill>
   );

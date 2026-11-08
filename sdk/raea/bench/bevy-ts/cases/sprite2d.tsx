@@ -25,7 +25,7 @@ function Shot() {
       <Canvas3D layered>
         <Camera3d transform={Transform.fromXyz(0, 0, 3).lookingAt([0, 0, 0])} projection={{ Perspective: { fov: 0.698131700797732 } }} />
         <Mesh3d name="box"><Cuboid half_size={[0.7, 0.4, 0.05]} /><StandardMaterial base_color="#ffffff" unlit /></Mesh3d>
-        <Sprite name="sprite" src={SHEET} grid={[2, 1]} frame={1} x={20} y={32} width={20} />
+        <Sprite name="sprite" src={SHEET} sampler={{ filter: "nearest" }} grid={[2, 1]} frame={1} x={20} y={32} width={20} />
         <Shape2D name="dot" shape="circle" size={[14, 14]} color="#00ff00" x={46} y={32} />
       </Canvas3D>
     </AbsoluteFill>

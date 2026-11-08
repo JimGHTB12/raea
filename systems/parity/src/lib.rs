@@ -85,7 +85,8 @@ pub fn install(app: &mut App) {
 /// The picture the window's cameras draw into instead of its swapchain, when the example's pictures are taken
 /// (RAEA_PARITY_PNG): a window shows black once macOS stops compositing it (an unattended Mac mini's display asleep,
 /// 2026-11-07: frames after the first second came back black), an image never does. Same size and format the window
-/// would have; the first camera is the UI's, as the window's would be.
+/// would have. The UI's camera is the window's would be (bevy_ui's DefaultUiCamera): the one the example marks
+/// IsDefaultUiCamera, else the highest order of the window's cameras; the marker is added only when the example gave none.
 #[derive(Resource)]
 struct Offscreen(Handle<Image>);
 
@@ -93,12 +94,14 @@ fn offscreen(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
     window: Query<&Window, With<bevy::window::PrimaryWindow>>,
-    cams: Query<(Entity, &bevy::camera::RenderTarget), Added<bevy::camera::RenderTarget>>,
+    cams: Query<(Entity, &bevy::camera::RenderTarget, &bevy::camera::Camera), Added<bevy::camera::RenderTarget>>,
+    marked: Query<(), With<bevy::ui::IsDefaultUiCamera>>,
     held: Option<Res<Offscreen>>,
 ) {
     let Ok(w) = window.single() else { return };
     let mut target = held.map(|h| h.0.clone());
-    for (e, t) in &cams {
+    let mut ui: Option<(isize, Entity)> = None;
+    for (e, t, cam) in &cams {
         if !matches!(t, bevy::camera::RenderTarget::Window(bevy::window::WindowRef::Primary)) {
             continue;
         }
@@ -109,9 +112,12 @@ fn offscreen(
             h
         });
         commands.entity(e).insert(bevy::camera::RenderTarget::Image(h.clone().into()));
-        if first {
-            commands.entity(e).insert(bevy::ui::IsDefaultUiCamera);
+        if (first || ui.is_some()) && ui.is_none_or(|(o, _)| cam.order > o) {
+            ui = Some((cam.order, e));
         }
+    }
+    if let Some((_, e)) = ui.filter(|_| marked.is_empty()) {
+        commands.entity(e).insert(bevy::ui::IsDefaultUiCamera);
     }
 }
 

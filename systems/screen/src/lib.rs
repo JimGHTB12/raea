@@ -54,7 +54,7 @@ pub fn install(app: &mut App) {
     app.add_plugins(MaterialPlugin::<CrtMaterial>::default())
         .init_resource::<ScreenImages>()
         .insert_resource(raea_sys_material::maps::NamedImages(named_image))
-        .add_systems(Update, (model_screens, mesh_screens, hide_nodes, sync_screens).chain().after(FrameSystems::Rows).before(FrameSystems::Tag));
+        .add_systems(Update, (model_screens, mesh_screens, hide_nodes, pose_nodes, sync_screens).chain().after(FrameSystems::Rows).before(FrameSystems::Tag));
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Clone)]
@@ -239,6 +239,37 @@ pub fn spawn_panel(world: &mut World, e: Entity, t: &Tup) -> Result<(), String> 
 }
 
 /// Each model's `hide` nodes hidden, once it's loaded.
+/// Each model's <Model nodes> local transforms set on its glTF nodes, by name, every frame (what a row doesn't give
+/// stays as the node has it).
+fn pose_nodes(frame: Res<FrameRows>, models: Query<Entity, With<ModelReady>>, kids: Query<&Children>, mut nodes: Query<(&Name, &mut Transform)>) {
+    for e in &models {
+        if !frame.may_have("node0") {
+            return;
+        }
+        let Some(v) = frame.vals(e) else { continue };
+        let mut i = 0;
+        while let Some(V::S(name)) = v.get(&format!("node{i}")) {
+            let col = |c: &str| { let k = format!("node{i}_{c}"); v.contains_key(&k).then(|| num(&v, &k, 0.0)) };
+            for d in descendants(e, &kids) {
+                let Ok((n, mut t)) = nodes.get_mut(d) else { continue };
+                if n.as_str() != name {
+                    continue;
+                }
+                if let (Some(x), Some(y), Some(z)) = (col("x"), col("y"), col("z")) {
+                    t.translation = Vec3::new(x, y, z);
+                }
+                if let (Some(x), Some(y), Some(z), Some(w)) = (col("q_x"), col("q_y"), col("q_z"), col("q_w")) {
+                    t.rotation = Quat::from_xyzw(x, y, z, w);
+                }
+                if let (Some(x), Some(y), Some(z)) = (col("s_x"), col("s_y"), col("s_z")) {
+                    t.scale = Vec3::new(x, y, z);
+                }
+            }
+            i += 1;
+        }
+    }
+}
+
 fn hide_nodes(mut commands: Commands, frame: Res<FrameRows>, models: Query<Entity, (With<ModelReady>, Without<HideDone>)>, kids: Query<&Children>, names: Query<&Name>) {
     for e in &models {
         commands.entity(e).insert(HideDone);

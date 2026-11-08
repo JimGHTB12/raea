@@ -115,3 +115,10 @@ ui/text/font_atlas_debug
 3d/two_passes
 3d/split_screen
 camera/2d_on_ui
+gltf/load_gltf
+gltf/gltf_skinned_mesh
+animation/animated_transform
+3d/fog
+3d/3d_shapes
+2d/sprite_scale
+2d/sprite_slice

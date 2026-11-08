@@ -92,19 +92,25 @@ pub fn spawn_sprite(world: &mut World, e: Entity, t: &Tup, image: Handle<Image>,
     let v = &t.vals;
     let (cols, rows) = (num(v, "sheet_cols", 1.0).max(1.0) as u32, num(v, "sheet_rows", 1.0).max(1.0) as u32);
     let (cw, ch) = ((size.x / cols).max(1), (size.y / rows).max(1));
-    let texture_atlas = (cols > 1 || rows > 1).then(|| {
-        // a sheet's cells sampled nearest: linear filtering at a cell's edge blends in the next cell (a column of it
-        // showed down a scaled cell's side)
+    // the picture's own sampler (<Sprite sampler>, Bevy's load_with_settings), Bevy's default otherwise: a sheet drawn
+    // nearest is one given { filter: "nearest" }, as Bevy's ImagePlugin::default_nearest() gives it
+    if let Ok(Some(s)) = raea_sys_sampler::Sampling::col(v, "texture_sampler") {
         if let Some(mut img) = world.resource_mut::<Assets<Image>>().get_mut(&image) {
-            img.sampler = ImageSampler::nearest();
+            img.sampler = ImageSampler::Descriptor(s.over(raea_sys_sampler::descriptor_of(&img.sampler)));
         }
+    }
+    let texture_atlas = (cols > 1 || rows > 1).then(|| {
         let layout = world.resource_mut::<Assets<TextureAtlasLayout>>().add(TextureAtlasLayout::from_grid(UVec2::new(cw, ch), cols, rows, None, None));
         TextureAtlas { layout, index: cell(v, cols * rows) }
     });
     let custom_size = size_of(v, ch as f32 / cw as f32);
     // Bevy's SpriteImageMode::Tiled: the picture repeats across the sprite's size, every stretch_value x its own
     let (tile_x, tile_y) = (num(v, "tile_x", 0.0) > 0.5, num(v, "tile_y", 0.0) > 0.5);
-    let image_mode = if tile_x || tile_y { SpriteImageMode::Tiled { tile_x, tile_y, stretch_value: num(v, "tile_stretch", 1.0) } } else { default() };
+    let image_mode = match v.get("image_mode") {
+        Some(V::S(json)) => image_mode(json),
+        _ if tile_x || tile_y => SpriteImageMode::Tiled { tile_x, tile_y, stretch_value: num(v, "tile_stretch", 1.0) },
+        _ => default(),
+    };
     let sprite = Sprite {
         image,
         texture_atlas,
@@ -212,4 +218,41 @@ pub fn sync_2d(frame: Res<FrameRows>, mut mats: ResMut<Assets<ColorMaterial>>, m
             }
         }
     }
+}
+
+/// A <Sprite image_mode>: Bevy's SpriteImageMode from its reflected value as JSON ("Auto", {"Scale": "FillCenter"},
+/// {"Sliced": TextureSlicer} with border a number or {min_inset, max_inset}, {"Tiled": {...}}); Auto for anything else
+/// (sdk/render's Sprite refuses it first).
+fn image_mode(json: &str) -> SpriteImageMode {
+    use bevy::sprite::{BorderRect, SliceScaleMode, SpriteScalingMode, TextureSlicer};
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else { return default() };
+    let f = |v: &serde_json::Value, k: &str, d: f32| v.get(k).and_then(|x| x.as_f64()).map_or(d, |x| x as f32);
+    let v2 = |x: Option<&serde_json::Value>| x.and_then(|a| a.as_array()).map_or(Vec2::ZERO, |a| Vec2::new(a.first().and_then(|x| x.as_f64()).unwrap_or(0.0) as f32, a.get(1).and_then(|x| x.as_f64()).unwrap_or(0.0) as f32));
+    let slice = |s: Option<&serde_json::Value>| match s.and_then(|s| s.get("Tile")) {
+        Some(t) => SliceScaleMode::Tile { stretch_value: f(t, "stretch_value", 1.0) },
+        None => SliceScaleMode::Stretch,
+    };
+    if let Some(s) = v.get("Scale").and_then(|s| s.as_str()) {
+        return SpriteImageMode::Scale(match s {
+            "FillStart" => SpriteScalingMode::FillStart,
+            "FillEnd" => SpriteScalingMode::FillEnd,
+            "FitCenter" => SpriteScalingMode::FitCenter,
+            "FitStart" => SpriteScalingMode::FitStart,
+            "FitEnd" => SpriteScalingMode::FitEnd,
+            _ => SpriteScalingMode::FillCenter,
+        });
+    }
+    if let Some(s) = v.get("Sliced") {
+        let border = match s.get("border") {
+            Some(b) if b.is_number() => BorderRect::all(b.as_f64().unwrap_or(0.0) as f32),
+            Some(b) => BorderRect { min_inset: v2(b.get("min_inset")), max_inset: v2(b.get("max_inset")) },
+            None => BorderRect::default(),
+        };
+        return SpriteImageMode::Sliced(TextureSlicer { border, center_scale_mode: slice(s.get("center_scale_mode")), sides_scale_mode: slice(s.get("sides_scale_mode")), max_corner_scale: f(s, "max_corner_scale", 1.0) });
+    }
+    if let Some(t) = v.get("Tiled") {
+        let b = |k: &str| t.get(k).and_then(|x| x.as_bool()).unwrap_or(false);
+        return SpriteImageMode::Tiled { tile_x: b("tile_x"), tile_y: b("tile_y"), stretch_value: f(t, "stretch_value", 1.0) };
+    }
+    default()
 }

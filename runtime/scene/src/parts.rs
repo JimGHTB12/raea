@@ -92,6 +92,12 @@ pub(crate) fn lights_rows(all: &[Vec<Item>], tr: &Tracks, p: &mut Program) {
                 }
             }
         }
+        // the light's own biases (Bevy's shadow_depth_bias, shadow_normal_bias), over a <Shadows>'
+        for (prop, col) in [("shadow_depth_bias", "shadow_bias"), ("shadow_normal_bias", "shadow_nbias")] {
+            if let Some(x) = num(first, prop) {
+                row.insert(col.into(), V::N(x));
+            }
+        }
         // a bulb's or spot's reach, and its size (Bevy's radius: a spherical area light's highlight, 3d/spherical_area_lights)
         for (prop, col) in [("distance", "range"), ("radius", "radius")].iter().filter(|_| kind != "directional") {
             if let Some(d) = num(first, prop).filter(|d| *d > 0.0) {

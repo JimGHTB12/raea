@@ -114,3 +114,10 @@ ui/text/font_atlas_debug	-	10
 3d/two_passes	-	10
 3d/split_screen	-	10
 camera/2d_on_ui	-	5,60
+gltf/load_gltf	-	5,60
+gltf/gltf_skinned_mesh	-	10,90
+animation/animated_transform	-	30,165
+3d/fog	-	10,120
+3d/3d_shapes	-	10,120
+2d/sprite_scale	-	10,60
+2d/sprite_slice	-	10

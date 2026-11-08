@@ -27,42 +27,113 @@ pub fn buffer_colors(json: &str) -> Result<Option<Vec<[f32; 4]>>, String> {
     Ok(Some(idx.iter().map(|&i| per[i.min(n.saturating_sub(1))]).collect()))
 }
 
-/// One of Bevy's primitive shapes as a Mesh (Mesh::from), its reflected fields given over its default: {primitive:
-/// "Torus", minor_radius: 0.2, major_radius: 1}. 3D: Sphere, Cuboid, Cylinder, Capsule3d, Cone, ConicalFrustum, Torus,
-/// Plane3d, Tetrahedron, Triangle3d; 2D (flat, facing +Z): Circle, Rectangle, RegularPolygon, Ellipse, Annulus, Rhombus,
-/// Capsule2d, Triangle2d.
+/// One of Bevy's primitive shapes as Bevy's mesher makes it, its reflected fields given over its default: {primitive:
+/// "Torus", minor_radius: 0.2, major_radius: 1}. 3D: Sphere (`uv: [sectors, stacks]` or `ico: n` for its kind, ico 5
+/// by default), Cuboid, Cylinder, Capsule3d, Cone, ConicalFrustum, Torus, Plane3d (`subdivisions: n`), Tetrahedron, Triangle3d, Segment3d,
+/// Polyline3d. 2D (flat, facing +Z): Circle, CircularSector, CircularSegment, Rectangle, RegularPolygon, Ellipse,
+/// Annulus, Rhombus, Capsule2d, Triangle2d, ConvexPolygon, Segment2d, Polyline2d (`vertices` for the last three). A 2D
+/// shape given `inner` (the same shape's fields) is Bevy's Ring of the two, or given `ring: thickness` its to_ring (the
+/// shapes with Bevy's Inset); {primitive: "Extrusion", base: <a 2D shape, or ring>, half_depth} is Bevy's Extrusion.
 pub fn primitive_mesh(o: &serde_json::Map<String, serde_json::Value>) -> Result<Mesh, String> {
+    use bevy::mesh::Extrudable;
     use bevy::shape::*;
-    fn fill<T: Default + bevy::reflect::PartialReflect + Into<Mesh>>(name: &str, o: &serde_json::Map<String, serde_json::Value>) -> Result<Mesh, String> {
+    type Obj = serde_json::Map<String, serde_json::Value>;
+    fn fill<T: Default + bevy::reflect::PartialReflect>(name: &str, o: &Obj) -> Result<T, String> {
         let mut x = T::default();
-        for (k, v) in o.iter().filter(|(k, _)| k.as_str() != "primitive") {
+        for (k, v) in o.iter().filter(|(k, _)| !["primitive", "inner", "ring", "uv", "ico", "subdivisions"].contains(&k.as_str())) {
             let bevy::reflect::ReflectMut::Struct(st) = x.reflect_mut() else { return Err(format!("{name} has no fields")) };
             let f = st.field_mut(k).ok_or_else(|| format!("{name} has no field {k:?}"))?;
             apply_json(f, v).map_err(|e| format!("{name}.{k}: {e}"))?;
         }
-        Ok(x.into())
+        Ok(x)
+    }
+    fn points<const N: usize>(name: &str, o: &Obj) -> Result<Vec<[f32; N]>, String> {
+        let bad = || format!("{name}.vertices: a list of [x, y{}] points", if N == 3 { ", z" } else { "" });
+        let a = o.get("vertices").and_then(|v| v.as_array()).ok_or_else(bad)?;
+        a.iter()
+            .map(|p| {
+                let p = p.as_array().filter(|p| p.len() == N).ok_or_else(bad)?;
+                let mut out = [0f32; N];
+                for (i, x) in p.iter().enumerate() {
+                    out[i] = x.as_f64().ok_or_else(bad)? as f32;
+                }
+                Ok(out)
+            })
+            .collect()
+    }
+    /// a 2D shape flat or extruded (`depth`), alone or as a ring
+    fn flat<P>(o: &Obj, make: &dyn Fn(&Obj) -> Result<P, String>, inset: Option<fn(P, f32) -> P>, depth: Option<f32>) -> Result<Mesh, String>
+    where
+        P: Primitive2d + Meshable + Clone,
+        P::Output: Extrudable,
+    {
+        let shape = make(o)?;
+        let inner = match (o.get("inner"), o.get("ring").and_then(|t| t.as_f64())) {
+            (Some(serde_json::Value::Object(i)), _) => Some(make(i)?),
+            (_, Some(t)) => Some(inset.ok_or("ring: a thickness is Bevy's to_ring, for the shapes with Inset (Circle, CircularSegment, Rectangle, RegularPolygon, Rhombus, Capsule2d, Triangle2d); give inner instead")?(shape.clone(), t as f32)),
+            _ => None,
+        };
+        Ok(match (inner, depth) {
+            (None, None) => shape.mesh().build(),
+            (None, Some(h)) => Extrusion { base_shape: shape, half_depth: h }.mesh().build(),
+            (Some(i), None) => Ring::new(shape, i).mesh().build(),
+            (Some(i), Some(h)) => Extrusion { base_shape: Ring::new(shape, i), half_depth: h }.mesh().build(),
+        })
+    }
+    fn two_d(o: &Obj, depth: Option<f32>) -> Result<Option<Mesh>, String> {
+        let name = o.get("primitive").and_then(|p| p.as_str()).unwrap_or("");
+        macro_rules! inset {
+            ($($t:ident),*) => { match name { $(stringify!($t) => return flat::<$t>(o, &|o| fill::<$t>(name, o), Some(|p: $t, t| p.inset(t)), depth).map(Some),)* _ => {} } };
+        }
+        macro_rules! plain {
+            ($($t:ident),*) => { match name { $(stringify!($t) => return flat::<$t>(o, &|o| fill::<$t>(name, o), None, depth).map(Some),)* _ => {} } };
+        }
+        inset!(Circle, CircularSegment, Rectangle, RegularPolygon, Rhombus, Capsule2d, Triangle2d);
+        plain!(CircularSector, Ellipse, Annulus);
+        if name == "ConvexPolygon" {
+            let make = |o: &Obj| ConvexPolygon::new(points::<2>(name, o)?.into_iter().map(Vec2::from)).map_err(|e| format!("ConvexPolygon: {e}"));
+            return flat(o, &make, None, depth).map(Some);
+        }
+        Ok(None)
     }
     let name = o.get("primitive").and_then(|p| p.as_str()).unwrap_or("");
+    if name == "Extrusion" {
+        let Some(serde_json::Value::Object(base)) = o.get("base") else { return Err("Extrusion: base is a 2D shape ({ primitive: \"Circle\", radius: 1 })".into()) };
+        let h = o.get("half_depth").and_then(|h| h.as_f64()).unwrap_or(0.5) as f32;
+        return two_d(base, Some(h))?.ok_or_else(|| format!("Extrusion: no extrudable 2D shape {:?}", base.get("primitive")));
+    }
+    if let Some(m) = two_d(o, None)? {
+        return Ok(m);
+    }
     match name {
-        "Sphere" => fill::<Sphere>(name, o),
-        "Cuboid" => fill::<Cuboid>(name, o),
-        "Cylinder" => fill::<Cylinder>(name, o),
-        "Capsule3d" => fill::<Capsule3d>(name, o),
-        "Cone" => fill::<Cone>(name, o),
-        "ConicalFrustum" => fill::<ConicalFrustum>(name, o),
-        "Torus" => fill::<Torus>(name, o),
-        "Plane3d" => fill::<Plane3d>(name, o),
-        "Tetrahedron" => fill::<Tetrahedron>(name, o),
-        "Triangle3d" => fill::<Triangle3d>(name, o),
-        "Circle" => fill::<Circle>(name, o),
-        "Rectangle" => fill::<Rectangle>(name, o),
-        "RegularPolygon" => fill::<RegularPolygon>(name, o),
-        "Ellipse" => fill::<Ellipse>(name, o),
-        "Annulus" => fill::<Annulus>(name, o),
-        "Rhombus" => fill::<Rhombus>(name, o),
-        "Capsule2d" => fill::<Capsule2d>(name, o),
-        "Triangle2d" => fill::<Triangle2d>(name, o),
-        _ => Err(format!("no primitive {name:?} (Sphere, Cuboid, Cylinder, Capsule3d, Cone, ConicalFrustum, Torus, Plane3d, Tetrahedron, Triangle3d, Circle, Rectangle, RegularPolygon, Ellipse, Annulus, Rhombus, Capsule2d, Triangle2d)")),
+        "Sphere" => {
+            let s = fill::<Sphere>(name, o)?;
+            match (o.get("uv").and_then(|u| u.as_array()), o.get("ico").and_then(|i| i.as_u64())) {
+                (Some(u), _) if u.len() == 2 => Ok(s.mesh().uv(u[0].as_u64().unwrap_or(32) as u32, u[1].as_u64().unwrap_or(18) as u32)),
+                (_, Some(n)) => s.mesh().ico(n as u32).map_err(|e| format!("Sphere: {e}")),
+                _ => Ok(s.into()),
+            }
+        }
+        "Cuboid" => Ok(fill::<Cuboid>(name, o)?.into()),
+        "Cylinder" => Ok(fill::<Cylinder>(name, o)?.into()),
+        "Capsule3d" => Ok(fill::<Capsule3d>(name, o)?.into()),
+        "Cone" => Ok(fill::<Cone>(name, o)?.into()),
+        "ConicalFrustum" => Ok(fill::<ConicalFrustum>(name, o)?.into()),
+        "Torus" => Ok(fill::<Torus>(name, o)?.into()),
+        "Plane3d" => {
+            let p = fill::<Plane3d>(name, o)?;
+            Ok(match o.get("subdivisions").and_then(|n| n.as_u64()) {
+                Some(n) => p.mesh().subdivisions(n as u32).build(),
+                None => p.into(),
+            })
+        }
+        "Tetrahedron" => Ok(fill::<Tetrahedron>(name, o)?.into()),
+        "Triangle3d" => Ok(fill::<Triangle3d>(name, o)?.into()),
+        "Segment3d" => Ok(fill::<Segment3d>(name, o)?.into()),
+        "Segment2d" => Ok(fill::<Segment2d>(name, o)?.into()),
+        "Polyline3d" => Ok(Polyline3d::new(points::<3>(name, o)?.into_iter().map(Vec3::from)).into()),
+        "Polyline2d" => Ok(Polyline2d::new(points::<2>(name, o)?.into_iter().map(Vec2::from)).into()),
+        _ => Err(format!("no primitive {name:?} (see primitive_mesh: Bevy's 3D and 2D primitives, Ring and Extrusion)")),
     }
 }
 

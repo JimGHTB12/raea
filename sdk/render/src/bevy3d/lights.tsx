@@ -24,6 +24,10 @@ interface LightCommon {
   /** Bevy's Visibility: "Hidden" lights nothing */
   visibility?: "Visible" | "Hidden" | "Inherited";
   color?: string;
+  /** Bevy's shadow_depth_bias and shadow_normal_bias on this light, over a <Shadows>' (Bevy's defaults otherwise: 0.02 and
+   * 1.8 for the sun and spots, 0.08 and 0.6 for a point light) */
+  shadow_depth_bias?: number;
+  shadow_normal_bias?: number;
   /** its light shows in the air through a <FogVolume> (Bevy's VolumetricLight component, beside the light) */
   volumetric?: boolean;
   children?: ReactNode;

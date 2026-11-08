@@ -32,17 +32,17 @@ pub(crate) struct ViewBox(pub(crate) Option<[u32; 4]>);
 /// (a sub view of the w x h one), not a view of w x (h + 1): that drew the 3D 0.14% larger and half a pixel low against
 /// a camera on a w x h target, a plain App's (docs/blitz-bevy.feature B3 H10), and against the looks' cells. With a
 /// view box, its own view is the box's (the target a sub view of it, offset by the box's place).
-pub(crate) fn tag_row_view(t: Res<TagRowTarget>, images: Res<Assets<Image>>, view_box: Option<Res<ViewBox>>, mut q: Query<(&mut Camera, &RenderTarget)>) {
+pub(crate) fn tag_row_view(t: Res<TagRowTarget>, images: Res<Assets<Image>>, view_box: Option<Res<ViewBox>>, mut q: Query<(&mut Camera, &RenderTarget, Option<&Projection>)>) {
     let Some(img) = images.get(&t.0) else { return };
     let s = img.size();
     let view = match view_box.and_then(|v| v.0) {
         Some([x, y, w, h]) => bevy::camera::SubCameraView { full_size: UVec2::new(w, h), offset: Vec2::new(-(x as f32), -(y as f32)), size: s },
         None => bevy::camera::SubCameraView { full_size: UVec2::new(s.x, s.y - 1), offset: Vec2::ZERO, size: s },
     };
-    for (mut c, rt) in &mut q {
+    for (mut c, rt, proj) in &mut q {
         if c.viewport.is_some() { if c.sub_camera_view.is_some() { c.sub_camera_view = None; } continue; } // a camera with its own Viewport (a ViewportNode's) sees its viewport's shape, as Bevy sizes it, never the tag row
         if matches!(rt, RenderTarget::Image(i) if i.handle == t.0) && c.sub_camera_view != Some(view) {
-            c.sub_camera_view = Some(view);
+            match proj { Some(Projection::Orthographic(_)) if view.offset == Vec2::ZERO => c.viewport = Some(bevy::camera::Viewport { physical_size: view.full_size, ..default() }), _ => c.sub_camera_view = Some(view) } // an orthographic camera (a Camera2d) a w x h Viewport: Bevy's orthographic sub view takes its area from the w x (h + 1) target, 0.14% small (2d/sprite_slice)
         }
     }
 }

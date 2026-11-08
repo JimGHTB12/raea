@@ -428,19 +428,23 @@ export interface Text2dProps extends TextStyleProps, TextRunProps {
   transform?: TransformValue;
   /** how its lines line up with each other (TextLayout's Justify, Left by default) */
   justify?: TextProps["justify"];
+  /** Bevy's Anchor, as its Vec2: which point of the block sits at its Transform, [-0.5, -0.5] its bottom left to
+   * [0.5, 0.5] its top right ([0, 0], the centre, by default; Anchor::TOP_CENTER is [0, 0.5]) */
+  anchor?: [number, number];
   children?: ReactNode;
 }
 
-/** Text in Bevy's 2D world, its block's centre at its Transform (Text2d with Bevy's default Anchor::CENTER). bevy_text
+/** Text in Bevy's 2D world, its block's centre at its Transform (Text2d; Bevy's Anchor::CENTER unless `anchor` says). bevy_text
  *  lays it out as a <Text>'s, so this is that Text, placed on the frame. Put it after the <Canvas3D> in the
  *  <AbsoluteFill>: it draws over the 2D and 3D parts, where Bevy orders it with the 2D ones by z.
  * @bevy bevy_sprite::text2d::Text2d */
-export function Text2d({ transform, justify, children, ...text }: Text2dProps) {
+export function Text2d({ transform, justify, anchor = [0, 0], children, ...text }: Text2dProps) {
+  if (!(Array.isArray(anchor) && anchor.length === 2 && anchor.every(Number.isFinite))) throw new TypeError(`Text2d: anchor is Bevy's Anchor as [x, y] (-0.5 to 0.5), got ${JSON.stringify(anchor)}`);
   const { width, height } = useVideoConfig();
   const [tx, ty] = transform?.translation ?? [0, 0, 0];
   const [sx, sy] = transform?.scale ?? [1, 1, 1];
   const turn = transform?.rotation ? -eulerOf(transform.rotation)[2] : 0;
-  const place: CSSProperties = { position: "absolute", left: width / 2 + tx, top: height / 2 - ty, transform: `translate(-50%, -50%) rotate(${turn}rad) scale(${sx}, ${sy})` };
+  const place: CSSProperties = { position: "absolute", width: "max-content", left: width / 2 + tx, top: height / 2 - ty, transform: `translate(${-(anchor[0] + 0.5) * 100}%, ${-(0.5 - anchor[1]) * 100}%) rotate(${turn}rad) scale(${sx}, ${sy})` };
   return (
     <div style={VIEWPORT}>
       <div style={place}>

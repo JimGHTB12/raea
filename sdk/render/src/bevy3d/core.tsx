@@ -47,6 +47,20 @@ export const Quat = {
     return qmul(qmul(axisAngle(i, a), axisAngle(j, b)), axisAngle(k, c));
   },
   mul: qmul,
+  /** glam's Quat::slerp: the short way from a to b, a fraction s along (a lerp, normalised, when they nearly agree) */
+  slerp(a: Quat, b: Quat, s: number): Quat {
+    let d = qdot(a, b);
+    const e: Quat = d < 0 ? [-b[0], -b[1], -b[2], -b[3]] : b;
+    d = Math.abs(d);
+    if (d > 1 - 1.1920929e-7) {
+      const l = a.map((x, i) => x + (e[i] - x) * s);
+      const n = Math.hypot(...l);
+      return l.map((x) => x / n) as Quat;
+    }
+    const th = Math.acos(d);
+    const [p, q, r] = [Math.sin(th * (1 - s)), Math.sin(th * s), Math.sin(th)];
+    return a.map((x, i) => (x * p + e[i] * q) / r) as Quat;
+  },
   /** v turned by q */
   mulVec3(q: Quat, v: Vec3): Vec3 {
     const r = qmul(qmul(q, [v[0], v[1], v[2], 0]), [-q[0], -q[1], -q[2], q[3]]);
