@@ -336,10 +336,6 @@ pub fn flag(vals: &BTreeMap<String, V>, k: &str, d: bool) -> bool {
     vals.get(k).map(V::truthy).unwrap_or(d)
 }
 
-pub fn scale_of(vals: &BTreeMap<String, V>) -> Vec3 {
-    scale_by(&|i| at(vals, i))
-}
-
 fn scale_by(n: &impl Fn(usize) -> Option<f32>) -> Vec3 {
     let s = n(10).unwrap_or(1.0);
     Vec3::new(n(11).unwrap_or(s), n(12).unwrap_or(s), n(13).unwrap_or(s))
@@ -347,10 +343,6 @@ fn scale_by(n: &impl Fn(usize) -> Option<f32>) -> Vec3 {
 
 /// A row's rotation: its quaternion (q_x q_y q_z q_w, what runtime/scene writes: docs/control.feature FC1d), or
 /// rot_x rot_y rot_z (radians, YXZ) where a row was written that way
-pub fn rot_of(vals: &BTreeMap<String, V>) -> Quat {
-    rot_by(&|i| at(vals, i))
-}
-
 fn rot_by(n: &impl Fn(usize) -> Option<f32>) -> Quat {
     let g = |i, d| n(i).unwrap_or(d);
     if n(9).is_some() {

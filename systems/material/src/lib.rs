@@ -10,6 +10,7 @@ use bevy::prelude::*;
 use raea_core_program::ir::V;
 use raea_sys_frame::*;
 
+pub mod clay;
 pub mod decal;
 pub mod fields;
 pub mod lightmap;

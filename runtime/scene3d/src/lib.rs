@@ -65,7 +65,7 @@ mod instance;
 pub use instance::*;
 mod share;
 pub use share::*;
-pub mod clay;
+pub use raea_sys_material::clay;
 
 /// A model row's glTF: loaded by the asset server, then its scene spawned under the row's entity and its clip set up.
 #[derive(Component)]
