@@ -167,8 +167,7 @@ pub fn spawn_shape(world: &mut World, e: Entity, t: &Tup, texture: Option<Handle
         let spec: serde_json::Value = serde_json::from_str(s).map_err(|err| format!("shape2d {}: shader: {err}", t.id))?;
         // its textures decoded now, as the shape's own picture is
         let mut picture = |w: &mut World, p: &serde_json::Value| p.as_str().ok_or_else(|| format!("a texture is a picture's path, got {p}")).and_then(|p| raea_sys_shader::own::picture(w, p));
-        let m = raea_sys_shader::own::build(world, &spec, &mut picture, true).map_err(|err| format!("shape2d {}: {err}", t.id))?;
-        let m = world.resource_mut::<Assets<raea_sys_shader::own::OwnMaterial>>().add(m);
+        let m = raea_sys_shader::own::shared(world, &spec, &mut picture, true).map_err(|err| format!("shape2d {}: {err}", t.id))?;
         world.entity_mut(e).insert(MeshMaterial2d(m));
         return Ok(());
     }

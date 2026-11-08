@@ -25,6 +25,7 @@ type Made = HashMap<(AssetId<StandardMaterial>, u128), Handle<ShadedMaterial>>;
 /// After apply_rows: each new mesh row's shader on, and the scene's built if these rows give one (a load clears the
 /// last edit's first).
 pub fn shade_rows(world: &mut World, inserted: &[Tup]) -> Result<(), String> {
+    world.remove_resource::<shader_ext::own::OwnMade>(); // a load's <Material>s share only among themselves
     if let Some(t) = inserted.iter().find(|t| t.kind == "surface_shader") {
         let v = spec(t)?;
         let ext = shader_ext::build(world, &v, plugins::image).map_err(|e| format!("SurfaceShader: {e}"))?;

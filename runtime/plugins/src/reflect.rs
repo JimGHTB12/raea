@@ -70,6 +70,10 @@ pub fn insert_reflect(world: &mut World, e: Entity, path: &str, json: &Value) ->
     if path == "three:uniforms" {
         return raea_sys_three_shader::patch(world, e, json);
     }
+    // a <Material>'s uniforms and storage buffers this frame (raea-sys-shader own_live.rs, docs/control.feature FC2a)
+    if path == "own:uniforms" {
+        return raea_sys_shader::own_live::patch(world, e, json);
+    }
     let registry = world.resource::<AppTypeRegistry>().clone();
     let reg = registry.read();
     let r = registration(&reg, path)?;

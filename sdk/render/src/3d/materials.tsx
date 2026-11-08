@@ -125,6 +125,8 @@ export interface SurfaceShaderSpec {
   /** a <Material>'s own (docs/control.feature FC2a): its vertex shader file and what its Material methods give; set by
    *  <Material>, not on a ShaderExtension */
   own?: OwnMaterialFields;
+  /** a <Material>'s read-only storage buffers, set by <Material> */
+  buffers?: Record<string, (number | number[])[]>;
 }
 
 /** What a <Material>'s Material methods give: vertex_shader, alpha_mode, depth_bias and the faces its specialize culls. */
@@ -186,7 +188,7 @@ export function assetPath(p: string): string {
 /** A surface shader checked and given as the row's spec (its source, uniforms, textures). */
 export function surfaceShader(owner: string, sh: SurfaceShaderSpec, hook: RegExp = HOOK, hooks = "fn surface(in: VertexOutput, pbr: ptr<function, PbrInput>), fn lit(in: VertexOutput, pbr: PbrInput, color: vec4<f32>) -> vec4<f32>, or its own @fragment"): Record<string, unknown> {
   if (typeof sh !== "object" || sh === null) throw new TypeError(`${owner}: shader is { wesl | wgsl, uniforms, textures }`);
-  const { wesl, wgsl, fragment, uniforms = {}, textures = {}, defs, own } = sh;
+  const { wesl, wgsl, fragment, uniforms = {}, textures = {}, defs, own, buffers } = sh;
   if ([wesl, wgsl, fragment].filter((s) => s !== undefined).length !== 1) throw new TypeError(`${owner}: shader gives its source as wesl, wgsl or a fragment path, one of them`);
   if (fragment !== undefined && (typeof fragment !== "string" || !fragment)) throw new TypeError(`${owner}: fragment is an asset path, got ${JSON.stringify(fragment)}`);
   const src = wesl ?? wgsl;
@@ -207,7 +209,7 @@ export function surfaceShader(owner: string, sh: SurfaceShaderSpec, hook: RegExp
   // code kept as given
   const file = (s: unknown) => (typeof s === "string" && !s.includes(":") ? assetPath(s) : s);
   const found = Object.fromEntries(Object.entries(textures).map(([k, t]) => [k, typeof t === "string" ? file(t) : t !== null && typeof t === "object" && "src" in t ? { ...t, src: file(t.src) } : t]));
-  return { ...(fragment !== undefined ? { fragment: assetPath(fragment) } : wesl !== undefined ? { wesl } : { wgsl }), uniforms, textures: found, ...(defs !== undefined ? { defs: shaderDefs(owner, defs) } : {}), ...(own !== undefined ? { own, ...(own.vertex !== undefined ? { vertex: assetPath(own.vertex) } : {}) } : {}) };
+  return { ...(fragment !== undefined ? { fragment: assetPath(fragment) } : wesl !== undefined ? { wesl } : { wgsl }), uniforms, textures: found, ...(defs !== undefined ? { defs: shaderDefs(owner, defs) } : {}), ...(own !== undefined ? { own, ...(own.vertex !== undefined ? { vertex: assetPath(own.vertex) } : {}), ...(buffers !== undefined ? { buffers } : {}) } : {}) };
 }
 
 /** A shader's textures checked: up to 4 pictures and one array (docs/shaders.feature SH9). */

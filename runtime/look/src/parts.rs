@@ -41,3 +41,31 @@ pub fn keyed_vec(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: 
         column(p, row, id, name, &its.iter().map(|i| at(i).unwrap_or(d[k])).collect::<Vec<_>>());
     }
 }
+
+/// A <Material>'s uniforms and storage buffers over the frames (docs/control.feature FC2a), sent as keyed
+/// `own:uniforms` component rows from each frame they change, which raea-sys-shader's own_live.rs packs into the
+/// part's Material; none when they never change (the spec the part is made with holds them). `spec` finds an item's
+/// Material spec: a mesh's material's `shader`, a 2D shape's own. Called after the part's row is pushed.
+pub fn own_uniforms(p: &mut Program, id: &str, its: &[Item], spec: impl Fn(&Item) -> Option<&Value>) {
+    let each: Vec<(usize, Value)> = its.iter().enumerate().filter_map(|(f, it)| {
+        let s = spec(it).filter(|s| s.get("own").is_some())?;
+        let v = serde_json::json!({ "uniforms": s.get("uniforms").cloned().unwrap_or(Value::Null), "buffers": s.get("buffers").cloned().unwrap_or(Value::Null) });
+        Some((f, serde_json::json!({ "type": "own:uniforms", "value": v })))
+    }).collect();
+    if each.windows(2).all(|w| w[0].1 == w[1].1) {
+        return;
+    }
+    // the part's spec carries its track's hash: parts share a Material (as Bevy's share one handle) only when their
+    // spec and every frame's values are the same (raea-sys-shader own.rs)
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    std::hash::Hash::hash(&each.iter().map(|(f, v)| format!("{f}{v}")).collect::<String>(), &mut h);
+    let track = format!("{:016x}", std::hash::Hasher::finish(&h));
+    let row = p.spawns.iter_mut().rev().flat_map(|(_, rows)| rows.iter_mut()).find(|r| r.get("id") == Some(&V::S(id.to_string())));
+    if let Some(V::S(s)) = row.and_then(|r| r.get_mut("shader")) {
+        if let Ok(Value::Object(mut o)) = serde_json::from_str::<Value>(s) {
+            o.insert("track".into(), Value::String(track));
+            *s = Value::Object(o).to_string();
+        }
+    }
+    keyed(p, "component", Some(id), "o", each.iter().map(|(f, v)| (*f, v)));
+}

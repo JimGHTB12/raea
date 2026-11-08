@@ -11,17 +11,20 @@
 //! which is the module path WESL resolves `super::NAME` to.
 
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 use bevy::asset::uuid_handle;
 use bevy::mesh::MeshVertexBufferLayoutRef;
 use bevy::pbr::{Material, MaterialPipeline, MaterialPipelineKey, MaterialPlugin};
 use bevy::prelude::*;
 use bevy::render::render_resource::{AsBindGroup, Face, RenderPipelineDescriptor, SpecializedMeshPipelineError};
+use bevy::render::storage::ShaderBuffer;
 use bevy::shader::{Shader, ShaderRef};
 use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dKey, Material2dPipeline, Material2dPlugin};
 use serde_json::Value;
 
-use crate::ui_bind::{rebind_in, Rebound, DIMS};
+use crate::own_live::{storage, Packing};
+use crate::ui_bind::{rebind_in, Rebound};
 use crate::{layout, register, Inputs, OwnSurface, Shaded};
 
 /// The fragment shader every pipeline starts from, swapped in `specialize` for the material's own (its uuid).
@@ -81,6 +84,13 @@ pub struct OwnMaterial {
     cube_array: Option<Handle<Image>>,
     #[texture(22, dimension = "3d")]
     d3: Option<Handle<Image>>,
+    // its read-only storage buffers (ui_bind.rs STORAGE); one it doesn't bind holds 16 zero bytes
+    #[storage(23, read_only)]
+    b0: Handle<ShaderBuffer>,
+    #[storage(24, read_only)]
+    b1: Handle<ShaderBuffer>,
+    /// what its uniforms and buffers are packed from, for a frame's new values (own_live.rs)
+    pub(crate) packing: Arc<Packing>,
     shader: u128,
     /// the vertex shader's uuid, 0 for Bevy's mesh vertex shader
     vertex: u128,
@@ -88,6 +98,17 @@ pub struct OwnMaterial {
     depth_bias: f32,
     /// the faces it culls (the pipeline's primitive.cull_mode); None keeps the pipeline's (3D culls Back, 2D none)
     cull: Option<Option<Face>>,
+}
+
+impl OwnMaterial {
+    /// Its storage buffers, in slot order.
+    pub(crate) fn buffers(&self) -> [Handle<ShaderBuffer>; 2] {
+        [self.b0.clone(), self.b1.clone()]
+    }
+    /// Its uniforms' slots, packed again (own_live.rs patch).
+    pub(crate) fn set_slots(&mut self, s: [[Vec4; 16]; 8]) {
+        [self.u0, self.u1, self.u2, self.u3, self.u4, self.u5, self.u6, self.u7] = s;
+    }
 }
 
 /// What picks a pipeline: the material's shaders and the faces it culls.
@@ -176,8 +197,9 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     // the uniforms are packed in the source's own types below, so Inputs reads the rest
     let mut rest = o.clone();
     let given = rest.remove("uniforms").and_then(|u| u.as_object().cloned()).unwrap_or_default();
+    let buffers = rest.remove("buffers").and_then(|u| u.as_object().cloned()).unwrap_or_default();
     let ins = Inputs::read(world, &rest, what, image)?;
-    let Rebound { src, uniforms, textures, others, .. } = rebind_in(&ins.src, groups, what, true).map_err(|e| format!("{path}: {e}"))?;
+    let Rebound { src, uniforms, textures, others, storages, .. } = rebind_in(&ins.src, groups, what, true).map_err(|e| format!("{path}: {e}"))?;
     let [u0, u1, u2, u3, u4, u5, u6, u7] = layout::slots(&src, &uniforms, &given, &ins.defs).map_err(|e| format!("{path}: {e}"))?;
     if let Some((k, _)) = ins.textures.iter().find(|(k, _)| !textures.contains(k)) {
         return Err(format!("{path} has no texture_2d {k}"));
@@ -191,9 +213,24 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     // the other dimensions: a 2d_array from the spec's one texture array ({layers}); the rest are fallbacks for now
     let mut dims: [Option<Handle<Image>>; 5] = Default::default();
     if let Some((name, h)) = &ins.array {
-        let i = others.iter().position(|(n, d)| n == name && *d == "2d_array").ok_or_else(|| format!("{path} has no texture_2d_array {name}"))?;
-        dims[DIMS.iter().position(|x| x.1 == others[i].1).unwrap_or(1)] = Some(h.clone());
+        if !others.iter().any(|(n, d)| n == name && *d == "2d_array") {
+            return Err(format!("{path} has no texture_2d_array {name}"));
+        }
+        dims[1] = Some(h.clone());
     }
+    // its storage buffers from the spec's `buffers`, each in its declared type's layout
+    if let Some(k) = buffers.keys().find(|k| !storages.iter().any(|(n, _)| n == *k)) {
+        return Err(format!("{path} has no storage buffer {k}"));
+    }
+    let mut b = Vec::new();
+    for (name, ty) in &storages {
+        let v = buffers.get(name).ok_or_else(|| format!("{path}'s storage buffer {name} has no value"))?;
+        b.push(world.resource_mut::<Assets<ShaderBuffer>>().add(storage(name, ty, v).map_err(|e| format!("{path}: {e}"))?));
+    }
+    while b.len() < 2 {
+        b.push(world.resource_mut::<Assets<ShaderBuffer>>().add(ShaderBuffer::from(vec![0u32; 4])));
+    }
+    let packing = Arc::new(Packing { src: src.clone(), uniforms, storages, defs: ins.defs.clone() });
     let krate = folder(world, path, &src)?;
     let shader = register(world, src, &ins.defs, "raea own material", &krate);
     let vertex = match o.get("vertex").and_then(Value::as_str) {
@@ -217,7 +254,7 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     };
     let [t0, t1, t2, t3] = t;
     let [d1, d2a, cube, cube_array, d3] = dims;
-    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, shader, vertex, alpha, depth_bias, cull })
+    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, b0: b[0].clone(), b1: b[1].clone(), packing, shader, vertex, alpha, depth_bias, cull })
 }
 
 /// Bevy's AlphaMode as the SDK writes it: "Opaque", "Blend", {"Mask": cutoff}, "Premultiplied", "AlphaToCoverage",
@@ -300,13 +337,33 @@ fn siblings(src: &str) -> Vec<String> {
     out
 }
 
+/// The Materials made this load, by their spec (its track of values included, raea-runtime-look own_uniforms): parts
+/// with one spec share one, as Bevy's examples share a handle (shader/storage_buffer's 91 cubes draw with one).
+#[derive(Resource, Default)]
+pub struct OwnMade(pub std::collections::HashMap<String, Handle<OwnMaterial>>);
+
+/// The Material for a spec: the one made already for the same spec (in 3D or 2D), or a new one (`build`).
+pub fn shared(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>, two_d: bool) -> Result<Handle<OwnMaterial>, String> {
+    let key = format!("{two_d} {v}");
+    if let Some(h) = world.get_resource::<OwnMade>().and_then(|m| m.0.get(&key)).cloned() {
+        return Ok(h);
+    }
+    let m = build(world, v, image, two_d)?;
+    let h = world.resource_mut::<Assets<OwnMaterial>>().add(m);
+    world.get_resource_or_init::<OwnMade>().0.insert(key, h.clone());
+    Ok(h)
+}
+
 /// A part given its own Material: its MeshMaterial3d<StandardMaterial> swapped for the OwnMaterial, the standard one
 /// kept aside as `Shaded` (so the rows' sync finds it) and the scene's <SurfaceShader> kept off it.
-pub fn put(world: &mut World, e: Entity, m: OwnMaterial) -> bool {
-    let Some(std) = world.get::<MeshMaterial3d<StandardMaterial>>(e).map(|m| m.0.clone()) else { return false };
-    let h = world.resource_mut::<Assets<OwnMaterial>>().add(m);
+pub fn put(world: &mut World, e: Entity, h: Handle<OwnMaterial>) -> Result<(), String> {
+    let Some(std) = world.get::<MeshMaterial3d<StandardMaterial>>(e).map(|m| m.0.clone()) else { return Ok(()) };
     world.entity_mut(e).remove::<MeshMaterial3d<StandardMaterial>>().insert((MeshMaterial3d(h), Shaded { std }, OwnSurface));
-    true
+    // the frame's values a row gave before it was on
+    match world.entity_mut(e).take::<crate::own_live::Pending>() {
+        Some(p) => crate::own_live::patch(world, e, &p.0),
+        None => Ok(()),
+    }
 }
 
 #[cfg(test)]

@@ -11,6 +11,8 @@ pub const TEXTURES: usize = 4;
 /// the 2D textures' at 17 and 19 (Bevy's view binds up to 8 of the fragment stage's 16).
 pub const DIMS: [(&str, &str, usize); 5] = [("texture_1d<", "1d", 16), ("texture_2d_array<", "2d_array", 18), ("texture_cube<", "cube", 20), ("texture_cube_array<", "cube_array", 21), ("texture_3d<", "3d", 22)];
 pub const SAMPLERS_WITH_DIMS: usize = 6;
+/// A Material's read-only storage buffers (`dims`), at 23 and 24.
+pub const STORAGE: [usize; 2] = [23, 24];
 
 /// A UiMaterial source with its bindings renumbered: its uniforms (name, WGSL type) and its textures' names, each in
 /// its slot's order, and how many samplers it binds.
@@ -21,6 +23,8 @@ pub struct Rebound {
     pub textures: Vec<String>,
     /// its textures of other dimensions (`dims`): each name and its dimension, "1d", "2d_array", "cube", ...
     pub others: Vec<(String, &'static str)>,
+    /// its read-only storage buffers (`dims`): each name and WGSL type, in slot order
+    pub storages: Vec<(String, String)>,
     pub samplers: usize,
 }
 
@@ -35,6 +39,7 @@ pub fn rebind(src: &str) -> Result<Rebound, String> {
 /// slots for (`what` names the material in errors).
 pub fn rebind_in(src: &str, groups: &[&str], what: &str, dims: bool) -> Result<Rebound, String> {
     let mut others: Vec<(String, &'static str)> = Vec::new();
+    let mut storages: Vec<(String, String)> = Vec::new();
     let max_samplers = if dims { SAMPLERS_WITH_DIMS } else { TEXTURES };
     let mut out = String::with_capacity(src.len());
     let (mut uniforms, mut textures, mut samplers) = (Vec::new(), Vec::new(), 0usize);
@@ -57,12 +62,18 @@ pub fn rebind_in(src: &str, groups: &[&str], what: &str, dims: bool) -> Result<R
             continue;
         }
         let decl = stmt.split_once("var").map(|(_, d)| d).ok_or_else(|| format!("{what}'s binding is a var, got {:?}", stmt.trim()))?;
-        let (uniform, decl) = match decl.trim_start().strip_prefix("<uniform>") {
-            Some(d) => (true, d),
-            None => (false, decl),
-        };
+        let d = decl.trim_start();
+        let space: String = d.strip_prefix('<').and_then(|r| r.split_once('>')).map(|(s, _)| s.chars().filter(|c| !c.is_whitespace()).collect()).unwrap_or_default();
+        let decl = if space.is_empty() { decl } else { &d[d.find('>').map_or(0, |i| i + 1)..] };
+        let uniform = space == "uniform";
+        if !space.is_empty() && !uniform && !(dims && (space == "storage" || space == "storage,read")) {
+            return Err(format!("{what}'s binding is a var<uniform>, a var<storage, read>, a texture or a sampler, got var<{space}> (the rest are FC2a's to come)"));
+        }
         let (name, ty) = decl.split_once(':').map(|(n, t)| (n.trim().to_string(), t.trim().to_string())).ok_or_else(|| format!("{what}'s binding is `var NAME: TYPE`, got {:?}", stmt.trim()))?;
-        let slot = if uniform {
+        let slot = if !space.is_empty() && !uniform {
+            storages.push((name.clone(), ty));
+            *STORAGE.get(storages.len() - 1).ok_or_else(|| format!("{what} binds at most {} storage buffers, {name} is one more", STORAGE.len()))?
+        } else if uniform {
             uniforms.push((name.clone(), ty));
             if uniforms.len() > UNIFORMS {
                 return Err(format!("{what} binds at most {UNIFORMS} uniforms, {name} is one more"));
@@ -97,7 +108,7 @@ pub fn rebind_in(src: &str, groups: &[&str], what: &str, dims: bool) -> Result<R
     if samplers > textures.len() + others.len() {
         return Err(format!("{what}'s samplers are its textures', one each: {samplers} samplers for {} textures", textures.len() + others.len()));
     }
-    Ok(Rebound { src: out, uniforms, textures, others, samplers })
+    Ok(Rebound { src: out, uniforms, textures, others, storages, samplers })
 }
 
 /// The group a declaration's `@group(N)` names.

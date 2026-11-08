@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **127**, passing **127**, excluded **16** (docs/bevy-parity/excluded.tsv), left **295**.
+Examples: **438**, ported **128**, passing **128**, excluded **16** (docs/bevy-parity/excluded.tsv), left **294**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -23,8 +23,6 @@ doesn't pay.
 | stress_tests/many_foxes | 60 | 0.990304 | 3 | 2 / 2 | 30464 / 31511 | 7 / 9 | 3 / 3 | 5.442 / 5.279 = 5.279 + 0 | yes |  |
 | animation/animated_mesh | 30 | 0.996636 | 1 | 2 / 2 | 472 / 542 | 7 / 9 | 3 / 3 | 20.061 / 2.722 = 2.722 + 0 | yes |  |
 | animation/animated_mesh | 60 | 0.996594 | 1 | 2 / 2 | 472 / 542 | 7 / 9 | 3 / 3 | 4.062 / 2.175 = 2.175 + 0 | yes |  |
-| shader/extended_material | 30 | 1.000000 | 0 | 0 / 0 | 448 / 511 | 6 / 8 | 1 / 2 | 18.283 / 1.669 = 1.669 + 0 | yes |  |
-| shader/extended_material | 60 | 1.000000 | 0 | 0 / 0 | 448 / 511 | 6 / 8 | 1 / 2 | 3.139 / 1.26 = 1.26 + 0 | yes |  |
 | 3d/orthographic | 10 | 0.999503 | 0 | 5 / 2 | 446 / 515 | 10 / 9 | 6 / 3 | 46.082 / 2.443 = 2.443 + 0 | yes |  |
 | 3d/parenting | 30 | 0.999969 | 0 | 1 / 1 | 443 / 512 | 6 / 8 | 2 / 2 | 18.568 / 1.828 = 1.828 + 0 | yes |  |
 | 3d/parenting | 60 | 0.999968 | 0 | 1 / 1 | 443 / 512 | 6 / 8 | 2 / 2 | 3.63 / 1.367 = 1.367 + 0 | yes |  |
@@ -163,7 +161,6 @@ doesn't pay.
 | ui/text/multiline_text_input | 10 | 0.998036 | 6 | 0 / 0 | 487 / 508 | 5 / 7 | 1 / 1 | 43.521 / 2.048 = 2.048 + 0 | yes |  |
 | ui/text/multiple_text_inputs | 10 | 0.992332 | 12 | 0 / 0 | 517 / 508 | 5 / 7 | 1 / 1 | 44.057 / 1.326 = 1.326 + 0 | yes |  |
 | ui/text/text_input | 10 | 0.999094 | 12 | 0 / 0 | 448 / 508 | 5 / 7 | 1 / 1 | 45.526 / 1.135 = 1.135 + 0 | yes |  |
-| ui/ui_material | 10 | 0.999993 | 0 | 0 / 0 | 446 / 510 | 5 / 7 | 1 / 1 | 43.096 / 1.166 = 1.166 + 0 | yes |  |
 | ui/text/system_fonts | 10 | 0.987943 | 18 | 0 / 0 | 1992 / 508 | 5 / 7 | 1 / 1 | 103.162 / 2.077 = 2.077 + 0 | yes |  |
 | ui/text/font_atlas_debug | 10 | 0.999660 | 6 | 0 / 0 | 445 / 508 | 5 / 7 | 1 / 1 | 44.418 / 2.053 = 2.053 + 0 | yes |  |
 | 3d/two_passes | 10 | 0.999025 | 0 | 2 / 2 | 444 / 513 | 7 / 9 | 3 / 3 | 49.497 / 3.914 = 3.914 + 0 | yes |  |
@@ -183,14 +180,19 @@ doesn't pay.
 | 2d/sprite_scale | 10 | 0.992281 | 11 | 0 / 0 | 486 / 532 | 5 / 7 | 1 / 1 | 45.502 / 2.239 = 2.239 + 0 | yes |  |
 | 2d/sprite_scale | 60 | 0.992281 | 11 | 0 / 0 | 486 / 532 | 5 / 7 | 1 / 1 | 2.28 / 1.553 = 1.553 + 0 | yes |  |
 | 2d/sprite_slice | 10 | 0.997293 | 11 | 0 / 0 | 464 / 521 | 5 / 7 | 1 / 1 | 43.511 / 1.426 = 1.426 + 0 | yes |  |
-| shader/animate_shader | 30 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 2 | 23.2 / 1.629 = 1.629 + 0 | yes |  |
-| shader/animate_shader | 60 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 2 | 3.338 / 1.465 = 1.465 + 0 | yes |  |
-| shader/shader_defs | 10 | 0.999999 | 0 | 0 / 0 | 448 / 511 | 7 / 8 | 1 / 3 | 45.978 / 2.503 = 2.503 + 0 | yes |  |
-| shader/shader_material_screenspace_texture | 10 | 0.998864 | 2 | 1 / 1 | 449 / 512 | 7 / 9 | 2 / 3 | 48.436 / 2.407 = 2.407 + 0 | yes |  |
-| shader/shader_material_screenspace_texture | 60 | 0.998929 | 2 | 1 / 1 | 449 / 512 | 7 / 9 | 2 / 3 | 3.231 / 1.598 = 1.598 + 0 | yes |  |
-| shader/shader_material_2d | 10 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 1 | 45.128 / 1.489 = 1.489 + 0 | yes |  |
-| shader/shader_material | 30 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 2 | 19.131 / 1.539 = 1.539 + 0 | yes |  |
-| shader/fallback_image | 10 | 1.000000 | 0 | 0 / 0 | 447 / 510 | 6 / 8 | 1 / 2 | 42.667 / 2.26 = 2.26 + 0 | yes |  |
+| shader/storage_buffer | 30 | 0.999999 | 0 | 0 / 0 | 538 / 965 | 6 / 8 | 1 / 92 | 18.685 / 1.802 = 1.802 + 0 | yes |  |
+| shader/storage_buffer | 60 | 0.999999 | 0 | 0 / 0 | 538 / 965 | 6 / 8 | 1 / 92 | 3.633 / 1.706 = 1.706 + 0 | yes |  |
+| shader/extended_material | 30 | 1.000000 | 0 | 0 / 0 | 448 / 511 | 6 / 8 | 1 / 2 | 19.433 / 1.988 = 1.988 + 0 | yes |  |
+| shader/extended_material | 60 | 1.000000 | 0 | 0 / 0 | 448 / 511 | 6 / 8 | 1 / 2 | 3.433 / 1.606 = 1.606 + 0 | yes |  |
+| shader/animate_shader | 30 | 1.000000 | 0 | 0 / 0 | 447 / 511 | 6 / 8 | 1 / 2 | 23.168 / 2.181 = 2.181 + 0 | yes |  |
+| shader/animate_shader | 60 | 1.000000 | 0 | 0 / 0 | 447 / 511 | 6 / 8 | 1 / 2 | 5.32 / 1.498 = 1.498 + 0 | yes |  |
+| ui/ui_material | 10 | 0.999993 | 0 | 0 / 0 | 446 / 510 | 5 / 7 | 1 / 1 | 50.695 / 3.017 = 3.017 + 0 | yes |  |
+| shader/shader_material | 30 | 1.000000 | 0 | 0 / 0 | 447 / 511 | 6 / 8 | 1 / 2 | 20.285 / 2.107 = 2.107 + 0 | yes |  |
+| shader/shader_defs | 10 | 0.999999 | 0 | 0 / 0 | 448 / 512 | 7 / 8 | 1 / 3 | 49.424 / 1.777 = 1.777 + 0 | yes |  |
+| shader/shader_material_screenspace_texture | 10 | 0.998864 | 2 | 1 / 1 | 449 / 513 | 7 / 9 | 2 / 3 | 48.937 / 3.225 = 3.225 + 0 | yes |  |
+| shader/shader_material_screenspace_texture | 60 | 0.998929 | 2 | 1 / 1 | 449 / 513 | 7 / 9 | 2 / 3 | 3.417 / 1.736 = 1.736 + 0 | yes |  |
+| shader/shader_material_2d | 10 | 1.000000 | 0 | 0 / 0 | 447 / 511 | 6 / 8 | 1 / 1 | 47.105 / 1.75 = 1.75 + 0 | yes |  |
+| shader/fallback_image | 10 | 1.000000 | 0 | 0 / 0 | 447 / 511 | 6 / 8 | 1 / 2 | 46.188 / 2.415 = 2.415 + 0 | yes |  |
 
 ## Excluded
 

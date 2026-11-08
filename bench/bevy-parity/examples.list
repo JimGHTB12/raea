@@ -127,3 +127,4 @@ shader/shader_defs
 shader/shader_material_screenspace_texture
 shader/shader_material_2d
 shader/fallback_image
+shader/storage_buffer

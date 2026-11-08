@@ -14889,6 +14889,7 @@ dependencies = [
  "raea-core-shape",
  "raea-sys-frame",
  "raea-sys-material",
+ "raea-sys-shader",
  "raea-sys-three-shader",
  "serde",
  "serde_json",

@@ -28,6 +28,7 @@ use raea_sys_material::shader_material::{defs, ident, uniform, Uniform, SLOTS, T
 
 mod layout;
 pub mod own;
+pub mod own_live;
 pub mod ui;
 mod ui_bind;
 
@@ -304,9 +305,8 @@ pub fn build(world: &mut World, v: &Value, mut image: impl FnMut(&mut World, &Va
 pub fn put(world: &mut World, e: Entity, v: &Value, mut image: impl FnMut(&mut World, &Value) -> Result<Handle<Image>, String>, made: &mut HashMap<(AssetId<StandardMaterial>, u128), Handle<ShadedMaterial>>) -> Result<(), String> {
     // a <Material>'s spec has its `own` (own.rs)
     if v.get("own").is_some() {
-        let m = own::build(world, v, &mut image, false)?;
-        own::put(world, e, m);
-        return Ok(());
+        let m = own::shared(world, v, &mut image, false)?;
+        return own::put(world, e, m);
     }
     let ext = build(world, v, image)?;
     shade(world, e, &ext, made);

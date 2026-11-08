@@ -65,7 +65,7 @@ fn find_struct(src: &str, name: &str) -> Option<usize> {
 }
 
 /// A field's WGSL type as (scalar kind, components): f32, u32 or i32, alone or in a vec2/3/4
-fn kind(t: &str) -> Option<(char, usize)> {
+pub(crate) fn kind(t: &str) -> Option<(char, usize)> {
     let t = t.replace(' ', "");
     let scalar = |s: &str| match s {
         "f32" => Some('f'),
@@ -87,6 +87,15 @@ fn kind(t: &str) -> Option<(char, usize)> {
     None
 }
 
+/// One component's 32 bits as its kind ('f', 'u' or 'i', kind's) holds it: a u32 or i32 rounded, a u32 at least 0.
+pub(crate) fn word(k: char, x: f32) -> u32 {
+    match k {
+        'f' => x.to_bits(),
+        'u' => x.round().max(0.0) as u32,
+        _ => (x.round() as i32) as u32,
+    }
+}
+
 /// The uniforms laid out in `fields` (WGSL's uniform layout: a scalar aligned to 4, a vec2 to 8, a vec3 or vec4 to 16)
 /// in 256 bytes. Each field takes the uniform of its name; every field needs one, and every uniform a field.
 pub fn pack(fields: &[(String, String)], uniforms: &[(String, Vec4)]) -> Result<[Vec4; 16], String> {
@@ -105,12 +114,7 @@ pub fn pack(fields: &[(String, String)], uniforms: &[(String, Vec4)]) -> Result<
         }
         let v = uniforms.iter().find(|(u, _)| u == name).map(|(_, v)| *v).ok_or_else(|| format!("the shader's uniform struct has {name}, which the uniforms don't give"))?;
         for c in 0..n {
-            let x = v[c];
-            words[at + c] = match k {
-                'f' => x.to_bits(),
-                'u' => x.round().max(0.0) as u32,
-                _ => (x.round() as i32) as u32,
-            };
+            words[at + c] = word(k, v[c]);
         }
         at += n;
     }

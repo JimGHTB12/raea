@@ -5,10 +5,12 @@ import { surfaceShader, type SurfaceShaderSpec } from "../3d";
 /** Your own Material (docs/control.feature FC2a): Bevy's `impl Material`, not an extension of StandardMaterial. Its
  *  fragment_shader() (and vertex_shader(), when `vertex` names one) is the file compiled as written: its imports (a
  *  `super::NAME` one reads NAME.wesl beside it), its own @fragment and its own `@group(MATERIAL_BIND_GROUP)` bindings,
- *  up to 8 uniforms of any type (a struct's from { field: value }), 4 textures and their samplers, in its layout. A
- *  uniform or texture it doesn't declare is refused. `alpha_mode` and `depth_bias` are its Material methods', and
- *  `cull_mode` the faces its specialize culls (the pipeline's by default: Back in 3D, none in 2D; null culls none). In
- *  a Mesh2d it is Bevy's Material2d (its group 2), in place of the ColorMaterial.
+ *  up to 8 uniforms of any type (a struct's from { field: value }), 2 read-only storage buffers, a texture_2d and
+ *  sampler 4 times and one texture of each other dimension, in its layout; one it declares and isn't given binds
+ *  Bevy's fallback image. A uniform, buffer or texture it doesn't declare is refused. Its uniforms and buffers may
+ *  change from frame to frame, as an example's update system changes them. `alpha_mode` and `depth_bias` are its
+ *  Material methods', and `cull_mode` the faces its specialize culls (the pipeline's by default: Back in 3D, none in
+ *  2D; null culls none). In a Mesh2d it is Bevy's Material2d (its group 2), in place of the ColorMaterial.
  *  @bevy bevy_pbr::material::Material */
 export interface MaterialProps {
   /** the shader file, staticFile("shaders/x.wesl"), as Bevy's Material::fragment_shader names one */
@@ -16,6 +18,9 @@ export interface MaterialProps {
   /** a vertex shader file, as Material::vertex_shader names one (Bevy's mesh vertex shader when not given) */
   vertex?: string;
   uniforms?: Record<string, number | number[] | string | Record<string, number | number[] | string>>;
+  /** its read-only storage buffers (`var<storage, read> NAME: array<T(, N)>`, up to 2): each a list of its elements, a
+   *  number or [x, y(, z(, w))] each, as Bevy's ShaderBuffer::from(Vec<[f32; 4]>) holds them */
+  buffers?: Record<string, (number | number[])[]>;
   textures?: SurfaceShaderSpec["textures"];
   defs?: SurfaceShaderSpec["defs"];
   alpha_mode?: AlphaMode;
@@ -27,7 +32,8 @@ const ALPHA = ["Opaque", "Blend", "Premultiplied", "Add", "Multiply", "AlphaToCo
 
 /** A Material's props checked, as the shader spec it is drawn by (in a Mesh3d an OwnMaterial, in a Mesh2d its
  *  Material2d). */
-function ownSpec({ fragment, vertex, uniforms, textures, defs, alpha_mode, depth_bias, cull_mode }: MaterialProps): SurfaceShaderSpec {
+function ownSpec({ fragment, vertex, uniforms, buffers, textures, defs, alpha_mode, depth_bias, cull_mode }: MaterialProps): SurfaceShaderSpec {
+  for (const [k, b] of Object.entries(buffers ?? {})) if (!Array.isArray(b) || !b.every((x) => Number.isFinite(x) || (Array.isArray(x) && x.length >= 2 && x.length <= 4 && x.every(Number.isFinite)))) throw new TypeError(`Material: buffer ${k} is a list of numbers or [x, y(, z(, w))], got ${JSON.stringify(b)}`);
   if (typeof fragment !== "string" || !fragment) throw new TypeError(`Material: fragment is the shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(fragment)}`);
   if (vertex !== undefined && (typeof vertex !== "string" || !vertex)) throw new TypeError(`Material: vertex is a shader file, got ${JSON.stringify(vertex)}`);
   const mask = typeof alpha_mode === "object" && alpha_mode !== null && Number.isFinite((alpha_mode as { Mask?: number }).Mask);
@@ -35,7 +41,7 @@ function ownSpec({ fragment, vertex, uniforms, textures, defs, alpha_mode, depth
   if (depth_bias !== undefined && !Number.isFinite(depth_bias)) throw new TypeError(`Material: depth_bias is a number, got ${depth_bias}`);
   if (cull_mode !== undefined && cull_mode !== null && cull_mode !== "Front" && cull_mode !== "Back") throw new TypeError(`Material: cull_mode is "Front", "Back" or null, got ${JSON.stringify(cull_mode)}`);
   const own = { ...(vertex !== undefined ? { vertex } : {}), ...(alpha_mode !== undefined ? { alpha_mode } : {}), ...(depth_bias !== undefined ? { depth_bias } : {}), ...(cull_mode !== undefined ? { cull_mode } : {}) };
-  return { fragment, uniforms: uniforms as SurfaceShaderSpec["uniforms"], textures, defs, own };
+  return { fragment, uniforms: uniforms as SurfaceShaderSpec["uniforms"], textures, defs, own, ...(buffers ? { buffers } : {}) };
 }
 
 export function Material(p: MaterialProps) {

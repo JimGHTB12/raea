@@ -11,6 +11,7 @@ raea-sys-frame = { path = "../../systems/frame" }
 raea-sys-material = { path = "../../systems/material" }
 # three.js's shaders (docs/r3f.feature R3F11): a `three:uniforms` row patches a part's uniforms
 raea-sys-three-shader = { path = "../../systems/three-shader" }
+raea-sys-shader = { path = "../../systems/shader" }
 raea-core-program = { path = "../../core/program" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render", "bevy_state"] }
 serde = "1"
