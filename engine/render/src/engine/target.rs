@@ -32,7 +32,7 @@ pub(crate) struct ViewBox(pub(crate) Option<[u32; 4]>);
 /// w x (h + 1) drew the 3D 0.14% larger and half a pixel low against a camera on a w x h target, a plain App's
 /// (docs/blitz-bevy.feature B3 H10), and against the looks' cells. With a view box, its own view is the box's (the
 /// target a sub view of it, offset by the box's place).
-pub(crate) fn tag_row_view(t: Res<TagRowTarget>, images: Res<Assets<Image>>, view_box: Option<Res<ViewBox>>, mut q: Query<(&mut Camera, &RenderTarget)>) {
+pub(crate) fn tag_row_view(t: Res<TagRowTarget>, images: Res<Assets<Image>>, view_box: Option<Res<ViewBox>>, mut q: Query<(&mut Camera, &RenderTarget), Without<raea_sys_frame::TagCamera>>) {
     let Some(img) = images.get(&t.0) else { return };
     let s = img.size();
     let view = match view_box.and_then(|v| v.0) {

@@ -148,13 +148,7 @@ impl Engine {
                     ));
                 }
         }
-        world.spawn((
-            Node { position_type: PositionType::Absolute, left: Val::Px(0.0), top: Val::Px(h), width: Val::Px(16.0), height: Val::Px(1.0), ..default() },
-            BackgroundColor(Color::BLACK),
-            FrameTag,
-            UiTargetCamera(cam),
-            Mirror,
-        ));
+        raea_sys_frame::spawn_tag(world, self.target.clone(), h);
         // glTF models loaded and set up before any frame draws
         if models > 0 {
             scene3d::await_models(&mut self.app)?;

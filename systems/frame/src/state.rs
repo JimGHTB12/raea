@@ -46,6 +46,30 @@ pub struct Base2d(pub serde_json::Map<String, serde_json::Value>);
 #[derive(Component)]
 pub struct FrameTag;
 
+/// The camera that draws the frame tag into the target's tag row. The frame's own cameras draw a w x h Viewport above
+/// it (engine/render target.rs tag_row_view, which leaves this one be), so the tag has its own: last, on no render
+/// layer (it draws no sprite or mesh), its texture cleared clear and blended over the target, so every pixel but the tag's is
+/// left as the frame's cameras drew it.
+#[derive(Component)]
+pub struct TagCamera;
+
+/// The frame tag below a frame of height `h` on `target`, and the camera that draws it; both Mirror's, to go with the
+/// load.
+pub fn spawn_tag(world: &mut World, target: Handle<Image>, h: f32) {
+    use bevy::core_pipeline::tonemapping::{DebandDither, Tonemapping};
+    let output_mode = bevy::camera::CameraOutputMode::Write { blend_state: Some(bevy::render::render_resource::BlendState::ALPHA_BLENDING), clear_color: ClearColorConfig::None };
+    let camera = Camera { order: isize::MAX, clear_color: ClearColorConfig::Custom(Color::NONE), output_mode, ..default() };
+    let layer = bevy::camera::visibility::RenderLayers::none();
+    let cam = world.spawn((Camera2d, camera, bevy::camera::RenderTarget::Image(target.into()), Tonemapping::None, DebandDither::Disabled, Msaa::Off, layer, TagCamera, Mirror)).id();
+    world.spawn((
+        Node { position_type: PositionType::Absolute, left: Val::Px(0.0), top: Val::Px(h), width: Val::Px(16.0), height: Val::Px(1.0), ..default() },
+        BackgroundColor(Color::BLACK),
+        FrameTag,
+        UiTargetCamera(cam),
+        Mirror,
+    ));
+}
+
 /// `places` (as the rows stood before any went) dropped from `rows`, from the last back so none moves another.
 pub fn drop_places<T>(rows: &mut Vec<T>, mut places: Vec<usize>) {
     places.sort_unstable_by(|a, b| b.cmp(a));
