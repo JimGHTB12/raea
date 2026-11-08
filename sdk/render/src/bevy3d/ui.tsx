@@ -367,6 +367,10 @@ export function Text({ children, font, font_size, weight, style, color, line_hei
 /** A run of a <Text> in a style of its own (Bevy's defaults, not its Text's, where left out). @bevy bevy_text::text::TextSpan */
 export function TextSpan({ children, underline, strikethrough, underline_color, strikethrough_color, text_background_color, ...p }: TextStyleProps & TextRunProps & { children?: ReactNode }) {
   const back = useContext(InUi)?.back;
+  // bevy_text leaves out a span whose size is 0 or less (TextPipeline: "Nothing will be displayed"), its Text's other
+  // runs laid out without it
+  const size = typeof p.font_size === "number" ? p.font_size : p.font_size && Object.values(p.font_size)[0];
+  if (typeof size === "number" && Number.isFinite(size) && size <= 0) return null;
   const t = textCss("TextSpan", p, back);
   const run = { underline, strikethrough, underline_color, strikethrough_color, text_background_color };
   return (

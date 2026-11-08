@@ -129,6 +129,13 @@ describe("ImageNode, Underline and Strikethrough", () => {
     expect(() => html(<Text font_features={{ sc: 1 }}>a</Text>)).toThrow(/four characters/);
     expect(() => html(<Text font_features={{ smcp: 0.5 }}>a</Text>)).toThrow(/whole number/);
   });
+  test("a TextSpan of size 0 or less is left out, as bevy_text leaves it, and its Text's other runs drawn", () => {
+    const out = html(<Text>a<TextSpan font_size={{ Px: 0 }}>zero</TextSpan><TextSpan font_size={-42}>negative</TextSpan><TextSpan>b</TextSpan></Text>);
+    expect(out).not.toContain("zero");
+    expect(out).not.toContain("negative");
+    expect(out).toMatch(/>b<\/span>/);
+    expect(() => html(<Text><TextSpan font_size={NaN}>x</TextSpan></Text>)).toThrow(/font_size/);
+  });
   test("a TextSpan's TextBackgroundColor is a box behind its run, in its own colour", () => {
     expect(html(<Text><TextSpan text_background_color={new Srgba(1, 0, 0)}>a</TextSpan></Text>)).toMatch(/<span style="[^"]*background-color:rgba\(255, 0, 0, 1\)[^"]*">a<\/span>/);
     expect(html(<Text><TextSpan>a</TextSpan></Text>)).not.toContain("background-color");
