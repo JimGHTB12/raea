@@ -98,3 +98,4 @@ ui/widgets/tab_navigation
 ui/widgets/viewport_node
 ui/widgets/vertical_slider
 ui/widgets/virtual_keyboard
+ui/widgets/standard_widgets_observers
