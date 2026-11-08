@@ -49,8 +49,10 @@ pub fn hoisted_child_position(tree: &NodeTree, sc_root_id: NodeId, child_id: Nod
         position.y += scroll_offset.y as f32 + viewport_scroll.y as f32;
     }
 
+    let mut reached = false;
     while let Some(id) = current {
         if id == sc_root_id {
+            reached = true;
             break;
         }
         let Some(node) = tree.get(id) else {
@@ -61,6 +63,21 @@ pub fn hoisted_child_position(tree: &NodeTree, sc_root_id: NodeId, child_id: Nod
         position.x += location.x - scroll_offset.x as f32;
         position.y += location.y - scroll_offset.y as f32;
         current = node.containing_block();
+    }
+    // raea: a root below the child's containing block (an out-of-flow box it paints, #39): both placed from the top,
+    // the root's own place taken off, and not scrolled with the root (its containing block is outside it)
+    if !reached && let Some(root) = tree.get(sc_root_id) {
+        let (mut x, mut y) = (root.final_layout().location.x, root.final_layout().location.y);
+        let mut up = root.containing_block();
+        while let Some(node) = up.and_then(|a| tree.get(a)) {
+            let (l, sc) = (node.final_layout().location, *node.scroll_offset());
+            x += l.x - sc.x as f32;
+            y += l.y - sc.y as f32;
+            up = node.containing_block();
+        }
+        let sc = *root.scroll_offset();
+        position.x += sc.x as f32 - x;
+        position.y += sc.y as f32 - y;
     }
     position
 }
@@ -324,6 +341,8 @@ impl BaseDocument {
                     self.nodes
                         .get(id)
                         .is_some_and(|n| n.layout_parent.get() != Some(node_id))
+                        // raea: not one a stacking context below this node paints (#39: paint_owner)
+                        && self.paint_owner(id) == Some(node_id)
                 })
                 .map(|id| {
                     let anchor = self
@@ -389,6 +408,11 @@ impl BaseDocument {
             *node.layout_children.borrow_mut() = Some(children);
         }
 
+        // raea: a stacking-context root paints the out-of-flow boxes inside it whose containing block is above it (#39)
+        if stacking_context.is_none() {
+            self.take_out_of_flow(node_id, &mut entries);
+        }
+
         let node = &mut self.nodes[node_id];
         if let Some(stacking_context) = stacking_context {
             node.stacking_context = None;
@@ -410,6 +434,42 @@ impl BaseDocument {
                 return Some(current);
             }
             current = parent;
+        }
+    }
+
+    /// raea: who paints an out-of-flow box (#39): the nearest stacking-context root between it and its containing
+    /// block, as Chrome paints it inside that root's group (an unpositioned `opacity: 0.3` wrapper fades its absolute
+    /// child), else the containing block. None for a box in flow.
+    fn paint_owner(&self, id: NodeId) -> Option<NodeId> {
+        let cb = self.nodes.get(id)?.oof_containing_block.get()?;
+        let mut current = self.nodes[id].layout_parent.get();
+        while let Some(a) = current.filter(|a| *a != cb) {
+            let node = self.nodes.get(a)?;
+            if node.is_stacking_context_root(false) {
+                return Some(a);
+            }
+            current = node.layout_parent.get();
+        }
+        Some(cb)
+    }
+
+    /// raea: the out-of-flow boxes `root` paints though their containing blocks are above it (paint_owner), each an
+    /// entry of its stacking context, placed by hoisted_child_position from where it's laid out (#39)
+    fn take_out_of_flow(&mut self, root: NodeId, entries: &mut ThinVec<HoistedPaintChild>) {
+        let mut taken = Vec::new();
+        let mut up = self.nodes[root].layout_parent.get();
+        while let Some(a) = up {
+            let Some(node) = self.nodes.get(a) else { break };
+            taken.extend(node.hoisted_children.borrow().iter().copied().filter(|&id| self.paint_owner(id) == Some(root)));
+            up = node.layout_parent.get();
+        }
+        for id in taken {
+            let is_sc_root = self.nodes[id].is_stacking_context_root(false);
+            self.build_paint_tree_impl(id, if is_sc_root { None } else { Some(entries) });
+            if is_sc_root {
+                self.take_globals(id, entries);
+            }
+            entries.push(HoistedPaintChild::new(id, self.nodes[id].z_index(), self.nodes[id].is_bevy_global_z()));
         }
     }
 

@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- #39: opacity below 1 makes a stacking context, which paints every box inside it, positioned or not, faded with
+     it. Four black boxes in groups at opacity 0.3 on white; Chrome draws all four grey (178). 1: an absolute child of
+     an unpositioned wrapper (raea drew it black: it was painted by its containing block, outside the group). 2: an
+     in-flow child. 3: an absolute child of a positioned wrapper. 4: as 1, the wrapper moved down 120 px by a margin,
+     which mustn't move the child (its place is from its containing block; flow-root keeps that margin from
+     collapsing into the container). bench/opacity-out-of-flow/check.sh -->
+<html><body style="margin:0;background:#fff">
+<div data-composition-id="main" data-start="0" data-duration="1" data-width="960" data-height="240" style="position:relative;display:flow-root;width:960px;height:240px">
+  <div style="opacity:0.3">
+    <div style="position:absolute;left:40px;top:40px;width:160px;height:160px;background:#000"></div>
+  </div>
+  <div style="position:absolute;left:240px;top:40px">
+    <div style="opacity:0.3"><div style="width:160px;height:160px;background:#000"></div></div>
+  </div>
+  <div style="position:absolute;left:440px;top:40px;opacity:0.3">
+    <div style="position:absolute;left:0;top:0;width:160px;height:160px;background:#000"></div>
+  </div>
+  <div style="opacity:0.3;margin-top:120px">
+    <div style="position:absolute;left:640px;top:40px;width:160px;height:160px;background:#000"></div>
+  </div>
+</div>
+</body></html>

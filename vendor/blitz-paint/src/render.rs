@@ -833,7 +833,14 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
         };
 
         // Don't render things that are out of view
-        let overflow = *node.scrollable_overflow();
+        let mut overflow = *node.scrollable_overflow();
+        // raea: and what a stacking context paints of the out-of-flow boxes inside it whose containing blocks are
+        // above it (#39), which its own overflow leaves to those containing blocks: not culled, and in its opacity layer
+        if let Some(sc) = node.stacking_context.as_ref().filter(|sc| !sc.children.is_empty()) {
+            let b = sc.hoisted_content_bbox(node.tree(), node_id, self.scale);
+            let s = self.scale;
+            overflow = overflow.union(Rect::new(b.left as f64 * s, b.top as f64 * s, b.right as f64 * s, b.bottom as f64 * s));
+        }
         // raea: inside a 3D rendering context an element is placed from the context root's parent, not its own
         // parent (which may flatten to nothing), and an element that starts one keeps that space for its children
         // A projective one (a perspective's) is drawn in its own space into a layer the page warps into place.
@@ -1285,6 +1292,14 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                                 cx.draw_select_chevron(scene);
                             },
                         );
+                        // raea: the out-of-flow boxes it paints from containing blocks above it (#39), in its group
+                        // but outside its overflow clip, which doesn't hold them (a clip layer is a layer of its own:
+                        // a blended fixed box inside it blended with nothing)
+                        let scrolled = unscrolled_transform.pre_translate(Vec2 {
+                            x: -node.scroll_offset().x * self.scale,
+                            y: -node.scroll_offset().y * self.scale,
+                        });
+                        cx.draw_from_above(scene, scrolled, clip_rect);
 
                         // Overlay scrollbars, drawn unscrolled above the
                         // clipped content.
@@ -2002,7 +2017,7 @@ impl ElementCx<'_, '_> {
         // Negative z_index hoisted nodes
 
         if let Some(hoisted) = &self.node.stacking_context {
-            for hoisted_child in hoisted.neg_z_hoisted_children() {
+            for hoisted_child in hoisted.neg_z_hoisted_children().filter(|c| !self.from_above(c.node_id)) {
                 let position = hoisted_child.position(self.node.tree(), self.node.id);
                 let pos = kurbo::Vec2 {
                     x: position.x as f64 * self.scale,
@@ -2033,7 +2048,7 @@ impl ElementCx<'_, '_> {
 
         // Positive z_index hoisted nodes
         if let Some(hoisted) = &self.node.stacking_context {
-            for hoisted_child in hoisted.pos_z_hoisted_children() {
+            for hoisted_child in hoisted.pos_z_hoisted_children().filter(|c| !self.from_above(c.node_id)) {
                 let position = hoisted_child.position(self.node.tree(), self.node.id);
                 let pos = kurbo::Vec2 {
                     x: position.x as f64 * self.scale,
@@ -2048,6 +2063,29 @@ impl ElementCx<'_, '_> {
                 );
                 (0..clips).for_each(|_| scene.pop_layer());
             }
+        }
+    }
+
+    /// raea: whether a hoisted child is an out-of-flow box this stacking context paints though its containing block
+    /// is above it (#39): the root isn't on its chain of containing blocks
+    fn from_above(&self, child: NodeId) -> bool {
+        let tree = self.node.tree();
+        let mut chain = tree.get(child).and_then(|n| n.containing_block());
+        while let Some(id) = chain.filter(|id| *id != self.node.id) {
+            chain = tree.get(id).and_then(|n| n.containing_block());
+        }
+        chain.is_none()
+    }
+
+    /// raea: the out-of-flow boxes this stacking context paints from containing blocks above it (#39), by z, after
+    /// its content: in its group, outside its overflow clip, and under none of the clips between (the boxes they're
+    /// in are the root's too, whose clips are already pushed)
+    fn draw_from_above(&self, scene: &mut impl PaintScene, transform: Affine, clip_rect: Rect) {
+        let Some(sc) = &self.node.stacking_context else { return };
+        for c in sc.neg_z_hoisted_children().chain(sc.pos_z_hoisted_children()).filter(|c| self.from_above(c.node_id)) {
+            let p = c.position(self.node.tree(), self.node.id);
+            let pos = Vec2 { x: p.x as f64 * self.scale, y: p.y as f64 * self.scale };
+            self.render_node(scene, c.node_id, transform.pre_translate(pos), clip_rect);
         }
     }
 
