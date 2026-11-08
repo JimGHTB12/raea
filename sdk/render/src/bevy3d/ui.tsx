@@ -60,6 +60,9 @@ export interface NodeProps {
   z_index?: number;
   /** GlobalZIndex: ranked among the roots and every other GlobalZIndex instead (a non-zero one) */
   global_z_index?: number;
+  /** Visibility: Inherited (its parent's, the default), Hidden (laid out, not drawn) or Visible (drawn under a hidden
+   *  parent), as CSS's visibility inherits */
+  visibility?: "Inherited" | "Hidden" | "Visible";
   /** FixedNode: laid out as a root wherever it is in the tree (its own viewport, the window's), drawn with its parent */
   fixed?: boolean;
   children?: ReactNode;
@@ -106,6 +109,7 @@ export function nodeCss(who: string, p: NodeProps, back?: Backdrop): { css: CSSP
   if (p.flex_shrink !== undefined) s.flexShrink = p.flex_shrink;
   if (p.aspect_ratio !== undefined) s.aspectRatio = p.aspect_ratio;
   gridCss(who, p, s);
+  if (p.visibility !== undefined && p.visibility !== "Inherited") s.visibility = keyword(who, "visibility", p.visibility, ["Hidden", "Visible"]);
   // every node a stacking context, so a ZIndex ranks it among its siblings above their parent, as bevy_ui stacks
   // them; a GlobalZIndex ranks it in the root's (raea's Blitz hoists it past every other, layout/paint_tree.rs)
   s.zIndex = p.global_z_index ?? p.z_index ?? 0;

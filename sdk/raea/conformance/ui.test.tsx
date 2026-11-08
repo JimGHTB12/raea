@@ -254,6 +254,12 @@ describe("A sliced ImageNode, a sampled picture and UiScale", () => {
     expect(top.match(/data-raea-blend=\"linear\"/g)?.length).toBe(2);
     expect(top).not.toContain("display:contents");
   });
+  test("Visibility: Hidden is laid out but not drawn, Visible draws under a hidden parent, Inherited is the parent's", () => {
+    expect(html(<Node visibility="Hidden" />)).toContain("visibility:hidden");
+    expect(html(<Node visibility="Visible" />)).toContain("visibility:visible");
+    expect(html(<Node visibility="Inherited" />)).not.toContain("visibility");
+    expect(() => html(<Node visibility={"Gone" as never} />)).toThrow(/visibility/);
+  });
   test("Viewport is the region of the window the UI's roots lay out in, clipped to it", () => {
     const out = html(<Viewport physical_position={[200, 100]} physical_size={[600, 500]}><Node /></Viewport>);
     expect(out).toContain("position:absolute;left:200px;top:100px;width:600px;height:500px;overflow:hidden");

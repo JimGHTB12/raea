@@ -74,3 +74,4 @@ ui/layout/ghost_nodes	-	10
 ui/relative_cursor_position	-	10
 ui/ui_target_camera	-	10
 ui/text/text_wrap_debug	-	10
+ui/layout/grid	-	10
