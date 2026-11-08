@@ -55,7 +55,7 @@ pub(crate) const MORPH_COLS: [&str; 64] = ["morph0", "morph1", "morph2", "morph3
 /// The columns a frame may change, per kind (what `rows_into` and `camera` key); everything else is the first frame's.
 pub(crate) fn live_dynamic(kind: &str) -> &'static [&'static str] {
     match kind {
-        "light" => &["lux", "lumens", "x", "y", "z", "dir_x", "dir_y", "dir_z"],
+        "light" => &["lux", "lumens", "x", "y", "z", "dir_x", "dir_y", "dir_z", "inner", "outer"],
         "mesh" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "col_r", "col_g", "col_b", "rough", "metal", "emissive_k", "opacity", "sh_r", "sh_g", "sh_b", "rim_k", "spec_k", "outline_w", "pass"],
         "model" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "anim_t", "mix0_t", "mix0_w", "mix1_t", "mix1_w", "mix2_t", "mix2_w", "mix3_t", "mix3_w", "morph0", "morph1", "morph2", "morph3", "morph4", "morph5", "morph6", "morph7", "morph8", "morph9", "morph10", "morph11", "morph12", "morph13", "morph14", "morph15", "morph16", "morph17", "morph18", "morph19", "morph20", "morph21", "morph22", "morph23", "morph24", "morph25", "morph26", "morph27", "morph28", "morph29", "morph30", "morph31", "morph32", "morph33", "morph34", "morph35", "morph36", "morph37", "morph38", "morph39", "morph40", "morph41", "morph42", "morph43", "morph44", "morph45", "morph46", "morph47", "morph48", "morph49", "morph50", "morph51", "morph52", "morph53", "morph54", "morph55", "morph56", "morph57", "morph58", "morph59", "morph60", "morph61", "morph62", "morph63", "g0_w", "g0_t", "g1_w", "g1_t", "g2_w", "g2_t", "g3_w", "g3_t", "g4_w", "g4_t", "g5_w", "g5_t", "g6_w", "g6_t", "g7_w", "g7_t", "g8_w", "g8_t", "g9_w", "g9_t", "g10_w", "g10_t", "g11_w", "g11_t", "g12_w", "g12_t", "g13_w", "g13_t", "g14_w", "g14_t", "g15_w", "g15_t", "look", "glitch_explode", "glitch_scramble", "glitch_jitter", "glitch_snap", "glitch_smear_x", "glitch_smear_y", "glitch_smear_z", "glitch_seed", "cloth_frame", "screen_power", "pass"],
         "panel" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "screen_power", "screen_bright", "pass"],
@@ -64,25 +64,32 @@ pub(crate) fn live_dynamic(kind: &str) -> &'static [&'static str] {
     }
 }
 
+/// A camera column a render keys when it changes (raea-runtime-look camera.rs), which a live frame sends when it does:
+/// its place and look, lens, roll (up_*), view window, ambient, sky and environment, aberration, depth of field, motion
+/// blur, the paint look and its parts' rotations (*_qx..qw). The rest is the first frame's, as a render's is.
+pub(crate) fn cam_keyed(k: &str) -> bool {
+    ["lens_", "mb_", "up_", "view_"].iter().any(|p| k.starts_with(p))
+        || ["_qx", "_qy", "_qz", "_qw"].iter().any(|q| k.ends_with(q))
+        || matches!(k, "x" | "y" | "z" | "look_x" | "look_y" | "look_z" | "fov" | "focus" | "ortho" | "ambient" | "skybox_k" | "env_i" | "env_k" | "env_rot" | "sky_k" | "aberration" | "dof_aperture" | "paint_bands" | "paint_grain" | "paint_rag" | "paint_seed")
+}
+
 impl LiveScene {
     /// Start again (the engine was dropped: a new size).
     pub fn reset(&mut self) {
         *self = LiveScene::default();
     }
 
-    /// The frame's rows as a render's program would hold them at this frame: the camera row and each part's full row,
-    /// by identity, with the row ids this scene keeps.
-    pub(crate) fn current(&mut self, f: Shot) -> (BTreeMap<String, V>, Vec<(String, String, BTreeMap<String, V>)>) {
-        let all = vec![items_of(f.scene)];
-        let mut p = Program::default();
+    /// The frame's camera row, as a render's program holds it at this frame (camera.rs), its spawns into `p`: a frame
+    /// without a camera holds the one before.
+    pub(crate) fn camera_row(&self, all: &[Vec<Item>], clear: Option<&str>, p: &mut Program) -> BTreeMap<String, V> {
         let mut cam = BTreeMap::new();
         cam.insert("id".into(), V::S("cam".into()));
         // the holder's background as the clear colour; with none, Bevy's ClearColor resource (srgb 43, 44, 47 unless a
         // <BevyResource type="bevy_camera::clear_color::ClearColor"> sets it), not black (docs/control conventions C17)
-        if let Some(bg) = f.clear.and_then(hex_of) {
+        if let Some(bg) = clear.and_then(hex_of) {
             cam.insert("bg".into(), V::S(bg));
         }
-        camera(&all, &mut p, &mut cam);
+        camera(all, p, &mut cam);
         if !all[0].iter().any(|i| i.kind == "camera") {
             // no camera this frame: a render holds the one before (filled)
             for k in ["x", "y", "z", "look_x", "look_y", "look_z", "fov", "focus"] {
@@ -94,6 +101,31 @@ impl LiveScene {
                 }
             }
         }
+        cam
+    }
+
+    /// What the camera row changes, of the columns a render keys (cam_keyed): the camera's tuple, or None.
+    pub(crate) fn camera_diff(sent: &mut BTreeMap<String, V>, cam: &BTreeMap<String, V>) -> Option<raea_core_program::eval::Tup> {
+        let mut vals = BTreeMap::new();
+        for k in cam.keys().map(String::as_str).filter(|k| cam_keyed(k)).chain(["ambient"]) {
+            let v = cam.get(k).cloned().or_else(|| (k == "ambient" && sent.contains_key("ambient")).then_some(V::N(0.0)));
+            if let Some(v) = v {
+                if sent.get(k) != Some(&v) {
+                    sent.insert(k.into(), v.clone());
+                    vals.insert(k.to_string(), v);
+                }
+            }
+        }
+        (!vals.is_empty()).then(|| raea_core_program::eval::Tup { kind: "camera".into(), id: "cam".into(), vals })
+    }
+
+    /// The frame's rows as a render's program would hold them at this frame: the camera row and each part's full row,
+    /// by identity, with the row ids this scene keeps.
+    pub(crate) fn current(&mut self, f: Shot) -> (BTreeMap<String, V>, Vec<(String, String, BTreeMap<String, V>)>) {
+        let all = vec![items_of(f.scene)];
+        // the camera's own spawns (its fog, sky...) in the frame's program with the rest
+        let mut p = Program::default();
+        let cam = self.camera_row(&all, f.clear, &mut p);
         let tr = Tracks::of(&all);
         rows_into_of(&all, &tr, &mut p);
         // each local row (this frame's tracks, numbered as rows_into numbers them) by its identity
@@ -212,22 +244,8 @@ impl LiveScene {
     /// What this frame changes, from its camera row and parts' rows (`current`'s)
     pub(crate) fn diff(&mut self, cam: BTreeMap<String, V>, rows: Vec<(String, String, BTreeMap<String, V>)>) -> (Vec<raea_core_program::eval::Tup>, Vec<(String, String)>) {
         let mut out: Vec<raea_core_program::eval::Tup> = Vec::new();
-        // the camera: where it is and looks, its lens and the ambient light (0 once there's none)
-        let mut vals = BTreeMap::new();
-        // and the lens's and motion blur's, whatever of theirs the frame keys
-        let keyed: Vec<String> = cam.keys().filter(|k| k.starts_with("lens_") || k.starts_with("mb_") || *k == "ortho").cloned().collect();
-        for k in ["x", "y", "z", "look_x", "look_y", "look_z", "fov", "ambient", "focus", "paint_bands", "paint_grain", "paint_rag", "paint_seed"].into_iter().chain(keyed.iter().map(String::as_str)) {
-            let v = cam.get(k).cloned().or_else(|| (k == "ambient" && self.cam.contains_key("ambient")).then_some(V::N(0.0)));
-            if let Some(v) = v {
-                if self.cam.get(k) != Some(&v) {
-                    self.cam.insert(k.into(), v.clone());
-                    vals.insert(k.to_string(), v);
-                }
-            }
-        }
-        if !vals.is_empty() {
-            out.push(raea_core_program::eval::Tup { kind: "camera".into(), id: "cam".into(), vals });
-        }
+        // the camera: whatever of it a render keys, and the ambient light (0 once there's none)
+        out.extend(Self::camera_diff(&mut self.cam, &cam));
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         for (kind, id, row) in rows {
             seen.insert(id.clone());
@@ -259,7 +277,7 @@ impl LiveScene {
                     if let Some(V::S(c)) = row.get("color") {
                         let c = rgb(c);
                         for (k, name) in ["col_r", "col_g", "col_b"].iter().enumerate() {
-                            want.insert(name.to_string(), V::N(r6(c[k])));
+                            want.insert(name.to_string(), V::N(c[k]));
                         }
                     }
                 }

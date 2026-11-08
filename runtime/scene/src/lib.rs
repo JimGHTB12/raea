@@ -231,6 +231,8 @@ fn placement(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[It
     let mut prev = bevy::math::Quat::IDENTITY;
     let per: Vec<[f64; 10]> = its.iter().map(|it| {
         let (s, q, t) = it.world.to_scale_rotation_translation();
+        // a zero scale has no rotation (it comes out NaN, keyed on every frame since NaN never equals itself): the one before
+        let q = if q.is_finite() { q } else { prev };
         prev = if q.dot(prev) < 0.0 { -q } else { q };
         [t.x as f64, t.y as f64, t.z as f64, prev.x as f64, prev.y as f64, prev.z as f64, prev.w as f64, s.x as f64, s.y as f64, s.z as f64]
     }).collect();

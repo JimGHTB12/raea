@@ -132,8 +132,9 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
             let c: Vec<[f64; 3]> = colors.iter().map(|c| rgb(c)).collect();
             for (k, name) in ["col_r", "col_g", "col_b"].iter().enumerate() {
                 let vals: Vec<f64> = c.iter().map(|v| v[k]).collect();
-                p.keys.insert((id.clone(), name.to_string()), vals.iter().enumerate().map(|(f, v)| (f as i64, r6(*v), "linear".to_string())).collect());
-                row.insert(name.to_string(), V::N(r6(vals[0])));
+                // exact, as the hex's byte over 255 (the engine reads either into the same f32: #26)
+                p.keys.insert((id.clone(), name.to_string()), vals.iter().enumerate().map(|(f, v)| (f as i64, *v, "linear".to_string())).collect());
+                row.insert(name.to_string(), V::N(vals[0]));
             }
         }
         let m0 = &mats[0];
@@ -344,7 +345,7 @@ pub(crate) fn texts_rows(tr: &Tracks, names: &[String], p: &mut Program) {
             if colors.iter().any(|c| *c != colors[0]) {
                 let c: Vec<[f64; 3]> = colors.iter().map(|c| rgb(c)).collect();
                 for (ch, col) in ["col_r", "col_g", "col_b"].iter().enumerate() {
-                    column(p, &mut row, &gid, col, &c.iter().map(|v| v[ch]).collect::<Vec<_>>());
+                    exact(p, &mut row, &gid, col, &c.iter().map(|v| v[ch]).collect::<Vec<_>>());
                 }
             }
             let op: Vec<f64> = gs.iter().map(|g| g.get("o").and_then(Value::as_f64).unwrap_or(1.0).clamp(0.0, 1.0)).collect();

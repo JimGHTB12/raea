@@ -60,56 +60,13 @@ impl LiveScene {
             }
         }
         let mut out: Vec<raea_core_program::eval::Tup> = Vec::new();
-        // the camera, as diff holds it
-        let mut cam: [(&str, Option<f64>); 9] = [("x", None), ("y", None), ("z", None), ("look_x", None), ("look_y", None), ("look_z", None), ("fov", None), ("ambient", None), ("focus", None)];
-        match its.iter().find(|i| i.kind == "camera") {
-            Some(c) => {
-                let pos = vec3(&c.props, "position", [0.0, 0.0, 5.0]);
-                let look = vec3(&c.props, "lookAt", [0.0, 0.0, 0.0]);
-                for k in 0..3 {
-                    cam[k].1 = Some(r6(pos[k]));
-                    cam[3 + k].1 = Some(r6(look[k]));
-                }
-                cam[6].1 = Some(r6(n(&c.props, "fov", 50.0)));
-                if self.cam.contains_key("focus") {
-                    cam[8].1 = Some(r6(focus_of(c)));
-                }
-            }
-            None => {
-                for (k, d) in [0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 50.0].into_iter().enumerate() {
-                    cam[k].1 = Some(match self.cam.get(cam[k].0) {
-                        Some(V::N(v)) => *v,
-                        _ => d,
-                    });
-                }
-            }
-        }
-        let amb = its.iter().filter(|i| i.kind == "ambient").map(|i| light_power("ambient", &i.props)).sum::<f64>();
-        cam[7].1 = if amb > 0.0 { Some(r6(amb)) } else { self.cam.contains_key("ambient").then_some(0.0) };
-        let mut vals = BTreeMap::new();
-        for (k, v) in cam {
-            if let Some(v) = v.map(V::N) {
-                if self.cam.get(k) != Some(&v) {
-                    self.cam.insert(k.into(), v.clone());
-                    vals.insert(k.to_string(), v);
-                }
-            }
-        }
-        // the paint look's keyed values, as camera_of keys them
-        if self.cam.contains_key("paint_bands") {
-            if let Some(l) = its.iter().find(|i| i.kind == "framelook") {
-                for (k, v) in paint_keyed(&l.props) {
-                    let v = V::N(r6(v));
-                    if self.cam.get(k) != Some(&v) {
-                        self.cam.insert(k.into(), v.clone());
-                        vals.insert(k.to_string(), v);
-                    }
-                }
-            }
-        }
-        if !vals.is_empty() {
-            out.push(raea_core_program::eval::Tup { kind: "camera".into(), id: "cam".into(), vals });
-        }
+        // the camera as diff holds it: the same row and columns (camera_row, camera_diff), so whatever of it a render
+        // keys (a roll, a sky, a view window, #26) changes here too
+        let all = [its];
+        let its = &all[0];
+        // (its spawns aren't wanted here: a row of another kind sends a frame down the full path)
+        let cam = self.camera_row(&all, f.clear, &mut Program::default());
+        out.extend(Self::camera_diff(&mut self.cam, &cam));
         for r in self.rows.values_mut() {
             r.seen = false;
         }
@@ -120,13 +77,17 @@ impl LiveScene {
             let mut nw = 0usize;
             let mut put = |k: &'static str, v: f64| {
                 // a Transform's columns as the World's f32 holds them (FC1d), the rest to 6 decimals
-                want[nw] = (k, Some(if PLACE.contains(&k) { v } else { r6(v) }));
+                want[nw] = (k, Some(if PLACE.contains(&k) || k.starts_with("col_") { v } else { r6(v) }));
                 nw += 1;
             };
             let mut color: Option<std::borrow::Cow<str>> = None;
             let place = |put: &mut dyn FnMut(&'static str, f64)| {
                 let (s, q, t) = it.world.to_scale_rotation_translation();
-                // Bevy's quaternion as it is (docs/control.feature FC1d)
+                // a zero scale's rotation comes out NaN, sent again every frame (NaN never equals itself): none (#26)
+                let q = if q.is_finite() { q } else { bevy::math::Quat::IDENTITY };
+                // Bevy's quaternion as it is (docs/control.feature FC1d), on the identity's side as the full path's
+                // placement puts a frame's (q and -q make the same matrix, bit for bit; RAEA_LIVE3D_CHECK held them apart)
+                let q = if q.w < 0.0 { -q } else { q };
                 for (name, v) in [("x", t.x), ("y", t.y), ("z", t.z), ("q_x", q.x), ("q_y", q.y), ("q_z", q.z), ("q_w", q.w)] {
                     put(name, v as f64);
                 }
@@ -146,14 +107,22 @@ impl LiveScene {
                     let pos = [w.x as f64, w.y as f64, w.z as f64];
                     let target = vec3(&it.props, "target", [0.0; 3]);
                     if !dir {
-                        put("x", pos[0]);
-                        put("y", pos[1]);
-                        put("z", pos[2]);
+                        // to 6 decimals, as parts.rs keys a light's place (it isn't a Transform's column there): the
+                        // World's f32 moved every bulb a hair on the second frame (#26)
+                        put("x", r6(pos[0]));
+                        put("y", r6(pos[1]));
+                        put("z", r6(pos[2]));
                     }
                     if it.kind != "point" {
                         put("dir_x", target[0] - pos[0]);
                         put("dir_y", target[1] - pos[1]);
                         put("dir_z", target[2] - pos[2]);
+                    }
+                    if it.kind == "spot" {
+                        // its cone, as parts.rs keys it: a spot whose angle moves (3d/spotlight) kept its first (#26)
+                        let outer = n(&it.props, "angle", std::f64::consts::FRAC_PI_3).clamp(0.0, std::f64::consts::FRAC_PI_2);
+                        put("inner", outer * (1.0 - n(&it.props, "penumbra", 0.0).clamp(0.0, 1.0)));
+                        put("outer", outer);
                     }
                     "light"
                 }
@@ -253,7 +222,7 @@ impl LiveScene {
                 if r.recoloured {
                     let c = rgb(c);
                     for (k, name) in ["col_r", "col_g", "col_b"].into_iter().enumerate() {
-                        set(&mut want, &mut nw, name, Some(r6(c[k])), false);
+                        set(&mut want, &mut nw, name, Some(c[k]), false);
                     }
                 }
                 if !r.first.contains_key("emissive") {

@@ -203,7 +203,7 @@ pub(crate) fn sheet(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, it
 pub(crate) fn tint(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item], default: &str) {
     let colors: Vec<[f64; 3]> = its.iter().map(|i| rgb(&hex(i.props.get("color")).unwrap_or(default.into()))).collect();
     for (c, name) in ["col_r", "col_g", "col_b"].iter().enumerate() {
-        column(p, row, id, name, &colors.iter().map(|v| v[c]).collect::<Vec<_>>());
+        exact(p, row, id, name, &colors.iter().map(|v| v[c]).collect::<Vec<_>>());
     }
 }
 
@@ -267,8 +267,8 @@ pub(crate) fn fogs_rows(tr: &Tracks, p: &mut Program) {
         if colors.iter().any(|c| *c != colors[0]) {
             let c: Vec<[f64; 3]> = colors.iter().map(|c| rgb(c)).collect();
             for (k, name) in ["col_r", "col_g", "col_b"].iter().enumerate() {
-                p.keys.insert((id.clone(), name.to_string()), c.iter().enumerate().map(|(f, v)| (f as i64, r6(v[k]), "linear".to_string())).collect());
-                row.insert(name.to_string(), V::N(r6(c[0][k])));
+                p.keys.insert((id.clone(), name.to_string()), c.iter().enumerate().map(|(f, v)| (f as i64, v[k], "linear".to_string())).collect());
+                row.insert(name.to_string(), V::N(c[0][k]));
             }
         }
         let first = &its[0].props;
@@ -299,7 +299,7 @@ pub(crate) fn fires_rows(tr: &Tracks, p: &mut Program) {
         if colors.iter().any(|c| *c != colors[0]) {
             let c: Vec<[f64; 3]> = colors.iter().map(|c| rgb(c)).collect();
             for (k, name) in ["col_r", "col_g", "col_b"].iter().enumerate() {
-                column(p, &mut row, &id, name, &c.iter().map(|v| v[k]).collect::<Vec<_>>());
+                exact(p, &mut row, &id, name, &c.iter().map(|v| v[k]).collect::<Vec<_>>());
             }
         }
         let first = &its[0].props;
