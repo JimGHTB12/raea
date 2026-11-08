@@ -202,6 +202,8 @@ pub fn world_page_sync(world: &mut World) {
         IN_3D.with(|c| c.set(0));
         IN_SVG.with(|c| c.set(false));
         TEXTURE_SLOTS.with(|c| c.borrow_mut().clear());
+        // a UiMaterial needs raea-render's engine (BevyPage's hosts); here its element is a box of nothing
+        UI_MATERIALS.with(|c| c.borrow_mut().clear());
         REFUSED.with(|c| c.borrow_mut().clear());
         let mut w = std::mem::take(&mut wp.walk);
         w.begin(wp.w, wp.h, wp.brand.as_deref(), false);

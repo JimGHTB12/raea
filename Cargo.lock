@@ -14856,6 +14856,7 @@ dependencies = [
  "base64 0.22.1",
  "bevy",
  "image",
+ "raea-core-scene",
  "raea-core-wire",
  "raea-io-assets",
  "raea-io-home",
@@ -14871,6 +14872,7 @@ dependencies = [
  "raea-sys-image",
  "raea-sys-page",
  "raea-sys-screen",
+ "raea-sys-shader",
  "serde_json",
  "wgpu",
 ]
@@ -15474,6 +15476,7 @@ dependencies = [
  "raea-sys-material",
  "raea-sys-sampler",
  "serde_json",
+ "wgpu",
 ]
 
 [[package]]

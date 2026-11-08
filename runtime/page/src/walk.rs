@@ -252,6 +252,8 @@ thread_local! {
     pub(crate) static REFUSED: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
     /// the texture elements (`data-raea-texture`) the last walk met: each one's texture id and its page id
     pub(crate) static TEXTURE_SLOTS: std::cell::RefCell<Vec<(u64, u64)>> = const { std::cell::RefCell::new(Vec::new()) };
+    /// the UiMaterial elements (`data-raea-ui-material`) the last walk met: each one's page id and its spec (JSON)
+    pub(crate) static UI_MATERIALS: std::cell::RefCell<Vec<(u64, String)>> = const { std::cell::RefCell::new(Vec::new()) };
     /// the textures shared for texture elements to show (`share_texture`), by id: each one's texture and size
     pub(crate) static SHARED: std::cell::RefCell<HashMap<u64, (wgpu::Texture, u32, u32)>> = std::cell::RefCell::new(HashMap::new());
 }

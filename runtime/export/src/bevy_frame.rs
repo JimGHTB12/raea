@@ -68,11 +68,13 @@ pub(crate) fn bevy_over_3d(world: &mut World, page: &mut raea_runtime_page::Bevy
     // a camera inside a page element (docs/sdk.feature S3a): its view drawn into that element's box of the frame
     let view = if page.has_slot() { None } else { page.view_box() };
     e.set_view_box(view);
+    let mats = page.set_ui_materials(e.world_mut())?;
     // one draw a frame, as the fed render draws it (drawn again, a frame's auto exposure and temporal passes move on)
     e.draw(cx.now);
     if let Some(err) = e.take_error() {
         eprintln!("raea: frame {}: the 3D: {err}", cx.now);
     }
+    let px = if mats { page.read_ui_materials(e.world()).and_then(|_| page.frame())? } else { px };
     let three = e.read_target()?;
     let (tw, th) = e.size();
     // layered: the 3D (clear where it has nothing) is its slot's picture, in the page's paint order; the page drawn
@@ -180,9 +182,14 @@ pub(crate) fn bevy_fed_gpu(world: &mut World, page: &mut raea_runtime_page::Bevy
                 e.set_screen_picture(&name, w, h, rgba);
             }
         }
+        let mats = page.set_ui_materials(e.world_mut())?;
         e.draw(cx.now);
         if let Some(err) = e.take_error() {
             eprintln!("raea: frame {}: the 3D: {err}", cx.now);
+        }
+        if mats {
+            page.place_ui_materials(e.world());
+            page.draw();
         }
         let target = e.target_texture().ok_or("the 3D drew no target")?;
         if page.has_slot() {

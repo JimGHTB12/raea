@@ -24,6 +24,7 @@ use serde_json::{Map, Value};
 use raea_runtime_react::{ReactKind, ReactNode, ReactProps, ReactText};
 
 mod bevy_page;
+mod ui_material;
 pub use bevy_page::*;
 mod walk;
 pub use walk::*;

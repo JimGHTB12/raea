@@ -16,6 +16,8 @@ raea-render = { path = "../../engine/render", default-features = false, features
 # a <Screen> panel in Bevy's picking (world_input.rs)
 raea-sys-screen = { path = "../../systems/screen" }
 raea-page = { path = "../../engine/page" }
+raea-sys-shader = { path = "../../systems/shader" }
+raea-core-scene = { path = "../../core/scene" }
 raea-sys-page = { path = "../../systems/page" }
 raea-sys-fonts = { path = "../../systems/fonts" }
 raea-sys-image = { path = "../../systems/image" }

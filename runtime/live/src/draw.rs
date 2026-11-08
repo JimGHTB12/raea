@@ -132,7 +132,11 @@ impl Live {
                         e.copy_screen(&name, &t);
                     }
                     e.set_view_box(Some(b));
+                    let mats = self.page.set_ui_materials(e.world_mut())?;
                     e.draw(self.frame);
+                    if mats {
+                        self.page.place_ui_materials(e.world());
+                    }
                     if let Some(err) = e.take_error() {
                         eprintln!("raea live: frame {}: the 3D: {err}", self.frame);
                     }
@@ -163,6 +167,8 @@ impl Live {
                 for (name, t) in self.page.screen_textures() {
                     e.copy_screen(&name, &t);
                 }
+                // the UiMaterial nodes the page last laid out (a frame behind, as the page syncs after the 3D here)
+                self.page.set_ui_materials(e.world_mut())?;
                 e.draw(self.frame);
                 if let Some(err) = e.take_error() {
                     eprintln!("raea live: frame {}: the 3D: {err}", self.frame);
@@ -192,6 +198,9 @@ impl Live {
                 Some(_) => self.page.set_scene_texture(t, *tw, *th),
                 None => self.page.set_under(t, *tw, *th),
             }
+        }
+        if let Some(e) = self.scene.as_ref() {
+            self.page.place_ui_materials(e.world());
         }
         self.page.draw();
         // its camera's box came this frame: drawn again as a box

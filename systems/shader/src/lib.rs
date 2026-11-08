@@ -27,6 +27,8 @@ use std::hash::{Hash, Hasher};
 use raea_sys_material::shader_material::{defs, ident, uniform, Uniform, SLOTS, TEXTURES};
 
 mod layout;
+pub mod ui;
+mod ui_bind;
 
 /// The fragment shader every ShaderExt pipeline starts from, swapped in `specialize` for the material's own. It is a
 /// whole lit surface by itself (no hooks), so a material whose module is missing still draws as standard.
@@ -38,6 +40,7 @@ pub fn install(app: &mut App) {
     let stub = module("", &[], &[], None);
     let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER, Shader::from_wesl(stub, "embedded://raea_sys_shader/placeholder.wesl"));
     app.add_plugins(MaterialPlugin::<ShadedMaterial>::default());
+    ui::install(app);
 }
 
 #[derive(Asset, AsBindGroup, Reflect, Clone, Debug)]

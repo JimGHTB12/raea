@@ -33,6 +33,18 @@ pub(crate) fn walk(react: &World, e: Entity, parent: u64, at: At, dir: &Path, ho
             TEXTURE_SLOTS.with(|c| c.borrow_mut().push((tex, id)));
             continue;
         }
+        // a UiMaterial's picture (sdk/render's MaterialNode, raea-sys-shader's ui.rs): the engine draws its shader into
+        // a texture this element's size, shown here after the 3D draws (BevyPage::ui_materials)
+        if let Some(spec) = props.and_then(|p| p.get("data-raea-ui-material")).and_then(|v| v.as_str()) {
+            let me = Tail::N(n).path(out.base(at));
+            n += 1;
+            let mut page = page_props(kind, props, dir);
+            page.retain(|k, _| k == "style" || k == "className");
+            out.put(Want { id, parent, kind: "video".into(), props: page, text: None, path: me }, None);
+            list.push(id);
+            UI_MATERIALS.with(|c| c.borrow_mut().push((id, spec.to_string())));
+            continue;
+        }
         if has("data-raea-scene") {
             let me = Tail::N(n).path(out.base(at));
             n += 1;

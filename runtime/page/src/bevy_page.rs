@@ -23,6 +23,8 @@ pub struct BevyPage {
     pub(crate) walk: Walk,
     /// the composition's surface, as the last sync found it
     pub(crate) surf: Option<Entity>,
+    /// the UiMaterial elements the last sync met: page id and spec (JSON)
+    pub(crate) ui_mats: Vec<(u64, String)>,
 }
 
 impl BevyPage {
@@ -32,7 +34,7 @@ impl BevyPage {
         // they draw as it is
         let fonts = raea_io_home::home().join("core/fonts");
         let page = raea_page::motion::BlitzPage::new_on(w, h, Some(&fonts), Some(raea_runtime_view::render_creation()))?;
-        Ok(BevyPage { page, w, h, dir: dir.to_path_buf(), slot: None, view: None, in_box: false, under: false, app_screens: Vec::new(), apps: Default::default(), walk: Walk::default(), surf: None })
+        Ok(BevyPage { page, w, h, dir: dir.to_path_buf(), slot: None, view: None, in_box: false, under: false, app_screens: Vec::new(), apps: Default::default(), walk: Walk::default(), surf: None, ui_mats: Vec::new() })
     }
 
     /// The page made to match the React tree in `react` (the composition's App's World). `holders`: the props elements
@@ -60,6 +62,7 @@ impl BevyPage {
         IN_SVG.with(|c| c.set(false));
         APP_SCREENS.with(|c| c.borrow_mut().clear());
         TEXTURE_SLOTS.with(|c| c.borrow_mut().clear());
+        UI_MATERIALS.with(|c| c.borrow_mut().clear());
         REFUSED.with(|c| c.borrow_mut().clear());
         self.walk.begin(self.w, self.h, brand, self.under);
         walk(react, surf, BODY, At::Str(""), &self.dir, holders, &mut self.walk, &mut videos, &mut screens);
@@ -93,6 +96,7 @@ impl BevyPage {
         }
         self.view = view;
         self.app_screens = APP_SCREENS.with(|c| std::mem::take(&mut *c.borrow_mut()));
+        self.ui_mats = UI_MATERIALS.with(|c| std::mem::take(&mut *c.borrow_mut()));
         for (tex, id) in TEXTURE_SLOTS.with(|c| std::mem::take(&mut *c.borrow_mut())) {
             if let Some((t, w, h)) = SHARED.with(|s| s.borrow().get(&tex).cloned()) {
                 self.page.place_texture(id, &t.into(), w, h);

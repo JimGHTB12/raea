@@ -16,8 +16,14 @@ pub fn own_struct(src: &str, defs: &[ShaderDefVal]) -> Option<Result<Vec<(String
         Some((_, t)) => t.trim().to_string(),
         None => return Some(Err("@binding(100) is a var<uniform> NAME: TYPE (the extension's uniforms)".into())),
     };
-    let Some(open) = find_struct(src, &ty) else { return Some(Err(format!("@binding(100)'s type {ty} isn't a struct declared in the source"))) };
-    let Some(close) = src[open..].find('}') else { return Some(Err(format!("struct {ty} has no closing brace"))) };
+    Some(struct_fields(src, &ty, defs).map_err(|e| format!("@binding(100)'s type: {e}")))
+}
+
+/// The fields of `struct TY` as `src` declares it, in order, each `(name, type)`: a field under `@if(DEF)` only when DEF
+/// is set true in `defs`.
+pub fn struct_fields(src: &str, ty: &str, defs: &[ShaderDefVal]) -> Result<Vec<(String, String)>, String> {
+    let Some(open) = find_struct(src, ty) else { return Err(format!("{ty} isn't a struct declared in the source")) };
+    let Some(close) = src[open..].find('}') else { return Err(format!("struct {ty} has no closing brace")) };
     let body = &src[open..open + close];
     let set = |d: &str| defs.iter().any(|v| matches!(v, ShaderDefVal::Bool(k, true) if k == d) || matches!(v, ShaderDefVal::Int(k, n) if k == d && *n != 0));
     let mut out = Vec::new();
@@ -27,7 +33,7 @@ pub fn own_struct(src: &str, defs: &[ShaderDefVal]) -> Option<Result<Vec<(String
         let (cond, field) = match line.strip_prefix("@if(") {
             Some(r) => match r.split_once(')') {
                 Some((d, f)) => (Some(d.trim()), f.trim()),
-                None => return Some(Err(format!("struct {ty}: {line:?}"))),
+                None => return Err(format!("struct {ty}: {line:?}")),
             },
             None => (pending.take(), line),
         };
@@ -38,10 +44,10 @@ pub fn own_struct(src: &str, defs: &[ShaderDefVal]) -> Option<Result<Vec<(String
         if cond.is_some_and(|d| !set(d)) {
             continue;
         }
-        let Some((n, t)) = field.trim_end_matches(',').split_once(':') else { return Some(Err(format!("struct {ty}: {line:?} isn't NAME: TYPE"))) };
+        let Some((n, t)) = field.trim_end_matches(',').split_once(':') else { return Err(format!("struct {ty}: {line:?} isn't NAME: TYPE")) };
         out.push((n.trim().to_string(), t.trim().to_string()));
     }
-    Some(Ok(out))
+    Ok(out)
 }
 
 /// Where `struct NAME {`'s body starts
