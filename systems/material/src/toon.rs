@@ -344,14 +344,15 @@ pub fn sync_toon(
             cur.base.emissive
         };
         let p = params(&toon.0, Some(v));
-        let blend = v.contains_key("opacity") && cur.base.alpha_mode == AlphaMode::Opaque;
+        let want = if opacity < 1.0 || cur.base.base_color_texture.is_some() && cur.base.alpha_mode == AlphaMode::Blend { AlphaMode::Blend } else { AlphaMode::Opaque };
+        let blend = v.contains_key("opacity") && !v.contains_key("alpha") && matches!(cur.base.alpha_mode, AlphaMode::Opaque | AlphaMode::Blend) && cur.base.alpha_mode != want;
         if cur.base.base_color != base || cur.base.emissive != emissive || cur.extension.params != p || blend {
             if let Some(mut m) = mats.get_mut(&h.0) {
                 m.base.base_color = base;
                 m.base.emissive = emissive;
                 m.extension.params = p;
                 if blend {
-                    m.base.alpha_mode = AlphaMode::Blend;
+                    m.base.alpha_mode = want;
                 }
             }
         }

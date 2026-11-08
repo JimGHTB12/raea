@@ -179,8 +179,8 @@ pub fn material(world: &mut World, t: &Tup, inserted: &[Tup], dir: &Path) -> Res
         clearcoat: g("clearcoat", 0.0),
         clearcoat_perceptual_roughness: g("clearcoat_rough", 0.5),
         reflectance: g("reflectance", 0.5),
-        // see-through only when asked (an opacity column, even at 1, may animate to less)
-        alpha_mode: if vals.contains_key("opacity") { AlphaMode::Blend } else { AlphaMode::Opaque },
+        // see-through below opacity 1, at 1 opaque and writing depth (sync_meshes switches it, #38); a fading picture blends
+        alpha_mode: if opacity < 1.0 || vals.contains_key("opacity") && vals.contains_key("map") { AlphaMode::Blend } else { AlphaMode::Opaque },
         ..default()
     };
     // texture maps (Poly Haven's diff, nor_gl, rough, arm, ao), all tiled by repeat_u/repeat_v

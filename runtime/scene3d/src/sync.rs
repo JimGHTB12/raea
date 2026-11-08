@@ -137,9 +137,10 @@ pub fn sync_meshes(
         } else {
             cur.emissive
         };
-        // a mesh made see-through after it was spawned (a live scene's row gains opacity mid-play) blends from then on,
-        // as a render's, which knew from its load (material: an opacity column is a blended surface)
-        let blend = v.contains_key("opacity") && cur.alpha_mode == AlphaMode::Opaque;
+        // a mesh with an opacity column blends below 1 and is opaque at 1 (writing depth), each frame, render and live alike
+        // (#38); one whose alpha mode is given, or a blended picture (a glyph: its see-through parts), stays as it is at 1
+        let want = if base.alpha() < 1.0 || cur.base_color_texture.is_some() && cur.alpha_mode == AlphaMode::Blend { AlphaMode::Blend } else { AlphaMode::Opaque };
+        let blend = v.contains_key("opacity") && !v.contains_key("alpha") && matches!(cur.alpha_mode, AlphaMode::Opaque | AlphaMode::Blend) && cur.alpha_mode != want;
         if cur.base_color != base || cur.perceptual_roughness != rough || cur.metallic != metal || cur.emissive != emissive || blend {
             // a material other parts hold too (share.rs): this part's change goes on a copy of its own, put where its
             // handle is kept; a fog copy follows the new handle a frame later (froxel_glass.rs)
@@ -150,7 +151,7 @@ pub fn sync_meshes(
                 own.metallic = metal;
                 own.emissive = emissive;
                 if blend {
-                    own.alpha_mode = AlphaMode::Blend;
+                    own.alpha_mode = want;
                 }
                 let nh = mats.add(own);
                 if let Some(m) = mat.as_mut() {
@@ -169,7 +170,7 @@ pub fn sync_meshes(
                 m.metallic = metal;
                 m.emissive = emissive;
                 if blend {
-                    m.alpha_mode = AlphaMode::Blend;
+                    m.alpha_mode = want;
                 }
                 // and its fog copy, this frame (froxel_glass.rs's own follow is a frame behind)
                 if let Some(mut g) = fogged.as_ref().and_then(|(_, g)| glasses.get_mut(&g.0)) {
