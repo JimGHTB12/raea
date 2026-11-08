@@ -333,6 +333,10 @@ export interface MeshProps extends PointerHandlers3d {
   /** its geometry's own vertex attributes, as Bevy's Mesh::with_inserted_attribute adds them: [[attribute, values]],
    *  a value a vertex (a Cuboid has 24), for a Material whose vertex_attributes read them */
   attributes?: MeshAttribute[];
+  /** its geometry compressed as Bevy's Mesh::compressed_mesh(&MeshCompressionArgs::regular()) does (positions snorm16 in
+   * its bounds, normals octahedral, u16 indices): smaller on the GPU, and a shader of your own reads its positions
+   * under VERTEX_POSITIONS_COMPRESSED */
+  compressed?: boolean;
   /** the render layers it's on ([0] by default; Bevy's RenderLayers): a camera draws it only when they share a layer,
    * and only lights sharing a layer light it */
   layers?: number[];

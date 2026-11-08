@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **143**, passing **143**, excluded **17** (docs/bevy-parity/excluded.tsv), left **278**.
+Examples: **438**, ported **144**, passing **144**, excluded **17** (docs/bevy-parity/excluded.tsv), left **277**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -222,8 +222,6 @@ doesn't pay.
 | shader/gpu_component_array_buffer | 60 | 1.000000 | 0 | 0 / 0 | 450 / 530 | 6 / 8 | 1 / 4 | 12.692 / 1.561 = 1.561 + 0 | yes |  |
 | shader_advanced/compute_mesh | 10 | 0.999999 | 0 | 3 / 3 | 445 / 526 | 7 / 9 | 4 / 4 | 4.931 / 4.809 = 4.318 + 0.491 | yes |  |
 | shader_advanced/compute_mesh | 5 | 0.999999 | 0 | 3 / 3 | 445 / 526 | 7 / 9 | 4 / 4 | 158.891 / 6.242 = 5.775 + 0.467 | yes |  |
-| shader_advanced/custom_phase_item | 10 | 1.000000 | 0 | 0 / 0 | 442 / 521 | 5 / 7 | 1 / 1 | 3.573 / 2.293 = 2.293 + 0 | yes |  |
-| shader_advanced/custom_phase_item | 5 | 1.000000 | 0 | 0 / 0 | 442 / 521 | 5 / 7 | 1 / 1 | 89.36 / 4.276 = 4.276 + 0 | yes |  |
 | shader_advanced/custom_post_processing | 10 | 0.999958 | 0 | 1 / 1 | 443 / 522 | 6 / 8 | 2 / 2 | 57.331 / 2.521 = 2.521 + 0 | yes |  |
 | shader_advanced/custom_post_processing | 30 | 0.999954 | 0 | 1 / 1 | 443 / 522 | 6 / 8 | 2 / 2 | 3.654 / 3.275 = 3.275 + 0 | yes |  |
 | shader_advanced/custom_post_processing | 60 | 0.999954 | 0 | 1 / 1 | 443 / 522 | 6 / 8 | 2 / 2 | 3.697 / 2.305 = 2.305 + 0 | yes |  |
@@ -232,6 +230,10 @@ doesn't pay.
 | shader_advanced/fullscreen_material | 10 | 0.999748 | 6 | 1 / 1 | 444 / 522 | 6 / 8 | 2 / 2 | 23.02 / 0.953 = 0.953 + 0 | yes |  |
 | shader_advanced/fullscreen_material | 30 | 0.999749 | 6 | 1 / 1 | 444 / 522 | 6 / 8 | 2 / 2 | 1.521 / 0.746 = 0.746 + 0 | yes |  |
 | shader_advanced/fullscreen_material | 60 | 0.999749 | 6 | 1 / 1 | 444 / 522 | 6 / 8 | 2 / 2 | 1.584 / 0.658 = 0.658 + 0 | yes |  |
+| shader_advanced/custom_render_phase | 10 | 1.000000 | 0 | 3 / 3 | 445 / 529 | 8 / 10 | 4 / 4 | 3.461 / 1.979 = 1.979 + 0 | yes |  |
+| shader_advanced/custom_render_phase | 5 | 1.000000 | 0 | 3 / 3 | 445 / 529 | 8 / 10 | 4 / 4 | 62.92 / 5.261 = 5.261 + 0 | yes |  |
+| shader_advanced/custom_phase_item | 10 | 1.000000 | 0 | 0 / 0 | 442 / 522 | 5 / 7 | 1 / 1 | 2.263 / 0.98 = 0.98 + 0 | yes |  |
+| shader_advanced/custom_phase_item | 5 | 1.000000 | 0 | 0 / 0 | 442 / 522 | 5 / 7 | 1 / 1 | 39.678 / 2.388 = 2.388 + 0 | yes |  |
 
 ## Excluded
 

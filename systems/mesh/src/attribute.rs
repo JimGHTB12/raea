@@ -105,6 +105,17 @@ pub fn with_attributes(mut mesh: Mesh, json: &str) -> Result<Mesh, String> {
     Ok(mesh)
 }
 
+/// A row's mesh made whole: its own vertex attributes (with_attributes), then, when `compressed`, compressed as Bevy's
+/// `compressed_mesh(&MeshCompressionArgs::regular())` does (u16 indices, positions in the bounds as snorm16, normals
+/// and tangents octahedral, colours unorm8): a shader reads them under VERTEX_POSITIONS_COMPRESSED and its kin.
+pub fn finished(mesh: Mesh, json: &str, compressed: bool) -> Result<Mesh, String> {
+    let mesh = with_attributes(mesh, json)?;
+    if !compressed {
+        return Ok(mesh);
+    }
+    mesh.compressed_mesh(&bevy::mesh::MeshCompressionArgs::regular()).map_err(|(_, e)| format!("compressing the mesh: {e:?}"))
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -115,5 +126,16 @@ mod tests {
         let a = super::attribute(&serde_json::json!({ "name": "BlendColor", "id": 988540917, "format": "Float32x4" })).unwrap();
         assert_eq!(m.attribute(a).map(|v| v.len()), Some(24));
         assert!(super::with_attributes(cube, &json.replace("988540917", "x")).is_err());
+    }
+
+    #[test]
+    fn a_compressed_mesh_is_bevys_regular_compression() {
+        use bevy::prelude::*;
+        let sphere = Sphere::new(0.5).mesh().build();
+        let ours = super::finished(sphere.clone(), "", true).unwrap();
+        let bevys = sphere.clone().compressed_mesh(&bevy::mesh::MeshCompressionArgs::regular()).unwrap();
+        assert_eq!(ours.get_vertex_buffer_size(), bevys.get_vertex_buffer_size());
+        assert!(ours.get_vertex_buffer_size() < sphere.get_vertex_buffer_size());
+        assert_eq!(super::finished(sphere.clone(), "", false).unwrap().get_vertex_buffer_size(), sphere.get_vertex_buffer_size());
     }
 }

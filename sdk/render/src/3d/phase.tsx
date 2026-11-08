@@ -45,3 +45,22 @@ export function PhaseItem(p: PhaseItemProps) {
     </Entity>
   );
 }
+
+export interface MeshPassProps {
+  /** the shader file, compiled as written: staticFile("shaders/x.wesl"). Its vertex input is the mesh's position at
+   * location 0 (a vec4 `compressed_position` under VERTEX_POSITIONS_COMPRESSED), its bind groups Bevy's mesh view (0)
+   * and mesh (2) */
+  shader: string;
+  /** its entry points (Bevy's default names) */
+  vertex?: string;
+  fragment?: string;
+}
+
+/** The mesh it's inside drawn again by your shader, in a phase of its own after the camera's main opaque pass: onto
+ * the colour target, with no depth test, back faces culled (Bevy's shader_advanced/custom_render_phase).
+ * @bevy raea_sys_phase::MeshPass */
+export function MeshPass(p: MeshPassProps) {
+  const { shader, vertex = "vertex", fragment = "fragment" } = p;
+  if (typeof shader !== "string" || !shader) throw new TypeError(`MeshPass: shader is a shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(shader)}`);
+  return <BevyComponent type="raea_sys_phase::MeshPass" value={{ shader: assetPath(shader), vertex, fragment }} />;
+}

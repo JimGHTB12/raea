@@ -2,7 +2,8 @@
 //! one: an entity with a PhaseItem (and an Aabb, so it's seen) is drawn in each view's Opaque3d phase by a pipeline of
 //! its shader file as written, its `vertex` and `fragment` entry points, reading its own vertex buffer (laid out as
 //! its `attributes` say) and index buffer. <PhaseItem> in raea's TSX gives an <Entity> the component; draw.rs queues,
-//! prepares and draws it.
+//! prepares and draws it. A MeshPass on a Mesh3d entity draws that mesh again by its own shader in a phase after the
+//! main opaque pass, as Bevy's shader_advanced/custom_render_phase draws its stencil (mesh_pass.rs).
 
 use bevy::camera::visibility::{self, VisibilityClass};
 use bevy::prelude::*;
@@ -10,6 +11,9 @@ use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::RenderApp;
 
 mod draw;
+mod mesh_pass;
+
+pub use mesh_pass::MeshPass;
 
 /// A vertex attribute: its format (Bevy's VertexFormat by name, "Float32x3"), byte offset and shader location.
 #[derive(Clone, Debug, Default, Reflect)]
@@ -42,26 +46,59 @@ pub struct PhaseItem {
     pub registered: Option<(String, u128)>,
 }
 
-/// Each new or changed PhaseItem's shader file read and registered (a file it can't read is logged).
-fn register(world: &mut World) {
-    let mut q = world.query_filtered::<(Entity, &PhaseItem), Changed<PhaseItem>>();
-    let items: Vec<(Entity, String)> = q.iter(world).filter(|(_, p)| p.registered.as_ref().map(|r| &r.0) != Some(&p.shader)).map(|(e, p)| (e, p.shader.clone())).collect();
-    for (e, path) in items {
+/// A component that draws by a shader file of its own: the file, and where its registration is kept.
+pub(crate) trait Shaded: Component<Mutability = bevy::ecs::component::Mutable> {
+    const NAME: &'static str;
+    fn shader(&self) -> &str;
+    fn kept(&self) -> Option<&(String, u128)>;
+    fn keep(&mut self, r: (String, u128));
+}
+
+// each one's `shader` path and `registered` field
+macro_rules! shaded {
+    ($($t:ty: $name:literal),*) => {$(
+        impl Shaded for $t {
+            const NAME: &'static str = $name;
+            fn shader(&self) -> &str {
+                &self.shader
+            }
+            fn kept(&self) -> Option<&(String, u128)> {
+                self.registered.as_ref()
+            }
+            fn keep(&mut self, r: (String, u128)) {
+                self.registered = Some(r);
+            }
+        }
+    )*};
+}
+shaded!(PhaseItem: "PhaseItem", MeshPass: "MeshPass");
+
+/// Each new or changed `C`'s shader file read and registered as written (a file it can't read is logged).
+pub(crate) fn register<C: Shaded>(world: &mut World) {
+    let mut q = world.query_filtered::<(Entity, &C), Changed<C>>();
+    let mut todo = Vec::new();
+    for (e, c) in q.iter(world) {
+        if c.kept().map(|r| r.0.as_str()) != Some(c.shader()) {
+            todo.push((e, c.shader().to_owned()));
+        }
+    }
+    for (e, path) in todo {
         match std::fs::read_to_string(&path) {
             Ok(src) => {
-                let id = raea_sys_shader::register(world, src, &[], "raea phase item", "raea_sys_phase");
-                if let Some(mut p) = world.get_mut::<PhaseItem>(e) {
-                    p.registered = Some((path, id));
+                let id = raea_sys_shader::register(world, src, &[], C::NAME, "raea_sys_phase");
+                if let Some(mut c) = world.get_mut::<C>(e) {
+                    c.keep((path, id));
                 }
             }
-            Err(err) => error!("PhaseItem: its shader {path}: {err}"),
+            Err(err) => error!("{}: its shader {path}: {err}", C::NAME),
         }
     }
 }
 
 pub fn install(app: &mut App) {
     app.register_type::<PhaseItem>();
-    app.add_systems(PostUpdate, register);
+    app.add_systems(PostUpdate, register::<PhaseItem>);
     app.add_plugins(ExtractComponentPlugin::<PhaseItem>::default());
     draw::install(app);
+    mesh_pass::install(app);
 }

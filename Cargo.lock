@@ -13775,6 +13775,8 @@ dependencies = [
  "bevy",
  "bytemuck",
  "chacha20 0.10.2",
+ "indexmap",
+ "nonmax",
  "raea-sys-parity",
  "rand 0.10.3",
 ]
@@ -15459,6 +15461,8 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bytemuck",
+ "indexmap",
+ "nonmax",
  "raea-sys-shader",
 ]
 

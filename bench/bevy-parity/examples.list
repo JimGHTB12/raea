@@ -143,3 +143,4 @@ shader_advanced/custom_phase_item
 shader_advanced/custom_post_processing
 shader_advanced/custom_vertex_attribute
 shader_advanced/fullscreen_material
+shader_advanced/custom_render_phase

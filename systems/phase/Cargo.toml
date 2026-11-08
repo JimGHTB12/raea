@@ -9,4 +9,6 @@ description = "Your own draw in a camera's phase (docs/control.feature FC2d): a 
 [dependencies]
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render"] }
 bytemuck = "1"
+indexmap = "2"
+nonmax = "0.5"
 raea-sys-shader = { path = "../shader" }

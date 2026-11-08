@@ -241,9 +241,9 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             let grid = grid::grid_of(vals);
             let uvs = scene3d::has_maps(vals) || grid.is_some();
             let tangents = raea_sys_material::maps::needs_tangents(vals);
-            let attrs = match vals.get("attributes") { Some(V::S(a)) => a.as_str(), _ => "" };
+            let (attrs, packed) = (match vals.get("attributes") { Some(V::S(a)) => a.as_str(), _ => "" }, vals.get("compressed").is_some_and(V::truthy));
             // made once per shape and what it's given (share.rs): equal parts hold one Mesh, so Bevy batches them
-            let mesh = scene3d::shared_mesh(world, &format!("{expr}\0{uvs}\0{tangents}\0{attrs}"), || raea_sys_material::mesh::shape_mesh(&t.id, &expr, uvs, tangents).and_then(|m| raea_sys_material::mesh::with_attributes(m, attrs).map_err(|e| format!("mesh {}: {e}", t.id))))?;
+            let mesh = scene3d::shared_mesh(world, &format!("{expr}\0{uvs}\0{tangents}\0{attrs}\0{packed}"), || raea_sys_material::mesh::shape_mesh(&t.id, &expr, uvs, tangents).and_then(|m| raea_sys_material::mesh::finished(m, attrs, packed).map_err(|e| format!("mesh {}: {e}", t.id))))?;
             // a three.js shader (raea-sys-three-shader, docs/r3f.feature R3F11): its own material, and the mesh given
             // what it reads; its pictures' files found as a model's are (the edit's folder, its media)
             let three = match vals.get("three") {

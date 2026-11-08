@@ -271,6 +271,10 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         if let Some(Value::String(a)) = its[0].props.get("attributes") {
             row.insert("attributes".into(), V::S(a.clone()));
         }
+        // its geometry compressed, as Bevy's compressed_mesh(regular) (Mesh3d `compressed`): raea-sys-mesh finished
+        if its[0].props.get("compressed").and_then(Value::as_bool) == Some(true) {
+            row.insert("compressed".into(), V::N(1.0));
+        }
         name_column(&mut row, &its[0].props);
         p.spawns.push(("mesh".into(), vec![row]));
         components(p, &id, &its);
