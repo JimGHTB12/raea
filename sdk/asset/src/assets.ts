@@ -63,6 +63,7 @@ export function tokensynthNote(timbre: string, midi: number, options: { seconds?
   return { ...a, id: key, src: `asset:tokensynth/${key}`, options: o };
 }
 
+/** Whether a value is a generated asset (what sao, tokensynthNote and lyria return), not a file path. */
 export function isGeneratedAsset(v: unknown): v is GeneratedAsset {
   return (
     typeof v === "object" &&

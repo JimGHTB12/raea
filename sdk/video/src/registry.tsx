@@ -13,7 +13,7 @@ export interface CompositionProps<P extends Record<string, unknown> = Record<str
   fps: number;
   durationInFrames: number;
   defaultProps?: P;
-  /** a hand edit laid over the composition (docs/craft-system.md, L): written back by void's timeline */
+  /** a hand edit laid over the composition (docs/craft-system.md, L): written back by the app's timeline */
   edit?: Edit;
 }
 

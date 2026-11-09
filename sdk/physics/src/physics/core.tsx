@@ -54,12 +54,14 @@ export function snapPose(p: Vec3, step: number): Vec3 {
 
 // ---- rotations ------------------------------------------------------------------------------------------------
 
+/** The product a × b of two quaternions [x, y, z, w], `b` applied first, as Bevy's Quat * Quat. */
 export function quatMul(a: Quat, b: Quat): Quat {
   const [ax, ay, az, aw] = a;
   const [bx, by, bz, bw] = b;
   return [aw * bx + ax * bw + ay * bz - az * by, aw * by - ax * bz + ay * bw + az * bx, aw * bz + ax * by - ay * bx + az * bw, aw * bw - ax * bx - ay * by - az * bz];
 }
 
+/** The quaternion [x, y, z, w] turning `angle` radians about `axis`, as Bevy's Quat::from_axis_angle. */
 export function quatAxis(axis: Vec3, angle: number): Quat {
   const l = Math.hypot(...axis) || 1;
   const s = Math.sin(angle / 2) / l;

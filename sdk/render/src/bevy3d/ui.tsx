@@ -25,7 +25,8 @@ import { useVideoConfig } from "@raea/app/clock";
 type Color = Srgba | LinearRgba | string;
 
 /** bevy_ui's Node: its layout fields as Bevy names them (each Bevy's default when left out), and the components that
- *  draw it: background_color (BackgroundColor), border_color (BorderColor, every side), z_index (ZIndex). */
+ *  draw it: background_color (BackgroundColor), border_color (BorderColor, every side), z_index (ZIndex).
+ *  @bevy bevy_ui::Node */
 export interface NodeProps extends PickProps {
   /** bevy_ecs's Name, as a Scrollbar's target names its scroller (the element's id) */
   name?: string;
@@ -237,7 +238,8 @@ export function GhostNode({ children }: { children?: ReactNode }) {
   return useContext(InUi) === null ? <>{children}</> : <div style={{ display: "contents" }}>{children}</div>;
 }
 
-/** bevy_text's TextFont, TextColor, TextLayout and LineHeight, on a Text or a TextSpan. */
+/** bevy_text's TextFont, TextColor, TextLayout and LineHeight, on a Text or a TextSpan.
+ *  @bevy bevy_text::TextFont */
 export interface TextStyleProps {
   /** FontSource: a font file (staticFile("fonts/FiraSans-Bold.ttf")), FontSource.family(name) or a generic family
    *  (FontSource.serif()); Bevy's default font when left out */

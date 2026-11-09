@@ -21,6 +21,7 @@ export function sequence(...steps: Step[]): Group {
   return { kind: "sequence", steps, gap: 0 };
 }
 
+/** Each step when the one before it ends, `gap` frames later (a negative gap overlaps them). */
 export function sequenceGap(gap: number, ...steps: Step[]): Group {
   return { kind: "sequence", steps, gap };
 }

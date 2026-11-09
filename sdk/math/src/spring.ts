@@ -94,6 +94,9 @@ export function measureSpring(opts: {
   return naturalFrames(osc, positive("fps", opts.fps), opts.durationRestThreshold ?? DEFAULT_REST);
 }
 
+/** A damped spring's value at `frame`: from `from` (0) to `to` (1), started `delay` frames late, by its `config`
+ * (mass 1, damping 10, stiffness 100). It overshoots and settles unless `overshootClamping` is set; `durationInFrames`
+ * stretches it to end at that frame. `measureSpring` says how long one takes to settle. */
 export function spring(opts: SpringOptions): number {
   const fps = positive("fps", opts.fps);
   const frame = finite("frame", opts.frame);

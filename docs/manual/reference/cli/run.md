@@ -1,0 +1,34 @@
+---
+title: "raea run"
+summary: "Run a TypeScript program on the engine, headless, and print what it prints."
+order: 7
+sources: ["engine/cli/src/cli.rs"]
+---
+
+`raea run` bundles a TypeScript file and runs it on the engine's own V8, with no window and no composition. If the
+file's default export is a function, it's called. What the program prints is the answer; a throw ends the run with
+exit code 1. It's how checks such as a room's `checkLayout` run, and it reaches the engine's native calls (solids,
+ECS worlds) the way a composition does.
+
+```sh
+raea run checks/layout.ts
+raea run bake.ts --timeout 600
+```
+
+<!-- generated:begin by tools/manual-ref/cli.ts from `raea help --json`; edit only the flag descriptions -->
+
+## Usage
+
+```sh
+raea run SCRIPT.ts   (a TypeScript program on the engine, headless: its default export is called, what it prints is the answer; a check like a room's checkLayout; also: --timeout S)
+```
+
+Headless: it needs nothing running and opens no window. Takes up to 1 argument besides its flags.
+
+## Flags
+
+| Flag | Takes | What it does |
+| --- | --- | --- |
+| `--timeout` | `VALUE` | Stop the program after this many seconds (120 by default). |
+
+<!-- generated:end -->

@@ -139,6 +139,8 @@ export interface TreeOptions {
 
 export type LoftOutline = string | [number, number][];
 
+/** Generated growth as Solids, built natively: `tree`, `loft`, `terrain`, `boulder`, `rosette` and the rest. Draw one
+ * with `<Mesh shape={solid}>`; cut, join, measure and place it like any other Solid. */
 export const grow = {
   /** A tree grown by space colonization in its crown, thinned by the pipe model; `part` picks the wood or the leaves
    * (draw them as two meshes with two materials). */

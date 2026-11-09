@@ -1,0 +1,1673 @@
+{
+ "bevy_animation::AnimationClip": {
+  "doc": "A list of `VariableCurve`s and the `AnimationTargetId`s to which they apply.",
+  "fields": {}
+ },
+ "bevy_animation::graph::AnimationGraph": {
+  "doc": "A graph structure that describes how animation clips are to be blended together.",
+  "fields": {
+   "graph": "The `petgraph` data structure that defines the animation graph.",
+   "root": "The index of the root node in the animation graph.",
+   "mask_groups": "The mask groups that each animation target (bone) belongs to."
+  }
+ },
+ "bevy_anti_alias::fxaa::Fxaa": {
+  "doc": "A component for enabling Fast Approximate Anti-Aliasing (FXAA) for a `bevy_camera::Camera`.",
+  "fields": {
+   "enabled": "Enable render passes for FXAA.",
+   "edge_threshold": "Use lower sensitivity for a sharper, faster, result. Use higher sensitivity for a slower, smoother, result. `Ultra` and `Extreme` settings can result in significant smearing and loss of detail.",
+   "edge_threshold_min": "Trims the algorithm from processing darks."
+  }
+ },
+ "bevy_anti_alias::smaa::Smaa": {
+  "doc": "A component for enabling Subpixel Morphological Anti-Aliasing (SMAA) for a `bevy_camera::Camera`.",
+  "fields": {
+   "preset": "A predefined set of SMAA parameters: i.e. a quality level."
+  }
+ },
+ "bevy_camera::Viewport": {
+  "doc": "Render viewport configuration for the `Camera` component.",
+  "fields": {
+   "physical_position": "The physical position to render this viewport to within the `RenderTarget` of this `Camera`. (0,0) corresponds to the top-left corner",
+   "physical_size": "The physical size of the viewport rectangle to render to within the `RenderTarget` of this `Camera`. The origin of the rectangle is in the top-left corner.",
+   "depth": "The minimum and maximum depth to render (on a scale from 0.0 to 1.0)."
+  }
+ },
+ "bevy_camera::camera::Camera": {
+  "doc": "The defining `Component` for camera entities, storing information about how and what to render through this camera.",
+  "fields": {
+   "viewport": "If set, this camera will render to the given `Viewport` rectangle within the configured `RenderTarget`.",
+   "order": "Cameras with a higher order are rendered later, and thus on top of lower order cameras.",
+   "is_active": "If this is set to `true`, this camera will be rendered to its specified `RenderTarget`. If `false`, this camera will not be rendered.",
+   "computed": "Computed values for this camera, such as the projection matrix and the render target size.",
+   "output_mode": "The `CameraOutputMode` for this camera.",
+   "msaa_writeback": "Controls when MSAA writeback occurs for this camera. See `MsaaWriteback` for available options.",
+   "clear_color": "The clear color operation to perform on the render target.",
+   "invert_culling": "Whether to switch culling mode so that materials that request backface culling cull front faces, and vice versa.",
+   "sub_camera_view": "If set, this camera will be a sub camera of a large view, defined by a `SubCameraView`."
+  }
+ },
+ "bevy_camera::camera::Exposure": {
+  "doc": "How much energy a `Camera3d` absorbs from incoming light.",
+  "fields": {
+   "ev100": "<https://en.wikipedia.org/wiki/Exposure_value#Tabulated_exposure_values>"
+  }
+ },
+ "bevy_camera::clear_color::ClearColorConfig": {
+  "doc": "For a camera, specifies the color used to clear the viewport before rendering or when writing to the final render target texture.",
+  "fields": {
+   "Default": "The clear color is taken from the world's `ClearColor` resource.",
+   "Custom": "The given clear color is used, overriding the `ClearColor` resource defined in the world.",
+   "None": "No clear color is used: the camera will simply draw on top of anything already in the viewport."
+  }
+ },
+ "bevy_camera::components::Camera3d": {
+  "doc": "A 3D camera component. Enables the main 3D render graph for a `Camera`.",
+  "fields": {
+   "depth_load_op": "The depth clear operation to perform for the main 3d pass.",
+   "depth_texture_usages": "The texture usages for the depth texture created for the main 3d pass."
+  }
+ },
+ "bevy_camera::components::Hdr": {
+  "doc": "If this component is added to a camera, the camera will use an intermediate \"high dynamic range\" render texture. This allows rendering with a wider range of lighting values. However, this does *not* affect whether the camera will render with hdr display output (which bevy does not support currently) and only affects the intermediate render texture.",
+  "fields": {}
+ },
+ "bevy_camera::projection::Projection": {
+  "doc": "Component that defines how to compute a `Camera`'s projection matrix.",
+  "fields": {}
+ },
+ "bevy_camera::visibility::render_layers::RenderLayers": {
+  "doc": "Defines which rendering layers an entity belongs to.",
+  "fields": {}
+ },
+ "bevy_color::Okhsla": {
+  "doc": "</div>",
+  "fields": {
+   "hue": "The hue channel. [0.0, 360.0]",
+   "saturation": "The saturation channel. [0.0, 1.0]",
+   "lightness": "The lightness channel. [0.0, 1.0]",
+   "alpha": "The alpha channel. [0.0, 1.0]"
+  }
+ },
+ "bevy_feathers::controls::AngleDegrees": {
+  "doc": "Unit representing an angle. Internally this is represented as radians, but the preferred display format is degrees. This will display the degree symbol (°) except when in editing mode, in which case it will use the suffix \"d\" which is easier to type.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::ButtonVariant": {
+  "doc": "Color variants for buttons. This also functions as a component used by the dynamic styling system to identify which entities are buttons.",
+  "fields": {
+   "Normal": "The standard button appearance",
+   "Primary": "A button with a more prominent color, this is used for \"call to action\" buttons, default buttons for dialog boxes, and so on.",
+   "Plain": "Don't display the button background unless hovering or pressed."
+  }
+ },
+ "bevy_feathers::controls::ColorChannel": {
+  "doc": "Indicates which color channel we want to edit.",
+  "fields": {
+   "Red": "Editing the RGB red channel (0..=1)",
+   "Green": "Editing the RGB green channel (0..=1)",
+   "Blue": "Editing the RGB blue channel (0..=1)",
+   "HslHue": "Editing the hue channel (0..=360)",
+   "HslSaturation": "Editing the chroma / saturation channel (0..=1)",
+   "HslLightness": "Editing the luminance channel (0..=1)",
+   "Alpha": "Editing the alpha channel (0..=1)",
+   "OkhslHue": "Editing the Okhsl Hue channel (0..=360)",
+   "OkhslSaturation": "Editing the Okhsl Saturation channel (0..=1)",
+   "OkhslLightness": "Editing the Okhsl Lightness channel (0..=1)"
+  }
+ },
+ "bevy_feathers::controls::Dimensionless": {
+  "doc": "A `UnitsFormat` meaning \"no units\", which is the default units. This just does straight-up number parsing and formatting with no suffix.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersButton": {
+  "doc": "A button widget.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersCheckbox": {
+  "doc": "A checkbox widget.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersColorInput": {
+  "doc": "A button which displays a color swatch; when clicked, it displays a popup containing a color picker.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersColorPlane": {
+  "doc": "A \"color plane\" widget, which is a 2d picker that allows selecting two components of a color space.",
+  "fields": {
+   "RedGreen": "Show red on the horizontal axis and green on the vertical.",
+   "RedBlue": "Show red on the horizontal axis and blue on the vertical.",
+   "GreenBlue": "Show green on the horizontal axis and blue on the vertical.",
+   "HueSaturation": "Show hue on the horizontal axis and saturation on the vertical.",
+   "HueLightness": "Show hue on the horizontal axis and lightness on the vertical.",
+   "OkhslHueSaturation": "Show OKHSL hue on horizontal axis and saturation on vertical.",
+   "OkhslHueLightness": "Show OKHSL hue on horizontal axis and lightness on vertical."
+  }
+ },
+ "bevy_feathers::controls::FeathersColorSlider": {
+  "doc": "A color slider widget.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersColorSwatch": {
+  "doc": "A color swatch widget.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersDisclosureToggle": {
+  "doc": "A toggle button which shows a chevron that points either right or down, used to expand or collapse a panel. Functionally, this is equivalent to a checkbox, and has a `Checked` state.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersLazyMenu": {
+  "doc": "Top-level menu container. This wraps the menu button and provides an anchor for the popover. This is slightly different from the normal `FeathersMenu` in that it dynamically spawns the menu popup when the menu is shown and despawns it when it is closed, instead of simply hiding the popup. This is the recommended approach for popups which are large, expensive to keep around, or whose items are dynamically generated.",
+  "fields": {
+   "popup": "Callback which constructs the popup"
+  }
+ },
+ "bevy_feathers::controls::FeathersListRow": {
+  "doc": "A selectable row in a list of items",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersListView": {
+  "doc": "A container that displays a scrolling list of items.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersMenu": {
+  "doc": "Top-level menu container. This wraps the menu button and provides an anchor for the popover.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersMenuButton": {
+  "doc": "A menu button widget. This produces a button that has a dropdown arrow.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersMenuDivider": {
+  "doc": "A decorative divider between menu items",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersMenuItem": {
+  "doc": "A menu item widget.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersMenuPopup": {
+  "doc": "A menu popup widget.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersMenuToolButton": {
+  "doc": "A menu button widget with the tool button form factor. This produces a button that has a dropdown arrow.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersNumberInput": {
+  "doc": "Widget that permits text entry of floating-point numbers. This widget implements two-way synchronization: * it emits values (via a `ValueChange<T>`) event as the user types or drags. The type of ``T`` will be ``f32``, ``f64``, ``i32``, or ``i64`` depending on the `NumberInputValue` component variant. * it listens for the insertion of the `NumberInputValue` component, and replaces the contents of the text buffer based on the value in that event.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersRadio": {
+  "doc": "A radio widget.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersScrollbar": {
+  "doc": "A scrollbar. The `target` property should point to an entity whose `ScrollPosition` will be synchronized with the scrollbar.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersSelect": {
+  "doc": "Select control which spawns a menu popup with a list of string options # Emitted events * `ValueChange<Entity>` when the selected option is changed.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersSlider": {
+  "doc": "A slider widget.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersTextInput": {
+  "doc": "Scene function to spawn a text input. For proper styling, this should be enclosed by a `FeathersTextInputContainer`.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersTextInputContainer": {
+  "doc": "Decorative frame around a text input widget. This is a separate entity to allow icons (such as \"search\" or \"clear\") to be inserted adjacent to the input.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersToggleSwitch": {
+  "doc": "A toggle switch widget.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::FeathersToolButton": {
+  "doc": "Tool button scene function: a smaller button for embedding in panel headers.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::LengthMeters": {
+  "doc": "Unit representing length, where the preferred unit is meters.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::NumberInputRange": {
+  "doc": "Represents numeric limits in different number formats.",
+  "fields": {
+   "F32": "An 'f32' range.",
+   "F64": "An 'f64' range.",
+   "I32": "An 'i32' range.",
+   "I64": "An 'i64' range."
+  }
+ },
+ "bevy_feathers::controls::NumberInputValue": {
+  "doc": "Represents numbers in different formats.",
+  "fields": {
+   "F32": "An `f32` value",
+   "F64": "An `f64` value",
+   "I32": "An `i32` value",
+   "I64": "An `i64` value"
+  }
+ },
+ "bevy_feathers::controls::NumberInputWrap": {
+  "doc": "Indicates whether the number input should wrap around the min/max value. This component only applies to `HardLimit`.",
+  "fields": {
+   "NoWrap": "The number input will not wrap around the min/max value.",
+   "Wrap": "The number input will wrap around the min/max value."
+  }
+ },
+ "bevy_feathers::controls::StandardUnitItem": {
+  "doc": "Contains the definition of a \"standard metrical unit\". The `StandardUnitKind` struct maintains a table of these items.",
+  "fields": {
+   "suffixes": "e.g. [\"km\"], or [\"cm\"], first entry is canonical",
+   "scale": "multiply a value in this unit to get the base unit (meters, radians, kg...)"
+  }
+ },
+ "bevy_feathers::controls::TimeSeconds": {
+  "doc": "Unit representing time, where the preferred unit is seconds.",
+  "fields": {}
+ },
+ "bevy_feathers::controls::VirtualKeyboard": {
+  "doc": "A virtual keyboard widget.",
+  "fields": {}
+ },
+ "bevy_feathers::rounded_corners::RoundedCorners": {
+  "doc": "Allows specifying which corners are rounded and which are sharp. All rounded corners have the same radius. Not all combinations are supported, only the ones that make sense for a segmented buttons.",
+  "fields": {
+   "None": "No corners are rounded.",
+   "All": "All corners are rounded.",
+   "TopLeft": "Top-left corner is rounded.",
+   "TopRight": "Top-right corner is rounded.",
+   "BottomRight": "Bottom-right corner is rounded.",
+   "BottomLeft": "Bottom-left corner is rounded.",
+   "Top": "Top corners are rounded.",
+   "Right": "Right corners are rounded.",
+   "Bottom": "Bottom corners are rounded.",
+   "Left": "Left corners are rounded."
+  }
+ },
+ "bevy_feathers::theme::SurfaceLevel": {
+  "doc": "Indicates the type of surface context for computing color assignments",
+  "fields": {
+   "Base": "The base layer - window and pane header",
+   "Higher": "A raised layer - pane and subpane bodies",
+   "Highest": "The highest level - groups and subpane headers",
+   "Floating": "An overlay such as a dialog or menu"
+  }
+ },
+ "bevy_feathers::theme::ThemeBackgroundColor": {
+  "doc": "Component which causes the background color of an entity to be set based on a theme color.",
+  "fields": {}
+ },
+ "bevy_feathers::theme::ThemeBorderColor": {
+  "doc": "Component which causes the border color of an entity to be set based on a theme color. Only supports setting all borders to the same color.",
+  "fields": {}
+ },
+ "bevy_feathers::theme::ThemeContext": {
+  "doc": "Component which is placed on a container and which propagates to children. This is used to modify the color assignments based on the background container.",
+  "fields": {}
+ },
+ "bevy_feathers::theme::ThemeProps": {
+  "doc": "A collection of properties that make up a theme.",
+  "fields": {
+   "token_assignments": "Map of design tokens to semantic tokens.",
+   "semantic_base": "Map of semantic tokens to colors.",
+   "semantic_overrides": "Map of semantic tokens + context to colors."
+  }
+ },
+ "bevy_feathers::theme::ThemedText": {
+  "doc": "A marker component that is used to indicate that the text entity wants to opt-in to using inherited text styles.",
+  "fields": {}
+ },
+ "bevy_feathers::theme::UiTheme": {
+  "doc": "The currently selected user interface theme. Overwriting this resource changes the theme.",
+  "fields": {}
+ },
+ "bevy_gizmos::retained::Gizmo": {
+  "doc": "A component that draws the gizmos of a `GizmoAsset`.",
+  "fields": {
+   "handle": "The handle to the gizmo to draw.",
+   "line_config": "The line specific configuration for this gizmo.",
+   "depth_bias": "How closer to the camera than real geometry the gizmo should be."
+  }
+ },
+ "bevy_image::ImagePlugin": {
+  "doc": "Adds the `Image` as an asset and makes sure that they are extracted and prepared for the GPU.",
+  "fields": {
+   "default_sampler": "The default image sampler to use when `ImageSampler` is set to `Default`.",
+   "default_compressed_image_processor_extensions": "The file extensions that will be assigned a default compressed image processor. This means they will be automatically compressed unless overridden with a `.meta` file."
+  }
+ },
+ "bevy_image::TextureAtlasLayout": {
+  "doc": "Stores a map used to lookup the position of a texture in a `TextureAtlas`. This can be used to either use and look up a specific section of a texture, or animate frame-by-frame as a sprite sheet.",
+  "fields": {
+   "size": "Total size of texture atlas.",
+   "textures": "The specific areas of the atlas where each texture can be found"
+  }
+ },
+ "bevy_image::image::Image": {
+  "doc": "This type is only meant for short-term transmission between same versions and should not be stored anywhere.",
+  "fields": {
+   "data": "Raw pixel data. If the image is being used as a storage texture which doesn't need to be initialized by the CPU, then this should be `None`. Otherwise, it should always be `Some`.",
+   "data_order": "For texture data with layers and mips, this field controls how wgpu interprets the buffer layout.",
+   "texture_descriptor": "Describes the data layout of the GPU texture.\\ For example, whether a texture contains 1D/2D/3D data, and what the format of the texture data is.",
+   "sampler": "The `ImageSampler` to use during rendering.",
+   "texture_view_descriptor": "Describes how the GPU texture should be interpreted.\\ For example, 2D image data could be read as plain 2D, an array texture of layers of 2D with the same dimensions (and the number of layers in that case), a cube map, an array of cube maps, etc.",
+   "asset_usage": "Where this image asset will be used. See `RenderAssetUsages` for more.",
+   "copy_on_resize": "Whether this image should be copied on the GPU when resized."
+  }
+ },
+ "bevy_image::texture_atlas::TextureAtlasLayout": {
+  "doc": "Stores a map used to lookup the position of a texture in a `TextureAtlas`. This can be used to either use and look up a specific section of a texture, or animate frame-by-frame as a sprite sheet.",
+  "fields": {
+   "size": "Total size of texture atlas.",
+   "textures": "The specific areas of the atlas where each texture can be found"
+  }
+ },
+ "bevy_image::texture_atlas::TextureAtlasSources": {
+  "doc": "Stores a mapping from sub texture handles to the related area index.",
+  "fields": {
+   "texture_ids": "Maps from a specific image handle to the index in `textures` where they can be found."
+  }
+ },
+ "bevy_image::texture_atlas_builder::TextureAtlasBuilder": {
+  "doc": "A builder which is used to create a texture atlas from many individual sprites.",
+  "fields": {}
+ },
+ "bevy_input::gamepad::Gamepad": {
+  "doc": "Stores a connected gamepad's metadata such as the name and its `GamepadButton` and `GamepadAxis`.",
+  "fields": {}
+ },
+ "bevy_light::NotShadowCaster": {
+  "doc": "Add this component to make a `Mesh3d` not cast shadows.",
+  "fields": {}
+ },
+ "bevy_light::NotShadowReceiver": {
+  "doc": "Add this component to make a `Mesh3d` not receive shadows.",
+  "fields": {}
+ },
+ "bevy_light::ShadowFilteringMethod": {
+  "doc": "Add this component to a `Camera3d` to control how to anti-alias shadow edges.",
+  "fields": {
+   "Hardware2x2": "Hardware 2x2.",
+   "Gaussian": "Approximates a fixed Gaussian blur, good when TAA isn't in use.",
+   "Temporal": "A randomized filter that varies over time, good when TAA is in use."
+  }
+ },
+ "bevy_light::ambient_light::AmbientLight": {
+  "doc": "An ambient light, which lights the entire scene equally.",
+  "fields": {
+   "color": "The color of the ambient light.",
+   "brightness": "A direct scale factor multiplied with `color` before being passed to the shader.",
+   "affects_lightmapped_meshes": "Whether this ambient light has an effect on meshes with lightmaps."
+  }
+ },
+ "bevy_light::cascade::CascadeShadowConfig": {
+  "doc": "Controls how cascaded shadow mapping works. Prefer using `CascadeShadowConfigBuilder` to construct an instance.",
+  "fields": {
+   "bounds": "The (positive) distance to the far boundary of each cascade.",
+   "overlap_proportion": "The proportion of overlap each cascade has with the previous cascade.",
+   "minimum_distance": "The (positive) distance to the near boundary of the first cascade."
+  }
+ },
+ "bevy_light::directional_light::DirectionalLight": {
+  "doc": "A Directional light.",
+  "fields": {
+   "color": "The color of the light.",
+   "illuminance": "Illuminance in lux (lumens per square meter), representing the amount of light projected onto surfaces by this light source. Lux is used here instead of lumens because a directional light illuminates all surfaces more-or-less the same way (depending on the angle of incidence). Lumens can only be specified for light sources which emit light from a specific area. The default is `light_consts::lux::AMBIENT_DAYLIGHT` = 10,000.",
+   "shadow_maps_enabled": "Whether this light casts shadows.",
+   "contact_shadows_enabled": "Whether this light casts contact shadows.",
+   "soft_shadow_size": "Whether soft shadows are enabled, and if so, the size of the light.",
+   "affects_lightmapped_mesh_diffuse": "Whether this directional light contributes diffuse lighting to meshes with lightmaps.",
+   "shadow_depth_bias": "A value that adjusts the tradeoff between self-shadowing artifacts and proximity of shadows to their casters.",
+   "shadow_normal_bias": "A bias applied along the direction of the fragment's surface normal. It is scaled to the shadow map's texel size so that it is automatically adjusted to the orthographic projection."
+  }
+ },
+ "bevy_light::directional_light::DirectionalLightShadowMap": {
+  "doc": "Controls the resolution of `DirectionalLight` and `SpotLight` shadow maps.",
+  "fields": {
+   "size": "Must be a power of two to avoid unstable cascade positioning."
+  }
+ },
+ "bevy_light::point_light::PointLight": {
+  "doc": "A light that emits light in all directions from a central point.",
+  "fields": {
+   "color": "The color of this light source.",
+   "intensity": "Luminous power in lumens, representing the amount of light emitted by this source in all directions.",
+   "range": "Cut-off for the light's area-of-effect. Fragments outside this range will not be affected by this light at all, so it's important to tune this together with `intensity` to prevent hard lighting cut-offs.",
+   "radius": "Simulates a light source coming from a spherical volume with the given radius.",
+   "shadow_maps_enabled": "Whether this light casts shadows.",
+   "contact_shadows_enabled": "Whether this light casts contact shadows.",
+   "soft_shadows_enabled": "Whether soft shadows are enabled.",
+   "affects_lightmapped_mesh_diffuse": "Whether this point light contributes diffuse lighting to meshes with lightmaps.",
+   "shadow_depth_bias": "A bias used when sampling shadow maps to avoid \"shadow-acne\", or false shadow occlusions that happen as a result of shadow-map fragments not mapping 1:1 to screen-space fragments. Too high of a depth bias can lead to shadows detaching from their casters, or \"peter-panning\". This bias can be tuned together with `shadow_normal_bias` to correct shadow artifacts for a given scene.",
+   "shadow_normal_bias": "A bias applied along the direction of the fragment's surface normal. It is scaled to the shadow map's texel size so that it can be small close to the camera and gets larger further away.",
+   "shadow_map_near_z": "The distance from the light to near Z plane in the shadow map."
+  }
+ },
+ "bevy_light::point_light::PointLightShadowMap": {
+  "doc": "Controls the resolution of `PointLight` shadow maps.",
+  "fields": {
+   "size": "The width and height of each of the 6 faces of the cubemap."
+  }
+ },
+ "bevy_light::probe::EnvironmentMapLight": {
+  "doc": "A pair of cubemap textures that represent the surroundings of a specific area in space.",
+  "fields": {
+   "diffuse_map": "The blurry image that represents diffuse radiance surrounding a region.",
+   "specular_map": "The typically-sharper, mipmapped image that represents specular radiance surrounding a region.",
+   "intensity": "Scale factor applied to the diffuse and specular light generated by this component.",
+   "rotation": "World space rotation applied to the environment light cubemaps. This is useful for users who require a different axis, such as the Z-axis, to serve as the vertical axis.",
+   "affects_lightmapped_mesh_diffuse": "Whether the light from this environment map contributes diffuse lighting to meshes with lightmaps."
+  }
+ },
+ "bevy_light::probe::GeneratedEnvironmentMapLight": {
+  "doc": "A generated environment map that is filtered at runtime.",
+  "fields": {
+   "environment_map": "Source cubemap to be filtered on the GPU, size must be a power of two.",
+   "intensity": "Scale factor applied to the diffuse and specular light generated by this component. Expressed in cd/m² (candela per square meter).",
+   "rotation": "World-space rotation applied to the cubemap.",
+   "affects_lightmapped_mesh_diffuse": "Whether this light contributes diffuse lighting to meshes that already have baked lightmaps."
+  }
+ },
+ "bevy_light::probe::Skybox": {
+  "doc": "Adds a skybox to a 3D camera, based on a cubemap texture.",
+  "fields": {
+   "image": "The cubemap to use.",
+   "brightness": "Scale factor applied to the skybox image. After applying this multiplier to the image samples, the resulting values should be in units of cd/m^2.",
+   "rotation": "View space rotation applied to the skybox cubemap. This is useful for users who require a different axis, such as the Z-axis, to serve as the vertical axis."
+  }
+ },
+ "bevy_light::rect_light::RectLight": {
+  "doc": "A rectangular area light.",
+  "fields": {
+   "color": "The color of the light.",
+   "intensity": "Luminous power in lumens, representing the amount of light emitted by this source in all directions.",
+   "range": "Cut-off for the light's area-of-effect. Fragments outside this range will not be affected by this light at all, so it's important to tune this together with `intensity` to prevent hard lighting cut-offs.",
+   "width": "Width of the light rectangle (along local X).",
+   "height": "Height of the light rectangle (along local Y)."
+  }
+ },
+ "bevy_light::spot_light::SpotLight": {
+  "doc": "A light that emits light in a given direction from a central point.",
+  "fields": {
+   "color": "The color of the light.",
+   "intensity": "Luminous power in lumens, representing the amount of light emitted by this source in all directions.",
+   "range": "Range in meters that this light illuminates.",
+   "radius": "Simulates a light source coming from a spherical volume with the given radius.",
+   "shadow_maps_enabled": "Whether this light casts shadows.",
+   "contact_shadows_enabled": "Whether this light casts contact shadows. Cameras must also have the `ContactShadows` component.",
+   "soft_shadows_enabled": "Whether soft shadows are enabled.",
+   "affects_lightmapped_mesh_diffuse": "Whether this spot light contributes diffuse lighting to meshes with lightmaps.",
+   "shadow_depth_bias": "A value that adjusts the tradeoff between self-shadowing artifacts and proximity of shadows to their casters.",
+   "shadow_normal_bias": "A bias applied along the direction of the fragment's surface normal. It is scaled to the shadow map's texel size so that it can be small close to the camera and gets larger further away.",
+   "shadow_map_near_z": "The distance from the light to the near Z plane in the shadow map.",
+   "outer_angle": "Angle defining the distance from the spot light direction to the outer limit of the light's cone of effect. `outer_angle` must be < `PI / 2.0`.",
+   "inner_angle": "Angle defining the distance from the spot light direction to the inner limit of the light's cone of effect. Light is attenuated from `inner_angle` to `outer_angle` to give a smooth falloff. `inner_angle` should be <= `outer_angle`"
+  }
+ },
+ "bevy_light::volumetric::FogVolume": {
+  "doc": "A unit cube of fog at the origin. Can be positioned and scaled with a `Transform`. Only visible by cameras with a `VolumetricFog` component when lit by a directional light with `VolumetricLight`.",
+  "fields": {
+   "fog_color": "The color of the fog.",
+   "density_factor": "The density of fog, which measures how dark the fog is.",
+   "density_texture": "Optional 3D voxel density texture for the fog.",
+   "density_texture_offset": "Configurable offset of the density texture in UVW coordinates.",
+   "absorption": "The absorption coefficient, which measures what fraction of light is absorbed by the fog at each step.",
+   "scattering": "The scattering coefficient, which measures the fraction of light that's scattered toward, and away from, the viewer.",
+   "scattering_asymmetry": "Measures the fraction of light that's scattered *toward* the camera, as opposed to *away* from the camera.",
+   "light_tint": "Applies a nonphysical color to the light.",
+   "light_intensity": "Scales the light by a fixed fraction."
+  }
+ },
+ "bevy_light::volumetric::VolumetricFog": {
+  "doc": "When placed on a `bevy_camera::Camera3d`, enables volumetric fog and volumetric lighting, also known as light shafts or god rays.",
+  "fields": {
+   "ambient_color": "Color of the ambient light.",
+   "ambient_intensity": "The brightness of the ambient light.",
+   "jitter": "The maximum distance to offset the ray origin randomly by, in meters.",
+   "step_count": "The number of raymarching steps to perform."
+  }
+ },
+ "bevy_light::volumetric::VolumetricLight": {
+  "doc": "Add this component to a `DirectionalLight` with a shadow map (`shadow_maps_enabled: true`) to make volumetric fog interact with it.",
+  "fields": {}
+ },
+ "bevy_math::Rot2": {
+  "doc": "A 2D rotation.",
+  "fields": {
+   "cos": "The cosine of the rotation angle.",
+   "sin": "The sine of the rotation angle."
+  }
+ },
+ "bevy_mesh::MeshVertexAttribute": {
+  "doc": "",
+  "fields": {
+   "name": "The friendly name of the vertex attribute",
+   "id": "The _unique_ id of the vertex attribute. This will also determine sort ordering when generating vertex buffers. Built-in / standard attributes will use \"close to zero\" indices. When in doubt, use a random / very large u64 to avoid conflicts.",
+   "format": "The format of the vertex attribute."
+  }
+ },
+ "bevy_mesh::components::Mesh2d": {
+  "doc": "A component for 2D meshes. Requires a `MeshMaterial2d` to be rendered, commonly using a `ColorMaterial`.",
+  "fields": {}
+ },
+ "bevy_mesh::components::Mesh3d": {
+  "doc": "A component for 3D meshes. Requires a `MeshMaterial3d` to be rendered, commonly using a `StandardMaterial`.",
+  "fields": {}
+ },
+ "bevy_mesh::mesh::Mesh": {
+  "doc": "A 3D object made out of vertices representing triangles, lines, or points, with \"attribute\" values for each vertex.",
+  "fields": {
+   "asset_usage": "`std::collections::BTreeMap` with all defined vertex attributes (Positions, Normals, ...) for this mesh. Attribute ids to attribute values. Uses a `BTreeMap` because, unlike `HashMap`, it has a defined iteration order, which allows easy stable `VertexBuffers` (i.e. same buffer order)",
+   "enable_raytracing": "Whether or not to build a BLAS for use with `bevy_solari` raytracing.",
+   "final_aabb": "Precomputed min and max extents of the mesh position data. Used mainly for constructing `Aabb`s for frustum culling and decompressing vertex positions. This data will be set if/when a mesh is extracted to the GPU or when compressing positions.",
+   "final_uv_ranges": "Precomputed min and max extents of the mesh UV channels data. Used mainly for decompressing vertex UVs. This will be set when compressing UVs."
+  }
+ },
+ "bevy_pbr::extended_material::ExtendedMaterial": {
+  "doc": "A material that extends a base `Material` with additional shaders and data.",
+  "fields": {}
+ },
+ "bevy_pbr::fog::DistanceFog": {
+  "doc": "Configures the “classic” computer graphics distance fog effect, in which objects appear progressively more covered in atmospheric haze the further away they are from the camera. Affects meshes rendered via the PBR `StandardMaterial`.",
+  "fields": {
+   "color": "The color of the fog effect.",
+   "directional_light_color": "Color used to modulate the influence of directional light colors on the fog, where the view direction aligns with each directional light direction, producing a “glow” or light dispersion effect. (e.g. around the sun)",
+   "directional_light_exponent": "The exponent applied to the directional light alignment calculation. A higher value means a more concentrated “glow”.",
+   "falloff": "Determines which falloff mode to use, and its parameters."
+  }
+ },
+ "bevy_pbr::lightmap::Lightmap": {
+  "doc": "A component that applies baked indirect diffuse global illumination from a lightmap.",
+  "fields": {
+   "image": "The lightmap texture.",
+   "uv_rect": "The rectangle within the lightmap texture that the UVs are relative to.",
+   "bicubic_sampling": "Whether bicubic sampling should be used for sampling this lightmap."
+  }
+ },
+ "bevy_pbr::mesh_material::MeshMaterial3d": {
+  "doc": "A material used for rendering a `Mesh3d`.",
+  "fields": {}
+ },
+ "bevy_pbr::pbr_material::StandardMaterial": {
+  "doc": "A material with \"standard\" properties used in PBR lighting. Standard property values with pictures here: <https://google.github.io/filament/notes/material_properties.html>.",
+  "fields": {
+   "base_color": "The color of the surface of the material before lighting.",
+   "base_color_channel": "The UV channel to use for the `StandardMaterial::base_color_texture`.",
+   "base_color_texture": "The texture component of the material's color before lighting. The actual pre-lighting color is `base_color * this_texture`.",
+   "emissive": "Color the material \"emits\" to the camera.",
+   "emissive_exposure_weight": "The weight in which the camera exposure influences the emissive color. A value of `0.0` means the emissive color is not affected by the camera exposure. In opposition, a value of `1.0` means the emissive color is multiplied by the camera exposure.",
+   "emissive_channel": "The UV channel to use for the `StandardMaterial::emissive_texture`.",
+   "emissive_texture": "The emissive map, multiplies pixels with `emissive` to get the final \"emitting\" color of a surface.",
+   "metallic": "How \"metallic\" the material appears, within `[0.0, 1.0]`.",
+   "metallic_roughness_channel": "The UV channel to use for the `StandardMaterial::metallic_roughness_texture`.",
+   "metallic_roughness_texture": "Metallic and roughness maps, stored as a single texture.",
+   "reflectance": "Specular intensity for non-metals on a linear scale of `[0.0, 1.0]`.",
+   "specular_tint": "A color with which to modulate the `StandardMaterial::reflectance` for non-metals.",
+   "diffuse_transmission": "The amount of light transmitted _diffusely_ through the material (i.e. “translucency”).",
+   "diffuse_transmission_channel": "The UV channel to use for the `StandardMaterial::diffuse_transmission_texture`.",
+   "diffuse_transmission_texture": "A map that modulates diffuse transmission via its alpha channel. Multiplied by `StandardMaterial::diffuse_transmission` to obtain the final result.",
+   "specular_transmission": "The amount of light transmitted _specularly_ through the material (i.e. via refraction).",
+   "specular_transmission_channel": "The UV channel to use for the `StandardMaterial::specular_transmission_texture`.",
+   "specular_transmission_texture": "A map that modulates specular transmission via its red channel. Multiplied by `StandardMaterial::specular_transmission` to obtain the final result.",
+   "thickness": "Thickness of the volume beneath the material surface.",
+   "thickness_channel": "The UV channel to use for the `StandardMaterial::thickness_texture`.",
+   "thickness_texture": "A map that modulates thickness via its green channel. Multiplied by `StandardMaterial::thickness` to obtain the final result.",
+   "ior": "The index of refraction of the material.",
+   "attenuation_distance": "How far, on average, light travels through the volume beneath the material's surface before being absorbed.",
+   "attenuation_color": "The resulting (non-absorbed) color after white light travels through the attenuation distance.",
+   "normal_map_channel": "The UV channel to use for the `StandardMaterial::normal_map_texture`.",
+   "normal_map_texture": "Used to fake the lighting of bumps and dents on a material.",
+   "flip_normal_map_y": "Normal map textures authored for DirectX have their y-component flipped. Set this to flip it to right-handed conventions.",
+   "occlusion_channel": "The UV channel to use for the `StandardMaterial::occlusion_texture`.",
+   "occlusion_texture": "Specifies the level of exposure to ambient light.",
+   "specular_channel": "The UV channel to use for the `StandardMaterial::specular_texture`.",
+   "specular_texture": "A map that specifies reflectance for non-metallic materials.",
+   "specular_tint_channel": "The UV channel to use for the `StandardMaterial::specular_tint_texture`.",
+   "specular_tint_texture": "A map that specifies color adjustment to be applied to the specular reflection for non-metallic materials.",
+   "clearcoat": "An extra thin translucent layer on top of the main PBR layer. This is typically used for painted surfaces.",
+   "clearcoat_channel": "The UV channel to use for the `StandardMaterial::clearcoat_texture`.",
+   "clearcoat_texture": "An image texture that specifies the strength of the clearcoat layer in the red channel. Values sampled from this texture are multiplied by the main `StandardMaterial::clearcoat` factor.",
+   "clearcoat_perceptual_roughness": "The roughness of the clearcoat material. This is specified in exactly the same way as the `StandardMaterial::perceptual_roughness`.",
+   "clearcoat_roughness_channel": "The UV channel to use for the `StandardMaterial::clearcoat_roughness_texture`.",
+   "clearcoat_roughness_texture": "An image texture that specifies the roughness of the clearcoat level in the green channel. Values from this texture are multiplied by the main `StandardMaterial::clearcoat_perceptual_roughness` factor.",
+   "clearcoat_normal_channel": "The UV channel to use for the `StandardMaterial::clearcoat_normal_texture`.",
+   "clearcoat_normal_texture": "An image texture that specifies a normal map that is to be applied to the clearcoat layer. This can be used to simulate, for example, scratches on an outer layer of varnish. Normal maps are in the same format as `StandardMaterial::normal_map_texture`.",
+   "anisotropy_strength": "Increases the roughness along a specific direction, so that the specular highlight will be stretched instead of being a circular lobe.",
+   "anisotropy_rotation": "The direction of increased roughness, in radians relative to the mesh tangent.",
+   "anisotropy_channel": "The UV channel to use for the `StandardMaterial::anisotropy_texture`.",
+   "anisotropy_texture": "An image texture that allows the `StandardMaterial::anisotropy_strength` and `StandardMaterial::anisotropy_rotation` to vary across the mesh.",
+   "double_sided": "Support two-sided lighting by automatically flipping the normals for \"back\" faces within the PBR lighting shader.",
+   "unlit": "Whether to apply only the base color to this material.",
+   "fog_enabled": "Whether to enable fog for this material.",
+   "alpha_mode": "How to apply the alpha channel of the `base_color_texture`.",
+   "depth_bias": "Adjust rendered depth.",
+   "depth_map": "The depth map used for [parallax mapping].",
+   "parallax_depth_scale": "How deep the offset introduced by the depth map should be.",
+   "parallax_mapping_method": "Which parallax mapping method to use.",
+   "max_parallax_layer_count": "In how many layers to split the depth maps for parallax mapping.",
+   "lightmap_exposure": "The exposure (brightness) level of the lightmap, if present.",
+   "opaque_render_method": "Render method used for opaque materials. (Where `alpha_mode` is `AlphaMode::Opaque` or `AlphaMode::Mask`)",
+   "deferred_lighting_pass_id": "Used for selecting the deferred lighting pass for deferred materials. Default is `DEFAULT_PBR_DEFERRED_LIGHTING_PASS_ID` for default PBR deferred lighting pass. Ignored in the case of forward materials.",
+   "uv_transform": "The transform applied to the UVs corresponding to `ATTRIBUTE_UV_0` on the mesh before sampling. Default is identity."
+  }
+ },
+ "bevy_pbr::render::mesh::MeshPipeline": {
+  "doc": "All data needed to construct a pipeline for rendering 3D meshes.",
+  "fields": {
+   "view_layouts": "A reference to all the mesh pipeline view layouts.",
+   "clustered_forward_buffer_binding_type": "A reference to all the mesh pipeline view layouts.",
+   "mesh_layouts": "A reference to all the mesh pipeline view layouts.",
+   "shader": "The shader asset handle.",
+   "per_object_buffer_batch_size": "`MeshUniform`s are stored in arrays in buffers. If storage buffers are available, they are used and this will be `None`, otherwise uniform buffers will be used with batches of this many `MeshUniform`s, stored at dynamic offsets within the uniform buffer. Use code like this in custom shaders: ```wesl @if(PER_OBJECT_BUFFER_BATCH_SIZE) @group(1) @binding(0) var<uniform> mesh: array<Mesh, u32(constants::PER_OBJECT_BUFFER_BATCH_SIZE)>; @else @group(1) @binding(0) var<storage> mesh: array<Mesh>; ```",
+   "binding_arrays_are_usable": "Whether binding arrays (a.k.a. bindless textures) are usable on the current render device.",
+   "clustered_decals_are_usable": "Whether clustered decals are usable on the current render device.",
+   "skins_use_uniform_buffers": "Whether skins will use uniform buffers on account of storage buffers being unavailable on this platform.",
+   "metadata_use_uniform_buffers": "Whether mesh metadata will use uniform buffers on account of storage buffers being unavailable on this platform."
+  }
+ },
+ "bevy_pbr::ssao::ScreenSpaceAmbientOcclusion": {
+  "doc": "Component to apply screen space ambient occlusion to a 3d camera.",
+  "fields": {
+   "quality_level": "Quality of the SSAO effect.",
+   "radius": "Maximum sample distance, in view-space units.",
+   "constant_object_thickness": "A constant estimated thickness of objects."
+  }
+ },
+ "bevy_post_process::bloom::settings::Bloom": {
+  "doc": "Applies a bloom effect to an HDR-enabled 2d or 3d camera.",
+  "fields": {
+   "intensity": "Controls the baseline of how much the image is scattered (default: 0.15).",
+   "low_frequency_boost": "Low frequency contribution boost. Controls how much more likely the light is to scatter completely sideways (low frequency image).",
+   "low_frequency_boost_curvature": "Low frequency contribution boost curve. Controls the curvature of the blend factor function making frequencies next to the lowest ones contribute more.",
+   "high_pass_frequency": "Tightens how much the light scatters (default: 1.0).",
+   "prefilter": "Controls the threshold filter used for extracting the brightest regions from the input image before blurring them and compositing back onto the original image.",
+   "composite_mode": "Controls whether bloom textures are blended between or added to each other. Useful if image brightening is desired and a must-change if `prefilter` is used.",
+   "max_mip_dimension": "Maximum size of each dimension for the largest mipchain texture used in downscaling/upscaling. Only tweak if you are seeing visual artifacts.",
+   "scale": "Amount to stretch the bloom on each axis. Artistic control, can be used to emulate anamorphic blur by using a large x-value. For large values, you may need to increase `Bloom::max_mip_dimension` to reduce sampling artifacts."
+  }
+ },
+ "bevy_post_process::dof::DepthOfField": {
+  "doc": "A component that enables a [depth of field] postprocessing effect when attached to a `Camera3d`, simulating the focus of a camera lens.",
+  "fields": {
+   "mode": "The appearance of the effect.",
+   "focal_distance": "The distance in meters to the location in focus.",
+   "sensor_height": "The height of the [image sensor format] in meters.",
+   "aperture_f_stops": "Along with the focal length, controls how much objects not in focus are blurred.",
+   "max_circle_of_confusion_diameter": "The maximum diameter, in pixels, that we allow a circle of confusion to be.",
+   "max_depth": "Objects are never considered to be farther away than this distance as far as depth of field is concerned, even if they actually are."
+  }
+ },
+ "bevy_post_process::effect_stack::chromatic_aberration::ChromaticAberration": {
+  "doc": "Adds colored fringes to the edges of objects in the scene.",
+  "fields": {
+   "color_lut": "The lookup texture that determines the color gradient.",
+   "intensity": "The size of the streaks around the edges of objects, as a fraction of the window size.",
+   "max_samples": "A cap on the number of texture samples that will be performed."
+  }
+ },
+ "bevy_post_process::effect_stack::vignette::Vignette": {
+  "doc": "Adds a gradual shading effect to the edges of the screen, drawing focus towards the center.",
+  "fields": {
+   "intensity": "Controls the strength of the darkening effect.",
+   "radius": "The size of the unvignetted center area.",
+   "smoothness": "The softness of the edge between the clear and dark areas.",
+   "roundness": "The shape of the vignette.",
+   "center": "The center of the vignette in UV coordinates (0.0 to 1.0).",
+   "edge_compensation": "Used to make the vignette effect fit the screen better.",
+   "color": "The color of the vignette."
+  }
+ },
+ "bevy_post_process::motion_blur::MotionBlur": {
+  "doc": "A component that enables and configures motion blur when added to a camera.",
+  "fields": {
+   "shutter_angle": "The strength of motion blur from `0.0` to `1.0`.",
+   "samples": "The quality of motion blur, corresponding to the number of per-pixel samples taken in each direction during blur."
+  }
+ },
+ "bevy_render::storage::ShaderBuffer": {
+  "doc": "A storage buffer that is prepared as a `RenderAsset` and uploaded to the GPU.",
+  "fields": {
+   "data": "Optional data used to initialize the buffer, as well as the buffer's size.",
+   "label": "A label that can be used to identify this buffer in a debugger.",
+   "buffer_usage": "How this buffer can legally be used.",
+   "asset_usage": "The asset usage of the storage buffer.",
+   "copy_on_resize": "Whether this buffer should be copied on the GPU when resized. The buffer should have `BufferUsages::COPY_SRC | BufferUsages::COPY_DST` usages to be copyable."
+  }
+ },
+ "bevy_render::view::ColorGrading": {
+  "doc": "Configures filmic color grading parameters to adjust the image appearance.",
+  "fields": {
+   "global": "Filmic color grading values applied to the image as a whole (as opposed to individual sections, like shadows and highlights).",
+   "shadows": "Color grading values that are applied to the darker parts of the image.",
+   "midtones": "Color grading values that are applied to the parts of the image with intermediate brightness.",
+   "highlights": "Color grading values that are applied to the lighter parts of the image."
+  }
+ },
+ "bevy_render::view::Tonemapping": {
+  "doc": "Optionally enables a tonemapping shader that attempts to map linear input stimulus into a perceptually uniform image for a given `Camera` entity.",
+  "fields": {
+   "None": "Bypass tonemapping. No color grading, exposure, or dither applies.",
+   "Linear": "Identity tone curve. `ColorGrading`, exposure, and `DebandDither` still apply. The output is unbounded display-linear.",
+   "Reinhard": "Suffers from lots hue shifting, brights don't desaturate naturally. Bright primaries and secondaries don't desaturate at all.",
+   "ReinhardLuminance": "Suffers from hue shifting. Brights don't desaturate much at all across the spectrum.",
+   "AcesFitted": "Same base implementation that Godot 4.0 uses for Tonemap ACES. <https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl> Not neutral, has a very specific aesthetic, intentional and dramatic hue shifting. Bright greens and reds turn orange. Bright blues turn magenta. Significantly increased contrast. Brights desaturate across the spectrum.",
+   "AgX": "By Troy Sobotka <https://github.com/sobotka/AgX> Very neutral. Image is somewhat desaturated when compared to other tonemappers. Little to no hue shifting. Subtle Abney shifting. NOTE: Requires the `tonemapping_luts` cargo feature.",
+   "SomewhatBoringDisplayTransform": "By Tomasz Stachowiak Has little hue shifting in the darks and mids, but lots in the brights. Brights desaturate across the spectrum. Is sort of between Reinhard and `ReinhardLuminance`. Conceptually similar to reinhard-jodie. Designed as a compromise if you want e.g. decent skin tones in low light, but can't afford to re-do your VFX to look good without hue shifting.",
+   "TonyMcMapface": "Current Bevy default. By Tomasz Stachowiak <https://github.com/h3r2tic/tony-mc-mapface> Very neutral. Subtle but intentional hue shifting. Brights desaturate across the spectrum. Comment from author: Tony is a display transform intended for real-time applications such as games. It is intentionally boring, does not increase contrast or saturation, and stays close to the input stimulus where compression isn't necessary. Brightness-equivalent luminance of the input stimulus is compressed. The non-linearity resembles Reinhard. Color hues are preserved during compression, except for a deliberate Bezold–Brücke shift. To avoid posterization, selective desaturation is employed, with care to avoid the Abney effect. NOTE: Requires the `tonemapping_luts` cargo feature.",
+   "BlenderFilmic": "Default Filmic Display Transform from blender. Somewhat neutral. Suffers from hue shifting. Brights desaturate across the spectrum. NOTE: Requires the `tonemapping_luts` cargo feature.",
+   "KhronosPbrNeutral": "Despite its name, it is not considered to be neutral. Highly saturated colors and tends to produce a very high contrast image. Suffers from significant Abney shifting, and tends to crush grays and desaturated colors. Designed for e-commerce to faithfully reproduce the colors of brand's logos when used with low brightness grayscale lighting. See the KhronosGroup spec for more information."
+  }
+ },
+ "bevy_sprite::sprite::Sprite": {
+  "doc": "Describes a sprite to be rendered to a 2D camera",
+  "fields": {
+   "image": "The image used to render the sprite",
+   "texture_atlas": "The (optional) texture atlas used to render the sprite",
+   "color": "The sprite's color tint",
+   "flip_x": "Flip the sprite along the `X` axis",
+   "flip_y": "Flip the sprite along the `Y` axis",
+   "custom_size": "An optional custom size for the sprite that will be used when rendering, instead of the size of the sprite's image",
+   "rect": "An optional rectangle representing the region of the sprite's image to render, instead of rendering the full image. This is an easy one-off alternative to using a `TextureAtlas`.",
+   "image_mode": "How the sprite's image will be scaled.",
+   "alpha_mode": "The sprite's alpha mode, defaulting to `Blend`."
+  }
+ },
+ "bevy_sprite::sprite::SpriteImageMode": {
+  "doc": "Controls how the image is altered when scaled.",
+  "fields": {
+   "Auto": "The sprite will take on the size of the image by default, and will be stretched or shrunk if `Sprite::custom_size` is set.",
+   "Scale": "The texture will be scaled to fit the rect bounds defined in `Sprite::custom_size`. Otherwise no scaling will be applied.",
+   "Sliced": "The texture will be cut in 9 slices, keeping the texture in proportions on resize",
+   "Tiled": "The texture will be repeated if stretched beyond `stretched_value`"
+  }
+ },
+ "bevy_sprite::text2d::Text2dShadow": {
+  "doc": "Adds a shadow behind `Text2d` text",
+  "fields": {
+   "offset": "Shadow displacement With a value of zero the shadow will be hidden directly behind the text",
+   "color": "Color of the shadow"
+  }
+ },
+ "bevy_sprite_render::mesh2d::color_material::ColorMaterial": {
+  "doc": "A 2d material that renders 2d meshes with a texture tinted by a uniform color",
+  "fields": {}
+ },
+ "bevy_sprite_render::mesh2d::material::MeshMaterial2d": {
+  "doc": "A material used for rendering a `Mesh2d`.",
+  "fields": {}
+ },
+ "bevy_sprite_render::sprite_mesh::sprite_extended_material::SpriteMaterial": {
+  "doc": "Allows extending the material of a `Sprite` using a `MaterialExtension2d`.",
+  "fields": {}
+ },
+ "bevy_text::EditableText": {
+  "doc": "A plain-text text input field.",
+  "fields": {
+   "viewport": "The bounds of the visible portion of the text layout.",
+   "pending_edits": "Text edit actions that have been requested but not yet applied.",
+   "cursor_margin": "Cursor reveal margins as fractions of the viewport size.",
+   "cursor_width": "Cursor width, relative to font size",
+   "cursor_blink_period": "Cursor blink period in seconds.",
+   "max_characters": "Maximum number of characters the text input can contain.",
+   "visible_lines": "Sets the input’s height in number of visible lines.",
+   "visible_width": "Sets the input's width in number of visible glyphs. For proportional fonts the final size is the given value times the \"0\" advance width.",
+   "allow_newlines": "Allow new lines"
+  }
+ },
+ "bevy_text::FontAtlas": {
+  "doc": "Rasterized glyphs are cached, stored in, and retrieved from, a `FontAtlas`.",
+  "fields": {
+   "dynamic_texture_atlas_builder": "Used to update the `TextureAtlasLayout`.",
+   "glyph_to_atlas_index": "A mapping between subpixel-offset glyphs and their `GlyphAtlasLocation`.",
+   "texture_atlas": "The layout for the font atlas.",
+   "texture": "The texture where this font atlas is located"
+  }
+ },
+ "bevy_text::FontAtlasSet": {
+  "doc": "Set of rasterized fonts stored in `FontAtlas`es.",
+  "fields": {}
+ },
+ "bevy_text::FontCx": {
+  "doc": "A font database and cache, used for font family resolution and text layout.",
+  "fields": {
+   "context": "A font database/cache (wrapper around a Fontique `Collection` and `SourceCache`)."
+  }
+ },
+ "bevy_text::FontFeatureTag": {
+  "doc": "An OpenType font feature tag.",
+  "fields": {}
+ },
+ "bevy_text::FontSource": {
+  "doc": "Determines how the font face for a text sections is selected.",
+  "fields": {
+   "Handle": "Use a specific font face referenced by a `Font` asset handle.",
+   "Family": "Resolve the font by family name using the font database.",
+   "Families": "Font family list in CSS format.",
+   "List": "Ordered list of font sources.",
+   "Generic": "Resolve the font using a generic font family."
+  }
+ },
+ "bevy_text::FontVariationTag": {
+  "doc": "An OpenType font variation tag.",
+  "fields": {}
+ },
+ "bevy_text::FontWidth": {
+  "doc": "The visual width of a font as a ratio of its normal width, typically 0.5 to 2.0. `<https://docs.microsoft.com/en-us/typography/opentype/spec/os2#uswidthclass>`",
+  "fields": {}
+ },
+ "bevy_text::GenericFontFamily": {
+  "doc": "Generic font families that are resolved through Parley's font database.",
+  "fields": {
+   "Serif": "Fonts with serifs — small decorative strokes at the ends of letterforms.",
+   "SansSerif": "Fonts without serifs.",
+   "Cursive": "Fonts that use a cursive or handwritten style.",
+   "Fantasy": "Decorative or expressive fonts.",
+   "Monospace": "Fonts in which all glyphs have the same fixed advance width.",
+   "SystemUi": "The default user interface system font.",
+   "UiSerif": "Alternative serif font for user interfaces.",
+   "UiSansSerif": "Alternative sans-serif font for user interfaces.",
+   "UiMonospace": "Alternative monospace font for user interfaces.",
+   "UiRounded": "Fonts that have rounded features.",
+   "Emoji": "Fonts that are specifically designed to render emoji.",
+   "Math": "This is for the particular stylistic concerns of representing mathematics: superscript and subscript, brackets that cross several lines, nesting expressions, and double struck glyphs with distinct meanings.",
+   "FangSong": "A particular style of Chinese characters that are between serif-style Song and cursive-style Kai forms. This style is often used for government documents."
+  }
+ },
+ "bevy_text::TextCursorStyle": {
+  "doc": "Controls text cursor appearance.",
+  "fields": {
+   "color": "Color of the cursor",
+   "selection_color": "Background color of selected text",
+   "unfocused_selection_color": "Background color of unfocused selected text",
+   "selected_text_color": "If some, overrides the color of selected text",
+   "selection_radius": "Corner radius of selection highlight rectangles, normalized relative to the selection height."
+  }
+ },
+ "bevy_text::TextFont": {
+  "doc": "`TextFont` determines the style of a text span within a `ComputedTextBlock`, specifically the font face, the font size, the line height, and the antialiasing method.",
+  "fields": {
+   "font": "Specifies the font face used for this text section.",
+   "font_size": "The vertical height of rasterized glyphs in the font atlas in pixels.",
+   "weight": "How thick or bold the strokes of a font appear.",
+   "width": "How condensed or expanded the glyphs appear horizontally.",
+   "style": "The slant style of a font face: normal, italic, or oblique.",
+   "font_smoothing": "The antialiasing method to use when rendering text.",
+   "font_features": "OpenType features for .otf fonts that support them.",
+   "font_variations": "OpenType variations for variable fonts that support them."
+  }
+ },
+ "bevy_text::text::TextSpan": {
+  "doc": "A span of text in a tree of spans.",
+  "fields": {}
+ },
+ "bevy_transform::components::transform::Transform": {
+  "doc": "Describe the position of an entity. If the entity has a parent, the position is relative to its parent position.",
+  "fields": {
+   "translation": "Position of the entity. In 2d, the last value of the `Vec3` is used for z-ordering.",
+   "rotation": "Rotation of the entity.",
+   "scale": "Scale of the entity."
+  }
+ },
+ "bevy_ui::BoxShadow": {
+  "doc": "List of shadows to draw for a `Node`.",
+  "fields": {}
+ },
+ "bevy_ui::GridAutoFlow": {
+  "doc": "Controls whether grid items are placed row-wise or column-wise as well as whether the sparse or dense packing algorithm is used.",
+  "fields": {
+   "Row": "Items are placed by filling each row in turn, adding new rows as necessary.",
+   "Column": "Items are placed by filling each column in turn, adding new columns as necessary.",
+   "RowDense": "Combines `Row` with the dense packing algorithm.",
+   "ColumnDense": "Combines `Column` with the dense packing algorithm."
+  }
+ },
+ "bevy_ui::GridPlacement": {
+  "doc": "Represents the position of a grid item in a single axis.",
+  "fields": {}
+ },
+ "bevy_ui::GridTrack": {
+  "doc": "A `GridTrack` is a Row or Column of a CSS Grid. This struct specifies what size the track should be. See below for the different \"track sizing functions\" you can specify.",
+  "fields": {}
+ },
+ "bevy_ui::GridTrackRepetition": {
+  "doc": "How many times to repeat a repeated grid track",
+  "fields": {
+   "Count": "Repeat the track fixed number of times",
+   "AutoFill": "Repeat the track to fill available space",
+   "AutoFit": "Repeat the track to fill available space but collapse any tracks that do not end up with an item placed in them."
+  }
+ },
+ "bevy_ui::IgnoreScroll": {
+  "doc": "Controls whether a UI element ignores its parent's `ScrollPosition` along specific axes.",
+  "fields": {}
+ },
+ "bevy_ui::MaxTrackSizingFunction": {
+  "doc": "",
+  "fields": {
+   "Px": "Track maximum size should be a fixed pixel value",
+   "Percent": "Track maximum size should be a percentage value",
+   "Em": "Track maximum size should be a multiple of the grid container's font size.",
+   "Rem": "Track maximum size should be a multiple of the root font size.",
+   "MinContent": "Track maximum size should be content sized under a min-content constraint",
+   "MaxContent": "Track maximum size should be content sized under a max-content constraint",
+   "FitContentPx": "Track maximum size should be sized according to the fit-content formula with a fixed pixel limit",
+   "FitContentPercent": "Track maximum size should be sized according to the fit-content formula with a percentage limit",
+   "Auto": "Track maximum size should be automatically sized",
+   "Fraction": "The dimension as a fraction of the total available grid space (`fr` units in CSS) Specified value is the numerator of the fraction. Denominator is the sum of all fractions specified in that grid dimension.",
+   "VMin": "Track maximum size should be a percent of the viewport's smaller dimension.",
+   "VMax": "Track maximum size should be a percent of the viewport's smaller dimension.",
+   "Vh": "Track maximum size should be a percent of the viewport's height dimension.",
+   "Vw": "Track maximum size should be a percent of the viewport's width dimension."
+  }
+ },
+ "bevy_ui::MinTrackSizingFunction": {
+  "doc": "",
+  "fields": {
+   "Px": "Track minimum size should be a fixed pixel value",
+   "Percent": "Track minimum size should be a percentage value",
+   "Em": "Track minimum size should be a multiple of the grid container's font size.",
+   "Rem": "Track minimum size should be a multiple of the root font size.",
+   "MinContent": "Track minimum size should be content sized under a min-content constraint",
+   "MaxContent": "Track minimum size should be content sized under a max-content constraint",
+   "Auto": "Track minimum size should be automatically sized",
+   "VMin": "Track minimum size should be a percent of the viewport's smaller dimension.",
+   "VMax": "Track minimum size should be a percent of the viewport's larger dimension.",
+   "Vh": "Track minimum size should be a percent of the viewport's height dimension.",
+   "Vw": "Track minimum size should be a percent of the viewport's width dimension."
+  }
+ },
+ "bevy_ui::Node": {
+  "doc": "The base component for UI entities. It describes UI layout and style properties.",
+  "fields": {
+   "display": "Which layout algorithm to use when laying out this node's contents: - `Display::Flex`: Use the Flexbox layout algorithm - `Display::Grid`: Use the CSS Grid layout algorithm - `Display::None`: Hide this node and perform layout as if it does not exist.",
+   "box_sizing": "Which part of a Node's box length styles like width and height control - `BoxSizing::BorderBox`: They refer to the \"border box\" size (size including padding and border) - `BoxSizing::ContentBox`: They refer to the \"content box\" size (size excluding padding and border)",
+   "position_type": "Whether a node should be laid out in-flow with, or independently of its siblings: - `PositionType::Relative`: Layout this node in-flow with other nodes using the usual (flexbox/grid) layout algorithm. - `PositionType::Absolute`: Layout this node on top and independently of other nodes.",
+   "overflow": "Whether overflowing content should be displayed or clipped.",
+   "scrollbar_width": "How much space in logical pixels should be reserved for scrollbars when overflow is set to scroll or auto on an axis.",
+   "overflow_clip_margin": "How the bounds of clipped content should be determined",
+   "left": "The horizontal position of the left edge of the node. - For relatively positioned nodes, this is relative to the node's position as computed during regular layout. - For absolutely positioned nodes, this is relative to the *parent* node's bounding box.",
+   "right": "The horizontal position of the right edge of the node. - For relatively positioned nodes, this is relative to the node's position as computed during regular layout. - For absolutely positioned nodes, this is relative to the *parent* node's bounding box.",
+   "top": "The vertical position of the top edge of the node. - For relatively positioned nodes, this is relative to the node's position as computed during regular layout. - For absolutely positioned nodes, this is relative to the *parent* node's bounding box.",
+   "bottom": "The vertical position of the bottom edge of the node. - For relatively positioned nodes, this is relative to the node's position as computed during regular layout. - For absolutely positioned nodes, this is relative to the *parent* node's bounding box.",
+   "width": "The ideal width of the node. `width` is used when it is within the bounds defined by `min_width` and `max_width`.",
+   "height": "The ideal height of the node. `height` is used when it is within the bounds defined by `min_height` and `max_height`.",
+   "min_width": "The minimum width of the node. `min_width` is used if it is greater than `width` and/or `max_width`.",
+   "min_height": "The minimum height of the node. `min_height` is used if it is greater than `height` and/or `max_height`.",
+   "max_width": "The maximum width of the node. `max_width` is used if it is within the bounds defined by `min_width` and `width`.",
+   "max_height": "The maximum height of the node. `max_height` is used if it is within the bounds defined by `min_height` and `height`.",
+   "aspect_ratio": "The aspect ratio of the node (defined as `width / height`)",
+   "align_items": "Used to control how each individual item is aligned by default within the space they're given. - For Flexbox containers, sets default cross axis alignment of the child items. - For CSS Grid containers, controls block (vertical) axis alignment of children of this grid container within their grid areas.",
+   "justify_items": "Used to control how each individual item is aligned by default within the space they're given. - For Flexbox containers, this property has no effect. See `justify_content` for main axis alignment of flex items. - For CSS Grid containers, sets default inline (horizontal) axis alignment of child items within their grid areas.",
+   "align_self": "Used to control how the specified item is aligned within the space it's given. - For Flexbox items, controls cross axis alignment of the item. - For CSS Grid items, controls block (vertical) axis alignment of a grid item within its grid area.",
+   "justify_self": "Used to control how the specified item is aligned within the space it's given. - For Flexbox items, this property has no effect. See `justify_content` for main axis alignment of flex items. - For CSS Grid items, controls inline (horizontal) axis alignment of a grid item within its grid area.",
+   "align_content": "Used to control how items are distributed. - For Flexbox containers, controls alignment of lines if `flex_wrap` is set to `FlexWrap::Wrap` and there are multiple lines of items. - For CSS Grid containers, controls alignment of grid rows.",
+   "justify_content": "Used to control how items are distributed. - For Flexbox containers, controls alignment of items in the main axis. - For CSS Grid containers, controls alignment of grid columns.",
+   "direction": "Sets the inline axis direction (LTR or RTL) used for layout.",
+   "margin": "The amount of space around a node outside its border.",
+   "padding": "The amount of space between the edges of a node and its contents.",
+   "border": "The amount of space between the margins of a node and its padding.",
+   "border_radius": "Used to add rounded corners to a UI node. You can set a UI node to have uniformly rounded corners or specify different radii for each corner. If a given radius exceeds half the length of the smallest dimension between the node's height or width, the radius will calculated as half the smallest dimension.",
+   "flex_direction": "Whether a Flexbox container should be a row or a column. This property has no effect on Grid nodes.",
+   "flex_wrap": "Whether a Flexbox container should wrap its contents onto multiple lines if they overflow. This property has no effect on Grid nodes.",
+   "flex_grow": "Defines how much a flexbox item should grow if there's space available. Defaults to 0 (don't grow at all).",
+   "flex_shrink": "Defines how much a flexbox item should shrink if there's not enough space available. Defaults to 1.",
+   "flex_basis": "The initial length of a flexbox in the main axis, before flex growing/shrinking properties are applied.",
+   "row_gap": "The size of the gutters between items in a vertical flexbox layout or between rows in a grid layout.",
+   "column_gap": "The size of the gutters between items in a horizontal flexbox layout or between column in a grid layout.",
+   "grid_auto_flow": "Controls whether automatically placed grid items are placed row-wise or column-wise as well as whether the sparse or dense packing algorithm is used. Only affects Grid layouts.",
+   "grid_template_rows": "Defines the number of rows a grid has and the sizes of those rows. If grid items are given explicit placements then more rows may be implicitly generated by items that are placed out of bounds. The sizes of those rows are controlled by `grid_auto_rows` property.",
+   "grid_template_columns": "Defines the number of columns a grid has and the sizes of those columns. If grid items are given explicit placements then more columns may be implicitly generated by items that are placed out of bounds. The sizes of those columns are controlled by `grid_auto_columns` property.",
+   "grid_auto_rows": "Defines the size of implicitly created rows. Rows are created implicitly when grid items are given explicit placements that are out of bounds of the rows explicitly created using `grid_template_rows`.",
+   "grid_auto_columns": "Defines the size of implicitly created columns. Columns are created implicitly when grid items are given explicit placements that are out of bounds of the columns explicitly created using `grid_template_columns`.",
+   "grid_row": "The row in which a grid item starts and how many rows it spans.",
+   "grid_column": "The column in which a grid item starts and how many columns it spans."
+  }
+ },
+ "bevy_ui::RepeatedGridTrack": {
+  "doc": "Represents a *possibly* repeated `GridTrack`.",
+  "fields": {}
+ },
+ "bevy_ui::ShadowStyle": {
+  "doc": "",
+  "fields": {
+   "color": "The shadow's color",
+   "x_offset": "Horizontal offset",
+   "y_offset": "Vertical offset",
+   "spread_radius": "How much the shadow should spread outward.",
+   "blur_radius": "Blurriness of the shadow"
+  }
+ },
+ "bevy_ui::UiPosition": {
+  "doc": "Responsive position relative to a UI node.",
+  "fields": {
+   "anchor": "Normalized anchor point",
+   "x": "Responsive horizontal position relative to the anchor point",
+   "y": "Responsive vertical position relative to the anchor point"
+  }
+ },
+ "bevy_ui::UiScale": {
+  "doc": "The current scale of the UI.",
+  "fields": {}
+ },
+ "bevy_ui::UiTargetCamera": {
+  "doc": "Indicates that this root `Node` entity should be rendered to a specific camera.",
+  "fields": {}
+ },
+ "bevy_ui::experimental::GhostNode": {
+  "doc": "Marker component for entities that should be ignored within UI hierarchies.",
+  "fields": {}
+ },
+ "bevy_ui::gradients::AngularColorStop": {
+  "doc": "An angular color stop for a conic gradient",
+  "fields": {
+   "color": "Color of the stop",
+   "angle": "The angle of the stop. Angles are relative to the start of the gradient and not other stops. If set to `None` the angle of the stop will be interpolated between the explicit stops or 0 and 2 PI degrees if there no explicit stops. Given angles are clamped to between `0.`, and `TAU`. This means that a list of stops: ``` # use std::f32::consts::TAU; # use bevy_ui::AngularColorStop; # use bevy_color::{Color, palettes::css::{RED, BLUE}}; let stops = [ AngularColorStop::new(Color::WHITE, 0.), AngularColorStop::new(Color::BLACK, -1.), AngularColorStop::new(RED, 2. * TAU), AngularColorStop::new(BLUE, TAU), ]; ``` is equivalent to: ``` # use std::f32::consts::TAU; # use bevy_ui::AngularColorStop; # use bevy_color::{Color, palettes::css::{RED, BLUE}}; let stops = [ AngularColorStop::new(Color::WHITE, 0.), AngularColorStop::new(Color::BLACK, 0.), AngularColorStop::new(RED, TAU), AngularColorStop::new(BLUE, TAU), ]; ``` Resulting in a black to red gradient, not white to blue.",
+   "hint": "Normalized angle between this and the following stop of the interpolation midpoint."
+  }
+ },
+ "bevy_ui::gradients::ColorStop": {
+  "doc": "A color stop for a gradient",
+  "fields": {
+   "color": "Color",
+   "point": "Logical position along the gradient line. Stop positions are relative to the start of the gradient and not other stops.",
+   "hint": "Normalized position between this and the following stop of the interpolation midpoint."
+  }
+ },
+ "bevy_ui::gradients::ConicGradient": {
+  "doc": "A conic gradient",
+  "fields": {
+   "color_space": "The color space used for interpolation.",
+   "start": "The starting angle of the gradient in radians",
+   "position": "The center of the conic gradient",
+   "stops": "The list of color stops"
+  }
+ },
+ "bevy_ui::gradients::Gradient": {
+  "doc": "",
+  "fields": {
+   "Linear": "A linear gradient",
+   "Radial": "A radial gradient",
+   "Conic": "A conic gradient"
+  }
+ },
+ "bevy_ui::gradients::InterpolationColorSpace": {
+  "doc": "The color space used for interpolation.",
+  "fields": {
+   "Oklaba": "Interpolates in OKLABA space.",
+   "Oklcha": "Interpolates in OKLCHA space, taking the shortest hue path.",
+   "OklchaLong": "Interpolates in OKLCHA space, taking the longest hue path.",
+   "Srgba": "Interpolates in sRGBA space.",
+   "LinearRgba": "Interpolates in linear sRGBA space.",
+   "Hsla": "Interpolates in HSLA space, taking the shortest hue path.",
+   "HslaLong": "Interpolates in HSLA space, taking the longest hue path.",
+   "Hsva": "Interpolates in HSVA space, taking the shortest hue path.",
+   "HsvaLong": "Interpolates in HSVA space, taking the longest hue path.",
+   "Okhsla": "Interpolates in OKHSLA space, taking the shortest hue path.",
+   "OkhslaLong": "Interpolates in OKHSLA space, taking the longest hue path."
+  }
+ },
+ "bevy_ui::gradients::LinearGradient": {
+  "doc": "A linear gradient",
+  "fields": {
+   "color_space": "The color space used for interpolation.",
+   "angle": "The direction of the gradient in radians. An angle of `0.` points upward, with the value increasing in the clockwise direction.",
+   "stops": "The list of color stops"
+  }
+ },
+ "bevy_ui::gradients::RadialGradient": {
+  "doc": "A radial gradient",
+  "fields": {
+   "color_space": "The color space used for interpolation.",
+   "position": "The center of the radial gradient",
+   "shape": "Defines the end shape of the radial gradient",
+   "stops": "The list of color stops"
+  }
+ },
+ "bevy_ui::gradients::RadialGradientShape": {
+  "doc": "",
+  "fields": {
+   "ClosestSide": "A circle with radius equal to the distance from its center to the closest side",
+   "FarthestSide": "A circle with radius equal to the distance from its center to the farthest side",
+   "ClosestCorner": "An ellipse with extents equal to the distance from its center to the nearest corner",
+   "FarthestCorner": "An ellipse with extents equal to the distance from its center to the farthest corner",
+   "Circle": "A circle",
+   "Ellipse": "An ellipse"
+  }
+ },
+ "bevy_ui::ui_node::Node": {
+  "doc": "The base component for UI entities. It describes UI layout and style properties.",
+  "fields": {
+   "display": "Which layout algorithm to use when laying out this node's contents: - `Display::Flex`: Use the Flexbox layout algorithm - `Display::Grid`: Use the CSS Grid layout algorithm - `Display::None`: Hide this node and perform layout as if it does not exist.",
+   "box_sizing": "Which part of a Node's box length styles like width and height control - `BoxSizing::BorderBox`: They refer to the \"border box\" size (size including padding and border) - `BoxSizing::ContentBox`: They refer to the \"content box\" size (size excluding padding and border)",
+   "position_type": "Whether a node should be laid out in-flow with, or independently of its siblings: - `PositionType::Relative`: Layout this node in-flow with other nodes using the usual (flexbox/grid) layout algorithm. - `PositionType::Absolute`: Layout this node on top and independently of other nodes.",
+   "overflow": "Whether overflowing content should be displayed or clipped.",
+   "scrollbar_width": "How much space in logical pixels should be reserved for scrollbars when overflow is set to scroll or auto on an axis.",
+   "overflow_clip_margin": "How the bounds of clipped content should be determined",
+   "left": "The horizontal position of the left edge of the node. - For relatively positioned nodes, this is relative to the node's position as computed during regular layout. - For absolutely positioned nodes, this is relative to the *parent* node's bounding box.",
+   "right": "The horizontal position of the right edge of the node. - For relatively positioned nodes, this is relative to the node's position as computed during regular layout. - For absolutely positioned nodes, this is relative to the *parent* node's bounding box.",
+   "top": "The vertical position of the top edge of the node. - For relatively positioned nodes, this is relative to the node's position as computed during regular layout. - For absolutely positioned nodes, this is relative to the *parent* node's bounding box.",
+   "bottom": "The vertical position of the bottom edge of the node. - For relatively positioned nodes, this is relative to the node's position as computed during regular layout. - For absolutely positioned nodes, this is relative to the *parent* node's bounding box.",
+   "width": "The ideal width of the node. `width` is used when it is within the bounds defined by `min_width` and `max_width`.",
+   "height": "The ideal height of the node. `height` is used when it is within the bounds defined by `min_height` and `max_height`.",
+   "min_width": "The minimum width of the node. `min_width` is used if it is greater than `width` and/or `max_width`.",
+   "min_height": "The minimum height of the node. `min_height` is used if it is greater than `height` and/or `max_height`.",
+   "max_width": "The maximum width of the node. `max_width` is used if it is within the bounds defined by `min_width` and `width`.",
+   "max_height": "The maximum height of the node. `max_height` is used if it is within the bounds defined by `min_height` and `height`.",
+   "aspect_ratio": "The aspect ratio of the node (defined as `width / height`)",
+   "align_items": "Used to control how each individual item is aligned by default within the space they're given. - For Flexbox containers, sets default cross axis alignment of the child items. - For CSS Grid containers, controls block (vertical) axis alignment of children of this grid container within their grid areas.",
+   "justify_items": "Used to control how each individual item is aligned by default within the space they're given. - For Flexbox containers, this property has no effect. See `justify_content` for main axis alignment of flex items. - For CSS Grid containers, sets default inline (horizontal) axis alignment of child items within their grid areas.",
+   "align_self": "Used to control how the specified item is aligned within the space it's given. - For Flexbox items, controls cross axis alignment of the item. - For CSS Grid items, controls block (vertical) axis alignment of a grid item within its grid area.",
+   "justify_self": "Used to control how the specified item is aligned within the space it's given. - For Flexbox items, this property has no effect. See `justify_content` for main axis alignment of flex items. - For CSS Grid items, controls inline (horizontal) axis alignment of a grid item within its grid area.",
+   "align_content": "Used to control how items are distributed. - For Flexbox containers, controls alignment of lines if `flex_wrap` is set to `FlexWrap::Wrap` and there are multiple lines of items. - For CSS Grid containers, controls alignment of grid rows.",
+   "justify_content": "Used to control how items are distributed. - For Flexbox containers, controls alignment of items in the main axis. - For CSS Grid containers, controls alignment of grid columns.",
+   "direction": "Sets the inline axis direction (LTR or RTL) used for layout.",
+   "margin": "The amount of space around a node outside its border.",
+   "padding": "The amount of space between the edges of a node and its contents.",
+   "border": "The amount of space between the margins of a node and its padding.",
+   "border_radius": "Used to add rounded corners to a UI node. You can set a UI node to have uniformly rounded corners or specify different radii for each corner. If a given radius exceeds half the length of the smallest dimension between the node's height or width, the radius will calculated as half the smallest dimension.",
+   "flex_direction": "Whether a Flexbox container should be a row or a column. This property has no effect on Grid nodes.",
+   "flex_wrap": "Whether a Flexbox container should wrap its contents onto multiple lines if they overflow. This property has no effect on Grid nodes.",
+   "flex_grow": "Defines how much a flexbox item should grow if there's space available. Defaults to 0 (don't grow at all).",
+   "flex_shrink": "Defines how much a flexbox item should shrink if there's not enough space available. Defaults to 1.",
+   "flex_basis": "The initial length of a flexbox in the main axis, before flex growing/shrinking properties are applied.",
+   "row_gap": "The size of the gutters between items in a vertical flexbox layout or between rows in a grid layout.",
+   "column_gap": "The size of the gutters between items in a horizontal flexbox layout or between column in a grid layout.",
+   "grid_auto_flow": "Controls whether automatically placed grid items are placed row-wise or column-wise as well as whether the sparse or dense packing algorithm is used. Only affects Grid layouts.",
+   "grid_template_rows": "Defines the number of rows a grid has and the sizes of those rows. If grid items are given explicit placements then more rows may be implicitly generated by items that are placed out of bounds. The sizes of those rows are controlled by `grid_auto_rows` property.",
+   "grid_template_columns": "Defines the number of columns a grid has and the sizes of those columns. If grid items are given explicit placements then more columns may be implicitly generated by items that are placed out of bounds. The sizes of those columns are controlled by `grid_auto_columns` property.",
+   "grid_auto_rows": "Defines the size of implicitly created rows. Rows are created implicitly when grid items are given explicit placements that are out of bounds of the rows explicitly created using `grid_template_rows`.",
+   "grid_auto_columns": "Defines the size of implicitly created columns. Columns are created implicitly when grid items are given explicit placements that are out of bounds of the columns explicitly created using `grid_template_columns`.",
+   "grid_row": "The row in which a grid item starts and how many rows it spans.",
+   "grid_column": "The column in which a grid item starts and how many columns it spans."
+  }
+ },
+ "bevy_ui::ui_transform::UiTransform": {
+  "doc": "Relative 2D transform for UI nodes",
+  "fields": {
+   "translation": "Translate the node.",
+   "scale": "Scale the node. A negative value reflects the node in that axis.",
+   "rotation": "Rotate the node clockwise."
+  }
+ },
+ "bevy_ui::ui_transform::Val2": {
+  "doc": "A pair of `Val`s used to represent a 2-dimensional size or offset.",
+  "fields": {
+   "x": "Translate the node along the x-axis. `Val::Percent` values are resolved based on the computed width of the Ui Node. `Val::Auto` is resolved to `0.`.",
+   "y": "Translate the node along the y-axis. `Val::Percent` values are resolved based on the computed height of the UI Node. `Val::Auto` is resolved to `0.`."
+  }
+ },
+ "bevy_ui::widget::InlineImage": {
+  "doc": "An inline image",
+  "fields": {
+   "color": "The tint color used to draw the image.",
+   "image": "Handle to the texture.",
+   "width": "Set a fixed width in logical pixels for the image's inline box target.",
+   "height": "Set a fixed height in logical pixels for the image's inline box target.",
+   "flip_x": "Flip the image on the x-axis.",
+   "flip_y": "Flip the image on the y-axis."
+  }
+ },
+ "bevy_ui::widget::image::ImageNode": {
+  "doc": "A UI Node that renders an image.",
+  "fields": {
+   "color": "The tint color used to draw the image.",
+   "image": "Handle to the texture.",
+   "texture_atlas": "The (optional) texture atlas used to render the image.",
+   "flip_x": "Whether the image should be flipped along its x-axis.",
+   "flip_y": "Whether the image should be flipped along its y-axis.",
+   "rect": "An optional rectangle representing the region of the image to render, instead of rendering the full image. This is an easy one-off alternative to using a `TextureAtlas`.",
+   "image_mode": "Controls how the image is altered to fit within the layout and how the layout algorithm determines the space to allocate for the image.",
+   "visual_box": "Which region of the UI node the image should be drawn within."
+  }
+ },
+ "bevy_ui::widget::text::TextShadow": {
+  "doc": "Adds a shadow behind text",
+  "fields": {
+   "offset": "Shadow displacement in logical pixels With a value of zero the shadow will be hidden directly behind the text",
+   "color": "Color of the shadow"
+  }
+ },
+ "bevy_ui_render::BoxShadowSamples": {
+  "doc": "Number of shadow samples. A larger value will result in higher quality shadows. Default is 4, values higher than ~10 offer diminishing returns.",
+  "fields": {}
+ },
+ "bevy_ui_render::GlobalUiDebugOptions": {
+  "doc": "Configuration for the UI debug overlay",
+  "fields": {
+   "enabled": "Set to true to enable the UI debug overlay",
+   "outline_border_box": "Show outlines for the border boxes of UI nodes",
+   "outline_padding_box": "Show outlines for the padding boxes of UI nodes",
+   "outline_content_box": "Show outlines for the content boxes of UI nodes",
+   "outline_scrollbars": "Show outlines for the scrollbar regions of UI nodes",
+   "line_width": "Width of the overlay's lines in logical pixels",
+   "line_color_override": "Override Color for the overlay's lines",
+   "show_hidden": "Show outlines for non-visible UI nodes",
+   "show_clipped": "Show outlines for clipped sections of UI nodes",
+   "ignore_border_radius": "Draw outlines with sharp corners even if the UI nodes have border radii"
+  }
+ },
+ "bevy_ui_render::UiDebugOptions": {
+  "doc": "Configuration for the UI debug overlay",
+  "fields": {
+   "enabled": "Set to true to enable the UI debug overlay",
+   "outline_border_box": "Show outlines for the border boxes of UI nodes",
+   "outline_padding_box": "Show outlines for the padding boxes of UI nodes",
+   "outline_content_box": "Show outlines for the content boxes of UI nodes",
+   "outline_scrollbars": "Show outlines for the scrollbar regions of UI nodes",
+   "line_width": "Width of the overlay's lines in logical pixels",
+   "line_color_override": "Override Color for the overlay's lines",
+   "show_hidden": "Show outlines for non-visible UI nodes",
+   "show_clipped": "Show outlines for clipped sections of UI nodes",
+   "ignore_border_radius": "Draw outlines with sharp corners even if the UI nodes have border radii"
+  }
+ },
+ "bevy_ui_widgets::ControlOrientation": {
+  "doc": "",
+  "fields": {
+   "Horizontal": "Horizontal orientation (stretching from left to right)",
+   "Vertical": "Vertical orientation (stretching from top to bottom)"
+  }
+ },
+ "bevy_ui_widgets::Scrollbar": {
+  "doc": "A headless scrollbar widget, which can be used to build custom scrollbars.",
+  "fields": {
+   "target": "Entity being scrolled.",
+   "orientation": "Whether the scrollbar is vertical or horizontal.",
+   "min_thumb_length": "Minimum length of the scrollbar thumb, in pixel units, in the direction parallel to the main scrollbar axis. The scrollbar will resize the thumb entity based on the proportion of visible size to content size, but no smaller than this. This prevents the thumb from disappearing in cases where the ratio of content size to visible size is large."
+  }
+ },
+ "bevy_ui_widgets::ScrollbarThumb": {
+  "doc": "This component indicates that the entity is a scrollbar thumb (the moving, draggable part of the scrollbar). This should be a child of the scrollbar entity.",
+  "fields": {
+   "border_radius": "Border radius of the scrollbar thumb, used to update `ComputedNode::border_radius` in `UiSystems::Layout`.",
+   "border": "Thickness of the thumb node's border."
+  }
+ },
+ "bevy_ui_widgets::popover::Popover": {
+  "doc": "Component which is inserted into a popover element to make it dynamically position relative to an parent element.",
+  "fields": {
+   "positions": "List of potential positions for the popover element relative to the parent.",
+   "window_margin": "Indicates how close to the window edge the popup is allowed to go."
+  }
+ },
+ "bevy_ui_widgets::popover::PopoverPlacement": {
+  "doc": "Indicates a possible position of a popover element relative to it's parent. You can specify multiple possible positions; the positioning code will check to see if there is sufficient space to display the popup without being clipped by the window edge. If any position has sufficient room, it will pick the first one; if there are none, then it will pick the least bad one.",
+  "fields": {
+   "side": "The side of the parent entity where the popover element should be placed.",
+   "align": "How the popover element should be aligned to the parent entity.",
+   "gap": "The size of the gap between the parent and the popover element, in logical pixels. This will offset the popover along the direction of `side`."
+  }
+ },
+ "raea_core_animate::spec::Animation": {
+  "doc": "One element's declared animation.",
+  "fields": {
+   "origin": "the composition frame the element's local frame 0 falls on (where its Sequence starts)",
+   "freeze": "a local frame to hold at whatever the composition's frame (inside a Freeze)",
+   "fps": "the frames per second its frames count; springs measure their settle time with it (0: the clock's)",
+   "tracks": "the frames per second its frames count; springs measure their settle time with it (0: the clock's)",
+   "show_from": "the local frame it's shown from, when it shows only for a window (mount=\"during\"); before it, display none",
+   "show_until": "the local frame it's hidden from again"
+  }
+ },
+ "raea_sys_compute::Computes": {
+  "doc": "The frame's computes, in order, and the frame's time.",
+  "fields": {}
+ },
+ "raea_sys_framepass::FramePasses": {
+  "doc": "The camera's passes, in order.",
+  "fields": {}
+ },
+ "raea_sys_phase::DepthCopy": {
+  "doc": "The image a camera's depth is copied into each frame.",
+  "fields": {}
+ },
+ "raea_sys_phase::GBufferPass": {
+  "doc": "A camera's fullscreen G-buffer draw: its shader file (as written), its G-buffer entry point and its shadow one (\"\" for none).",
+  "fields": {
+   "registered": "its shader file, registered as written (raea-sys-shader), and the id register gave it"
+  }
+ },
+ "raea_sys_phase::MeshPass": {
+  "doc": "A mesh's own pass: its shader file (as written) and entry points.",
+  "fields": {
+   "depth": "whether it tests and writes the view's depth (GreaterEqual), as a mesh in Bevy's opaque phase does",
+   "registered": "its shader file, registered as written (raea-sys-shader), and the id register gave it"
+  }
+ },
+ "raea_sys_phase::MeshShaderPass": {
+  "doc": "A camera's mesh-shader draw: its task shader file (\"\" for none), mesh and fragment shader files, and its workgroup count.",
+  "fields": {
+   "registered": "its files, registered as written (raea-sys-shader), and the ids register gave them (0 for no task shader)"
+  }
+ },
+ "raea_sys_phase::PhaseItem": {
+  "doc": "What a phase item draws: its shader file (as written) and entry points, its vertex buffer's words (32-bit each, each `stride` bytes a vertex) and attributes, its indices (u32), and its depth state: whether it writes depth and how it compares (Bevy's CompareFunction by name).",
+  "fields": {
+   "registered": "its shader file, registered as written (raea-sys-shader), and the id register gave it"
+  }
+ },
+ "raea_sys_phase::ShaderInstances": {
+  "doc": "A mesh's instances: your shader file (as written), and each instance's `stride` bytes of 32-bit words, read as its `attributes` say.",
+  "fields": {
+   "registered": "its shader file, registered as written (raea-sys-shader), and the id register gave it"
+  }
+ },
+ "name:Annulus": {
+  "doc": "A primitive shape formed by the region between two circles, also known as a ring.",
+  "fields": {
+   "inner_circle": "The inner circle of the annulus",
+   "outer_circle": "The outer circle of the annulus"
+  },
+  "from": "bevy_shape::Annulus"
+ },
+ "name:Atmosphere": {
+  "doc": "Atmosphere for one planet. The entity's `GlobalTransform` is the planet center in world space.",
+  "fields": {
+   "inner_radius": "Radius of the planet",
+   "outer_radius": "Radius at which we consider the atmosphere to 'end' for our calculations (from center of planet)",
+   "ground_albedo": "An approximation of the average albedo (or color, roughly) of the planet's surface. This is used when calculating multiscattering.",
+   "medium": "A handle to a `ScatteringMedium`, which describes the substance of the atmosphere and how it scatters light."
+  },
+  "from": "bevy_light::Atmosphere"
+ },
+ "name:BorderRadius": {
+  "doc": "Used to add rounded corners to a UI node. You can set a UI node to have uniformly rounded corners, elliptical corners, or specify a different radius for each corner. If a given radius exceeds half the length of the node's height or width, the radius will be calculated as half the height or width.",
+  "fields": {
+   "top_left": "Border radius of the top left corner",
+   "top_right": "Border radius of the top right corner",
+   "bottom_right": "Border radius of the bottom right corner",
+   "bottom_left": "Border radius of the bottom left corner"
+  },
+  "from": "bevy_ui::BorderRadius"
+ },
+ "name:Capsule2d": {
+  "doc": "A 2D capsule primitive, also known as a stadium or pill shape.",
+  "fields": {
+   "radius": "The radius of the capsule",
+   "half_length": "Half the height of the capsule, excluding the semicircles"
+  },
+  "from": "bevy_shape::Capsule2d"
+ },
+ "name:Capsule3d": {
+  "doc": "A 3D capsule primitive centered on the origin A three-dimensional capsule is defined as a surface at a distance (radius) from a line",
+  "fields": {
+   "radius": "The radius of the capsule",
+   "half_length": "Half the height of the capsule, excluding the hemispheres"
+  },
+  "from": "bevy_shape::Capsule3d"
+ },
+ "name:Circle": {
+  "doc": "A circle primitive, representing the set of points some distance from the origin",
+  "fields": {
+   "radius": "The radius of the circle"
+  },
+  "from": "bevy_shape::Circle"
+ },
+ "name:CircularSector": {
+  "doc": "A primitive representing a circular sector: a pie slice of a circle.",
+  "fields": {
+   "arc": "The arc defining the sector"
+  },
+  "from": "bevy_shape::CircularSector"
+ },
+ "name:CircularSegment": {
+  "doc": "A primitive representing a circular segment: the area enclosed by the arc of a circle and its chord (the line between its endpoints).",
+  "fields": {
+   "arc": "The arc defining the segment"
+  },
+  "from": "bevy_shape::CircularSegment"
+ },
+ "name:Cone": {
+  "doc": "A cone primitive centered on the midpoint between the tip of the cone and the center of its base.",
+  "fields": {
+   "radius": "The radius of the base",
+   "height": "The height of the cone"
+  },
+  "from": "bevy_shape::Cone"
+ },
+ "name:ConicalFrustum": {
+  "doc": "A conical frustum primitive. A conical frustum can be created by slicing off a section of a cone.",
+  "fields": {
+   "radius_top": "The radius of the top of the frustum",
+   "radius_bottom": "The radius of the base of the frustum",
+   "height": "The height of the frustum"
+  },
+  "from": "bevy_shape::ConicalFrustum"
+ },
+ "name:ConvexPolygon": {
+  "doc": "A convex polygon with `N` vertices.",
+  "fields": {},
+  "from": "bevy_shape::ConvexPolygon"
+ },
+ "name:CornerRadius": {
+  "doc": "The horizontal and vertical radii of a rounded corner's elliptical arc. If one field is auto, the resolved radius will be circular and clamped to half the length of the node's shortest side. If either field is zero, or both are auto, the node will have square corners.",
+  "fields": {
+   "x": "Responsive horizontal radius.",
+   "y": "Responsive vertical radius."
+  },
+  "from": "bevy_ui::CornerRadius"
+ },
+ "name:Cuboid": {
+  "doc": "A cuboid primitive, which is like a cube, except that the x, y, and z dimensions are not required to be the same.",
+  "fields": {
+   "half_size": "Half of the width, height and depth of the cuboid"
+  },
+  "from": "bevy_shape::Cuboid"
+ },
+ "name:Cylinder": {
+  "doc": "A cylinder primitive centered on the origin",
+  "fields": {
+   "radius": "The radius of the cylinder",
+   "half_height": "The half height of the cylinder"
+  },
+  "from": "bevy_shape::Cylinder"
+ },
+ "name:Ellipse": {
+  "doc": "An ellipse primitive, which is like a circle, but the width and height can be different",
+  "fields": {
+   "half_size": "Half of the width and height of the ellipse."
+  },
+  "from": "bevy_shape::Ellipse"
+ },
+ "name:FogFalloff": {
+  "doc": "Allows switching between different fog falloff modes, and configuring their parameters.",
+  "fields": {
+   "Linear": "A linear fog falloff that grows in intensity between `start` and `end` distances.",
+   "Exponential": "An exponential fog falloff with a given `density`.",
+   "ExponentialSquared": "A squared exponential fog falloff with a given `density`.",
+   "Atmospheric": "A more general form of the `FogFalloff::Exponential` mode. The falloff formula is separated into two terms, `extinction` and `inscattering`, for a somewhat simplified atmospheric scattering model. Additionally, individual color channels can have their own density values, resulting in a total of six different configuration parameters."
+  },
+  "from": "bevy_pbr::FogFalloff"
+ },
+ "name:GlobalAmbientLight": {
+  "doc": "The global ambient light, which lights the entire scene equally.",
+  "fields": {
+   "color": "The color of the ambient light.",
+   "brightness": "A direct scale factor multiplied with `color` before being passed to the shader.",
+   "affects_lightmapped_meshes": "Whether this ambient light has an effect on meshes with lightmaps."
+  },
+  "from": "bevy_light::GlobalAmbientLight"
+ },
+ "name:Hsla": {
+  "doc": "</div>",
+  "fields": {
+   "hue": "The hue channel. [0.0, 360.0]",
+   "saturation": "The saturation channel. [0.0, 1.0]",
+   "lightness": "The lightness channel. [0.0, 1.0]",
+   "alpha": "The alpha channel. [0.0, 1.0]"
+  },
+  "from": "bevy_color::Hsla"
+ },
+ "name:LensDistortion": {
+  "doc": "Simulates the warping of the image caused by real-world camera lenses.",
+  "fields": {
+   "intensity": "The overall strength of the distortion effect.",
+   "scale": "A global scale factor applied to the final distorted image.",
+   "multiplier": "A multiplier that determines how the distortion scales along the X and Y axes.",
+   "center": "The center point of the distortion effect in UV space `[0.0, 1.0]`.",
+   "edge_curvature": "Controls the sharpness of the distortion curve near the screen edges."
+  },
+  "from": "bevy_post_process::LensDistortion"
+ },
+ "name:LinearRgba": {
+  "doc": "</div>",
+  "fields": {
+   "red": "The red channel. [0.0, 1.0] for SDR colors.",
+   "green": "The green channel. [0.0, 1.0] for SDR colors.",
+   "blue": "The blue channel. [0.0, 1.0] for SDR colors.",
+   "alpha": "The alpha channel. [0.0, 1.0]"
+  },
+  "from": "bevy_color::LinearRgba"
+ },
+ "name:Oklaba": {
+  "doc": "</div>",
+  "fields": {
+   "lightness": "The 'lightness' channel. [0.0, 1.0]",
+   "a": "The 'a' channel. [-1.0, 1.0]",
+   "b": "The 'b' channel. [-1.0, 1.0]",
+   "alpha": "The alpha channel. [0.0, 1.0]"
+  },
+  "from": "bevy_color::Oklaba"
+ },
+ "name:Oklcha": {
+  "doc": "</div>",
+  "fields": {
+   "lightness": "The 'lightness' channel. [0.0, 1.0]",
+   "chroma": "The 'chroma' channel. [0.0, 1.0]",
+   "hue": "The 'hue' channel. [0.0, 360.0]",
+   "alpha": "The alpha channel. [0.0, 1.0]"
+  },
+  "from": "bevy_color::Oklcha"
+ },
+ "name:Outline": {
+  "doc": "The `Outline` component adds an outline outside the edge of a UI node. Outlines do not take up space in the layout.",
+  "fields": {
+   "width": "The width of the outline.",
+   "offset": "The amount of space between a node's outline the edge of the node.",
+   "color": "The color of the outline."
+  },
+  "from": "bevy_ui::Outline"
+ },
+ "name:Overflow": {
+  "doc": "Whether to show or hide overflowing items",
+  "fields": {
+   "x": "Whether to show or clip overflowing items on the x axis",
+   "y": "Whether to show or clip overflowing items on the y axis"
+  },
+  "from": "bevy_ui::Overflow"
+ },
+ "name:OverflowClipMargin": {
+  "doc": "The bounds of the visible area when a UI node is clipped.",
+  "fields": {
+   "visual_box": "Visible unclipped area",
+   "margin": "Width of the margin on each edge of the visual box in logical pixels. The width of the margin will be zero if a negative value is set."
+  },
+  "from": "bevy_ui::OverflowClipMargin"
+ },
+ "name:Plane3d": {
+  "doc": "A bounded plane in 3D space. It forms a surface starting from the origin with a defined height and width.",
+  "fields": {
+   "normal": "The normal of the plane. The plane will be placed perpendicular to this direction",
+   "half_size": "Half of the width and height of the plane"
+  },
+  "from": "bevy_shape::Plane3d"
+ },
+ "name:Polyline2d": {
+  "doc": "A series of connected line segments in 2D space.",
+  "fields": {
+   "vertices": "The vertices of the polyline"
+  },
+  "from": "bevy_shape::Polyline2d"
+ },
+ "name:Rectangle": {
+  "doc": "A rectangle primitive, which is like a square, except that the width and height can be different",
+  "fields": {
+   "half_size": "Half of the width and height of the rectangle"
+  },
+  "from": "bevy_shape::Rectangle"
+ },
+ "name:RegularPolygon": {
+  "doc": "A polygon centered on the origin where all vertices lie on a circle, equally far apart.",
+  "fields": {
+   "circumcircle": "The circumcircle on which all vertices lie",
+   "sides": "The number of sides"
+  },
+  "from": "bevy_shape::RegularPolygon"
+ },
+ "name:Rhombus": {
+  "doc": "A rhombus primitive, also known as a diamond shape. A four sided polygon, centered on the origin, where opposite sides are parallel but without requiring right angles.",
+  "fields": {
+   "half_diagonals": "Size of the horizontal and vertical diagonals of the rhombus"
+  },
+  "from": "bevy_shape::Rhombus"
+ },
+ "name:Segment2d": {
+  "doc": "A line segment defined by two endpoints in 2D space.",
+  "fields": {
+   "vertices": "The endpoints of the line segment."
+  },
+  "from": "bevy_shape::Segment2d"
+ },
+ "name:Sphere": {
+  "doc": "A sphere primitive, representing the set of all points some distance from the origin",
+  "fields": {
+   "radius": "The radius of the sphere"
+  },
+  "from": "bevy_shape::Sphere"
+ },
+ "name:Srgba": {
+  "doc": "</div>",
+  "fields": {
+   "red": "The red channel. [0.0, 1.0] for SDR colors.",
+   "green": "The green channel. [0.0, 1.0] for SDR colors.",
+   "blue": "The blue channel. [0.0, 1.0] for SDR colors.",
+   "alpha": "The alpha channel. [0.0, 1.0]"
+  },
+  "from": "bevy_color::Srgba"
+ },
+ "name:TextureView": {
+  "doc": "Describes a `Texture` with its associated metadata required by a pipeline or `BindGroup`.",
+  "fields": {},
+  "from": "bevy_render::TextureView"
+ },
+ "name:Torus": {
+  "doc": "A torus primitive, often representing a ring or donut shape The set of points some distance from a circle centered at the origin",
+  "fields": {
+   "minor_radius": "The radius of the tube of the torus",
+   "major_radius": "The distance from the center of the torus to the center of the tube"
+  },
+  "from": "bevy_shape::Torus"
+ },
+ "name:Triangle2d": {
+  "doc": "A triangle in 2D space",
+  "fields": {
+   "vertices": "The vertices of the triangle"
+  },
+  "from": "bevy_shape::Triangle2d"
+ },
+ "name:UiRect": {
+  "doc": "A type which is commonly used to define margins, paddings and borders.",
+  "fields": {
+   "left": "The value corresponding to the left side of the UI rect.",
+   "right": "The value corresponding to the right side of the UI rect.",
+   "top": "The value corresponding to the top side of the UI rect.",
+   "bottom": "The value corresponding to the bottom side of the UI rect."
+  },
+  "from": "bevy_ui::UiRect"
+ },
+ "name:Xyza": {
+  "doc": "</div>",
+  "fields": {
+   "x": "The x-axis. [0.0, 0.9505] for SDR colors.",
+   "y": "The y-axis, intended to represent luminance. [0.0, 1.0] for SDR colors.",
+   "z": "The z-axis. [0.0, 1.0889] for SDR colors.",
+   "alpha": "The alpha channel. [0.0, 1.0]"
+  },
+  "from": "bevy_color::Xyza"
+ }
+}

@@ -16,9 +16,13 @@ const num = (what: string, n: number) => {
 export const px = (n: number): Val => `${num("px", n)}px`;
 /** Bevy's Val::Percent: of the parent's size on that axis (padding and margin: its width, as CSS) */
 export const percent = (n: number): Val => `${num("percent", n)}%`;
+/** Bevy's Val::Vw: percent of the viewport's width */
 export const vw = (n: number): Val => `${num("vw", n)}vw`;
+/** Bevy's Val::Vh: percent of the viewport's height */
 export const vh = (n: number): Val => `${num("vh", n)}vh`;
+/** Bevy's Val::VMin: percent of the viewport's smaller side */
 export const vmin = (n: number): Val => `${num("vmin", n)}vmin`;
+/** Bevy's Val::VMax: percent of the viewport's larger side */
 export const vmax = (n: number): Val => `${num("vmax", n)}vmax`;
 /** Bevy's Val::Auto */
 export const auto: Val = "auto";

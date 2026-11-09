@@ -36,6 +36,9 @@ export interface SeedlingProps {
   muffle?: number;
 }
 
+/** A game's sample, played by bevy_seedling on raea's mixer from the frame it first shows until it leaves the page,
+ * with its effects in its chain. A render and a live play hear the same. Give a repeated one-shot a new `id` each
+ * time: `{hit && <Seedling src={staticFile("hit.wav")} id={`hit-${hits}`} />}`. */
 export function Seedling(props: SeedlingProps): ReactNode {
   const gen = isGeneratedAsset(props.src);
   if (!gen && (typeof props.src !== "string" || !props.src)) throw new TypeError(`Seedling: src is a media file or a generated sound, got ${JSON.stringify(props.src)}`);

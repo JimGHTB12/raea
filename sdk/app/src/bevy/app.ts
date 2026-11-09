@@ -6,6 +6,8 @@ type Call = (name: string, args: unknown) => unknown;
 
 const call: Call = (name, args) => (native as unknown as (n: string, a: unknown) => unknown)(name, args);
 
+/** A headless Bevy App driven from TypeScript through Bevy's remote protocol: open it with its plugins, then spawn,
+ * insert, query and step it, and add TypeScript systems to its schedules. */
 export class BevyApp {
   /** the methods this App answers (BRP's, raea's and its plugins') */
   readonly methods: string[];

@@ -62,6 +62,9 @@ function checkMode(mode: string, side: string): ExtrapolateMode {
   throw new RangeError(`interpolate: ${side} must be extend, clamp, identity or wrap, got "${mode}"`);
 }
 
+/** `x` mapped from the `input` range onto the `output` range, piece by piece: `input` rises, and the two have the same
+ * length. `options.easing` shapes each piece; `extrapolateLeft` and `extrapolateRight` say what happens outside the
+ * range (`extend`, the default, carries on; `clamp` holds the end value; `identity` returns `x`; `wrap` repeats). */
 export function interpolate(
   x: number,
   input: readonly number[],

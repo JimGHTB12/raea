@@ -35,6 +35,8 @@ export interface ThreeShaderMaterialProps {
   color?: string;
 }
 
+/** A three.js shader on the mesh it's in, as it is: a ShaderMaterial's GLSL (or a node material's WGSL) with its
+ * uniforms, drawn by raea's engine with three's built-ins. `<R3F>` makes these from an R3F scene's materials. */
 export function ThreeShaderMaterial(props: ThreeShaderMaterialProps) {
   const { glsl, wgsl } = props;
   if (!glsl === !wgsl) throw new TypeError("ThreeShaderMaterial: give glsl {vertex, fragment} or wgsl {vertex, fragment}, one of them");

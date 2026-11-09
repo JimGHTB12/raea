@@ -79,6 +79,9 @@ function cubicBezier(x1: number, y1: number, x2: number, y2: number): EasingFn {
 const OUT = new WeakMap<EasingFn, EasingFn>();
 const IN_OUT = new WeakMap<EasingFn, EasingFn>();
 
+/** The easing curves, each a function of progress 0..1: `linear`, `quad`, `cubic`, `poly(n)`, `sin`, `circle`, `exp`,
+ * `back`, `elastic`, `bounce` and `bezier(x1, y1, x2, y2)`, eased in as they are; `Easing.out(f)` and `Easing.inOut(f)`
+ * turn one round. Pass one as `interpolate`'s `easing`. */
 export const Easing = {
   linear: ((p) => p) as EasingFn,
   quad: power(2),

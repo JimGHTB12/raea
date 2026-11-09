@@ -124,10 +124,13 @@ export function flatten(refs: PluginRef[]): (string | Plugin)[] {
 /** Bevy's schedules by their labels, for `app.addSystems(Update, ...)` as in Rust. */
 export const PreStartup = "PreStartup", Startup = "Startup", PostStartup = "PostStartup";
 
+/** The frame's schedules, in the order Bevy runs them (with StateTransition and the fixed step's inside). */
 export const First = "First", PreUpdate = "PreUpdate", StateTransition = "StateTransition", RunFixedMainLoop = "RunFixedMainLoop";
 
+/** The fixed step's schedules, run once a frame at the clock's step. */
 export const FixedFirst = "FixedFirst", FixedPreUpdate = "FixedPreUpdate", FixedUpdate = "FixedUpdate", FixedPostUpdate = "FixedPostUpdate", FixedLast = "FixedLast";
 
+/** The frame's main schedules: Update for game logic, then SpawnScene, PostUpdate and Last. */
 export const Update = "Update", SpawnScene = "SpawnScene", PostUpdate = "PostUpdate", Last = "Last";
 
 /** Bevy's startup schedules: a system added to one runs once, before the App's next frame. */

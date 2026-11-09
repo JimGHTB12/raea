@@ -172,6 +172,9 @@ export function useClockState(caller: string): ClockState {
  * made one before (ZeroHeap) */
 const rootTimes = new WeakMap<ClockState, LocalTime>();
 
+/** The time where it's called: the nearest Sequence's (its local frame, where it starts, and the size it gives its
+ * children), or the Clock's outside any. `caller` names the hook in errors. The hook under useCurrentFrame, for components of your own that need more
+ * than the frame. */
 export function useLocalTime(caller: string): LocalTime {
   const clock = useClockState(caller);
   const local = useContext(LocalTimeContext);
@@ -223,6 +226,9 @@ const NO_PROPS = {};
 const NO_WORDS: never[] = [];
 const NO_PERCEPTION = {};
 const NO_INPUT = {};
+/** What time a composition is at: the frame, frame rate, size and length its hooks read, and its words, perception
+ * and input. The renderer, the live view and tests put one around every composition; a composition never needs its
+ * own. */
 export function Clock(props: ClockProps) {
   const { frame, fps, width, height, durationInFrames, id = "main", defaultProps = NO_PROPS, words = NO_WORDS, perception = NO_PERCEPTION, input = NO_INPUT } = props;
   if (typeof frame !== "number" || !Number.isFinite(frame)) {

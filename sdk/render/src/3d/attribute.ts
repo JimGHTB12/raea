@@ -22,10 +22,15 @@ export const MeshVertexAttribute = {
 
 /** Bevy's Mesh::ATTRIBUTE_* (ids 0 to 5), as a Material's vertex buffer names them. */
 export const ATTRIBUTE_POSITION = MeshVertexAttribute.new("Vertex_Position", 0, "Float32x3");
+/** Bevy's Mesh::ATTRIBUTE_NORMAL: a vertex's normal (id 1, Float32x3) */
 export const ATTRIBUTE_NORMAL = MeshVertexAttribute.new("Vertex_Normal", 1, "Float32x3");
+/** Bevy's Mesh::ATTRIBUTE_UV_0: a vertex's first texture coordinates (id 2, Float32x2) */
 export const ATTRIBUTE_UV_0 = MeshVertexAttribute.new("Vertex_Uv", 2, "Float32x2");
+/** Bevy's Mesh::ATTRIBUTE_UV_1: a vertex's second texture coordinates, as a lightmap's (id 3, Float32x2) */
 export const ATTRIBUTE_UV_1 = MeshVertexAttribute.new("Vertex_Uv_1", 3, "Float32x2");
+/** Bevy's Mesh::ATTRIBUTE_TANGENT: a vertex's tangent, its w the bitangent's sign (id 4, Float32x4) */
 export const ATTRIBUTE_TANGENT = MeshVertexAttribute.new("Vertex_Tangent", 4, "Float32x4");
+/** Bevy's Mesh::ATTRIBUTE_COLOR: a vertex's linear RGBA colour (id 5, Float32x4) */
 export const ATTRIBUTE_COLOR = MeshVertexAttribute.new("Vertex_Color", 5, "Float32x4");
 
 /** One attribute's values on a mesh: one a vertex, each a number or a list of the format's size. */

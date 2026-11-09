@@ -99,6 +99,8 @@ export interface Move {
   frames: number;
 }
 
+/** A move from its tracks, by property: `move({ opacity: track({ 0: 0, 6: 1 }), y: track({ 0: 30, 6: 0 }) })`. Its
+ * length is its last key. The named moves (rise, pop and the rest) are built with it. */
 export function move(tracks: Record<string, TrackSpec | TrackSpec[] | Keys>): Move {
   const out: Record<string, TrackSpec | TrackSpec[]> = {};
   let frames = 0;

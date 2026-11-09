@@ -18,6 +18,8 @@ export interface MixProps {
 // of the same Mix through without counting it twice.
 const claimed = new WeakMap<ClockState, { id: string; frame: number }>();
 
+/** The master: every sound in the composition brought to `lufs` integrated loudness (-14) under a true-peak limiter at
+ * `ceiling` dBTP (-1.5), as the platforms play back. Put one in the composition, around the soundtrack or anywhere. */
 export function Mix({ lufs = -14, ceiling = -1.5, children }: MixProps) {
   const clock = useClockState("Mix");
   const id = useId();

@@ -1,0 +1,195 @@
+---
+title: "raea/text"
+summary: "Text in the 3D world, fonts, and time anchored to the words said."
+order: 44
+sources: ["sdk/raea/src/text.ts"]
+---
+
+Two kinds of text live here. `<RichText>` and `<Text3D>` put text into a 3D scene, each glyph a lit entity that the
+same named moves as 2D can animate glyph by glyph. `word()`, `findPhrase` and `useWords` anchor time to speech: the
+frame a phrase is said, from the transcript [`raea cut`](../cli/cut.md) writes, wherever the cut puts it.
+
+```tsx
+import { Sequence } from "raea";
+import { word } from "raea/text";
+
+function Callout() {
+  const at = word("forty countries");
+  return (
+    <Sequence from={at} durationInFrames={60}>
+      <h1 style={{ fontSize: 96, color: "#fff" }}>40 countries</h1>
+    </Sequence>
+  );
+}
+```
+
+See [Cutting by words](../../guides/words.md).
+
+<!-- generated:begin by tools/manual-ref/sdk.ts from the SDK's exports and doc comments; edit outside this block -->
+
+```ts
+import { findPhrase, loadFont, RichText, Span } from "raea/text"
+```
+
+`raea/text` exports 3 components, 1 hook, 3 functions, 6 types. Bevy's counterpart: `bevy_text`. Source: [sdk/raea/src/text.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/text.ts).
+
+## Components
+
+### `RichText`
+
+Text in the 3D world: every glyph a real lit, shaded entity (bevy_rich_text3d's mesh over its glyph atlas, a
+StandardMaterial of its own), laid out as one line of shaped text (kerning, spans of other fonts and sizes) and
+then moved, turned, scaled, recoloured, faded and revealed glyph by glyph with the motion code 2D uses: the named
+moves staggered (`enter="rise" each={2}`), a typewriter's `reveal`, or a `glyph` function of the frame.
+
+ <RichText name="title" size={0.6} enter="pop" each={3}>Hello <Span color="#ffd400" weight={900}>world</Span></RichText>
+ <RichText glyph={(g) => ({ position: [0, Math.sin(frame / 6 + g.index) * 0.05, 0] })}>WAVE</RichText>
+
+Takes [`RichTextProps`](3d.md#richtextprops)'s props.
+
+### `Span`
+
+A run of a <RichText>'s text in its own font, weight, size or colour. Only inside a <RichText>.
+
+Takes [`SpanProps`](3d.md#spanprops)'s props.
+
+### `Text3D`
+
+Solid 3D letters (Manifold's text3d), as a Mesh's geometry: `<Mesh><Text3D size={0.6}>SALE</Text3D>...</Mesh>`.
+
+Takes [`Text3DProps`](3d.md#text3dprops)'s props.
+
+## Hooks
+
+### `useWords`
+
+Every word heard on the timeline, in the frames of the nearest enclosing Sequence.
+
+```ts
+function useWords(): TimelineWord[]
+```
+
+## Functions
+
+### `findPhrase`
+
+Finds the composition frame where `phrase` is said in a transcript.
+
+```ts
+function findPhrase(words: readonly HeardWord[], phrase: string, options?: WordOptions): number
+```
+
+### `loadFont`
+
+The page gets Google Fonts' `family` ("Inter", "Space Grotesk"); `fontFamily` is the name to style text with.
+
+```ts
+function loadFont(family: string): { fontFamily: string; }
+```
+
+### `word`
+
+The composition frame where `phrase` is said. Call it while rendering (it reads the Clock).
+
+```ts
+function word(phrase: string, options?: WordOptions): number
+```
+
+## Types
+
+### `GlyphInfo`
+
+What a glyph is, for a <RichText>'s `glyph` function.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `index` (required) | `number` | its place among the drawn glyphs (spaces aren't glyphs), from 0 |
+| `count` (required) | `number` | how many glyphs the block has |
+| `char` (required) | `string` | – |
+| `word` (required) | `number` | its word's place among the words, from 0, and how many there are |
+| `words` (required) | `number` | – |
+| `inWord` (required) | `number` | its place in its word, and the word's glyph count |
+| `wordLength` (required) | `number` | – |
+| `line` (required) | `number` | its line (by the newlines in the text), from 0 |
+| `span` (required) | `number` | its run: the <Span> it's in (0 for text outside any, counted in order) |
+
+### `GlyphStyle`
+
+A glyph's motion this frame, about its own centre, in the block's space: added to (position, rotation),
+multiplied into (scale, opacity) or replacing (color, visible) what the block's moves give it.
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `position` | `Vec3` | metres, from its place in the block |
+| `rotation` | `Vec3` | radians, XYZ |
+| `scale` | `number \| Vec3` | – |
+| `color` | `string` | – |
+| `opacity` | `number` | – |
+| `visible` | `boolean` | – |
+
+### `RichTextProps`
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `name` | `string` | what it's called across frames, and its glyphs' names over world.* (`${name}:${index}`) |
+| `pass` | `string` | the composition pass it draws in ("scene" by default): a frame-wide effect told to skip a pass (<Look skip>, <Outline skip>, <Bloom skip>, <Grade skip>) leaves its pixels as drawn, and <Look passes> gives one its own paint; a piece names at most three passes besides "scene"; keyed per frame |
+| `position` | `Vec3` | – |
+| `rotation` | `Vec3` | – |
+| `scale` | `number \| Vec3` | – |
+| `size` | `number` | the em in metres (0.5 by default) |
+| `font` | `string` | – |
+| `weight` | `number` | – |
+| `italic` | `boolean` | – |
+| `color` | `string` | each glyph's colour unless its <Span> gives one |
+| `align` | `"left" \| "center" \| "right"` | where the origin is: the left edge, the middle (default) or the right edge of the lines; the block's middle vertically |
+| `lineHeight` | `number` | times the em (1.2 by default) |
+| `maxWidth` | `number` | wrapped at this width in metres (no wrapping by default) |
+| `roughness` | `number` | – |
+| `metalness` | `number` | – |
+| `emissive` | `string` | – |
+| `emissiveIntensity` | `number` | – |
+| `unlit` | `boolean` | – |
+| `castShadow` | `boolean` | letter-shaped shadows (true by default) |
+| `receiveShadow` | `boolean` | – |
+| `layers` | `number[]` | – |
+| `enter` | `MoveLike` | each glyph's (or word's) entrance: a move's name, a move or several (rise, pop, slam, slide, fade... the 2D ones, their px read at 100 an em, their degrees as degrees), `each` frames apart from `at` |
+| `each` | `number` | frames between one glyph's (or word's) entrance and the next (2 by default) |
+| `by` | `"letter" \| "word"` | the entrance and exit staggered by letter (default) or by word |
+| `at` | `number` | – |
+| `exit` | `MoveLike` | – |
+| `exitAt` | `number` | – |
+| `exitEach` | `number` | frames between exits (0: together) |
+| `reveal` | `number` | how many glyphs are shown, a typewriter's count: the next one fades in over its fraction |
+| `glyph` | `(g: GlyphInfo) => GlyphStyle` | each glyph's own motion this frame, from anything the frame gives (useCurrentFrame, spring, interpolate) |
+| `children` | `ReactNode` | – |
+
+### `SpanProps`
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `children` | `ReactNode` | – |
+| `font` | `string` | a family (raea's bundled faces: Inter, Montserrat, Oswald, Playfair Display...; or one on this machine) |
+| `weight` | `number` | – |
+| `italic` | `boolean` | – |
+| `size` | `number` | times the block's size |
+| `color` | `string` | – |
+
+### `Text3DProps`
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `children` | `string` | the words, extruded |
+| `text` | `string` | – |
+| `size` | `number` | letter height in scene units (default 0.5) |
+| `depth` | `number` | extrusion depth (default 0.2) |
+| `font` | `string` | – |
+| `weight` | `number` | – |
+
+### `WordOptions`
+
+| Field | Type | What it is |
+| --- | --- | --- |
+| `occurrence` | `number` | which time the phrase is said, from 1 |
+| `edge` | `"start" \| "end"` | "start": the phrase's first frame; "end": the frame after its last word ends |
+
+<!-- generated:end -->

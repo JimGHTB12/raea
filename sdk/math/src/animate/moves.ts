@@ -95,6 +95,7 @@ export const pushIn: typeof pushInImpl = (o?: any) => made(28, o, undefined, und
 
 export const fade: typeof fadeImpl = (o?: any) => made(29, o, undefined, undefined, () => fadeImpl(o));
 
+/** The named moves by name, as `enter="rise"` finds them. */
 export const moves = { rise, pop, slam, slide, wipe, fill, tick, strike, pushIn, fade };
 
 export type MoveName = "rise" | "pop" | "slam" | "slide" | "wipe" | "fill" | "strike" | "pushIn" | "fade";
