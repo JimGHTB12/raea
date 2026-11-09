@@ -5,8 +5,9 @@
 # The skills gate reads the feed app, which is private, so it runs in a maintainer's checkout first
 # (tools/skills.sh check), and the tag names the commit it passed on; tools/release.sh checks the gate's inputs haven't
 # changed since (tools/release/skills-passed.sh):
-#   git tag -a v0.1.0-canary.4 -m "raea 0.1.0-canary.4" -m "skills-passed: <full sha>"
-# The release's notes and whether it's a pre-release are set by hand.
+#   git tag -a v0.1.0 -m "raea 0.1.0" -m "skills-passed: <full sha>"
+# A tag with a suffix (v0.1.0-rc1, v0.1.0-canary.3) is made a pre-release; a plain version (v0.1.0) is a full release,
+# GitHub's latest. The release's notes are set by hand.
 name: release
 
 on:
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: the tag to build (v0.1.0-canary.4)
+        description: the tag to build (v0.1.0)
         required: true
         type: string
       skills_passed:
@@ -116,7 +117,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --prerelease --title "raea ${TAG#v}" --notes "Built by .github/workflows/release.yml; notes follow."
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" ${{ contains(env.TAG, '-') && '--prerelease' || '' }} --title "raea ${TAG#v}" --notes "Built by .github/workflows/release.yml; notes follow."
           gh release upload "$TAG" dist/raea-*.tar.gz dist/raea-*.tar.gz.sha256 --clobber
 
   # Windows in Git's bash on GitHub's runner, with the Visual Studio Build Tools in its image (their image terms; we
@@ -292,5 +293,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" -R "$GITHUB_REPOSITORY" --prerelease --title "raea ${TAG#v}" --notes "Built by .github/workflows/release.yml; notes follow."
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" -R "$GITHUB_REPOSITORY" ${{ contains(env.TAG, '-') && '--prerelease' || '' }} --title "raea ${TAG#v}" --notes "Built by .github/workflows/release.yml; notes follow."
           gh release upload "$TAG" -R "$GITHUB_REPOSITORY" "$RUNNER_TEMP"/zip/raea-*.zip "$RUNNER_TEMP"/zip/raea-*.zip.sha256 --clobber
