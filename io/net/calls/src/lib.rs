@@ -11,6 +11,7 @@
 //!   net.ws.close {id, code, reason}
 //!   net.storage.get {area} -> {k: v}      localStorage kept across runs, in $BEVY_TSX_STORAGE/<area>.json; without
 //!   net.storage.set {area, change}        that variable these are refused and storage stays in the page's memory
+//!                                         (net.storage.get is a synchronous call too: storage_get, below)
 //!
 //! fetch and the sockets (raea-io-net's http and ws) block on threads of their own, never the caller's frame.
 
@@ -89,6 +90,13 @@ impl<K: Copy + Eq + Hash + Send + 'static> Net<K> {
 }
 
 const NO_STORE: &str = "no storage (BEVY_TSX_STORAGE isn't set)";
+
+/// localStorage's kept values for `{area}`, as `net.storage.get` answers them, for a host to register as a synchronous
+/// call too: sdk/ui's storage.ts reads them before the page's own code runs, as a browser has them (raea-runtime-js
+/// net.rs). Read only at load, so a page that reads its settings then saves them doesn't save its defaults over them.
+pub fn storage_get(args: &Value) -> Result<Value, String> {
+    get(args)
+}
 
 fn get(args: &Value) -> Result<Value, String> {
     let p = store(args).ok_or(NO_STORE)?;

@@ -1,5 +1,5 @@
 // Storage, location and history (in memory).
-import { call } from "../wire";
+import { call, callSync } from "../wire";
 import { DOMEx, URL_, event, g, named, put, structuredClone_, tag } from "./all";
 
 // ---------------------------------------------------------------- Storage
@@ -77,12 +77,24 @@ put("localStorage", new Storage_(local, "local"));
 
 put("sessionStorage", new Storage_(new Map(), null));
 
-// what an earlier run kept, as soon as the host answers (a bundle reading it at load sees what's been set since)
-call<Record<string, string>>("net.storage.get", { area: "local" })
-  .then((kept) => {
-    for (const k in kept ?? {}) if (!local.has(k)) local.set(k, kept[k]);
-  })
-  .catch(() => {});
+// what an earlier run kept, there before the page's own code reads it, as a browser's is: at once from a host that
+// answers net.storage.get synchronously (raea-runtime-js's net.rs). An app reading its settings at load would otherwise
+// see none, then save its defaults over what was kept (raea.app's workspace and dismissed hints, 11-09). A host
+// without the synchronous call answers later, and a bundle reading at load sees only what's been set since.
+const keep = (kept: Record<string, string> | null | undefined) => {
+  for (const k in kept ?? {}) if (!local.has(k)) local.set(k, String(kept![k]));
+};
+let kept: Record<string, string> | undefined;
+try {
+  kept = callSync<Record<string, string>>("net.storage.get", { area: "local" });
+} catch {
+  // no synchronous storage here, or nothing kept (no BEVY_TSX_STORAGE): the async answer below
+}
+if (kept !== undefined) keep(kept);
+else
+  call<Record<string, string>>("net.storage.get", { area: "local" })
+    .then(keep)
+    .catch(() => {});
 
 // ---------------------------------------------------------------- location and history (in memory)
 

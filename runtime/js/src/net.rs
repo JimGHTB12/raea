@@ -28,4 +28,25 @@ pub fn install(calls: &mut HostCalls, push: Sender<(Entity, Value)>) {
             }));
         });
     }
+    // localStorage's kept values, synchronously too: sdk/ui's storage.ts has them before the page's code reads them
+    crate::calls::on_sync("net.storage.get", raea_io_net_calls::storage_get);
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::Value;
+
+    /// A page reads what an earlier run kept at once (raea.app's open workspace and dismissed hints, 11-09).
+    #[test]
+    fn kept_storage_answers_synchronously() {
+        let dir = std::env::temp_dir().join(format!("raea-js-storage-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("local.json"), r#"{"raea.settings":"{\"workspace\":\"raea\"}"}"#).unwrap();
+        // SAFETY: nothing else in this crate's tests reads BEVY_TSX_STORAGE
+        unsafe { std::env::set_var("BEVY_TSX_STORAGE", &dir) };
+        let _calls = crate::calls::HostCalls::default();
+        let got: Value = serde_json::from_str(&crate::calls::sync("net.storage.get", r#"{"area":"local"}"#)).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(got["ok"]["raea.settings"], r#"{"workspace":"raea"}"#, "{got}");
+    }
 }
