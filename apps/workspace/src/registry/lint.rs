@@ -52,6 +52,14 @@ impl Lint {
     }
 }
 
+/// A path with the home folder as ~, as a person reads it.
+fn tilde(p: &Path) -> String {
+    match std::env::var_os("HOME").map(PathBuf::from) {
+        Some(h) if p.starts_with(&h) => format!("~/{}", p.strip_prefix(&h).unwrap_or(p).display()),
+        _ => p.display().to_string(),
+    }
+}
+
 fn warn(file: &str, line: usize, rule: &'static str, says: String, fix: impl Into<String>) -> Lint {
     Lint { file: file.into(), line, rule, level: Level::Warn, says, fix: fix.into(), action: None }
 }
@@ -80,7 +88,7 @@ pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BT
                     &f.rel,
                     *line,
                     "outside",
-                    format!("imports {} from outside the project", to.display()),
+                    format!("imports {} from outside the project", tilde(&to)),
                     "copy it into the project (raea part add, for raea's parts), so the project renders on its own",
                 )),
                 _ => {}
