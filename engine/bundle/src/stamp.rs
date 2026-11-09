@@ -28,14 +28,16 @@ const HTML: &[&str] = &[
     "div", "span", "p", "h1", "h2", "h3", "h4", "h5", "h6", "section", "article", "header", "footer", "main", "aside", "nav", "figure", "figcaption", "blockquote", "pre", "code", "strong", "em", "b", "i", "u", "s", "small", "mark", "sub", "sup", "label", "ul", "ol", "li", "dl", "dt", "dd", "img", "video", "audio", "picture", "a", "button", "table", "tr", "td", "th", "svg", "canvas", "br", "hr",
 ];
 
-/// raea's modules whose components draw 3D parts (a Mesh3d, a Model, a Sprite): their uses are stamped as an HTML
+/// raea's modules whose components draw parts (a Mesh3d, a Model, a Sprite, an Img): their uses are stamped as an HTML
 /// element is, and the scene gives the part a LayerKey component from it (runtime/scene bevy_parts), so a 3D part is
 /// a layer as an element is (docs/review.feature R2a). Never a prop the part's kind reads.
-const PARTS3D: &[&str] = &["raea/3d", "raea/mesh", "raea/sprite"];
+const PARTS3D: &[&str] = &["raea/3d", "raea/mesh", "raea/sprite", "raea"];
 
 /// The parts among them, by the name they're exported as: what draws a thing on its own. Never a shape or a material
 /// inside one (a Mesh3d reads its <Cuboid> child's props, and an extra prop there made it no shape at all).
-const PART_NAMES: &[&str] = &["Mesh3d", "Model", "SceneRoot", "Entity", "Sprite", "Text3D", "Text2d", "ImagePlane", "ShaderMesh", "Plate", "Decal", "Splat", "Grass", "Mesh2d"];
+/// raea's page parts too (an Img, a Video, an AbsoluteFill), whose element is written in the SDK, unstamped: their use
+/// is the layer's place in the code
+const PART_NAMES: &[&str] = &["Mesh3d", "Model", "SceneRoot", "Entity", "Sprite", "Text3D", "Text2d", "ImagePlane", "ShaderMesh", "Plate", "Decal", "Splat", "Grass", "Mesh2d", "Img", "Video", "OffthreadVideo", "AbsoluteFill"];
 
 /// Package components that read their children's types, whose children are left as written (a wrapper there would
 /// hide a <Series.Sequence> from its <Series>, a <Cuboid> from its <Mesh3d>): every component of raea's 3D, material,
@@ -81,7 +83,7 @@ pub fn stamp(source: &str, rel: &str, jsx: bool, helper: &str) -> Option<String>
         let Statement::ImportDeclaration(d) = s else { continue };
         let (local, module) = module_of(rel, d.source.value.as_str());
         let is3d = PARTS3D.contains(&module.as_str());
-        let reads = is3d || READERS_MODULES.contains(&module.as_str());
+        let reads = READERS_MODULES.contains(&module.as_str());
         for sp in d.specifiers.iter().flatten() {
             imports.insert(sp.local().name.to_string(), local);
             let name = sp.local().name.to_string();
@@ -257,7 +259,8 @@ fn module_of(rel: &str, spec: &str) -> (bool, String) {
         return (true, spec.to_string());
     }
     match at.split_first() {
-        Some((&"motion", rest)) if rest.is_empty() || rest == ["index"] => (false, "raea".into()),
+        // "raea" itself is motion/prelude there (raea-runtime-bundle rewrite.rs)
+        Some((&"motion", rest)) if rest.is_empty() || rest == ["index"] || rest == ["prelude"] => (false, "raea".into()),
         Some((&"motion", rest)) => (false, format!("raea/{}", rest.join("/"))),
         _ => (false, spec.to_string()),
     }
@@ -330,6 +333,7 @@ mod tests {
         assert_eq!(module_of("lib/x.tsx", "../card"), (true, "../card".into()));
         assert_eq!(module_of("comp.tsx", "../motion/mesh"), (false, "raea/mesh".into()));
         assert_eq!(module_of("lib/x.tsx", "../../motion"), (false, "raea".into()));
+        assert_eq!(module_of("comp.tsx", "../motion/prelude"), (false, "raea".into()));
         assert_eq!(module_of("comp.tsx", "raea/3d"), (false, "raea/3d".into()));
         // as the work folder has it: the SDK's parts stamped, its shapes and own wrappers not
         let src = "import { Cuboid, Mesh3d } from \"../motion/mesh\";\nimport { Camera3d } from \"../motion/camera\";\nconst X = () => <><Camera3d /><Mesh3d><Cuboid /></Mesh3d></>;\n";
@@ -341,7 +345,7 @@ mod tests {
     fn a_plain_package_component_is_a_parent_like_an_element() {
         let src = "import { AbsoluteFill } from \"raea\";\nimport { Card } from \"./card\";\nconst X = () => <AbsoluteFill><Card /></AbsoluteFill>;\n";
         let out = stamp(src, "p.tsx", false, H).unwrap();
-        assert!(out.contains(r#"<AbsoluteFill><__RaeaAt value={__raeaChain("p.tsx:3:31")}><Card /></__RaeaAt></AbsoluteFill>"#), "{out}");
+        assert!(out.contains(r#"<AbsoluteFill data-raea-loc="p.tsx:3:17" data-raea-use={__raeaUse()}><__RaeaAt value={__raeaChain("p.tsx:3:31")}><Card /></__RaeaAt></AbsoluteFill>"#), "{out}");
     }
 
     #[test]
