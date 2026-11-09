@@ -22,8 +22,9 @@ pub mod stream {
         Fail(String),
     }
 
-    /// What the element asks of its decoder.
-    pub(crate) enum Cmd {
+    /// What the element asks of its decoder. Play plays from `at` on the source's clock (its sound's, when it has
+    /// sound and a device): frames as they fall due, each `Frame` news, and `Ended` at its end unless `looping`.
+    pub enum Cmd {
         Seek(f64),
         Play { at: f64, looping: bool },
         Pause,
@@ -36,22 +37,9 @@ pub mod stream {
     }
 
     impl Stream {
-        pub fn seek(&mut self, t: f64) {
-            let _ = self.tx.send(Cmd::Seek(t));
-        }
-
-        /// Plays from `at` on the source's clock (its sound's, when it has sound and a device): frames as they fall due,
-        /// each `Frame` news, and `Ended` at its end unless `looping`.
-        pub fn play(&mut self, at: f64, looping: bool) {
-            let _ = self.tx.send(Cmd::Play { at, looping });
-        }
-
-        pub fn pause(&mut self) {
-            let _ = self.tx.send(Cmd::Pause);
-        }
-
-        pub fn muted(&mut self, muted: bool) {
-            let _ = self.tx.send(Cmd::Muted(muted));
+        /// Asks the decoder to seek, play, pause or mute; a decoder that has stopped hears nothing.
+        pub fn ask(&mut self, c: Cmd) {
+            let _ = self.tx.send(c);
         }
 
         /// The decoder's next news, if it has any now.

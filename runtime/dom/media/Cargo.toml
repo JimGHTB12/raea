@@ -1,0 +1,17 @@
+[package]
+name = "raea-runtime-dom-media"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The page's video and audio elements: each source decoded and played on its own thread (raea-runtime-js's stream), its news as the element's media events, a video's frame as its picture"
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "bevy_log"] }
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false, features = ["svg", "woff", "system-fonts", "floats", "text-transform-icu", "complex-scripts"] }
+raea-io-net = { path = "../../../io/net" }
+raea-runtime-js = { path = "../../js" }
+raea-sys-image = { path = "../../../systems/image" }
+raea-sys-page = { path = "../../../systems/page" }
+serde_json = "1"
+vello = { version = "=0.11.0", default-features = false, features = ["wgpu"] }

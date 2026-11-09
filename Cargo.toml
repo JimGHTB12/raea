@@ -118,6 +118,7 @@ members = [
     "systems/image",
     "runtime/twins",
     "runtime/dom",
+    "runtime/dom/media",
     "runtime/edit",
     "runtime/view",
     "runtime/encode",

@@ -14698,14 +14698,27 @@ dependencies = [
  "keyboard-types",
  "raea-core-wire",
  "raea-io-net",
+ "raea-runtime-dom-media",
  "raea-runtime-js",
  "raea-runtime-twins",
  "raea-sys-canvas",
- "raea-sys-image",
  "raea-sys-page",
  "serde_json",
  "stylo",
  "url",
+]
+
+[[package]]
+name = "raea-runtime-dom-media"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "blitz-dom",
+ "raea-io-net",
+ "raea-runtime-js",
+ "raea-sys-image",
+ "raea-sys-page",
+ "serde_json",
  "vello",
 ]
 

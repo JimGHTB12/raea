@@ -5,14 +5,15 @@
 //! A seek is the prop `__seek` ([time, n], set by the dom layer's `currentTime`); playing is `__play` ([on, time, n,
 //! loop], set by `play()` and `pause()`), and `__muted` the element's muted. Playing, the decoder's frames come on the
 //! source's clock (its sound's: raea-runtime-js media_play.rs), each a `time` news for the element's currentTime, with
-//! `timeupdate` four times a second as a browser's, `playing` once it's going, and `ended` at its end.
+//! `timeupdate` four times a second as a browser's, `playing` once it's going, and `ended` at its end. raea-runtime-dom's
+//! page host keeps one `Medias` and syncs it after each commit.
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use blitz_dom::BaseDocument;
 use blitz_dom::node::{ImageData, RasterImageData, SpecialElementData};
-use raea_runtime_js::media_html::stream::{Msg, Stream};
+use raea_runtime_js::media_html::stream::{Cmd, Msg, Stream};
 use serde_json::{Value, json};
 
 use raea_sys_page::ops::Nodes;
@@ -40,6 +41,13 @@ pub struct Media {
     muted: Option<bool>,
     /// when the last `timeupdate` went
     told: Option<std::time::Instant>,
+}
+
+impl Media {
+    /// Whether `t` is where the seek asked for landed (it's then asked no more).
+    fn landed(&mut self, t: f64) -> bool {
+        self.seeking.take_if(|s| (*s - t).abs() < 1e-9).is_some()
+    }
 }
 
 /// Each media element by its wire id.
@@ -74,7 +82,7 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
         let muted = props.and_then(|p| p.get("__muted")).and_then(Value::as_bool);
         if m.muted != muted {
             if let (Some(v), Some(st)) = (muted, m.stream.as_mut()) {
-                st.muted(v);
+                st.ask(Cmd::Muted(v));
             }
             m.muted = muted;
         }
@@ -83,7 +91,7 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
                 && let Some(st) = m.stream.as_mut()
             {
                 m.seeking = Some(t);
-                st.seek(t);
+                st.ask(Cmd::Seek(t));
             }
             m.seek = seek;
         }
@@ -92,9 +100,9 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
             if let (Some(p), Some(st)) = (play.as_ref(), m.stream.as_mut()) {
                 m.playing = p.get(0).and_then(Value::as_bool).unwrap_or(false);
                 if m.playing {
-                    st.play(p.get(1).and_then(Value::as_f64).unwrap_or(0.0), p.get(3).and_then(Value::as_bool).unwrap_or(false));
+                    st.ask(Cmd::Play { at: p.get(1).and_then(Value::as_f64).unwrap_or(0.0), looping: p.get(3).and_then(Value::as_bool).unwrap_or(false) });
                 } else {
-                    st.pause();
+                    st.ask(Cmd::Pause);
                 }
             }
             m.play = play;
@@ -117,7 +125,7 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
                         m.loaded = true;
                         out.push(json!({"id": id, "type": "loadeddata", "w": w, "h": h, "duration": m.duration}));
                     }
-                    if m.seeking.take_if(|s| (*s - t).abs() < 1e-9).is_some() {
+                    if m.landed(t) {
                         m.seeked = true;
                         out.push(json!({"id": id, "type": "seeked", "time": t}));
                     }
@@ -127,7 +135,7 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
                     }
                 }
                 Msg::Time(t) => {
-                    if m.seeking.take_if(|s| (*s - t).abs() < 1e-9).is_some() {
+                    if m.landed(t) {
                         out.push(json!({"id": id, "type": "seeked", "time": t}));
                     }
                     if m.playing {

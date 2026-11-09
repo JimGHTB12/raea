@@ -9,7 +9,6 @@ description = "TSX roots on a Blitz page: their scripts, ops, events, timers, if
 [dependencies]
 # the layers under it
 raea-sys-page = { path = "../../systems/page" }
-raea-sys-image = { path = "../../systems/image" }
 raea-runtime-twins = { path = "../../runtime/twins" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "bevy_render", "bevy_asset", "bevy_image", "bevy_log", "bevy_window", "ui_bevy_render", "bevy_picking", "ui_picking", "bevy_input_focus"] }
 # the document: stylo's styles, Taffy's and Blitz's layout (floats on, as Chrome lays them out)
@@ -17,9 +16,10 @@ blitz-dom = { version = "=0.3.0-beta.4", default-features = false, features = ["
 blitz-traits = "=0.3.0-beta.4"
 # keys as Blitz takes them (host.rs WindowInput: a window's KeyboardInput as DOM keys and codes), blitz-traits' own
 keyboard-types = "0.8"
-vello = { version = "=0.11.0", default-features = false, features = ["wgpu"] }
 # a page's script host: JS engines, native calls, media, canvas, accessibility records
 raea-runtime-js = { path = "../js" }
+# the page's video and audio elements (runtime/dom/media)
+raea-runtime-dom-media = { path = "media" }
 # a canvas element's bitmap, drawn from its display list
 raea-sys-canvas = { path = "../../systems/canvas" }
 # the op wire, and the element tree raea's page diffs into ops (motion.rs)

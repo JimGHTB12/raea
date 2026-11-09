@@ -192,7 +192,7 @@ impl<'a> Player<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::media_html::stream::{self, Msg, Stream};
+    use crate::media_html::stream::{self, Cmd, Msg, Stream};
     use std::time::{Duration, Instant};
 
     /// The next news within `within`, polled as the page host polls it (each frame).
@@ -230,7 +230,7 @@ mod tests {
         assert!(matches!(next(&st, Duration::from_secs(5)), Some(Msg::Frame(t, _)) if t == 0.0));
 
         let began = Instant::now();
-        st.play(0.0, false);
+        st.ask(Cmd::Play { at: 0.0, looping: false });
         assert!(matches!(next(&st, Duration::from_secs(1)), Some(Msg::Playing(t)) if t == 0.0));
         let (mut frames, mut last, mut ended) = (0, -1.0, None);
         while let Some(m) = next(&st, Duration::from_secs(3)) {
@@ -252,10 +252,10 @@ mod tests {
         assert!((0.85..1.4).contains(&took), "a second's clip took {took} s");
         assert!(frames >= 20, "{frames} frames of 30");
 
-        st.seek(0.5);
+        st.ask(Cmd::Seek(0.5));
         assert!(matches!(next(&st, Duration::from_secs(2)), Some(Msg::Frame(t, _)) if t == 0.5));
 
-        st.play(0.5, true);
+        st.ask(Cmd::Play { at: 0.5, looping: true });
         let (mut wrapped, mut last, until) = (false, 0.5, Instant::now() + Duration::from_millis(1200));
         while Instant::now() < until {
             match next(&st, Duration::from_millis(200)) {
@@ -269,7 +269,7 @@ mod tests {
         }
         assert!(wrapped, "looping went round");
 
-        st.pause();
+        st.ask(Cmd::Pause);
         let mut after = 0;
         while let Some(m) = next(&st, Duration::from_millis(300)) {
             if matches!(m, Msg::Frame(..)) {
