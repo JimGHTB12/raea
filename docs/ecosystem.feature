@@ -2,8 +2,9 @@
 Feature: raea's plugin ecosystem: extending the engine and the app, made, shared and installed the same way
   Shane, 11-09: "write a plan for this, that fully charts out what a plugin ecosystem looks like both for the engine
   itself and the app". This is that plan: what exists, the one package format both sides share, the engine's three
-  tiers, the app's extension host, and the order to build it in. Built so far: what "What exists" names, and phase
-  1 (EC12). The Bevy plugin catalog's own work stays in docs/plugins.feature.
+  tiers, the app's extension host, and the order to build it in. Built so far: what "What exists" names, phase
+  1 (EC12), and the first of phase 2: the manifest, installing per person, and tools, panels and item types
+  (EC12). The Bevy plugin catalog's own work stays in docs/plugins.feature.
 
   What exists (11-09):
     - The engine is extended through its SDK. TypeScript (components, parts, systems on BevyApp, npm packages through
@@ -49,24 +50,30 @@ Feature: raea's plugin ecosystem: extending the engine and the app, made, shared
       Given a package.json whose "raea" key says what the package adds:
         """
         "raea": {
-          "raea": ">=0.1.0 <0.3",
-          "engine": { "exports": "./src/index.ts", "shaders": "./shaders", "plugins": { "hanabi": { ... } } },
-          "app": { "entry": "./app/index.tsx", "contributes": { "tools": [...], "itemTypes": [...], "panels": [...] } },
-          "permissions": ["feed.read", "comments.write", "net:api.example.com"]
+          "title": "Film grain",
+          "raea": ">=0.1.0",
+          "engine": { "imports": ["@you/raea-grain"] },
+          "app": {
+            "contributes": [{ "point": "tool", "id": "measure", "title": "Measure", "entry": "./app/Measure.tsx" }],
+            "permissions": ["items:read", "comments:write", "notify"],
+            "network": ["api.example.com"]
+          }
         }
         """
-      Then `raea add NAME` installs it into a project (raea.lock, node_modules), and `raea add --global NAME` into
-        ~/.raea for every project, as `raea add` does for npm packages now
+      Then the app's Plugins page installs it for the person, in every project (Shane 11-09: per person), into
+        ~/.raea/plugins (RAEA_PLUGINS) from an npm name, a Git URL or a folder, with npm's install scripts off; a
+        composition imports its packages by name, resolved after the project's own (engine/bundle edit.rs)
+      And (not built) `raea add --global NAME` does the same from the CLI
       And a package can be engine only, app only, or both (a particle editor: the components and the panel that
         tunes them)
       And the "raea" range is checked at install and at load: a package made for another raea is refused with the
         version it wants and the one it found, never loaded and left to fail
 
     Scenario: EC2. Installed packages are visible and reversible
-      Then the Plugins page lists installed packages beside the integrations, by project and global, each with what it
-        adds, its permissions, its version and its source
-      And each can be turned off per project without uninstalling, and removed, and either leaves no trace in the
-        project's files beyond raea.lock
+      Then the Plugins page lists installed packages beside the integrations, each with what it adds, its permissions,
+        the hosts it may reach, its version and its source
+      And a package installs off: none of its code runs until the person has read that and pressed Approve
+      And each can be turned off without uninstalling, and removed, and neither touches a project's files
 
   Rule: The engine: three tiers, by how they load
 
@@ -171,11 +178,26 @@ Feature: raea's plugin ecosystem: extending the engine and the app, made, shared
       tools/raea-app/artifact.sh), raea-skills #14 (SKILL.md §5, feed.md). Tests: host/artifact.test.ts and
       src/artifacts/protocol.test.ts; smoke "an agent posts its own React file as an artifact" passes in Chrome (dev and
       the built page) and on the Blitz window (blitz/pw-run.mjs). Not yet run in a full signed raea.app build.)
+      (11-09, phase 2 begun, Shane: "can we have the plugins in the app allow for you to install a custom plugin":
+      plugins for the engine and the app, from npm, Git or a folder, per person, network only to named hosts. Built:
+      the manifest (apps/app src/plugins/manifest.ts, EC1); install, approve, turn off, remove (host/packages.ts, the
+      Plugins page's Installed section, EC2), npm with --ignore-scripts; compositions import a person's plugins after
+      the project's own packages (engine/bundle edit.rs, EC3); three of EC7's points, the detail tool, a panel beside
+      the feed, and an item type agents post with feed_post type "plugin"; each a .tsx run in the artifact's frame
+      with permissions checked per call (items:read, comments:write, notify) and a network allowlist (EC6); a folder
+      plugin reloads as its author saves (EC8 without the CLI verb). raea-feed 6e65cf8. Tests: manifest.test.ts,
+      host/packages.test.ts (a Git install whose postinstall doesn't run), protocol.test.ts, engine/bundle
+      bundles_a_composition_with_the_persons_plugins, and smoke "a person installs a plugin from a folder" in Chrome
+      (dev and built), on the Blitz window, and an esbuild host.mjs run with raea.app's environment. Not built: `raea
+      add`, `raea app dev|check|bundle`, the raea range checked at load, rail tabs, commands, agent tools, settings,
+      the index (EC10, EC11), a native plugin outside the catalog (EC5). On the Blitz window the frame's network is
+      held by the wrapped calls alone, as Blitz has no CSP.)
 
   Rule: Open questions for Shane
 
     Scenario: EC13. Decisions this plan needs
-      Then may an extension reach the network, and if so only to the domains its manifest names?
+      Then an extension reaches only the hosts its manifest names (Shane 11-09: answered; the frame's CSP and its
+        wrapped fetch, XHR, WebSocket, EventSource and sendBeacon hold it to them)
       And may an extension restyle the app itself (a theme), or only draw inside its own frames?
-      And are packages installed per project by default (they travel with the repo) or per person?
+      And packages install per person, in every project (Shane 11-09: answered)
       And will packages ever be sold through raea, or stay free with raea taking no part?

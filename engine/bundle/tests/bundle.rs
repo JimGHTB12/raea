@@ -177,3 +177,35 @@ fn bundles_a_composition_with_the_edits_packages() {
     assert!(!before.js.contains("EDIT_ANIM"), "anim/react only resolves from the edit's folder");
     let _ = std::fs::remove_dir_all(&d);
 }
+
+/// A package the edit's folders don't have resolves from the person's plugins (RAEA_PLUGINS, ~/.raea/plugins: what the
+/// raea app's Plugins page installs), after the edit's own: an edit that installed the same package keeps its copy.
+#[test]
+fn bundles_a_composition_with_the_persons_plugins() {
+    let d = std::env::temp_dir().join(format!("raea-bundle-plugins-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    let w = |p: &str, s: &str| {
+        let f = d.join(p);
+        std::fs::create_dir_all(f.parent().unwrap()).unwrap();
+        std::fs::write(f, s).unwrap();
+    };
+    w("js/node_modules/react/package.json", r#"{ "name": "react", "main": "index.js" }"#);
+    w("js/node_modules/react/index.js", "export const version = 'ENGINE_REACT';\n");
+    w("plugins/node_modules/grain/package.json", r#"{ "name": "grain", "main": "index.js", "raea": {} }"#);
+    w("plugins/node_modules/grain/index.js", "import { version } from 'react';\nexport const grain = 'PLUGIN_GRAIN with ' + version;\n");
+    w("plugins/node_modules/both/package.json", r#"{ "name": "both", "main": "index.js" }"#);
+    w("plugins/node_modules/both/index.js", "export const both = 'PLUGIN_BOTH';\n");
+    w("edit/node_modules/both/package.json", r#"{ "name": "both", "main": "index.js" }"#);
+    w("edit/node_modules/both/index.js", "export const both = 'EDIT_BOTH';\n");
+    w("work/src/edit.tsx", "import { grain } from 'grain';\nimport { both } from 'both';\n(globalThis as any).out = [grain, both];\n");
+    w("work/entry.ts", "import './src/edit.tsx';\n");
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(d.join("js/node_modules"), d.join("work/node_modules")).unwrap();
+    // SAFETY: only this test reads RAEA_PLUGINS
+    unsafe { std::env::set_var("RAEA_PLUGINS", d.join("plugins")) };
+    let edit = raea_bundle::edit::Edit { dir: d.join("edit"), js: d.join("js"), work: d.join("work") };
+    let b = raea_bundle::bundle_with(&d.join("work/entry.ts"), raea_bundle::Options { edit: Some(edit), ..Default::default() }).expect("bundles");
+    assert!(b.js.contains("PLUGIN_GRAIN with ") && b.js.contains("ENGINE_REACT"), "the plugin's package, the engine's React: {}", b.js);
+    assert!(b.js.contains("EDIT_BOTH") && !b.js.contains("PLUGIN_BOTH"), "the edit's own copy first");
+    let _ = std::fs::remove_dir_all(&d);
+}

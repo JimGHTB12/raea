@@ -3,6 +3,9 @@
 //! had installed. A bare import from the edit's sources resolves from the edit's own folder first (its node_modules,
 //! then its parents', as Node and Vite would), then the engine's; the packages the engine carries (react, mediabunny,
 //! bevy-react...) resolve to its copies from any package, so a bundle has one React however the edit installed its own.
+//! A package the edit's folders don't have resolves from the person's plugins last (~/.raea/plugins, RAEA_PLUGINS:
+//! what the raea app's Plugins page installs for every project, docs/ecosystem.feature EC1), so a component a person
+//! installed once imports in any composition.
 use rolldown_plugin::{HookResolveIdArgs, HookResolveIdOutput, HookResolveIdReturn, HookUsage, Plugin, PluginContext, PluginContextResolveOptions};
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
@@ -82,6 +85,11 @@ mod tests {
     }
 }
 
+/// The person's plugins (the raea app's Plugins page installs them here with npm): RAEA_PLUGINS, else ~/.raea/plugins.
+pub fn plugins() -> PathBuf {
+    raea_io_home::env_path("RAEA_PLUGINS", ".raea/plugins")
+}
+
 /// `spec` resolved by Rolldown's resolver as if imported from a file in `dir`
 async fn resolve_from(ctx: &PluginContext, spec: &str, dir: &Path) -> anyhow::Result<Option<HookResolveIdOutput>> {
     let importer = dir.join("_raea.js");
@@ -131,7 +139,10 @@ impl Plugin for EditResolve {
             // the edit's sources: the engine's copy by the work folder's own resolution (its tsconfig paths point a live
             // bundle's react at the live runtime)
             (true, true) => Ok(None),
-            (true, false) => resolve_from(ctx, spec, &e.dir).await,
+            (true, false) => match resolve_from(ctx, spec, &e.dir).await? {
+                Some(r) => Ok(Some(r)),
+                None => resolve_from(ctx, spec, &plugins()).await,
+            },
             // a package (the edit's or the engine's) importing one the engine carries: the engine's
             (false, true) => resolve_from(ctx, spec, &e.js).await,
             (false, false) => Ok(None),
