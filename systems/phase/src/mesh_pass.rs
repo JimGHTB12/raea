@@ -1,12 +1,13 @@
 //! A mesh drawn again in a phase of its own (docs/control.feature FC2d), as Bevy's shader_advanced/custom_render_phase
 //! draws its stencil: a Mesh3d entity with a MeshPass is drawn, after the camera's main opaque pass, by a pipeline of
 //! its shader file as written (its `vertex` and `fragment`, reading the mesh's positions at location 0, compressed or
-//! not), with Bevy's mesh view and mesh bind groups (0 and 2, group 1 empty), straight onto the view's colour target
-//! with no depth attachment, back faces culled. The phase is sorted by distance, as the example's Stencil3d is.
+//! not, and its colours at location 1 under VERTEX_COLORS when it has them), with Bevy's mesh view and mesh bind
+//! groups (0 and 2, group 1 empty), straight onto the view's colour target, back faces culled: the view's depth not
+//! read, or with `depth` tested and written GreaterEqual as an opaque mesh is (shader_advanced/specialized_mesh_pipeline). The phase is sorted by distance, as the example's Stencil3d is.
 
 use std::ops::Range;
 
-use bevy::core_pipeline::core_3d::{main_opaque_pass_3d, TransparentSortingInfo3d};
+use bevy::core_pipeline::core_3d::{main_opaque_pass_3d, TransparentSortingInfo3d, CORE_3D_DEPTH_FORMAT};
 use bevy::core_pipeline::schedule::Core3d;
 use bevy::core_pipeline::Core3dSystems;
 use bevy::camera::visibility::{self, VisibilityClass};
@@ -30,7 +31,7 @@ use bevy::render::render_phase::{sort_phase_system, AddRenderCommand, CachedRend
 use bevy::render::render_resource::*;
 use bevy::render::renderer::{RenderContext, ViewQuery};
 use bevy::render::sync_world::{MainEntity, MainEntityHashSet};
-use bevy::render::view::{ExtractedView, RenderVisibleEntities, RetainedViewEntity, ViewTarget};
+use bevy::render::view::{ExtractedView, RenderVisibleEntities, RetainedViewEntity, ViewDepthStencilTexture, ViewTarget};
 use bevy::render::{Extract, Render, RenderApp, RenderDebugFlags, RenderSystems};
 use indexmap::IndexMap;
 use nonmax::NonMaxU32;
@@ -46,6 +47,8 @@ pub struct MeshPass {
     pub shader: String,
     pub vertex: String,
     pub fragment: String,
+    /// whether it tests and writes the view's depth (GreaterEqual), as a mesh in Bevy's opaque phase does
+    pub depth: bool,
     /// its shader file, registered as written (raea-sys-shader), and the id register gave it
     #[reflect(ignore)]
     pub registered: Option<(String, u128)>,
@@ -78,6 +81,7 @@ pub struct PassKey {
     shader: u128,
     vertex: String,
     fragment: String,
+    depth: bool,
 }
 
 impl SpecializedMeshPipeline for PassPipeline {
@@ -92,6 +96,10 @@ impl SpecializedMeshPipeline for PassPipeline {
             }
             attributes.push(Mesh::ATTRIBUTE_POSITION.at_shader_location(0));
         }
+        if layout.0.contains(Mesh::ATTRIBUTE_COLOR) {
+            defs.push("VERTEX_COLORS".into());
+            attributes.push(Mesh::ATTRIBUTE_COLOR.at_shader_location(1));
+        }
         let buffer = layout.0.get_layout(&attributes)?;
         let view = self.mesh.get_view_layout(MeshPipelineViewLayoutKey::from(key.mesh));
         let shader = Handle::Uuid(bevy::asset::uuid::Uuid::from_u128(key.shader), core::marker::PhantomData);
@@ -101,6 +109,9 @@ impl SpecializedMeshPipeline for PassPipeline {
             vertex: VertexState { shader: shader.clone(), shader_defs: defs.clone(), entry_point: Some(key.vertex.into()), buffers: vec![buffer], ..default() },
             fragment: Some(FragmentState { shader, shader_defs: defs, entry_point: Some(key.fragment.into()), targets: vec![Some(ColorTargetState { format: key.mesh.target_format(), blend: None, write_mask: ColorWrites::ALL })], ..default() }),
             primitive: PrimitiveState { topology: key.mesh.primitive_topology(), strip_index_format: key.mesh.strip_index_format(), cull_mode: Some(Face::Back), ..default() },
+            // the view's depth is always attached: compared GreaterEqual and written with `depth`, else not read
+            depth_stencil: Some(DepthStencilState { format: CORE_3D_DEPTH_FORMAT, depth_write_enabled: Some(key.depth), depth_compare: Some(if key.depth { CompareFunction::GreaterEqual } else { CompareFunction::Always }), stencil: default(), bias: default() }),
+            multisample: MultisampleState { count: key.mesh.msaa_samples(), ..default() },
             ..default()
         })
     }
@@ -270,7 +281,7 @@ fn queue(
                 continue;
             };
             let Some(mesh) = meshes.get(instance.mesh_asset_id()) else { continue };
-            let key = PassKey { mesh: view_key | MeshPipelineKey::from_primitive_topology_and_strip_index(mesh.primitive_topology(), mesh.index_format()), shader, vertex: pass.vertex.clone(), fragment: pass.fragment.clone() };
+            let key = PassKey { mesh: view_key | MeshPipelineKey::from_primitive_topology_and_strip_index(mesh.primitive_topology(), mesh.index_format()), shader, vertex: pass.vertex.clone(), fragment: pass.fragment.clone(), depth: pass.depth };
             let id = match pipelines.specialize(&cache, &pipeline, key, &mesh.layout) {
                 Ok(id) => id,
                 Err(err) => {
@@ -294,14 +305,14 @@ fn queue(
 }
 
 /// The pass drawn onto the view's colour target, no depth attachment, in the camera's viewport.
-fn draw(world: &World, view: ViewQuery<(&ExtractedCamera, &ExtractedView, &ViewTarget, Option<&MainPassResolutionOverride>)>, phases: Res<ViewSortedRenderPhases<Pass3d>>, mut ctx: RenderContext) {
+fn draw(world: &World, view: ViewQuery<(&ExtractedCamera, &ExtractedView, &ViewTarget, &ViewDepthStencilTexture, Option<&MainPassResolutionOverride>)>, phases: Res<ViewSortedRenderPhases<Pass3d>>, mut ctx: RenderContext) {
     let entity = view.entity();
-    let (camera, extracted, target, over) = view.into_inner();
+    let (camera, extracted, target, depth, over) = view.into_inner();
     let Some(phase) = phases.get(&extracted.retained_view_entity) else { return };
     if phase.items.is_empty() {
         return;
     }
-    let mut pass = ctx.begin_tracked_render_pass(RenderPassDescriptor { label: Some("raea mesh pass"), color_attachments: &[Some(target.get_color_attachment())], depth_stencil_attachment: None, timestamp_writes: None, occlusion_query_set: None, multiview_mask: None });
+    let mut pass = ctx.begin_tracked_render_pass(RenderPassDescriptor { label: Some("raea mesh pass"), color_attachments: &[Some(target.get_color_attachment())], depth_stencil_attachment: Some(depth.get_attachment(StoreOp::Store)), timestamp_writes: None, occlusion_query_set: None, multiview_mask: None });
     if let Some(v) = Viewport::from_viewport_and_override(camera.viewport.as_ref(), over) {
         pass.set_camera_viewport(&v);
     }

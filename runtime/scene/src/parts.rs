@@ -268,6 +268,10 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         if its[0].props.get("shadow").and_then(Value::as_str) == Some("catch") {
             row.insert("shadow_catch".into(), V::N(1.0));
         }
+        // `material: false`: no material, drawn only by a pass of its own (a MeshPass), as a Bevy Mesh3d without one
+        if its[0].props.get("material") == Some(&Value::Bool(false)) {
+            row.insert("no_material".into(), V::N(1.0));
+        }
         // `receiveShadow: false`: no shadow falls on it (NotShadowReceiver)
         if its[0].props.get("receiveShadow") == Some(&Value::Bool(false)) {
             row.insert("receive".into(), V::N(0.0));

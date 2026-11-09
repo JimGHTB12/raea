@@ -322,6 +322,9 @@ export interface MeshProps extends PointerHandlers3d {
    * way); its surface is ignored. "catch": it shows only the shadows falling on it, in its material's colour at its
    * material's opacity, and is clear elsewhere (three.js's ShadowMaterial: a floor under a product over a picture) */
   shadow?: boolean | "only" | "catch";
+  /** false: no material at all, as a Bevy Mesh3d without a MeshMaterial3d, so only a pass of its own draws it (a
+   *  <MeshPass>: Bevy's shader_advanced/specialized_mesh_pipeline); its surface is ignored */
+  material?: false;
   /** three.js's name for `shadow`'s true and false (`shadow` wins when both are given) */
   castShadow?: boolean;
   /** a page drawn on it over its UVs: the screen spec <Mesh3d> makes for a page element with layer="surface"
@@ -405,6 +408,7 @@ export function Mesh(props: MeshProps) {
     if (!(scale > 0) || !Number.isFinite(scale)) throw new RangeError(`Mesh: scale must be a positive number, got ${scale}`);
   } else checkVec("Mesh", "scale", scale);
   if (props.shadow !== undefined && typeof props.shadow !== "boolean" && props.shadow !== "only" && props.shadow !== "catch") throw new TypeError(`Mesh: shadow is true, false, "only" or "catch", got ${JSON.stringify(props.shadow)}`);
+  if (props.material !== undefined && props.material !== false) throw new TypeError(`Mesh: material is false (no material) or left out, got ${JSON.stringify(props.material)}`);
   checkPass("Mesh", props.pass);
   const manifold = shape instanceof Solid ? shape.expr : shape ?? shapeFromChildren(props.children);
   const extra: Record<string, string> = {};

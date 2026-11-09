@@ -149,3 +149,4 @@ shader_advanced/deferred_raymarch
 shader_advanced/manual_material
 shader_advanced/mesh_shader_intro
 shader_advanced/render_depth_to_texture
+shader_advanced/specialized_mesh_pipeline

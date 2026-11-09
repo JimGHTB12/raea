@@ -148,3 +148,4 @@ shader_advanced/deferred_raymarch	-	5,10,30
 shader_advanced/manual_material	-	5,10,30
 shader_advanced/mesh_shader_intro	-	5,10,30,60,120,240,300
 shader_advanced/render_depth_to_texture	-	5,10,30,60
+shader_advanced/specialized_mesh_pipeline	-	5,10

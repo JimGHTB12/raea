@@ -271,8 +271,8 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             } else if vals.get("shadow_catch").is_some_and(V::truthy) {
                 // `shadow: "catch"`: only the shadows falling on it, in its colour and opacity (shadow_catch.rs)
                 grid::put(world, e, mesh, shadow_catch::ShadowCatchMaterial::of(&mat), vals);
-            } else if vals.contains_key("toon") {
-                // a MeshToonMaterial: the surface lit in bands over the standard one, and its ink outline (toon.rs)
+            } else if vals.contains_key("toon") || vals.get("no_material").is_some_and(V::truthy) {
+                // a MeshToonMaterial (toon.rs: the standard surface lit in bands, its ink outline); `material: false` none
                 world.entity_mut(e).insert((Mesh3d(mesh.clone()), transform_of(vals)));
                 toon::spawn_mesh(world, e, vals, &mesh, mat);
             } else if let Some(extension) = grid {

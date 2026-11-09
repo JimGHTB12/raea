@@ -54,15 +54,19 @@ export interface MeshPassProps {
   /** its entry points (Bevy's default names) */
   vertex?: string;
   fragment?: string;
+  /** whether it tests and writes the view's depth (GreaterEqual), as a mesh in Bevy's opaque phase does (Bevy's
+   *  shader_advanced/specialized_mesh_pipeline); without, it draws over everything */
+  depth?: boolean;
 }
 
 /** The mesh it's inside drawn again by your shader, in a phase of its own after the camera's main opaque pass: onto
- * the colour target, with no depth test, back faces culled (Bevy's shader_advanced/custom_render_phase).
+ * the colour target, with no depth test unless `depth`, back faces culled (Bevy's shader_advanced/custom_render_phase). It
+ * reads the mesh's colours at location 1 under VERTEX_COLORS when the mesh has them.
  * @bevy raea_sys_phase::MeshPass */
 export function MeshPass(p: MeshPassProps) {
-  const { shader, vertex = "vertex", fragment = "fragment" } = p;
+  const { shader, vertex = "vertex", fragment = "fragment", depth = false } = p;
   if (typeof shader !== "string" || !shader) throw new TypeError(`MeshPass: shader is a shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(shader)}`);
-  return <BevyComponent type="raea_sys_phase::MeshPass" value={{ shader: assetPath(shader), vertex, fragment }} />;
+  return <BevyComponent type="raea_sys_phase::MeshPass" value={{ shader: assetPath(shader), vertex, fragment, depth: depth === true }} />;
 }
 
 export interface ShaderInstancesProps {
