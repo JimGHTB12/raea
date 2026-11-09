@@ -39,6 +39,8 @@ fn the_counter_mounts_and_a_click_re_renders_it() {
     assert_eq!(text(&app.session, "count"), "Count: 0");
     assert!(app.session.tid("reset").is_none());
     assert!(!app.logs.borrow().iter().any(|l| !l.starts_with("0:")), "{:?}", app.logs.borrow());
+    // sdk/ui reads localStorage's kept values before the page's code, synchronously: answered, not refused
+    assert!(!app.refused.borrow().contains_key("net.storage.get"), "{:?}", app.refused.borrow());
 }
 
 #[test]
