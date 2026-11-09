@@ -9,7 +9,7 @@ OUT=${2:?OUT folder}
 BIN=${RAEA_BIN:-$PWD/target/release/raea}
 export RAEA_SIGN=0 RAEA_MARK=0 RAEA_EXPORT_CACHE=0 RAEA_SOURCE_STAMPS=1 RAEA_AUDIO_MUTE=1 RAEA_LAYERS=1
 mkdir -p "$OUT/src"
-cp bench/layers/conformance.tsx bench/layers/badge.tsx "$ORACLE/src/pic.png" "$OUT/src/"
+cp bench/layers/conformance.tsx bench/layers/badge.tsx "$ORACLE/src/pic.png" "$ORACLE/src/clip.mp4" "$OUT/src/"
 status=0
 for m in none swap shift occlusion under; do
   rm -rf "${OUT:?}/$m"

@@ -2,7 +2,7 @@
 // (hide one layer, render again, the pixels that change) where layers meet: a square drawn as a 3D mesh, as a React
 // component (used twice) and as a page element, text, an image, a rotated element and a .map() list. The page is over
 // the 3D, as a composition's always is. bench/layers/oracle.sh renders it.
-import { AbsoluteFill, Composition, Img, registerRoot, useCurrentFrame } from "raea";
+import { AbsoluteFill, Composition, Img, Video, registerRoot, useCurrentFrame } from "raea";
 import { StandardMaterial } from "raea/pbr";
 import { Cuboid, Mesh3d } from "raea/mesh";
 import { DirectionalLight } from "raea/light";
@@ -35,6 +35,7 @@ const Shot = () => {
       <div style={{ position: "absolute", left: 210, top: 210, width: 90, height: 90, background: "#ff6a00" }} />
       <h1 style={{ position: "absolute", left: 24, top: 8, margin: 0, color: "#f4f4f4", fontSize: 30 }}>Layers</h1>
       <Img src="pic.png" style={{ position: "absolute", left: 20, top: 300, width: 96, height: 64 }} />
+      <Video src="clip.mp4" muted style={{ position: "absolute", left: 140, top: 320, width: 120, height: 68 }} />
       <div style={{ position: "absolute", left: 330, top: 300, width: 80, height: 40, background: "#8a5cf6", transform: `rotate(${20 + f}deg)` }} />
       <ul style={{ position: "absolute", left: 20, top: 70, margin: 0, padding: 0, listStyle: "none" }}>
         {["one", "two", "three"].map((t) => (

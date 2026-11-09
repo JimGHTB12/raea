@@ -154,6 +154,11 @@ function useMediaAttrs(owner: string, props: MediaProps, src = props.src as stri
     // another by it, however many come and go around it
     "data-from": origin,
   };
+  // its source stamps (engine/bundle stamp.rs: where its JSX is written, its list key and uses), so the element it
+  // draws is selectable as its layer (docs/review.feature R2)
+  for (const [k, v] of Object.entries(props)) {
+    if (k.startsWith("data-raea-") && (typeof v === "string" || typeof v === "number")) attrs[k] = v;
+  }
   return attrs;
 }
 

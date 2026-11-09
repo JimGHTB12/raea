@@ -257,7 +257,8 @@ pub(crate) fn page_props(kind: &str, props: Option<&Map<String, Value>>, dir: &P
         if k.starts_with("on") && k.chars().nth(2).is_some_and(|c| c.is_ascii_uppercase()) {
             continue;
         }
-        if kind == "video" && (k == "src" || k.starts_with("data-")) {
+        // (a video's own data- props are its player's, the KEPT ones are the page's as any element's)
+        if kind == "video" && (k == "src" || (k.starts_with("data-") && !KEPT.contains(&k.as_str()))) {
             continue;
         }
         if k == "style" {
