@@ -203,12 +203,17 @@ jobs:
         env:
           VK_LOADER_DEBUG: ""
           RAEA_CASE_SECONDS: "300"
+        # the zip's raea, unpacked, with RAEA_NO_TREE=1 and the cases copied out of the checkout, as a user's machine has
+        # them: target/dist's raea has no share/raea beside it, so its home is this checkout, 2 h of build in target/
+        # included, and there its 3D cases ran past 300 s each (rc1) where the unpacked zip's open in under 70 s
         run: |
-          b="$PWD/target/dist/raea.exe"
+          u="$RUNNER_TEMP/play-zip"; c="$RUNNER_TEMP/play-cases"
+          mkdir -p "$u" && 7z x -y -o"$u" dist/raea-*.zip > /dev/null && cp -r sdk/raea/bench/bevy-ts/cases "$c"
+          b="$u/raea/bin/raea.exe"
           out="${TMPDIR:-/tmp}/raea-bevy-ts"
-          s=0; RAEA_BIN="$b" RAEA_PLUGIN_BIN="$b" bash sdk/raea/bench/bevy-ts/check.sh $(grep -l '^// play:' sdk/raea/bench/bevy-ts/cases/*.tsx) 2>&1 | tee "$RUNNER_TEMP/play.txt" || s=$?
+          s=0; RAEA_NO_TREE=1 RAEA_BIN="$b" RAEA_PLUGIN_BIN="$b" bash sdk/raea/bench/bevy-ts/check.sh $(grep -l '^// play:' "$c"/*.tsx) 2>&1 | tee "$RUNNER_TEMP/play.txt" || s=$?
           cat "$RUNNER_TEMP/play.txt" >> "$GITHUB_STEP_SUMMARY"
-          for n in $(sed -n 's/^\([^ ]*\) (.*): OPEN.*/\1/p' "$RUNNER_TEMP/play.txt"); do echo "--- $n"; grep -v "known driver" "$out/$n.log" | tail -25; done
+          for n in $(sed -n 's/^\([^ ]*\) (.*): OPEN.*/\1/p' "$RUNNER_TEMP/play.txt"); do echo "--- $n"; { grep -v "known driver" "$out/$n.log" || echo "(its log is empty)"; } | tail -25; done
           exit $s
       - uses: actions/attest-build-provenance@v2
         with:
