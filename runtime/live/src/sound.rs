@@ -260,8 +260,15 @@ impl Live {
 
 /// CoreAudio's output device found and its format read on a thread, once a process, so the HAL's start-up (~95 ms) is
 /// done by the time the mixer opens, after the object's open and before the clock (lightspeed F5). Called as an open
-/// starts, and earlier by whoever knows sound will come (raea play, void's launch).
+/// starts, and earlier by whoever knows sound will come (raea play, void's launch). CoreAudio only: on Windows, cpal
+/// keeps one device enumerator a process (a OnceLock) made on the thread that first asks, and that thread's COM is torn
+/// down when it ends, so the warm thread left the mixer an enumerator whose MMDevApi.dll was unloaded where nothing
+/// else held it, and every `raea play` on a machine with no audio device (GitHub's runners) crashed with an access
+/// violation as its mixer opened
 pub fn warm_audio() {
+    if !cfg!(target_vendor = "apple") {
+        return;
+    }
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
         let _ = std::thread::Builder::new().name("raea audio warm".into()).spawn(|| {

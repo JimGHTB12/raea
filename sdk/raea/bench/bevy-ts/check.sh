@@ -57,7 +57,8 @@ for edit in "${cases[@]}"; do
     run=("$bin" render "$edit" --frame "${frame:-0}" ${extra[@]+"${extra[@]}"} -o "$png")
   fi
   if ! RAEA_SCENE_ROWS=1 nice -n 10 "${run[@]}" > "$log" 2>&1 || [ ! -f "$png" ]; then
-    why=$(grep -iE "error|refused|not |no " "$log" | grep -v "global logger" | tail -1 | cut -c1-160)
+    # (not the Vulkan loader's own INFO lines, which VK_LOADER_DEBUG prints on a CI runner: "... is not recognized ...")
+    why=$(grep -iE "error|refused|not |no " "$log" | grep -v "global logger" | grep -v "INFO |" | tail -1 | cut -c1-160)
     echo "$name ($gap): OPEN  the render failed: ${why:-see $log}"; open=$((open + 1)); continue
   fi
   bad=""

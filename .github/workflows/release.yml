@@ -194,10 +194,18 @@ jobs:
           if (-not (Get-Command magick -ErrorAction SilentlyContinue)) { choco install imagemagick -y --no-progress | Out-Null }
           $im = Get-ChildItem "C:\Program Files" -Directory -Filter "ImageMagick-*" | Select-Object -First 1
           if ($im) { Add-Content $env:GITHUB_PATH $im.FullName }
+      # without the loader's debug lines (lavapipe.sh sets them for the driver's registration), and a failing case's
+      # log tail in the job's log, since the runner and its logs go when the job ends
       - name: Live play (bevy-ts's play cases)
+        env:
+          VK_LOADER_DEBUG: ""
         run: |
           b="$PWD/target/dist/raea.exe"
-          RAEA_BIN="$b" RAEA_PLUGIN_BIN="$b" bash sdk/raea/bench/bevy-ts/check.sh $(grep -l '^// play:' sdk/raea/bench/bevy-ts/cases/*.tsx) | tee -a "$GITHUB_STEP_SUMMARY"
+          out="${TMPDIR:-/tmp}/raea-bevy-ts"
+          s=0; RAEA_BIN="$b" RAEA_PLUGIN_BIN="$b" bash sdk/raea/bench/bevy-ts/check.sh $(grep -l '^// play:' sdk/raea/bench/bevy-ts/cases/*.tsx) > "$RUNNER_TEMP/play.txt" 2>&1 || s=$?
+          tee -a "$GITHUB_STEP_SUMMARY" < "$RUNNER_TEMP/play.txt"
+          for n in $(sed -n 's/^\([^ ]*\) (.*): OPEN.*/\1/p' "$RUNNER_TEMP/play.txt"); do echo "--- $n"; grep -v "known driver" "$out/$n.log" | tail -25; done
+          exit $s
       - uses: actions/attest-build-provenance@v2
         with:
           subject-path: dist/raea-*.zip
