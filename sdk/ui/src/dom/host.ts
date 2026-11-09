@@ -294,9 +294,13 @@ const REACT: Record<string, string> = {
   AnimationStart: "animationstart", AnimationEnd: "animationend", AnimationIteration: "animationiteration", TransitionEnd: "transitionend", TransitionStart: "transitionstart",
   Scroll: "scroll", ScrollEnd: "scrollend", PointerEnter: "pointerenter", PointerLeave: "pointerleave", MouseEnter: "mouseenter", MouseLeave: "mouseleave", Load: "load", Error: "error", Toggle: "toggle",
   LoadedMetadata: "loadedmetadata", LoadedData: "loadeddata", Seeking: "seeking", Seeked: "seeked",
+  // a video's or audio's playing (dom/media.ts, the host's player)
+  Play: "play", Pause: "pause", Playing: "playing", TimeUpdate: "timeupdate", Ended: "ended", CanPlay: "canplay", CanPlayThrough: "canplaythrough",
+  Waiting: "waiting", VolumeChange: "volumechange", Emptied: "emptied", DurationChange: "durationchange", RateChange: "ratechange",
 };
 
-export const DIRECT = new Set(["scroll", "scrollend", "pointerenter", "pointerleave", "mouseenter", "mouseleave", "load", "error", "toggle", "invalid", "loadedmetadata", "loadeddata", "seeking", "seeked"]);
+const MEDIA_EVENTS = ["play", "pause", "playing", "timeupdate", "ended", "canplay", "canplaythrough", "waiting", "volumechange", "emptied", "durationchange", "ratechange"];
+export const DIRECT = new Set(["scroll", "scrollend", "pointerenter", "pointerleave", "mouseenter", "mouseleave", "load", "error", "toggle", "invalid", "loadedmetadata", "loadeddata", "seeking", "seeked", ...MEDIA_EVENTS]);
 
 /** native type -> the React prop names it runs (onChange is special: text fields hear it from input) */
 export const REACT_BY_NATIVE = new Map<string, string[]>();

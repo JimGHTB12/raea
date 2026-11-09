@@ -13,6 +13,10 @@ pub mod html_page;
 pub mod js;
 pub mod media_html;
 #[cfg(feature = "media")]
+mod media_play;
+#[cfg(feature = "media")]
+mod media_sound;
+#[cfg(feature = "media")]
 pub mod webaudio;
 pub mod net;
 pub mod os;

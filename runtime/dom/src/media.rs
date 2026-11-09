@@ -2,7 +2,10 @@
 //! on a thread of its own (raea-runtime-js's stream), what it tells goes to the element's JS as raea-runtime-js's `media` host event
 //! (`loadedmetadata`, `loadeddata`, `seeked`, `error`: sdk/ui's dom layer fires each at the element), and a video's
 //! frame is its picture, which its natural size is. Its poster shows until the first seek; with none, the frame does.
-//! A seek is the prop `__seek` ([time, n], set by the dom layer's `currentTime`).
+//! A seek is the prop `__seek` ([time, n], set by the dom layer's `currentTime`); playing is `__play` ([on, time, n,
+//! loop], set by `play()` and `pause()`), and `__muted` the element's muted. Playing, the decoder's frames come on the
+//! source's clock (its sound's: raea-runtime-js media_play.rs), each a `time` news for the element's currentTime, with
+//! `timeupdate` four times a second as a browser's, `playing` once it's going, and `ended` at its end.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,6 +20,8 @@ use raea_sys_page::ops::Nodes;
 /// One media element's source and what its decoder has told.
 pub struct Media {
     src: String,
+    /// `__load` as last seen (the dom layer's load() count)
+    load: u64,
     poster: Option<String>,
     seek: Option<Value>,
     stream: Option<Stream>,
@@ -29,6 +34,12 @@ pub struct Media {
     duration: f64,
     /// the latest frame: width, height, pixels
     frame: Option<(u32, u32, Arc<Vec<u8>>)>,
+    /// `__play` as last seen, and whether it asks to play
+    play: Option<Value>,
+    playing: bool,
+    muted: Option<bool>,
+    /// when the last `timeupdate` went
+    told: Option<std::time::Instant>,
 }
 
 /// Each media element by its wire id.
@@ -45,11 +56,13 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
         let props = nodes.props.get(&id);
         let s = |k: &str| props.and_then(|p| p.get(k)).and_then(Value::as_str).filter(|v| !v.is_empty()).map(String::from);
         let (src, poster, seek) = (s("src").unwrap_or_default(), s("poster"), props.and_then(|p| p.get("__seek")).cloned());
+        // load(): its source opened again, even the same one
+        let load = props.and_then(|p| p.get("__load")).and_then(Value::as_u64).unwrap_or(0);
         let m = match medias.get_mut(&id) {
-            Some(m) if m.src == src => m,
+            Some(m) if m.src == src && m.load == load => m,
             _ => {
                 let stream = (!src.is_empty()).then(|| raea_runtime_js::media_html::stream::open(&raea_sys_page::net::page_path(&src), video)).flatten();
-                medias.insert(id, Media { src, poster: None, seek: None, stream, video, loaded: false, seeking: None, seeked: false, duration: f64::NAN, frame: None });
+                medias.insert(id, Media { src, load, poster: None, seek: None, stream, video, loaded: false, seeking: None, seeked: false, duration: f64::NAN, frame: None, play: None, playing: false, muted: None, told: None });
                 medias.get_mut(&id).unwrap()
             }
         };
@@ -57,6 +70,13 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
         if m.poster != poster {
             m.poster = poster;
             redraw = true;
+        }
+        let muted = props.and_then(|p| p.get("__muted")).and_then(Value::as_bool);
+        if m.muted != muted {
+            if let (Some(v), Some(st)) = (muted, m.stream.as_mut()) {
+                st.muted(v);
+            }
+            m.muted = muted;
         }
         if m.seek != seek {
             if let Some(t) = seek.as_ref().and_then(|v| v.get(0)).and_then(Value::as_f64)
@@ -66,6 +86,18 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
                 st.seek(t);
             }
             m.seek = seek;
+        }
+        let play = props.and_then(|p| p.get("__play")).cloned();
+        if m.play != play {
+            if let (Some(p), Some(st)) = (play.as_ref(), m.stream.as_mut()) {
+                m.playing = p.get(0).and_then(Value::as_bool).unwrap_or(false);
+                if m.playing {
+                    st.play(p.get(1).and_then(Value::as_f64).unwrap_or(0.0), p.get(3).and_then(Value::as_bool).unwrap_or(false));
+                } else {
+                    st.pause();
+                }
+            }
+            m.play = play;
         }
         while let Some(msg) = m.stream.as_ref().and_then(Stream::next) {
             match msg {
@@ -89,6 +121,25 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
                         m.seeked = true;
                         out.push(json!({"id": id, "type": "seeked", "time": t}));
                     }
+                    if m.playing {
+                        m.seeked = true;
+                        told(m, id, t, out);
+                    }
+                }
+                Msg::Time(t) => {
+                    if m.seeking.take_if(|s| (*s - t).abs() < 1e-9).is_some() {
+                        out.push(json!({"id": id, "type": "seeked", "time": t}));
+                    }
+                    if m.playing {
+                        told(m, id, t, out);
+                    } else {
+                        out.push(json!({"id": id, "type": "time", "time": t}));
+                    }
+                }
+                Msg::Playing(t) => out.push(json!({"id": id, "type": "playing", "time": t})),
+                Msg::Ended(t) => {
+                    m.playing = false;
+                    out.push(json!({"id": id, "type": "ended", "time": t}));
                 }
             }
         }
@@ -102,6 +153,15 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
                 set_image(doc, *n, w, h, px);
             }
         }
+    }
+}
+
+/// A playing element's time: each as `time` (its currentTime), and a `timeupdate` four times a second.
+fn told(m: &mut Media, id: u64, t: f64, out: &mut Vec<Value>) {
+    out.push(json!({"id": id, "type": "time", "time": t}));
+    if m.told.is_none_or(|w| w.elapsed() >= std::time::Duration::from_millis(250)) {
+        m.told = Some(std::time::Instant::now());
+        out.push(json!({"id": id, "type": "timeupdate", "time": t}));
     }
 }
 

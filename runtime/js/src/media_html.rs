@@ -8,21 +8,50 @@ pub mod stream {
     use std::sync::Mutex;
     use std::sync::mpsc::{Receiver, Sender, channel};
 
-    /// What a decoder tells: the source's metadata, a frame at a time (after the first, a seek's), or its failure.
+    /// What a decoder tells: the source's metadata, a frame at a time (after the first, a seek's or a playing one's),
+    /// where a playing source has got to, that it played to its end, or its failure.
     pub enum Msg {
         Meta { w: u32, h: u32, duration: f64 },
         Frame(f64, raea_io_media::Frame),
+        /// a playing source's time (an audio one's, which has no frames; a video's when paused)
+        Time(f64),
+        /// playing from this time: the sound is on its way
+        Playing(f64),
+        /// played to its end (a looping source starts again instead)
+        Ended(f64),
         Fail(String),
     }
 
+    /// What the element asks of its decoder.
+    pub(crate) enum Cmd {
+        Seek(f64),
+        Play { at: f64, looping: bool },
+        Pause,
+        Muted(bool),
+    }
+
     pub struct Stream {
-        tx: Sender<f64>,
+        tx: Sender<Cmd>,
         rx: Mutex<Receiver<Msg>>,
     }
 
     impl Stream {
         pub fn seek(&mut self, t: f64) {
-            let _ = self.tx.send(t);
+            let _ = self.tx.send(Cmd::Seek(t));
+        }
+
+        /// Plays from `at` on the source's clock (its sound's, when it has sound and a device): frames as they fall due,
+        /// each `Frame` news, and `Ended` at its end unless `looping`.
+        pub fn play(&mut self, at: f64, looping: bool) {
+            let _ = self.tx.send(Cmd::Play { at, looping });
+        }
+
+        pub fn pause(&mut self) {
+            let _ = self.tx.send(Cmd::Pause);
+        }
+
+        pub fn muted(&mut self, muted: bool) {
+            let _ = self.tx.send(Cmd::Muted(muted));
         }
 
         /// The decoder's next news, if it has any now.
@@ -65,7 +94,7 @@ pub mod stream {
         (!s.is_empty()).then(|| PathBuf::from(s))
     }
 
-    fn run(path: &Path, video: bool, ticket: u64, rx: Receiver<f64>, tx: Sender<Msg>) {
+    fn run(path: &Path, video: bool, ticket: u64, rx: Receiver<Cmd>, tx: Sender<Msg>) {
         let (lock, cv) = &TURN;
         let mut turn = cv.wait_while(lock.lock().unwrap(), |t| *t < ticket).unwrap();
         let done = |turn: &mut std::sync::MutexGuard<u64>| {
@@ -75,31 +104,20 @@ pub mod stream {
         let r = first(path, video, &tx);
         done(&mut turn);
         drop(turn);
-        let Some(mut dec) = r else { return };
-        while let Ok(mut t) = rx.recv() {
-            // only the latest time asked for
-            while let Ok(n) = rx.try_recv() {
-                t = n;
-            }
-            let m = match dec.frame_at(t) {
-                Ok(f) => Msg::Frame(t, f),
-                Err(e) => Msg::Fail(e),
-            };
-            if tx.send(m).is_err() {
-                return;
-            }
-        }
+        let Some(source) = r else { return };
+        crate::media_play::Player::new(path, source).run(rx, tx);
     }
 
-    /// The source opened: audio's duration, or a video's metadata and its first frame (its decoder, to seek on).
-    fn first(path: &Path, video: bool, tx: &Sender<Msg>) -> Option<Box<dyn raea_io_media::VideoDecoder>> {
+    /// The source opened: a video's metadata and first frame (its decoder, to seek and play on), or audio's duration
+    /// (its samples, to play).
+    fn first(path: &Path, video: bool, tx: &Sender<Msg>) -> Option<crate::media_play::Source> {
         let mut errs = vec![];
         if !video {
             for b in raea_io_media::preferred() {
                 match b.decode_audio(path) {
                     Ok(a) if a.len() > 0 => {
                         let _ = tx.send(Msg::Meta { w: 0, h: 0, duration: a.duration() });
-                        return None;
+                        return Some(crate::media_play::Source::Audio(a));
                     }
                     Ok(_) => errs.push(format!("{}: no sound", b.name())),
                     Err(e) => errs.push(format!("{}: {e}", b.name())),
@@ -128,7 +146,7 @@ pub mod stream {
             Ok(f) => Msg::Frame(0.0, f),
             Err(e) => Msg::Fail(e),
         });
-        Some(dec)
+        Some(crate::media_play::Source::Video(dec))
     }
 
     /// Decoders open, and send their metadata and first frame, one at a time in the order they were made (the
@@ -139,7 +157,7 @@ pub mod stream {
     pub fn open(src: &str, video: bool) -> Option<Stream> {
         let path = file_of(src)?;
         let ticket = NEXT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        let (ttx, trx) = channel::<f64>();
+        let (ttx, trx) = channel::<Cmd>();
         let (mtx, mrx) = channel::<Msg>();
         std::thread::Builder::new()
             .name("raea-runtime-js-media".into())

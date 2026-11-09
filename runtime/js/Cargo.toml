@@ -14,7 +14,7 @@ default = ["media"]
 # the portable engine (QuickJS) on Apple too, in place of JavaScriptCore: how the portable path is tested on a Mac
 portable = ["raea-runtime-jsengine/portable"]
 # media (docs/ts-native.feature P15): video and sound through raea-io-media
-media = ["dep:raea-io-media"]
+media = ["dep:raea-io-media", "dep:cpal"]
 
 [dependencies]
 # images
@@ -34,6 +34,8 @@ serde_json = "1"
 raea-runtime-jsengine = { path = "../jsengine" }
 # video and audio elements' sources decoded (src/media_html.rs): the app's backends, else the ffmpeg CLI's
 raea-io-media = { path = "../../io/media", default-features = false, optional = true }
+# a playing video's or audio's sound out of the device (src/media_sound.rs), the cpal the mixer and the legacy app use
+cpal = { version = "0.15", optional = true }
 # webaudio's samples across the wire
 base64 = "0.22"
 # the HTML runtime bundled in process (html_page.rs): raea's files where an install or this checkout has them, and

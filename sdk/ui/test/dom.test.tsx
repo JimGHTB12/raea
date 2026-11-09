@@ -6,7 +6,7 @@ import { beforeAll, describe, expect, test } from "bun:test";
 import { useEffect, useRef, useState } from "react";
 import { install, layout } from "../src/dom";
 import { createPortal, flushSync, mount } from "../src/react";
-import { restart } from "../src/wire";
+import { flush, restart } from "../src/wire";
 import { Host } from "./host";
 
 beforeAll(() => install());
@@ -318,5 +318,75 @@ describe("dangerouslySetInnerHTML", () => {
     const svg2 = host.nodes.get(host.nodes.get(host.tid("mark"))!.children[0])!;
     expect(svg2.children.map((c) => host.nodes.get(c)!).find((n) => n.kind === "path")!.props.fill).toBe("#1783FF");
     expect(host.nodes.get(host.tid("mark"))!.children.length).toBe(1);
+  });
+});
+
+describe("video and audio play on the host's player (runtime/dom media.rs, raea-runtime-js media_play.rs)", () => {
+  test("play() and pause() ask the host and fire play and pause; its news keeps currentTime and fires the rest", () => {
+    const host = fresh();
+    let v: any;
+    const seen: string[] = [];
+    const ev = (e: any) => seen.push(`${e.type}@${e.currentTarget.currentTime.toFixed(1)}`);
+    function App() {
+      const r = useRef<any>(null);
+      useEffect(() => void (v = r.current), []);
+      return <video ref={r} data-testid="v" src="/media/renders/film.mp4" muted loop onPlay={ev} onPause={ev} onPlaying={ev} onTimeUpdate={ev} onEnded={ev} onCanPlay={ev} />;
+    }
+    mount(<App />, 0, { dom: true });
+    const id = host.tid("v");
+    const prop = (k: string) => (flush(), host.nodes.get(id)!.props[k]);
+    const news = (type: string, extra: Record<string, unknown> = {}) => flushSync(() => host.named("media", { id, type, ...extra }));
+    expect(v.paused).toBe(true);
+    expect(v.readyState).toBe(0);
+    news("loadedmetadata", { w: 1920, h: 1080, duration: 120.6 });
+    news("loadeddata", { w: 1920, h: 1080, duration: 120.6 });
+    expect(v.readyState).toBe(2);
+    expect(v.duration).toBe(120.6);
+
+    const played = v.play();
+    expect(played).toBeInstanceOf(Promise);
+    expect(v.paused).toBe(false);
+    expect(prop("__play")).toEqual([true, 0, 1, true]);
+    expect(prop("__muted")).toBe(true);
+    news("playing", { time: 0 });
+    // each frame's time is the element's currentTime, with no event; timeupdate comes on its own
+    news("time", { time: 1.5 });
+    expect(v.currentTime).toBe(1.5);
+    expect(v.readyState).toBe(2);
+    news("timeupdate", { time: 2 });
+    v.muted = false;
+    expect(prop("__muted")).toBe(false);
+    v.pause();
+    expect(v.paused).toBe(true);
+    expect(prop("__play")).toEqual([false, 2, 2, true]);
+
+    // a new source pauses while it loads, as a browser's does, and its readiness starts again
+    v.play();
+    v.setAttribute("src", "/media/renders/other.mp4");
+    expect(v.paused).toBe(true);
+    expect(v.readyState).toBe(0);
+    expect(prop("__play")).toEqual([false, 2, 4, true]);
+
+    // played to its end (the host sends ended for a source not looping): paused there, then ended
+    v.play();
+    news("ended", { time: 120.6 });
+    expect(v.paused).toBe(true);
+    expect(v.ended).toBe(true);
+    expect(v.currentTime).toBe(120.6);
+    // played again from the end starts at the beginning
+    v.play();
+    expect(prop("__play")).toEqual([true, 0, 6, true]);
+    expect(seen).toEqual(["canplay@0.0", "play@0.0", "playing@0.0", "timeupdate@2.0", "pause@2.0", "play@2.0", "pause@2.0", "play@2.0", "pause@120.6", "ended@120.6", "play@120.6"]);
+
+    // load(): back to the start, paused with no pause event, and the host's decoder opened again
+    v.load();
+    expect(v.paused).toBe(true);
+    expect(v.currentTime).toBe(0);
+    expect(v.readyState).toBe(0);
+    expect(prop("__load")).toBe(1);
+    expect(prop("__play")).toEqual([false, 0, 7, true]);
+    expect(seen.at(-1)).toBe("play@120.6");
+    expect(v.canPlayType("video/mp4")).toBe("maybe");
+    expect(v.canPlayType("video/x-unknown")).toBe("");
   });
 });

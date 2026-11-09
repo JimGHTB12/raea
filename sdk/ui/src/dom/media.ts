@@ -29,8 +29,11 @@ export class HTMLImageElement_ extends HTMLElement_ {
   }
 }
 
-/** video and audio: the source's size and duration as the host decoded them; paused (the host plays nothing yet),
- *  muted as set, and currentTime, whose set seeks the host's decoder (`__seek`: the time and a count). */
+/** video and audio: the source's size and duration as the host decoded them; currentTime, whose set seeks the host's
+ *  decoder (`__seek`: the time and a count); play() and pause(), which start and stop the host's player (`__play`: on,
+ *  the time, a count and loop; raea-runtime-js media_play.rs plays on the sound's clock, its frames this element's
+ *  picture), and muted (`__muted`). The host's news keeps currentTime (`time`) and fires playing, timeupdate and ended;
+ *  play and pause fire here, as a browser fires them, when they're asked. */
 export class HTMLMediaElement_ extends HTMLElement_ {
   _media?: MediaNews;
   get src() {
@@ -42,27 +45,101 @@ export class HTMLMediaElement_ extends HTMLElement_ {
   _time = 0;
   _seeks = 0;
   _muted?: boolean;
+  _playing = false;
+  _plays = 0;
+  /** the host told this element (a prop of its own beside its attributes) */
+  _tell(k: string, v: unknown) {
+    this._extra[k] = v;
+    if (this._wired && this.__wid !== undefined) wire.set(this.__wid, k, v);
+  }
   get paused() {
-    return true;
+    return !this._playing;
+  }
+  setAttribute(n: string, v: unknown) {
+    const was = this.getAttribute("src");
+    super.setAttribute(n, v);
+    if (this._playing && this._an(n) === "src" && this.getAttribute("src") !== was) {
+      // a new source pauses while it loads, as a browser's load algorithm does (the page plays it again)
+      this._playing = false;
+      this._tell("__play", [false, this._time, ++this._plays, this.loop]);
+      dispatchDirect(this, new Event_("pause", { bubbles: false }));
+    }
+  }
+  /** how far the source has loaded (1 its metadata, 2 a frame), for the source it loaded: a new src starts again */
+  _ready: [string, number] = ["", 0];
+  _ended = false;
+  get ended() {
+    return this._ended;
+  }
+  get loop() {
+    return this._props.loop === true || this.hasAttribute("loop");
+  }
+  get autoplay() {
+    return this._props.autoPlay === true || this._props.autoplay === true || this.hasAttribute("autoplay");
+  }
+  play() {
+    if (!this._playing) {
+      this._playing = true;
+      this._ended = false;
+      this._tell("__muted", this.muted);
+      this._tell("__play", [true, this._time >= (this.duration || Infinity) ? 0 : this._time, ++this._plays, this.loop]);
+      dispatchDirect(this, new Event_("play", { bubbles: false }));
+    }
+    return Promise.resolve();
+  }
+  pause() {
+    if (!this._playing) return;
+    this._playing = false;
+    this._tell("__play", [false, this._time, ++this._plays, this.loop]);
+    dispatchDirect(this, new Event_("pause", { bubbles: false }));
+  }
+  /** Its source again from the start, as a browser's load algorithm: paused (with no pause event), at time 0, nothing
+   *  loaded, and the host's decoder opened again (`__load`), or dropped when there's no src. */
+  load() {
+    if (this._playing) {
+      this._playing = false;
+      this._tell("__play", [false, 0, ++this._plays, this.loop]);
+    }
+    this._time = 0;
+    this._ended = false;
+    this._ready = ["", 0];
+    this._tell("__seek", [0, ++this._seeks]);
+    this._media = undefined;
+    this._tell("__load", ++this._loads);
+    dispatchDirect(this, new Event_("emptied", { bubbles: false }));
+  }
+  _loads = 0;
+  /** what the host's decoders take (AVFoundation's and the ffmpeg CLI's): the usual containers and codecs, "maybe" */
+  canPlayType(type: string) {
+    return /^(video|audio)\/(mp4|quicktime|x-m4v|webm|ogg|mpeg|mp3|aac|x-m4a|mp4a-latm|wav|x-wav|wave|flac)\b/i.test(String(type)) ? "maybe" : "";
+  }
+  get preload() {
+    return this.getAttribute("preload") ?? "auto";
+  }
+  set preload(v: string) {
+    this.setAttribute("preload", String(v));
   }
   get muted() {
     return this._muted ?? (this._props.muted === true || this.hasAttribute("muted"));
   }
   set muted(v: boolean) {
+    const was = this.muted;
     this._muted = !!v;
+    this._tell("__muted", this._muted);
+    if (was !== this._muted) dispatchDirect(this, new Event_("volumechange", { bubbles: false }));
   }
   get duration() {
     return this._media?.duration ?? NaN;
   }
   get readyState() {
-    const t = this._media?.type;
-    return t === "loadeddata" || t === "seeked" ? 2 : t === "loadedmetadata" ? 1 : 0;
+    return this._ready[0] === this.src ? this._ready[1] : 0;
   }
   get currentTime() {
     return this._time;
   }
   set currentTime(t: number) {
     this._time = Number(t) || 0;
+    this._ended = false;
     this._extra.__seek = [this._time, ++this._seeks];
     if (this._wired && this.__wid !== undefined) wire.set(this.__wid, "__seek", this._extra.__seek);
     dispatchDirect(this, new Event_("seeking", { bubbles: false }));
@@ -83,8 +160,25 @@ export function mediaNews(v: MediaNews & { id: number }) {
   const el = byWid(v.id) as (HTMLImageElement_ | HTMLMediaElement_) | null;
   if (!el || !v.type) return;
   el._media = { ...el._media, ...v, w: v.w ?? el._media?.w, h: v.h ?? el._media?.h, duration: v.duration ?? el._media?.duration };
-  if (el instanceof HTMLMediaElement_ && typeof v.time === "number") el._time = v.time;
+  if (el instanceof HTMLMediaElement_) {
+    if (typeof v.time === "number") el._time = v.time;
+    const r = v.type === "loadedmetadata" ? 1 : v.type === "loadeddata" || v.type === "seeked" ? 2 : 0;
+    if (r) el._ready = [el.src, Math.max(r, el._ready[0] === el.src ? el._ready[1] : 0)];
+  }
+  // a playing element's time: its currentTime, with no event (timeupdate comes on its own, four times a second)
+  if (v.type === "time") return;
+  if (el instanceof HTMLMediaElement_ && v.type === "ended") {
+    // played to its end: paused there, as a browser's is (pause, then ended)
+    if (!el._playing) return;
+    el._playing = false;
+    el._ended = true;
+    dispatchDirect(el, new Event_("pause", { bubbles: false }));
+  }
   dispatchDirect(el, new Event_(v.type, { bubbles: false }));
+  if (el instanceof HTMLMediaElement_ && v.type === "loadeddata") {
+    dispatchDirect(el, new Event_("canplay", { bubbles: false }));
+    if (el.autoplay && !el._plays) void el.play();
+  }
 }
 
 export class HTMLStyleElement_ extends HTMLElement_ {

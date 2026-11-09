@@ -14810,6 +14810,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "bevy",
+ "cpal 0.15.3",
  "raea-bevy-world",
  "raea-core-wire",
  "raea-io-home",
