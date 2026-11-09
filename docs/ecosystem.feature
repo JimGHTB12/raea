@@ -2,8 +2,8 @@
 Feature: raea's plugin ecosystem: extending the engine and the app, made, shared and installed the same way
   Shane, 11-09: "write a plan for this, that fully charts out what a plugin ecosystem looks like both for the engine
   itself and the app". This is that plan: what exists, the one package format both sides share, the engine's three
-  tiers, the app's extension host, and the order to build it in. Nothing here is built yet beyond what "What exists"
-  names. The Bevy plugin catalog's own work stays in docs/plugins.feature.
+  tiers, the app's extension host, and the order to build it in. Built so far: what "What exists" names, and phase
+  1 (EC12). The Bevy plugin catalog's own work stays in docs/plugins.feature.
 
   What exists (11-09):
     - The engine is extended through its SDK. TypeScript (components, parts, systems on BevyApp, npm packages through
@@ -23,9 +23,9 @@ Feature: raea's plugin ecosystem: extending the engine and the app, made, shared
     - The Plugins page is a fixed catalog of integrations (src/plugins/catalog.ts): ACP agents, accounts on networks,
       keyed generation services. Its entries are connections, not code.
     - The app's extension points today are data and agents: any ACP agent, the feed tools an agent calls
-      (feed_post, controller_write, item_tags...), controllers as TypeScript files, and artifacts (a React document
-      in a sandboxed frame with one result hook, src/detail/views/Artifact.tsx). The artifact entry is still a
-      hard-coded demo (src/artifacts/main.tsx); an agent can't ship its own artifact code yet.
+      (feed_post, controller_write, item_tags...), controllers as TypeScript files, and artifacts: since 11-09 (phase
+      1, EC12) an agent's own React file, posted with feed_post, built by the host and run in a sandboxed frame that
+      talks to the app only through @raea/app (apps/app host/artifact.ts, src/artifacts/).
 
   Rule: The two answers this plan rests on
 
@@ -116,13 +116,14 @@ Feature: raea's plugin ecosystem: extending the engine and the app, made, shared
         | agent tool     | a tool every agent in the project gets over ACP, answered by the extension              |
         | settings page  | its own settings under Settings, stored per project or per person                      |
       And an artifact becomes the simplest extension: an agent's own React document, bundled and run in its frame, its
-        result hook one bridge call, so the hard-coded demo goes
+        result hook one bridge call, so the hard-coded demo goes (done 11-09: EC12's phase 1)
 
     Scenario: EC8. Making an extension reloads it in the running app
       Given a person or an agent working on an extension
       When they run `raea app dev DIR` (the extension's folder) with the app open
-      Then the app's host serves the extension's modules through Vite's module runner, as blitz/dev.mjs serves the feed
-        now, and pushes each saved change into the extension's frame (raea:hmr), keeping its state where React can
+      Then the app's host builds the extension's modules and pushes each saved change into the extension's frame
+        (raea:hmr), as it does an artifact now (host/artifact.ts: TypeScript per file and Tailwind's compiler, nothing
+        native, so the shipped app builds the same way; Vite's module runner, blitz/dev.mjs, was the first idea)
       And a compile error shows in the extension's place with its file and line, as the brief's compiler does
       And `raea app check DIR` mounts each contribution headless with recorded app state and steps, writes a PNG per
         step and a tree.json, as `raea app check` does for an app now
@@ -151,14 +152,25 @@ Feature: raea's plugin ecosystem: extending the engine and the app, made, shared
   Rule: The order to build it in
 
     Scenario: EC12. Phases
-      Then phase 1 (after v0.1.0): the manifest and `raea add` for engine packages (EC1, EC3, EC4), the extension host
-        with the bridge and one point, the detail tool (EC6), `raea app dev` with hot reload (EC8), and artifacts as
-        extensions (EC7's last line)
-      And phase 2: the other points (item types, rail tabs, panels, commands, agent tools, settings), permissions on
+      Then phase 1 (Shane 11-09, narrowed to this): artifacts as agents' own code (EC7's last line). An agent posts a
+        React .tsx with feed_post; the host builds it (no dev server, nothing fetched); it runs in a sandboxed frame;
+        @raea/app is its only way out (item, result relayed to the agent over ACP, comment; anything else refused by
+        name); saving the file reloads it in place and a compile error shows its file and line; the hard-coded demo
+        is gone and "Pick the opening shot" is an ordinary artifact; the raea skill teaches it
+      And phase 2: the manifest and `raea add` for engine packages (EC1, EC3, EC4), the extension host with the bridge
+        and one point, the detail tool (EC6), `raea app dev` with hot reload (EC8)
+      And phase 3: the other points (item types, rail tabs, panels, commands, agent tools, settings), permissions on
         the Plugins page (EC2), agents making extensions (EC9)
-      And phase 3: the registry and index (EC10, EC11), `raea build --plugins` as a verb and the catalog's PR process
+      And phase 4: the registry and index (EC10, EC11), `raea build --plugins` as a verb and the catalog's PR process
         (EC5)
-      And phase 4: research only, a WASM tier for native logic loaded at run time
+      And phase 5: research only, a WASM tier for native logic loaded at run time
+      (11-09, phase 1 done: raea-feed cc4fe7d and 9f0ef35 (host/artifact.ts links the agent's files with TypeScript
+      and styles them with Tailwind's compiler over the feed's tokens; src/artifacts/ frame, bridge, protocol; the
+      frame supplies react, react/jsx-runtime, react-dom/client and @raea/app, its own copies, so the Blitz frame runs
+      it on @raea/ui's adapter), raea-platform 90a6a03 (raea.app ships the frame and the stylesheets:
+      tools/raea-app/artifact.sh), raea-skills #14 (SKILL.md §5, feed.md). Tests: host/artifact.test.ts and
+      src/artifacts/protocol.test.ts; smoke "an agent posts its own React file as an artifact" passes in Chrome (dev and
+      the built page) and on the Blitz window (blitz/pw-run.mjs). Not yet run in a full signed raea.app build.)
 
   Rule: Open questions for Shane
 
