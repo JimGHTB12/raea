@@ -28,8 +28,7 @@ use raea_sys_material::shader_material::{defs, ident, uniform, Uniform, SLOTS, T
 
 mod ext_bind;
 pub mod bindings;
-mod layout;
-mod storage_layout;
+use raea_sys_shader_wgsl::{layout, storage_layout};
 /// Uniforms packed in their declared types' WGSL layout (a compute's as written: raea-sys-compute written.rs).
 pub use layout::slots as uniform_slots;
 /// A storage buffer's words in its WGSL type's storage layout (a compute as written's own: raea-sys-compute slab.rs).
@@ -37,7 +36,7 @@ pub use storage_layout::words as storage_words;
 pub mod own;
 pub mod own_live;
 pub mod ui;
-mod ui_bind;
+use raea_sys_shader_wgsl::ui_bind;
 
 /// The fragment shader every ShaderExt pipeline starts from, swapped in `specialize` for the material's own. It is a
 /// whole lit surface by itself (no hooks), so a material whose module is missing still draws as standard.

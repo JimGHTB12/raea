@@ -74,7 +74,7 @@ fn find_struct(src: &str, name: &str) -> Option<usize> {
 }
 
 /// A field's WGSL type as (scalar kind, components): f32, u32 or i32, alone or in a vec2/3/4
-pub(crate) fn kind(t: &str) -> Option<(char, usize)> {
+pub fn kind(t: &str) -> Option<(char, usize)> {
     let t = t.replace(' ', "");
     let scalar = |s: &str| match s {
         "f32" => Some('f'),
@@ -97,7 +97,7 @@ pub(crate) fn kind(t: &str) -> Option<(char, usize)> {
 }
 
 /// One component's 32 bits as its kind ('f', 'u' or 'i', kind's) holds it: a u32 or i32 rounded, a u32 at least 0.
-pub(crate) fn word(k: char, x: f32) -> u32 {
+pub fn word(k: char, x: f32) -> u32 {
     match k {
         'f' => x.to_bits(),
         'u' => x.round().max(0.0) as u32,
@@ -142,7 +142,7 @@ pub fn pack(fields: &[(String, String)], uniforms: &[(String, Vec4)]) -> Result<
 /// an array or a colour and a struct from {field: value}. A value for a uniform the source doesn't declare is refused,
 /// as is a declared one without a value.
 /// The first name given that isn't declared.
-pub(crate) fn undeclared<'a>(given: &'a serde_json::Map<String, serde_json::Value>, declared: &[(String, String)]) -> Option<&'a String> {
+pub fn undeclared<'a>(given: &'a serde_json::Map<String, serde_json::Value>, declared: &[(String, String)]) -> Option<&'a String> {
     given.keys().find(|k| !declared.iter().any(|(n, _)| n == *k))
 }
 

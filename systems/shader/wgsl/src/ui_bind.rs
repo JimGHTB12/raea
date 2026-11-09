@@ -123,7 +123,7 @@ pub fn rebind_with(src: &str, groups: &[&str], what: &str, dims: bool, place: &d
 
 /// The spans of `src` under `@if(BINDLESS)`: the `{ ... }` block it opens, or the one statement it marks. raea's
 /// materials aren't bindless (Bevy sets BINDLESS only for one that is), so these compile out, their bindings as written.
-pub(crate) fn bindless_spans(src: &str) -> Vec<std::ops::Range<usize>> {
+pub fn bindless_spans(src: &str) -> Vec<std::ops::Range<usize>> {
     let mut out = Vec::new();
     for (i, m) in src.match_indices("@if(BINDLESS)") {
         let after = i + m.len();

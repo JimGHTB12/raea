@@ -15523,8 +15523,18 @@ dependencies = [
  "bevy",
  "raea-sys-material",
  "raea-sys-sampler",
+ "raea-sys-shader-wgsl",
  "serde_json",
  "wgpu",
+]
+
+[[package]]
+name = "raea-sys-shader-wgsl"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-sys-material",
+ "serde_json",
 ]
 
 [[package]]

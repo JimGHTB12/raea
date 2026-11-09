@@ -24,6 +24,7 @@ members = [
     "systems/framepass",
     "systems/compute",
     "systems/phase",
+    "systems/shader/wgsl",
     "systems/sampler",
     "systems/parity",
     "systems/shader",
