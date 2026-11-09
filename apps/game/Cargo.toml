@@ -23,6 +23,8 @@ raea-runtime-react = { path = "../../runtime/react", default-features = false }
 raea-runtime-page = { path = "../../runtime/page" }
 raea-runtime-export = { path = "../../runtime/export" }
 raea-runtime-live = { path = "../../runtime/live" }
+# its switches (env_on)
+raea-io-home = { path = "../../io/home" }
 serde_json = "1"
 winit = "=0.30.13"
 raea-gpu-device = { path = "../../gpu/device" }

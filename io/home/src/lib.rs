@@ -244,3 +244,9 @@ mod offline_tests {
         let _ = std::fs::remove_file(&file);
     }
 }
+
+/// Whether the environment variable `name` is set to exactly "1" (raea's switches: RAEA_SOURCE_STAMPS=1,
+/// RAEA_PLAYER_PROBE=1).
+pub fn env_on(name: &str) -> bool {
+    std::env::var(name).as_deref() == Ok("1")
+}

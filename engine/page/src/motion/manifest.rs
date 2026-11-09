@@ -1,0 +1,122 @@
+//! The render manifest's videos and text (render.json, `raea render --manifest`), as the page laid them out.
+
+use super::*;
+
+impl BlitzPage {
+    /// The render manifest's videos and text, as laid out (raea check's clipped, safe-area and reading rules read it):
+    /// each shown element with a `data-raea-src` (a video: its source, time and box), and each element's own words
+    /// (its text children's, inline elements' words going to the nearest element up with a box) with that box, its
+    /// opacity, colour, size, weight and alignment as computed. In document order, as raea-runtime-js's page gave them.
+    pub fn manifest(&mut self) -> (Vec<serde_json::Value>, Vec<serde_json::Value>) {
+        use serde_json::json;
+        use style::computed_values::visibility::T as Visibility;
+        use style::values::specified::text::TextAlignKeyword;
+        let docs = self.app.world().non_send::<Docs>();
+        let Some(doc) = docs.0.get(&self.page) else { return (vec![], vec![]) };
+        let r = |v: f64| (v * 10.0).round() / 10.0;
+        let rect = |n: blitz_dom::NodeId| doc.get_client_bounding_rect(n).filter(|b| b.width > 0.0 && b.height > 0.0);
+        // its own opacity times its parents', 0 when it or one of them isn't shown
+        let alpha = |n: blitz_dom::NodeId| -> f64 {
+            let (mut a, mut at) = (1.0f64, Some(n));
+            while let Some(x) = at {
+                let Some(node) = doc.get_node(x) else { break };
+                if node.is_element() {
+                    let Some(s) = node.primary_styles() else { return 0.0 };
+                    if !node.has_boxes() || (x == n && matches!(s.clone_visibility(), Visibility::Hidden | Visibility::Collapse)) {
+                        return 0.0;
+                    }
+                    a *= s.get_effects().opacity as f64;
+                }
+                at = node.parent;
+            }
+            a
+        };
+        // the source stamps (engine/bundle stamp.rs) of the nearest element up from `n` that has them: where the JSX
+        // is written ("promo.tsx:12:7"), and the uses of the edit's components it was drawn in, nearest first
+        let stamps = |n: blitz_dom::NodeId, entry: &mut serde_json::Value| {
+            let mut at = Some(n);
+            while let Some(x) = at {
+                let Some(node) = doc.get_node(x) else { break };
+                if let Some(loc) = node.attr(LocalName::from("data-raea-loc")) {
+                    entry["loc"] = json!(loc);
+                    if let Some(uses) = node.attr(LocalName::from("data-raea-use")).filter(|u| !u.is_empty()) {
+                        entry["use"] = json!(uses.split('|').collect::<Vec<_>>());
+                    }
+                    // its place in a list (its .map()'s key), when it has one
+                    if let Some(idx) = node.attr(LocalName::from("data-raea-idx")) {
+                        entry["index"] = json!(idx);
+                    }
+                    return;
+                }
+                at = node.parent;
+            }
+        };
+        let (mut videos, mut text) = (Vec::new(), Vec::new());
+        let mut owned: Vec<(blitz_dom::NodeId, Vec<String>)> = Vec::new();
+        // the whole document: a composition's sequences and screens are pages of their own under the root's
+        let mut stack = vec![doc.root_node().id];
+        while let Some(n) = stack.pop() {
+            let Some(node) = doc.get_node(n) else { continue };
+            if node.is_element() && matches!(node.element_data().map(|e| &*e.name.local), Some("style" | "script")) {
+                continue;
+            }
+            stack.extend(node.children.iter().rev().copied());
+            if let Some(src) = node.attr(LocalName::from("data-raea-src")) {
+                let a = alpha(n);
+                if let (Some(b), true) = (rect(n), a > 0.01) {
+                    let at = node.attr(LocalName::from("data-raea-at")).and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0);
+                    let mut v = json!({"src": src, "at": at, "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (a * 100.0).round() / 100.0});
+                    stamps(n, &mut v);
+                    videos.push(v);
+                }
+                continue;
+            }
+            if !node.is_text_node() {
+                continue;
+            }
+            let words = node.text_content();
+            let words = words.trim();
+            if words.is_empty() {
+                continue;
+            }
+            // an inline element (a <span> around a caption word) has no box of its own: its words belong to the
+            // nearest element up that has one
+            let mut up = node.parent;
+            while let Some(p) = up {
+                let inline = doc.get_node(p).and_then(|x| x.primary_styles()).is_some_and(|s| s.clone_display().outside() == style::values::specified::box_::DisplayOutside::Inline);
+                if !inline && rect(p).is_some() {
+                    break;
+                }
+                up = doc.get_node(p).and_then(|x| x.parent);
+            }
+            let Some(owner) = up else { continue };
+            if node.parent.is_none_or(|p| alpha(p) <= 0.01) {
+                continue;
+            }
+            match owned.iter_mut().find(|(o, _)| *o == owner) {
+                Some((_, ws)) => ws.push(words.to_string()),
+                None => owned.push((owner, vec![words.to_string()])),
+            }
+        }
+        for (owner, words) in owned {
+            let (Some(b), Some(node)) = (rect(owner), doc.get_node(owner)) else { continue };
+            let Some(s) = node.primary_styles() else { continue };
+            let c = s.clone_color().to_color_space(style::color::ColorSpace::Srgb);
+            let [cr, cg, cb] = [c.components.0, c.components.1, c.components.2].map(|v| (v.clamp(0.0, 1.0) * 255.0).round());
+            let ca = c.alpha;
+            let color = if ca >= 1.0 { format!("rgb({cr}, {cg}, {cb})") } else { format!("rgba({cr}, {cg}, {cb}, {})", (ca * 1000.0).round() / 1000.0) };
+            let font = s.get_font();
+            let align = match s.clone_text_align() {
+                TextAlignKeyword::Center | TextAlignKeyword::MozCenter => "center",
+                TextAlignKeyword::Right | TextAlignKeyword::End | TextAlignKeyword::MozRight => "right",
+                TextAlignKeyword::Justify => "justify",
+                _ => "left",
+            };
+            let mut t = json!({"text": words.join(" "), "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (alpha(owner) * 100.0).round() / 100.0,
+                "color": color, "size": font.font_size.computed_size().px() as f64, "weight": font.font_weight.value() as f64, "align": align});
+            stamps(owner, &mut t);
+            text.push(t);
+        }
+        (videos, text)
+    }
+}

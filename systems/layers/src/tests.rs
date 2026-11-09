@@ -87,3 +87,10 @@ fn a_uses_root_is_named_after_its_component() {
     assert_eq!(head["layers"][2]["name"], "span", "inside the use, not its root");
     let _ = std::fs::remove_dir_all(dir);
 }
+
+#[test]
+fn a_layer_key_selects_its_element_alone() {
+    assert_eq!(layer_selector("a.tsx:3:5"), r#"[data-raea-loc="a.tsx:3:5"]:not([data-raea-idx]):not([data-raea-use]), [data-raea-loc="a.tsx:3:5"]:not([data-raea-idx]):not([data-raea-use]) *"#);
+    let s = layer_selector("card.tsx:2:10#2|comp.tsx:6:27#2|x.tsx:1:1");
+    assert!(s.starts_with(r#"[data-raea-loc="card.tsx:2:10"][data-raea-idx="2"][data-raea-use="comp.tsx:6:27#2|x.tsx:1:1"]"#), "{s}");
+}

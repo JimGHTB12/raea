@@ -185,9 +185,7 @@ fn name_column(row: &mut BTreeMap<String, V>, props: &Map<String, Value>) {
 fn bevy_parts(n: &Node3, it: &mut Item) {
     let mut comps: Vec<Value> = n.kids.iter().filter(|k| &*k.kind == "BevyComponent").map(|k| Value::Object((*k.props).clone())).collect();
     // its source stamp as its layer key (docs/review.feature R2a), a component on the part, not a column its kind reads
-    let s = |k: &str| n.props.get(k).and_then(Value::as_str);
-    let idx = n.props.get("data-raea-idx").map(|v| v.as_str().map_or_else(|| v.to_string(), str::to_string));
-    if let Some(key) = raea_sys_frame::layer::key_of(s("data-raea-loc"), idx.as_deref(), s("data-raea-use")) {
+    if let Some(key) = raea_sys_frame::layer::key_from_props(&n.props) {
         // RAEA_HIDE_LAYERS names it: drawn hidden, for the layer pass's oracle (bench/layers; a page element's: page_css)
         if std::env::var("RAEA_HIDE_LAYERS").is_ok_and(|h| h.split([',', '\n']).any(|k| k.trim() == key)) {
             comps.push(serde_json::json!({ "type": "bevy_camera::visibility::Visibility", "value": "Hidden" }));

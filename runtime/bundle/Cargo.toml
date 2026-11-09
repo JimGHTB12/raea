@@ -20,6 +20,8 @@ raea-native = { path = "../../engine/native", default-features = false }
 # an imported long-GOP source's optimized copy, named in the export cache's key (its probe: AVFoundation on Apple, the
 # soft backend's container reader elsewhere)
 raea-io-media = { path = "../../io/media", default-features = false, features = ["apple", "soft-audio"] }
+# RAEA_HIDE_LAYERS's page CSS (the layer pass's oracle)
+raea-sys-layers = { path = "../../systems/layers" }
 serde_json = "1"
 regex = "1"
 # raea-bundle's library (engine/bundle: Rolldown) loaded at run time (fresh.rs inproc), never a Cargo dependency:

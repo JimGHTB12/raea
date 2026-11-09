@@ -65,32 +65,12 @@ pub fn page_css(dir: &Path, w: u32, js: &Path) -> Option<String> {
         (Some(b), Some(c)) => Some(format!("{b}\n{c}")),
         (b, c) => b.or(c),
     };
-    match (css, hidden_css()) {
+    match (css, raea_sys_layers::hidden_css()) {
         (Some(c), Some(h)) => Some(format!("{c}\n{h}")),
         (c, h) => c.or(h),
     }
 }
 
-/// RAEA_HIDE_LAYERS: the layers keyed (docs/review.feature R2, a key a line or comma) drawn hidden, each element with
-/// its stamps and all inside it, as the layer pass's oracle needs (bench/layers). A 3D part's: runtime/scene.
-pub fn hidden_css() -> Option<String> {
-    let keys = std::env::var("RAEA_HIDE_LAYERS").ok()?;
-    let rules: Vec<String> = keys.split([',', '\n']).filter(|k| !k.trim().is_empty()).map(|k| layer_selector(k.trim())).collect();
-    (!rules.is_empty()).then(|| format!("{} {{ visibility: hidden !important; }}", rules.join(", ")))
-}
-
-/// The CSS selector of the element a layer key names, and of everything inside it: "loc[#index][|use|use…]" as its
-/// data-raea-loc, data-raea-idx and data-raea-use (engine/bundle stamp.rs)
-pub fn layer_selector(key: &str) -> String {
-    let (head, uses) = key.split_once('|').map_or((key, None), |(h, u)| (h, Some(u)));
-    let col = head.rfind(':').unwrap_or(0);
-    let (loc, idx) = head[col..].find('#').map_or((head, None), |i| (&head[..col + i], Some(&head[col + i + 1..])));
-    let q = |v: &str| serde_json::to_string(v).unwrap_or_default();
-    let mut sel = format!("[data-raea-loc={}]", q(loc));
-    sel.push_str(&idx.map_or_else(|| ":not([data-raea-idx])".to_string(), |i| format!("[data-raea-idx={}]", q(i))));
-    sel.push_str(&uses.map_or_else(|| ":not([data-raea-use])".to_string(), |u| format!("[data-raea-use={}]", q(u))));
-    format!("{sel}, {sel} *")
-}
 
 /// A `\u` escape in a JSX attribute's plain string (`unit="\u00a0pts"`) is no escape there: the page shows the six
 /// characters. Said once per bundle, with the fix (braces: `unit={"\u00a0pts"}`), for the edit's .tsx files.
@@ -258,12 +238,3 @@ pub fn bundle_composition(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Opt
     Ok(())
 }
 
-#[cfg(test)]
-mod layer_tests {
-    #[test]
-    fn a_layer_key_selects_its_element_alone() {
-        assert_eq!(super::layer_selector("a.tsx:3:5"), r#"[data-raea-loc="a.tsx:3:5"]:not([data-raea-idx]):not([data-raea-use]), [data-raea-loc="a.tsx:3:5"]:not([data-raea-idx]):not([data-raea-use]) *"#);
-        let s = super::layer_selector("card.tsx:2:10#2|comp.tsx:6:27#2|x.tsx:1:1");
-        assert!(s.starts_with(r#"[data-raea-loc="card.tsx:2:10"][data-raea-idx="2"][data-raea-use="comp.tsx:6:27#2|x.tsx:1:1"]"#), "{s}");
-    }
-}

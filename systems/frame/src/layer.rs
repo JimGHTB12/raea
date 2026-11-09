@@ -10,7 +10,7 @@ use bevy::prelude::*;
 pub struct LayerKey(pub String);
 
 /// The key a stamped element or part's props give it (raea-sys-layers owns it: the page's half reads it too).
-pub use raea_sys_layers::key_of;
+pub use raea_sys_layers::{key_from_props, key_of};
 
 
 /// With `raea render --layers`, frame `f`'s 3D recorded as layer indices (raea-sys-layers, docs/review.feature R2b):

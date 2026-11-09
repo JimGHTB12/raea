@@ -101,6 +101,7 @@ raea-sys-look = "systems"
 raea-sys-compose = "systems"
 raea-sys-material = "systems"
 raea-sys-mesh = "systems"
+raea-sys-layers = "systems"
 raea-sys-framepass = "systems"
 raea-sys-compute = "systems"
 raea-sys-phase = "systems"
@@ -176,6 +177,8 @@ seetool = "tools"
 [facility]
 # the frame's rows every pass reads (FrameRows, the edit, the clock, row helpers)
 raea-sys-frame = true
+# the layer pass's keys, table, raster and NAME.layers (raea-sys-frame records the 3D through it)
+raea-sys-layers = true
 # a row's standard material and its maps (meshseq builds its mesh's on it)
 raea-sys-material = true
 # a row's mesh from JSON, Bevy's primitives by name (materials and reflected Mesh handles build on it)

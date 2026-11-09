@@ -212,7 +212,7 @@ impl ApplicationHandler for Player {
 }
 
 pub(crate) fn probing() -> bool {
-    std::env::var("RAEA_PLAYER_PROBE").as_deref() == Ok("1")
+    raea_io_home::env_on("RAEA_PLAYER_PROBE")
 }
 
 pub(crate) fn windowed(game: Game) -> R<String> {

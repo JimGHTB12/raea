@@ -125,6 +125,12 @@ impl PaintScene for IdScene<'_> {
         }
     }
 
-    /// a shadow is not its element's: the layer under it shows there
-    fn draw_box_shadow(&mut self, _transform: Affine, _rect: Rect, _brush: Color, _radius: f64, _std_dev: f64) {}
+    /// a shadow is its element's (hiding the element hides it): drawn out to where its blur still shows, about 1.5
+    /// deviations past its box
+    fn draw_box_shadow(&mut self, transform: Affine, rect: Rect, brush: Color, radius: f64, std_dev: f64) {
+        if self.brush(PaintRef::Solid(brush), transform) {
+            let grow = 1.5 * std_dev;
+            self.ctx.fill_path(&vello_cpu::kurbo::RoundedRect::from_rect(rect.inflate(grow, grow), radius + grow).into_path(TOLERANCE));
+        }
+    }
 }

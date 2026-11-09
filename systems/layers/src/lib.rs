@@ -5,6 +5,7 @@
 //! 4y+2)); `Recorder` keeps them with the table of layers and writes NAME.layers (file.rs).
 
 mod file;
+mod hide;
 mod names;
 mod raster;
 #[cfg(feature = "page")]
@@ -13,6 +14,7 @@ mod page;
 mod scene;
 
 pub use file::Recorder;
+pub use hide::{hidden_css, layer_selector};
 pub use raster::{Tri, raster};
 #[cfg(feature = "page")]
 pub use page::page_ids;
@@ -35,6 +37,13 @@ pub fn key_of(loc: Option<&str>, idx: Option<&str>, uses: Option<&str>) -> Optio
         k.push_str(u);
     }
     Some(k)
+}
+
+/// The key of a stamped part from its props (data-raea-loc, data-raea-idx, which a numeric list key leaves a number,
+/// and data-raea-use), as key_of gives it. None for an unstamped one.
+pub fn key_from_props(props: &serde_json::Map<String, serde_json::Value>) -> Option<String> {
+    let text = |k: &str| props.get(k).map(|v| v.as_str().map_or_else(|| v.to_string(), str::to_string));
+    key_of(text("data-raea-loc").as_deref(), text("data-raea-idx").as_deref(), text("data-raea-use").as_deref())
 }
 
 /// One layer of the table: what NAME.layers' header lists for it.

@@ -111,7 +111,7 @@ pub use raea_runtime_bundle_lib as inproc;
 /// Whether a composition's elements are stamped with their place in the code (engine/bundle stamp.rs): the app's editor
 /// sets RAEA_SOURCE_STAMPS=1 on the renders it asks for, so its render manifest says which JSX drew what
 pub fn stamps() -> bool {
-    std::env::var("RAEA_SOURCE_STAMPS").as_deref() == Ok("1")
+    raea_io_home::env_on("RAEA_SOURCE_STAMPS")
 }
 
 pub fn bundle_fresh(tsx: &Path, out_js: &Path, o: &CompOpts, portable: Option<&Path>) -> R<()> {
