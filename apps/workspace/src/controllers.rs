@@ -65,7 +65,7 @@ fn commit(ws: &Path, paths: &[&Path], what: &str, by: &str) -> R<()> {
     let mut add = Command::new("git");
     add.arg("-C").arg(ws).args(["add", "-A", "--"]).args(paths);
     add.status().map_err(|e| format!("git: {e}"))?;
-    let ok = Command::new("git").arg("-C").arg(ws).args(["-c", &format!("user.name={by}"), "commit", "-q", "-m", &format!("{by}: {what}"), "--"]).args(paths).status().map_err(|e| format!("git: {e}"))?;
+    let ok = workspace::git_cmd().arg("-C").arg(ws).args(["-c", &format!("user.name={by}"), "commit", "-q", "-m", &format!("{by}: {what}"), "--"]).args(paths).status().map_err(|e| format!("git: {e}"))?;
     if ok.success() { Ok(()) } else { Err(format!("couldn't commit {what}")) }
 }
 

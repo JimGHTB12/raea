@@ -7,8 +7,20 @@ use std::process::Command;
 
 const USAGE: &str = "usage: raea workspace [--json] | raea workspace init [NAME] [--layout monorepo|submodules] | raea workspace adopt DIR [--name NAME] [--layout monorepo|submodules]\n       raea project [--json] | raea project new NAME [--storage inline|submodule] | raea project split NAME [--remote URL] | raea project join NAME";
 
+/// git for raea's own commits. A new Mac has no user.email and a hostname git can't make one from, so every commit
+/// failed with "Author identity unknown" and the person's first project was never made. git reads $EMAIL only when
+/// user.email isn't set, so this gives a fresh Mac an address without overriding anyone's own.
+pub(crate) fn git_cmd() -> Command {
+    let mut c = Command::new("git");
+    if std::env::var_os("EMAIL").is_none() {
+        let user = std::env::var("USER").unwrap_or_else(|_| "raea".into());
+        c.env("EMAIL", format!("{user}@raea.local"));
+    }
+    c
+}
+
 pub(crate) fn git(dir: &Path, args: &[&str]) -> R<String> {
-    let out = Command::new("git").arg("-C").arg(dir).args(args).output().map_err(|e| format!("git: {e}"))?;
+    let out = git_cmd().arg("-C").arg(dir).args(args).output().map_err(|e| format!("git: {e}"))?;
     if !out.status.success() {
         return Err(format!("git {}: {}", args.join(" "), String::from_utf8_lossy(&out.stderr).trim()));
     }
