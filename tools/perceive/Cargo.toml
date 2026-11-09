@@ -10,7 +10,7 @@ description = "raea-perceive: perception from a shell (footage, frames, sound, t
 denoise = ["raea-sys-footage/denoise", "raea-sys-song/denoise"]
 ocr-portable = ["raea-sys-perceive/ocr-portable"]
 face-portable = ["raea-sys-perceive/face-portable"]
-vision-portable = ["raea-sys-perceive/vision-portable"]
+vision-portable = ["ocr-portable", "face-portable", "raea-sys-perceive/vision-portable"]
 
 [dependencies]
 # frames come from the media plane (VideoToolbox on Apple, ffmpeg or the software decoders elsewhere)

@@ -4,9 +4,10 @@
 
 use std::path::PathBuf;
 
+// the ONNX files ocrs-cli fetches (RTen loads them); the bucket's .rten copies answer 403 since 2026-11
 const MODELS: [(&str, &str); 2] = [
-    ("text-detection.rten", "https://ocrs-models.s3-accelerate.amazonaws.com/text-detection.rten"),
-    ("text-recognition.rten", "https://ocrs-models.s3-accelerate.amazonaws.com/text-recognition.rten"),
+    ("text-detection.onnx", "https://ocrs-models.s3-accelerate.amazonaws.com/text-detection.onnx"),
+    ("text-recognition.onnx", "https://ocrs-models.s3-accelerate.amazonaws.com/text-recognition.onnx"),
 ];
 
 fn model(name: &str, url: &str) -> Result<PathBuf, String> {
