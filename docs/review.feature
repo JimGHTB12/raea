@@ -76,6 +76,13 @@ Feature: Reviewing a video in raea's player: comments written on the picture, ev
       Then the player's bar has "Send 3 edits" naming the agent, and pressing it sends them as one round
 
   Rule: R2. Every layer is selectable, the same way for 3D, React and the page (engine and app)
+    # Status 11-09: the player side (R2d, R2f) is built (raea-feed 79f58c5, cc9e064, d331572): host/layers.ts reads
+    # NAME.layers (v1: gzip, RAEALAYR, header JSON, per frame u32 N runs of u16 value + u16 count, N=0 repeats; a
+    # parent as its key or index; "at" for a render of chosen moments), Select outlines a layer by its mask shape (text
+    # by its box, and preferred within 2 mask px since its mask is glyph-exact), a pin follows its layer. The engine's
+    # first file (issues lane, stamps-wip: systems/layers, bench/layers/compare.sh) has the 12 page layers of the
+    # conformance composition at IoU >= 0.977 against the hide-and-diff oracle; the 3D half is next. `--layers` and its
+    # manual entry land with stamps-wip; the app's export passes it once that raea ships (R2c's toggle).
 
     Scenario: R2a. Every drawn thing has its layer key
       Given a composition with a 3D mesh, a component used twice, a page element, text, an image and a video
