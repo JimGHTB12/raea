@@ -730,6 +730,7 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
         clip_rect: Rect,
     ) {
         let node = &self.dom.as_ref().tree()[node_id];
+        let _painting = crate::Painting::enter(node_id);
 
         // raea: a plane of a 3D rendering context is drawn by its root, sorted by depth, not in paint order (and a
         // projective one again, inside its warp layer)

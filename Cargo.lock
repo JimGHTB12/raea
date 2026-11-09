@@ -14375,6 +14375,7 @@ dependencies = [
  "raea-runtime-plugins",
  "raea-runtime-twins",
  "raea-sys-fonts",
+ "raea-sys-layers",
  "raea-sys-page",
  "serde_json",
  "stylo",
@@ -14778,6 +14779,7 @@ dependencies = [
  "raea-runtime-sound",
  "raea-runtime-view",
  "raea-sys-contact",
+ "raea-sys-layers",
  "raea-sys-light-meter",
  "raea-sys-mix",
  "raea-sys-page",
@@ -15254,6 +15256,7 @@ dependencies = [
  "raea-core-program",
  "raea-core-scene",
  "raea-io-media",
+ "raea-sys-layers",
  "serde_json",
 ]
 
@@ -15306,6 +15309,19 @@ dependencies = [
  "raea-gpu-device",
  "serde_json",
  "wgpu",
+]
+
+[[package]]
+name = "raea-sys-layers"
+version = "0.1.0"
+dependencies = [
+ "anyrender",
+ "blitz-dom",
+ "blitz-paint",
+ "flate2",
+ "glifo",
+ "serde_json",
+ "vello_cpu",
 ]
 
 [[package]]

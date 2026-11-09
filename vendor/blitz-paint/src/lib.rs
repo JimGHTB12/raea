@@ -36,6 +36,32 @@ pub struct TilePattern {
     pub tile: kurbo::Size,
 }
 
+/// raea: the node whose box or text the paint calls going out now draw (a glyph run, the element its text is in), for
+/// a painter that tells nodes apart: the layer pass's ID scene (raea-sys-layers, docs/review.feature R2b). None outside
+/// paint_scene.
+pub fn painting() -> Option<NodeId> {
+    PAINTING.with(|p| Some(p.get()).filter(|n| *n != 0).map(NodeId::from_u64))
+}
+
+thread_local! {
+    static PAINTING: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
+/// raea: `painting` is `node` until this is dropped, then what it was.
+pub(crate) struct Painting(u64);
+
+impl Painting {
+    pub(crate) fn enter(node: NodeId) -> Painting {
+        Painting(PAINTING.with(|p| p.replace(node.as_u64())))
+    }
+}
+
+impl Drop for Painting {
+    fn drop(&mut self) {
+        PAINTING.with(|p| p.set(self.0));
+    }
+}
+
 /// The default color for text selection highlights
 const SELECTION_COLOR: Color = Color::from_rgb8(180, 213, 255);
 

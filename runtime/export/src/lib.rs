@@ -70,7 +70,7 @@ static MANIFEST: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None)
 /// With --manifest, its file: the frames' boxes as drawn (Ctx.manifest), the 3D's clipping and the sounds heard.
 fn write_manifest(cx: &mut Ctx, (w, h, fps): (u32, u32, f64), clipping: Vec<Value>, heard: impl FnOnce(&Ctx) -> Value) -> R<()> {
     let (Some(path), Some(frames)) = (MANIFEST.lock().unwrap().clone(), cx.manifest.take()) else { return Ok(()) };
-    let m = json!({"width": w, "height": h, "fps": fps, "frames": frames, "clipping": clipping, "sounds": heard(cx), "not_applied": not_applied::seen()});
+    let m = json!({"width": w, "height": h, "fps": fps, "frames": frames, "clipping": clipping, "sounds": heard(cx), "not_applied": not_applied::seen(), "layers": raea_sys_layers::finish(fps)});
     std::fs::write(&path, m.to_string()).map_err(|e| format!("{}: {e}", path.display()))
 }
 

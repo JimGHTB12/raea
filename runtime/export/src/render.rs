@@ -54,7 +54,8 @@ pub fn render(args: &[String]) -> R<String> {
         (_, Some(at)) => Some(at.split(',').map(|f| f.trim().parse::<i64>().map_err(|_| "--at takes frame numbers".to_string())).collect::<R<_>>()?),
         _ => None,
     };
-    *MANIFEST.lock().unwrap() = flag(args, "--manifest").map(PathBuf::from);
+    let layers = raea_sys_layers::start(args.iter().any(|a| a == "--layers"), &out, &tsx);
+    *MANIFEST.lock().unwrap() = flag(args, "--manifest").map(PathBuf::from).or(layers);
     TEN_BIT.store(args.iter().any(|a| a == "--10bit"), std::sync::atomic::Ordering::Relaxed);
     AOV.store(args.iter().any(|a| a == "--aov"), std::sync::atomic::Ordering::Relaxed);
     if AOV.load(std::sync::atomic::Ordering::Relaxed) && !out_ext(&out).is_empty() {
@@ -83,7 +84,7 @@ pub fn render(args: &[String]) -> R<String> {
         None => None,
     };
     // a whole video made from these same inputs before is the export: cloned from the cache, not rendered again
-    let cache = if wanted.is_none() { export_cache(&tsx, &js, &out, args) } else { None };
+    let cache = if wanted.is_none() && !raea_sys_layers::on() { export_cache(&tsx, &js, &out, args) } else { None };
     let manifest = MANIFEST.lock().unwrap().clone();
     if let Some(c) = &cache {
         // with --manifest, the manifest kept beside the export comes back too

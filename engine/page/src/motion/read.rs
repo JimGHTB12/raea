@@ -14,6 +14,7 @@ impl BlitzPage {
             std::thread::yield_now();
         }
         self.dump();
+        self.layers();
     }
 
     /// RAEA_PAGE_DUMP leaves this page out: a page beside the composition's (raea-render's image rows, rows2d.rs) wrote
@@ -52,7 +53,9 @@ impl BlitzPage {
         }
         self.dump();
         let image = self.image();
-        Ok(self.read(&[(image, self.w, self.h, ENCODER_COPY)])?.remove(0))
+        let px = self.read(&[(image, self.w, self.h, ENCODER_COPY)])?.remove(0);
+        self.layers();
+        Ok(px)
     }
 
     /// Each image drawn by one update and copied to the CPU once, in one submit, each into a buffer labelled `label`
@@ -165,5 +168,20 @@ impl BlitzPage {
             .collect();
         out.sort_by(|a, b| a.0.cmp(&b.0));
         out
+    }
+}
+
+impl BlitzPage {
+    /// The composition's page as layer indices at a render's frame, recorded (`raea render --layers`); a page beside
+    /// the composition's (`not_dumped`) or a page with no render clock records nothing. Called once the frame's update has laid
+    /// the page out (after its read, for a read frame).
+    pub(crate) fn layers(&mut self) {
+        let (Some((now, _, fps)), true, true) = (self.clock, self.dumps, raea_sys_layers::on()) else { return };
+        let (w, h, page) = (self.w, self.h, self.page);
+        let scale = self.app.world().get::<Page>(page).map_or(1.0, |p| p.scale as f64);
+        let mut docs = self.app.world_mut().non_send_mut::<Docs>();
+        let Some(doc) = docs.0.get_mut(&page) else { return };
+        let (px, layers) = raea_sys_layers::page_ids(doc, scale, w, h);
+        raea_sys_layers::with(|r| r.frame((now * fps).round() as i64, w, h, &px, &layers));
     }
 }

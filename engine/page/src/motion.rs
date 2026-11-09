@@ -351,6 +351,7 @@ impl BlitzPage {
         }
         let labelled: Vec<_> = images.iter().enumerate().map(|(k, (i, w, h))| (i.clone(), *w, *h, if k == 0 { ENCODER_COPY } else { SCREEN_COPY })).collect();
         let mut got = self.read(&labelled)?.into_iter();
+        self.layers();
         let page = got.next().ok_or("no page frame")?;
         let subs = keys.into_iter().zip(got).map(|(k, px)| (k.clone(), self.subs[&k].w, self.subs[&k].h, px)).collect();
         Ok((page, subs))

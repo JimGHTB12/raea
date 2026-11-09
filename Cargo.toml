@@ -94,6 +94,7 @@ members = [
     "systems/page-net",
     "systems/page-ops",
     "systems/frame",
+    "systems/layers",
     "systems/splat",
     "systems/sprite",
     "systems/rt",

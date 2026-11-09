@@ -15,5 +15,7 @@ bevy = { version = "=0.20.0", default-features = false, features = ["std", "defa
 raea-core-program = { path = "../../core/program" }
 # a staticFile path (/media/x) as a file: the media folders it can be in (raea-core-scene media_path)
 raea-core-scene = { path = "../../core/scene" }
+# the layer key (key_of), shared with the page's half of the layer pass
+raea-sys-layers = { path = "../layers" }
 serde_json = "1"
 raea-io-media = { path = "../../io/media", default-features = false, optional = true }

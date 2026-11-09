@@ -1,0 +1,23 @@
+[package]
+name = "raea-sys-layers"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "The layer pass (docs/review.feature R2b, R2c): which layer every pixel of a frame shows, as a quarter-size mask of layer indices and a table of the layers, written as NAME.layers"
+
+[features]
+# the page's half: a Blitz document painted as layer indices (without it: the keys, the table and the file)
+page = ["dep:anyrender", "dep:blitz-dom", "dep:blitz-paint", "dep:vello_cpu", "dep:glifo"]
+
+[dependencies]
+anyrender = { version = "=0.14.0", optional = true }
+blitz-dom = { version = "=0.3.0-beta.4", default-features = false, optional = true }
+# the page painted again with each node's layer index for its colour (blitz_paint::painting names the node)
+blitz-paint = { version = "=0.3.0-beta.4", default-features = false, optional = true }
+# the ID picture: Vello's CPU rasterizer with antialiasing off (an edge pixel is one layer's, never a blend of two)
+vello_cpu = { version = "=0.1.0", default-features = false, features = ["std", "text", "u8_pipeline"], optional = true }
+# its glyph runs' synthetic bold (FontEmbolden), as blitz-paint asks for it
+glifo = { version = "=0.2.0", default-features = false, optional = true }
+flate2 = "1"
+serde_json = "1"

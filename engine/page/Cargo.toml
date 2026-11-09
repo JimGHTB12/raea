@@ -10,6 +10,8 @@ description = "HTML, CSS and React pages in Bevy (docs/blitz-bevy.feature): Blit
 # the layers under it
 raea-sys-page = { path = "../../systems/page" }
 raea-sys-fonts = { path = "../../systems/fonts" }
+# the layer pass's page half (docs/review.feature R2b)
+raea-sys-layers = { path = "../../systems/layers", features = ["page"] }
 raea-runtime-twins = { path = "../../runtime/twins" }
 raea-runtime-dom = { path = "../../runtime/dom" }
 raea-runtime-edit = { path = "../../runtime/edit" }

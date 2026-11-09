@@ -889,6 +889,7 @@ pub(crate) fn stroke_text<'a>(
                 let font_size = run.font_size();
                 let metrics = run.font_metrics();
                 let style = glyph_run.style();
+                let _painting = crate::Painting::enter(style.brush.id);
                 let synthesis = run.synthesis();
                 // raea: a bevy_ui <Text> draws its glyphs upright, as bevy_text does: it takes no synthetic italic's
                 // skew from parley (an Italic or Oblique run of a face with no slant drawn as its upright face)
