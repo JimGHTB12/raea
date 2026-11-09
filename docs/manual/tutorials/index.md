@@ -25,5 +25,5 @@ to your agent. Take them in order the first time: each one builds on the one bef
 ## Build on raea
 
 - [Extend raea with the SDK](extend.md): compositions and controllers as TypeScript, the feed's tools, and asking your agent for new work.
-- [Work as a team](teams.md): invite your teammates, review together, and render on everyone's computers.
+- [Work as a team](teams.md): invite your teammates, review together, and share one pool of storage.
 - [How storage and search work](storage-and-search.md): projects as Git with media in storage the Git LFS way, and searching media by what's in it.
