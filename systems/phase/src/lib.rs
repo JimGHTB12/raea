@@ -6,7 +6,8 @@
 //! main opaque pass, as Bevy's shader_advanced/custom_render_phase draws its stencil (mesh_pass.rs), and
 //! ShaderInstances draws it many times in one draw, a vertex buffer of yours stepped per instance
 //! (shader_advanced/custom_shader_instancing, instances.rs). A camera's GBufferPass draws a fullscreen shader into the
-//! deferred G-buffer and the shadow maps (shader_advanced/deferred_raymarch, gbuffer.rs).
+//! deferred G-buffer and the shadow maps (shader_advanced/deferred_raymarch, gbuffer.rs), and its MeshShaderPass draws by task and mesh shaders
+//! (shader_advanced/mesh_shader_intro, mesh_shader.rs).
 
 use bevy::camera::visibility::{self, VisibilityClass};
 use bevy::prelude::*;
@@ -17,10 +18,12 @@ mod draw;
 mod gbuffer;
 mod instances;
 mod mesh_pass;
+mod mesh_shader;
 
 pub use gbuffer::GBufferPass;
 pub use instances::ShaderInstances;
 pub use mesh_pass::MeshPass;
+pub use mesh_shader::MeshShaderPass;
 
 /// A vertex attribute: its format (Bevy's VertexFormat by name, "Float32x3"), byte offset and shader location.
 #[derive(Clone, Debug, Default, Reflect)]
@@ -90,9 +93,8 @@ pub(crate) fn register<C: Shaded>(world: &mut World) {
         }
     }
     for (e, path) in todo {
-        match std::fs::read_to_string(&path) {
-            Ok(src) => {
-                let id = raea_sys_shader::register(world, src, &[], C::NAME, "raea_sys_phase");
+        match file(world, &path, C::NAME) {
+            Ok(id) => {
                 if let Some(mut c) = world.get_mut::<C>(e) {
                     c.keep((path, id));
                 }
@@ -100,6 +102,14 @@ pub(crate) fn register<C: Shaded>(world: &mut World) {
             Err(err) => error!("{}: its shader {path}: {err}", C::NAME),
         }
     }
+}
+
+/// A shader file read and registered as written, in an embedded folder of its own with each module it imports by
+/// `super::NAME` from beside it (raea-sys-shader's folder): the id its module has.
+pub(crate) fn file(world: &mut World, path: &str, kind: &str) -> Result<u128, String> {
+    let src = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let krate = raea_sys_shader::own::folder(world, path, &src)?;
+    Ok(raea_sys_shader::register(world, src, &[], kind, &krate))
 }
 
 /// The mesh pass's and the instances' pipelines, each Bevy's mesh pipeline under its own specialize.
@@ -116,6 +126,7 @@ pub fn install(app: &mut App) {
     mesh_pass::install(app);
     instances::install(app);
     gbuffer::install(app);
+    mesh_shader::install(app);
     if let Some(r) = app.get_sub_app_mut(bevy::render::RenderApp) {
         r.add_systems(bevy::render::RenderStartup, pipelines.after(bevy::pbr::MeshPipelineSystems));
     }

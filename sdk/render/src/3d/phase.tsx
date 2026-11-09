@@ -110,3 +110,29 @@ export function GBufferPass(p: GBufferPassProps) {
   if (typeof shader !== "string" || !shader) throw new TypeError(`GBufferPass: shader is a shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(shader)}`);
   return <BevyComponent type="raea_sys_phase::GBufferPass" value={{ shader: assetPath(shader), fragment, shadow }} />;
 }
+
+export interface MeshShaderPassProps {
+  /** the task (amplification) shader file, compiled as written; none when left out, and the draw's workgroups are the
+   *  mesh shader's */
+  task?: string;
+  /** the mesh shader file, compiled as written: it makes the primitives the fragment shader draws */
+  mesh: string;
+  /** the fragment shader file, compiled as written. Each file has the one entry point of its stage; bind group 0 is
+   *  Globals (binding 0) and the view uniform (binding 1) in all three, and a file's `import super::NAME` reads
+   *  NAME.wesl beside it */
+  fragment: string;
+  /** the draw's workgroup count, [x, y, z] (draw_mesh_tasks); [1, 1, 1] when left out */
+  groups?: [number, number, number];
+}
+
+/** Inside a Camera3d: your task and mesh shaders make primitives on the GPU and your fragment shader draws them into
+ * the view's colour and depth (compared GreaterEqual) after the main opaque pass (Bevy's
+ * shader_advanced/mesh_shader_intro). It needs a GPU with mesh shaders, as Apple silicon's Metal has; elsewhere it
+ * draws nothing and says so.
+ * @bevy raea_sys_phase::MeshShaderPass */
+export function MeshShaderPass(p: MeshShaderPassProps) {
+  const { task, mesh, fragment, groups = [1, 1, 1] } = p;
+  for (const [k, f] of [["mesh", mesh], ["fragment", fragment], ...(task !== undefined ? [["task", task]] : [])] as const) if (typeof f !== "string" || !f) throw new TypeError(`MeshShaderPass: ${k} is a shader file, staticFile("shaders/x.wesl"), got ${JSON.stringify(f)}`);
+  if (!Array.isArray(groups) || groups.length !== 3 || !groups.every((n) => Number.isInteger(n) && n >= 0)) throw new TypeError(`MeshShaderPass: groups is [x, y, z] whole numbers, got ${JSON.stringify(groups)}`);
+  return <BevyComponent type="raea_sys_phase::MeshShaderPass" value={{ task: task === undefined ? "" : assetPath(task), mesh: assetPath(mesh), fragment: assetPath(fragment), groups }} />;
+}

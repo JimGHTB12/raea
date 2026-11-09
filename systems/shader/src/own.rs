@@ -374,7 +374,7 @@ pub fn picture(world: &mut World, path: &str) -> Result<Handle<Image>, String> {
 
 /// The embedded folder a file's module goes in (raea_sys_shader/d{hash of its folder}), with every module it imports
 /// by `super::NAME` registered there from its own folder, and theirs in turn.
-fn folder(world: &mut World, path: &str, src: &str) -> Result<String, String> {
+pub fn folder(world: &mut World, path: &str, src: &str) -> Result<String, String> {
     let dir = std::path::Path::new(path).parent().unwrap_or(std::path::Path::new("."));
     let mut h = std::collections::hash_map::DefaultHasher::new();
     dir.hash(&mut h);
@@ -398,19 +398,26 @@ fn folder(world: &mut World, path: &str, src: &str) -> Result<String, String> {
     Ok(krate)
 }
 
-/// The modules a source imports from its own folder: each `super::NAME` of its `import` statements.
+/// The modules a source imports from its own folder: each `super::NAME` of its `import` statements, a statement read
+/// to its `;` over lines (`import super::{\n bindings::{a, B},\n};`, as Bevy's mesh_shader_intro writes one).
 fn siblings(src: &str) -> Vec<String> {
     let mut out = Vec::new();
-    for line in src.lines().map(str::trim).filter(|l| l.starts_with("import ")) {
-        for (i, _) in line.match_indices("super::") {
-            // super::NAME::item, or super::{NAME::item, OTHER::item}
-            let after = &line[i + 7..];
-            let parts: Vec<&str> = match after.strip_prefix('{') {
-                Some(r) => r.split('}').next().unwrap_or("").split(',').collect(),
-                None => vec![after],
-            };
-            for p in parts {
-                let name: String = p.trim().chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '_').collect();
+    let stmts = src.split(';').filter_map(|s| s.lines().position(|l| l.trim_start().starts_with("import ")).map(|i| s.lines().skip(i).collect::<Vec<_>>().join(" ")));
+    for stmt in stmts {
+        for (i, _) in stmt.match_indices("super::") {
+            // super::NAME::item, or super::{NAME::item, OTHER::{a, b}}: each top-level item's first name
+            let (mut depth, mut items, after) = (0, vec![String::new()], &stmt[i + 7..]);
+            for c in after.strip_prefix('{').unwrap_or(after).chars() {
+                match c {
+                    '}' if depth == 0 => break,
+                    ',' if depth == 0 => items.push(String::new()),
+                    c => {
+                        depth += (c == '{') as i32 - (c == '}') as i32;
+                        items.last_mut().unwrap().push(c);
+                    }
+                }
+            }
+            for name in items.iter().map(|p| p.trim().chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '_').collect::<String>()) {
                 if !name.is_empty() && !out.contains(&name) {
                     out.push(name);
                 }
@@ -451,6 +458,7 @@ mod tests {
     fn a_files_own_folder_imports_are_found() {
         let src = "import bevy_pbr::forward_io::VertexOutput;\nimport super::custom_material_import::COLOR_MULTIPLIER;\nimport super::{a::X, b_2::Y};\nfn f() { super::not_an_import(); }\n";
         assert_eq!(super::siblings(src), vec!["custom_material_import".to_string(), "a".into(), "b_2".into()]);
+        assert_eq!(super::siblings("import super::{\n    bindings::{globals, TaskPayload},\n};\nenable x;"), vec!["bindings".to_string()]);
         assert!(super::alpha_mode(Some(&serde_json::json!("Blend"))).unwrap() == Some(bevy::prelude::AlphaMode::Blend));
         assert!(super::alpha_mode(Some(&serde_json::json!({"Mask": 0.5}))).unwrap() == Some(bevy::prelude::AlphaMode::Mask(0.5)));
         assert!(super::alpha_mode(Some(&serde_json::json!("Clear"))).is_err());
