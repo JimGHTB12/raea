@@ -171,6 +171,7 @@ pub(crate) fn panels_rows(tr: &Tracks, names: &[String], p: &mut Program) {
         visible(p, &mut row, &id, &track);
         pass_column(p, &mut row, &id, &its, &names);
         p.spawns.push(("panel".into(), vec![row]));
+        components(p, &id, &its);
     }
 }
 

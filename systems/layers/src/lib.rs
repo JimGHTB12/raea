@@ -126,7 +126,7 @@ mod tests;
 
 /// RAEA_LAYERS_MUTANT (bench/layers/mutants.sh): the pass broken on purpose, so the oracle is seen to catch it.
 /// `swap` the first two layers' keys, `shift` the 3D 2 px right, `occlusion` the 3D's farthest triangle wins over its
-/// nearest, `under` the 3D drawn over the page.
-pub(crate) fn mutant(name: &str) -> bool {
+/// nearest, `under` the 3D drawn over the page, `bind` a skinned mesh drawn in its bind pose (systems/frame layer.rs).
+pub fn mutant(name: &str) -> bool {
     std::env::var("RAEA_LAYERS_MUTANT").is_ok_and(|m| m == name)
 }

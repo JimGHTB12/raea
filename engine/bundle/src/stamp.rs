@@ -37,7 +37,7 @@ const PARTS3D: &[&str] = &["raea/3d", "raea/mesh", "raea/sprite", "raea"];
 /// inside one (a Mesh3d reads its <Cuboid> child's props, and an extra prop there made it no shape at all).
 /// raea's page parts too (an Img, a Video, an AbsoluteFill), whose element is written in the SDK, unstamped: their use
 /// is the layer's place in the code
-const PART_NAMES: &[&str] = &["Mesh3d", "Model", "SceneRoot", "Entity", "Sprite", "Text3D", "Text2d", "ImagePlane", "ShaderMesh", "Plate", "Decal", "Splat", "Grass", "Mesh2d", "Img", "Video", "OffthreadVideo", "AbsoluteFill"];
+const PART_NAMES: &[&str] = &["Mesh3d", "Model", "SceneRoot", "Entity", "Sprite", "Text3D", "Text2d", "ImagePlane", "ShaderMesh", "Plate", "Decal", "Splat", "Grass", "Mesh2d", "Screen", "Img", "Video", "OffthreadVideo", "AbsoluteFill"];
 
 /// Package components that read their children's types, whose children are left as written (a wrapper there would
 /// hide a <Series.Sequence> from its <Series>, a <Cuboid> from its <Mesh3d>): every component of raea's 3D, material,

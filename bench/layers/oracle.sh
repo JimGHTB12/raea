@@ -13,6 +13,7 @@ export RAEA_SIGN=0 RAEA_MARK=0 RAEA_EXPORT_CACHE=0 RAEA_SOURCE_STAMPS=1 RAEA_AUD
 MOMENTS=(10 45 80)
 mkdir -p "$OUT/src"
 cp bench/layers/conformance.tsx bench/layers/badge.tsx "$OUT/src/"
+mkdir -p "$OUT/src/media" && cp sdk/raea/bench/bevy/character/media/RobotExpressive.glb "$OUT/src/media/"
 magick -size 96x64 gradient:'#ffd400-#ff2d55' "$OUT/src/pic.png"
 ffmpeg -v error -y -f lavfi -i testsrc=size=240x136:rate=30:duration=4 -pix_fmt yuv420p "$OUT/src/clip.mp4" || exit 2
 read -r W H <<< "$(sed -n 's/.*width={\([0-9]*\)} height={\([0-9]*\)}.*/\1 \2/p' bench/layers/conformance.tsx)"
@@ -24,7 +25,7 @@ B1=$(at conformance.tsx Badge 1); B2=$(at conformance.tsx Badge 2); LI=$(at conf
 # not the AbsoluteFill: its background over 3D is the 3D's clear (raea-runtime-export program.rs), behind every layer
 # and none of them, so hiding it changes nothing and the layer pass gives no layer there
 KEYS=(
-  "$(at conformance.tsx Mesh3d 1)" "$(at conformance.tsx Mesh3d 2)" "$(at conformance.tsx Mesh3d 3)"
+  "$(at conformance.tsx Mesh3d 1)" "$(at conformance.tsx Mesh3d 2)" "$(at conformance.tsx Mesh3d 3)" "$(at conformance.tsx Screen 1)" "$(at conformance.tsx Model 1)"
   "$(at badge.tsx div 1)|$B1" "$(at badge.tsx span 1)|$B1" "$(at badge.tsx div 1)|$B2" "$(at badge.tsx span 1)|$B2"
   "$(at conformance.tsx div 1)" "$(at conformance.tsx h1 1)" "$(at conformance.tsx Img 1)" "$(at conformance.tsx Video 1)" "$(at conformance.tsx div 2)"
   "$(at conformance.tsx ul 1)" "$LI#one" "$LI#two" "$LI#three"

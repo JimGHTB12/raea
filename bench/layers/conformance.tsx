@@ -1,8 +1,10 @@
 // docs/review.feature R2e: every layer kind in one frame, overlapping, so the layer pass is checked against the oracle
 // (hide one layer, render again, the pixels that change) where layers meet: a square drawn as a 3D mesh, as a React
-// component (used twice) and as a page element, text, an image, a rotated element and a .map() list. The page is over
+// component (used twice) and as a page element, text, an image, a video, a rotated element and a .map() list, with a
+// flat Screen (a quad in the 3D) and a skinned character walking (RobotExpressive, CC0). The page is over
 // the 3D, as a composition's always is. bench/layers/oracle.sh renders it.
-import { AbsoluteFill, Composition, Img, Video, registerRoot, useCurrentFrame } from "raea";
+import { AbsoluteFill, Composition, Img, Video, registerRoot, staticFile, useCurrentFrame } from "raea";
+import { Model, Screen } from "raea/3d";
 import { StandardMaterial } from "raea/pbr";
 import { Cuboid, Mesh3d } from "raea/mesh";
 import { DirectionalLight } from "raea/light";
@@ -30,6 +32,12 @@ const Shot = () => {
         <Cuboid half_size={[0.5, 0.5, 0.5]} />
         <StandardMaterial base_color="#e0a82e" />
       </Mesh3d>
+      {/* a quad in the 3D showing a page of its own: one layer, the quad (what it shows is drawn off the frame) */}
+      <Screen name="panel" crt={false} resolution={[160, 100]} size={[1.3]} position={[1.7, 1.25, -0.5]} rotation={[0, -0.45, 0]} background="#ffffff">
+        <AbsoluteFill style={{ background: "#d23c3c", color: "#fff", fontSize: 28, padding: 12 }}>screen</AbsoluteFill>
+      </Screen>
+      {/* skinned: its triangles where its joints put them on the frame, not its bind pose */}
+      <Model name="walker" src={staticFile("RobotExpressive.glb")} animation="Walking" position={[-1.5, -2.5, 0.3]} rotation={[0, 0.6, 0]} scale={0.6} />
       <Badge x={150 + f} y={150} color="#3366ff" />
       <Badge x={300} y={60} color="#cc3377" />
       <div style={{ position: "absolute", left: 210, top: 210, width: 90, height: 90, background: "#ff6a00" }} />

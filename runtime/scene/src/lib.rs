@@ -128,11 +128,15 @@ fn walk(n: &Node3, parent: Mat4, out: &mut Vec<Item>) {
             bevy_parts(n, &mut it);
             out.push(it)
         }
-        "ImagePlane" => out.push(item("panel", parent * local(&n.props), None)),
+        // a picture in space or a live picture on a quad (<Screen>, raea-render screen.rs: a panel with a `screen`
+        // column), with its layer key (bevy_parts)
+        "ImagePlane" | "Screen" => {
+            let mut it = item("panel", parent * local(&n.props), None);
+            bevy_parts(n, &mut it);
+            out.push(it)
+        }
         // a picture pressed onto whatever surface its box crosses (<Decal>: raea-render's forward decal, its +y out of the surface)
         "Decal" => out.push(item("decal", parent * local(&n.props), None)),
-        // a live picture on a quad (<Screen>): a panel with a `screen` column (raea-render's screen.rs)
-        "Screen" => out.push(item("panel", parent * local(&n.props), None)),
         // footage behind the 3D, filling the camera's view (<Plate>, <Matchmove>): not moved by groups
         "Plate" => out.push(item("plate", Mat4::IDENTITY, None)),
         "PerspectiveCamera" | "DirectionalLight" | "PointLight" | "SpotLight" | "RectAreaLight" => {
