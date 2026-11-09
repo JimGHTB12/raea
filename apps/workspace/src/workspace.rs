@@ -69,18 +69,9 @@ fn words(args: &[String]) -> Vec<&str> {
     args.iter().enumerate().filter(|(i, a)| !a.starts_with("--") && !(*i > 0 && takes.contains(&args[i - 1].as_str()))).map(|(_, a)| a.as_str()).collect()
 }
 
-/// A name as a folder: lowercase, dashes.
-pub fn slug(s: &str) -> String {
-    let mut out = String::new();
-    for c in s.trim().to_lowercase().chars() {
-        if c.is_ascii_alphanumeric() {
-            out.push(c);
-        } else if !out.is_empty() && !out.ends_with('-') {
-            out.push('-');
-        }
-    }
-    out.trim_end_matches('-').to_string()
-}
+// a name as a folder (slug), and the nearest folder holding a marker (up): the registry's, which reads controller ids
+// and projects with them
+pub use raea_app_registry::{slug, up};
 
 /// A new id: the prefix and eight hex digits from the clock and the process.
 pub(crate) fn new_id(prefix: &str) -> String {
@@ -97,12 +88,6 @@ pub fn root() -> PathBuf {
         Some(s) => PathBuf::from(s),
         None => home.join("Studio"),
     }
-}
-
-/// The nearest folder at or above `from` that holds `marker` (.raea/workspace, .raea/project).
-pub fn up(from: &Path, marker: &str) -> Option<PathBuf> {
-    let from = from.canonicalize().ok()?;
-    from.ancestors().find(|d| d.join(marker).is_file()).map(Path::to_path_buf)
 }
 
 /// The include in a repo's own config that makes `git config` read a committed file. Idempotent; the path is relative

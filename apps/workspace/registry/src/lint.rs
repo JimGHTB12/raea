@@ -64,7 +64,7 @@ fn warn(file: &str, line: usize, rule: &'static str, says: String, fix: impl Int
     Lint { file: file.into(), line, rule, level: Level::Warn, says, fix: fix.into(), action: None }
 }
 
-pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BTreeSet<String>>) -> Vec<Lint> {
+pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BTreeSet<String>>, overridden: &[String]) -> Vec<Lint> {
     let mut out = Vec::new();
     if !reg.project && !(reg.compositions.is_empty() && reg.controllers.is_empty()) {
         out.push(warn("", 0, "not-a-project", "this folder isn't in a raea project (no .raea/project at or above it)".into(), "raea project new NAME and move the files in, or raea workspace adopt the folder"));
@@ -158,7 +158,7 @@ pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BT
     }
 
     // controllers: where they're kept, one id each, and every override naming one that's there
-    let ws = crate::up(&reg.dir, ".raea/workspace");
+    let ws = super::up(&reg.dir, ".raea/workspace");
     let home = ws.clone().unwrap_or_else(|| reg.dir.clone()).join("controllers");
     let mut ids: BTreeMap<String, Vec<&str>> = BTreeMap::new();
     for c in &reg.controllers {
@@ -195,9 +195,8 @@ pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BT
         }
     }
     let mut named = BTreeSet::new();
-    for (path, _) in crate::controllers::overrides(&reg.dir) {
-        let id = path.split('.').next().unwrap_or_default().to_string();
-        if !known.contains(&id) && named.insert(id.clone()) {
+    for id in overridden {
+        if !known.contains(id) && named.insert(id.clone()) {
             out.push(warn(".raea/project", 0, "override-missing", format!("overrides controller \"{id}\", which isn't there"), format!("raea controller ls lists the ones there; remove the override with git config --file .raea/project --remove-section controller.{id}")));
         }
     }

@@ -13666,6 +13666,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-app-registry"
+version = "0.1.0"
+dependencies = [
+ "oxc",
+ "serde_json",
+]
+
+[[package]]
 name = "raea-app-solid"
 version = "0.1.0"
 dependencies = [
@@ -13704,7 +13712,7 @@ dependencies = [
 name = "raea-app-workspace"
 version = "0.1.0"
 dependencies = [
- "oxc",
+ "raea-app-registry",
  "raea-core-brief",
  "serde_json",
 ]

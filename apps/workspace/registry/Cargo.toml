@@ -1,0 +1,12 @@
+[package]
+name = "raea-app-registry"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A raea project's compositions, components and controllers, read from their source without running it, and lint for what isn't connected (docs/projects.feature PJ8)"
+
+[dependencies]
+# the version engine/bundle parses TSX with
+oxc = { version = "=0.152.0", features = ["ast_visit"] }
+serde_json = "1"

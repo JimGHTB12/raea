@@ -69,8 +69,8 @@ pub fn read(source: &str, tsx: bool) -> Facts {
     let alloc = Allocator::default();
     let st = if tsx { SourceType::tsx() } else { SourceType::ts() };
     let parsed = Parser::new(&alloc, source, st).parse();
-    let lines = line_starts(source);
-    let line = |at: u32| lines.partition_point(|&s| s <= at as usize);
+    // 1-based: the newlines before it, plus one
+    let line = |at: u32| source.as_bytes()[..at as usize].iter().filter(|&&b| b == b'\n').count() + 1;
     let mut f = Facts::default();
     if let Some(d) = parsed.diagnostics.first() {
         f.broken = Some(d.to_string());
@@ -139,7 +139,7 @@ fn controller_id(c: &CallExpression) -> Option<String> {
             _ => None,
         })
     };
-    text("id").or_else(|| text("title").map(|t| crate::slug(&t)))
+    text("id").or_else(|| text("title").map(|t| super::slug(&t)))
 }
 
 /// The file's top-level numeric constants, in order: `const FPS = 30`, `const DUR = 15 * FPS`, and an object constant's
@@ -287,9 +287,4 @@ impl Compositions<'_> {
             other => Prop::Computed(self.src[other.span().start as usize..other.span().end as usize].to_string()),
         }
     }
-}
-
-/// Where each line starts, for 1-based line numbers.
-fn line_starts(src: &str) -> Vec<usize> {
-    std::iter::once(0).chain(src.match_indices('\n').map(|(i, _)| i + 1)).collect()
 }

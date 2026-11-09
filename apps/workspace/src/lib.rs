@@ -14,6 +14,7 @@ mod storage;
 mod workspace;
 
 pub use controllers::{controller, module, summary};
+pub use registry::context;
 pub use literal::{tidy, tidy_deep, ts_literal};
 pub use workspace::{project, projects, root, slug, up, workspace};
 

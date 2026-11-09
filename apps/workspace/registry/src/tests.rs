@@ -47,7 +47,7 @@ mod tempdir {
 #[test]
 fn compositions_components_and_controllers_are_read_from_the_files() {
     let (_t, p) = project();
-    let r = scan(&p);
+    let r = scan(&p, &[]);
     assert!(r.project);
     let comps: Vec<(&str, &str, How)> = r.compositions.iter().map(|c| (c.id.as_str(), c.file.as_str(), c.how)).collect();
     assert!(comps.contains(&("promo", "promo.tsx", How::Registered)));
@@ -71,7 +71,7 @@ fn compositions_components_and_controllers_are_read_from_the_files() {
 #[test]
 fn what_isnt_connected_is_linted_with_its_place_and_fix() {
     let (_t, p) = project();
-    let r = scan(&p);
+    let r = scan(&p, &[]);
     let has = |rule: &str, file: &str, line: usize| r.lint.iter().any(|l| l.rule == rule && l.file == file && l.line == line);
     assert!(has("orphan", "stray.tsx", 1));
     assert!(!r.lint.iter().any(|l| l.rule == "orphan" && ["card.tsx", "lib/glyph.tsx", "promo.tsx"].contains(&l.file.as_str())));
@@ -94,7 +94,7 @@ fn what_isnt_connected_is_linted_with_its_place_and_fix() {
 #[test]
 fn fixes_register_a_default_export_and_move_a_controller_home() {
     let (_t, p) = project();
-    let r = scan(&p);
+    let r = scan(&p, &[]);
     for l in r.lint.iter().filter(|l| l.action.is_some()) {
         lint::apply(l.action.as_ref().unwrap()).unwrap();
     }
@@ -102,7 +102,7 @@ fn fixes_register_a_default_export_and_move_a_controller_home() {
     assert!(bare.starts_with("import { Composition, registerRoot } from \"raea\";\nimport { AbsoluteFill }"), "{bare}");
     assert!(bare.ends_with("registerRoot(() => <Composition id=\"bare\" component={Bare} width={1080} height={1080} fps={30} durationInFrames={3} />);\n"), "{bare}");
     assert!(p.join("controllers/look-and-feel.ts").is_file() && !p.join("settings/look.ts").exists());
-    let again = scan(&p);
+    let again = scan(&p, &[]);
     assert_eq!(again.compositions.iter().find(|c| c.file == "bare.tsx").unwrap().how, How::Registered);
     assert!(!again.lint.iter().any(|l| l.rule == "controller-home" || (l.rule == "unregistered" && l.file == "bare.tsx")));
 }
@@ -111,9 +111,17 @@ fn fixes_register_a_default_export_and_move_a_controller_home() {
 fn a_folder_outside_any_project_says_so() {
     let t = tempdir::Dir::new();
     std::fs::write(t.0.join("a.tsx"), "export default function A() { return null; }\n").unwrap();
-    let r = scan(&t.0);
+    let r = scan(&t.0, &[]);
     assert!(!r.project);
     assert!(r.lint.iter().any(|l| l.rule == "not-a-project"));
+}
+
+#[test]
+fn an_override_naming_a_controller_that_isnt_there_is_linted() {
+    let (_t, p) = project();
+    let r = scan(&p, &["delivery".into(), "gone".into(), "gone".into()]);
+    let named: Vec<&str> = r.lint.iter().filter(|l| l.rule == "override-missing").map(|l| l.says.as_str()).collect();
+    assert_eq!(named, ["overrides controller \"gone\", which isn't there"], "once, and not for one that's there");
 }
 
 #[test]
@@ -123,12 +131,12 @@ fn versions_share_a_stem() {
     assert_eq!(stem("x-v.tsx"), "x-v");
 }
 
-/// A real folder's registry, printed: `RAEA_SCAN_DIR=~/Studio/x cargo test -p raea-app-workspace real_folder -- --ignored --nocapture`.
+/// A real folder's registry, printed: `RAEA_SCAN_DIR=~/Studio/x cargo test -p raea-app-registry real_folder -- --ignored --nocapture`.
 #[test]
 #[ignore]
 fn real_folder() {
     let Some(dir) = std::env::var_os("RAEA_SCAN_DIR") else { return };
     let t = std::time::Instant::now();
-    let r = scan(Path::new(&dir));
+    let r = scan(Path::new(&dir), &[]);
     println!("{}\n({} ms)", r.text(), t.elapsed().as_millis());
 }

@@ -148,6 +148,7 @@ members = [
     "runtime/shared",
     "apps/check",
     "apps/workspace",
+    "apps/workspace/registry",
     "apps/ci",
     "apps/tools",
     "apps/judge",

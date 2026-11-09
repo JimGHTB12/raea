@@ -5,7 +5,9 @@
 //!   NAME-vN.tsx are one composition), sized from its newest render's manifest when it has one;
 //! - a component is a .tsx a composition imports, directly or through another;
 //! - a controller is a module whose default export is `controller({...})` from "raea/brief".
-//! What isn't connected is linted (lint.rs), each with its file and line and the fix.
+//! What isn't connected is linted (lint.rs), each with its file and line and the fix. raea-app-workspace wraps `scan`
+//! with the project's controller overrides (read from .raea/project's git config) and runs it for `raea project scan`,
+//! `raea doctor`, `raea next` and `raea context`.
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
@@ -16,6 +18,25 @@ mod read;
 
 pub use lint::{Fix, Level, Lint, apply};
 pub use read::{Facts, Prop};
+
+/// The nearest folder at or above `from` that holds `marker` (.raea/workspace, .raea/project).
+pub fn up(from: &Path, marker: &str) -> Option<PathBuf> {
+    let from = from.canonicalize().ok()?;
+    from.ancestors().find(|d| d.join(marker).is_file()).map(Path::to_path_buf)
+}
+
+/// A name as a folder: lowercase, dashes. A controller's id from its title is this (core/brief fills it the same way).
+pub fn slug(s: &str) -> String {
+    let mut out = String::new();
+    for c in s.trim().to_lowercase().chars() {
+        if c.is_ascii_alphanumeric() {
+            out.push(c);
+        } else if !out.is_empty() && !out.ends_with('-') {
+            out.push('-');
+        }
+    }
+    out.trim_end_matches('-').to_string()
+}
 
 #[cfg(test)]
 mod tests;
@@ -110,17 +131,18 @@ pub fn stem(file: &str) -> String {
     }
 }
 
-/// The file a relative or absolute import names: as written, or with .tsx, .ts, .jsx or .js, or its folder's index.
+/// The file a relative or absolute import names: as written, or with .tsx, .ts, .jsx or .js (in place of an extension
+/// or after the name), or its folder's index.
 pub(crate) fn resolve(from: &Path, spec: &str) -> Option<PathBuf> {
     let base = if spec.starts_with('/') { PathBuf::from(spec) } else { from.parent()?.join(spec) };
-    let tries = [base.clone(), base.with_extension("tsx"), base.with_extension("ts"), base.with_extension("jsx"), base.with_extension("js")];
-    let named = |ext: &str| PathBuf::from(format!("{}.{ext}", base.display()));
-    tries
-        .into_iter()
-        .chain(["tsx", "ts", "jsx", "js"].map(named))
-        .chain(["index.tsx", "index.ts"].map(|i| base.join(i)))
-        .find(|p| p.is_file())
-        .map(|p| std::fs::canonicalize(&p).unwrap_or(p))
+    let mut tries = vec![base.clone()];
+    for ext in ["tsx", "ts", "jsx", "js"] {
+        tries.push(base.with_extension(ext));
+        tries.push(PathBuf::from(format!("{}.{ext}", base.display())));
+    }
+    tries.extend([base.join("index.tsx"), base.join("index.ts")]);
+    let found = tries.into_iter().find(|p| p.is_file())?;
+    Some(std::fs::canonicalize(&found).unwrap_or(found))
 }
 
 /// An import of a file (not a package): relative or absolute.
@@ -140,11 +162,11 @@ fn manifest(path: &Path) -> Option<Value> {
     serde_json::from_str(&std::fs::read_to_string(f).ok()?).ok()
 }
 
-/// The folder's registry. `controllers_home`: the workspace's controllers/ folder, read too, so an override or a
-/// controller elsewhere can be checked against the whole set.
-pub fn scan(dir: &Path) -> Registry {
+/// The folder's registry. `overridden`: the controller ids the project's overrides name, each checked against the
+/// controllers there (the folder's and its workspace's controllers/).
+pub fn scan(dir: &Path, overridden: &[String]) -> Registry {
     let dir = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
-    let project = crate::up(&dir, ".raea/project").is_some();
+    let project = up(&dir, ".raea/project").is_some();
     let mut found = Vec::new();
     sources(&dir, "", 0, &mut found);
     let files: Vec<File> = found
@@ -206,11 +228,29 @@ pub fn scan(dir: &Path) -> Registry {
     let controllers = files.iter().filter_map(|f| f.facts.controller.as_ref().map(|c| Controller { id: c.id.clone(), file: f.rel.clone(), line: c.line })).collect();
 
     let mut reg = Registry { dir, project, compositions, components, controllers, lint: Vec::new() };
-    reg.lint = lint::lint(&reg, &files, &used_by);
+    reg.lint = lint::lint(&reg, &files, &used_by, overridden);
     reg
 }
 
 impl Registry {
+    /// What isn't connected: the warnings (the notes say what only the render knows).
+    pub fn warnings(&self) -> impl Iterator<Item = &Lint> {
+        self.lint.iter().filter(|l| l.level == Level::Warn)
+    }
+
+    /// The compositions' files, each once, the newest first.
+    pub fn composition_files(&self) -> Vec<PathBuf> {
+        let mut out: Vec<PathBuf> = Vec::new();
+        for c in &self.compositions {
+            let p = self.dir.join(&c.file);
+            if !out.contains(&p) {
+                out.push(p);
+            }
+        }
+        out.sort_by_cached_key(|p| std::cmp::Reverse(std::fs::metadata(p).and_then(|m| m.modified()).ok()));
+        out
+    }
+
     pub fn json(&self) -> Value {
         let p = |v: &Option<Prop>| v.as_ref().map_or(Value::Null, Prop::json);
         json!({
@@ -249,7 +289,7 @@ impl Registry {
         if !self.controllers.is_empty() {
             out.push_str(&format!("controllers: {}\n", self.controllers.iter().map(|c| format!("{} ({})", c.id.as_deref().unwrap_or("?"), c.file)).collect::<Vec<_>>().join(", ")));
         }
-        let warn: Vec<&Lint> = self.lint.iter().filter(|l| l.level == Level::Warn).collect();
+        let warn: Vec<&Lint> = self.warnings().collect();
         if !warn.is_empty() {
             out.push_str(&format!("\nnot connected ({}; raea doctor --fix fixes what it can):\n", warn.len()));
             for l in warn.iter().take(10) {

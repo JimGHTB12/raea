@@ -55,13 +55,11 @@ pub fn steps(dir: &Path, brief: &Brief, stale: usize) -> Vec<String> {
     }
     // the compositions as raea's project system reads them (PJ8), newest first; what isn't connected is a step before
     let reg = crate::registry::scan(dir);
-    let loose: Vec<&crate::registry::Lint> = reg.lint.iter().filter(|l| l.level == crate::registry::Level::Warn).collect();
+    let loose: Vec<&crate::registry::Lint> = reg.warnings().collect();
     if let Some(first) = loose.first() {
         out.push(format!("connect the project's files: {} thing(s) aren't connected, first {} (`raea project scan` lists them, `raea doctor --fix` fixes what it can)", loose.len(), first.line()));
     }
-    let mut comps: Vec<PathBuf> = reg.compositions.iter().map(|c| reg.dir.join(&c.file)).collect();
-    comps.dedup();
-    comps.sort_by_key(|p| std::cmp::Reverse(modified(p)));
+    let comps = reg.composition_files();
     let renders = files(&dir.join("out"), ".mp4");
     match (comps.first(), renders.first()) {
         (None, _) => out.push("make the first item: one .tsx whose root registers a Composition (`raea guide craft` first)".into()),

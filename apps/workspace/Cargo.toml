@@ -10,6 +10,5 @@ description = "`raea workspace`, `raea project` and `raea controller`: a workspa
 # the controller schema (core/brief controller.rs): a controller file is checked and normalized against it
 raea-core-brief = { path = "../../core/brief" }
 serde_json = "1"
-# a project's compositions, components and controllers read from their source (registry/, docs/projects.feature PJ8):
-# the version engine/bundle parses TSX with
-oxc = { version = "=0.152.0", features = ["ast_visit"] }
+# a project's compositions, components and controllers read from their source (docs/projects.feature PJ8)
+raea-app-registry = { path = "registry" }

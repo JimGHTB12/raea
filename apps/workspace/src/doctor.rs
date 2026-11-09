@@ -115,13 +115,11 @@ pub fn registry_dir(from: &Path) -> Option<PathBuf> {
 pub fn registry_findings(from: &Path) -> Vec<Finding> {
     let Some(dir) = registry_dir(from) else { return vec![] };
     let reg = crate::registry::scan(&dir);
-    reg.lint
-        .into_iter()
-        .filter(|l| l.level == crate::registry::Level::Warn)
+    reg.warnings()
         .map(|l| {
             let at = if l.file.is_empty() { reg.dir.display().to_string() } else { reg.dir.join(&l.file).display().to_string() };
             let at = if l.line > 0 { format!("{at}:{}", l.line) } else { at };
-            Finding { says: format!("{at}: {} ({})", l.says, l.fix), fix: l.action.map_or(Fix::No, Fix::Registry) }
+            Finding { says: format!("{at}: {} ({})", l.says, l.fix), fix: l.action.clone().map_or(Fix::No, Fix::Registry) }
         })
         .collect()
 }
