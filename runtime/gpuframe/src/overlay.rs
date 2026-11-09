@@ -21,7 +21,10 @@ pub fn overlay_rows(world: &mut World) {
     for (id, p) in sets {
         rows.0.set(&id, p);
     }
-    rows.0.draw(f);
+    if let Err(e) = rows.0.draw(f) {
+        eprintln!("render: frame {f}: the 2D rows: {e}");
+        return;
+    }
     let rgba = match rows.0.rgba() {
         Ok(px) => px.to_vec(),
         Err(e) => {

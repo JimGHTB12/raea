@@ -27,7 +27,8 @@ struct Row {
 
 /// The image rows of one edit, drawn on their own Blitz page.
 pub struct Rows {
-    page: Page,
+    /// built on the first draw: a view with no image rows that never draws one makes no page (a Bevy App)
+    page: Option<Page>,
     rows: Vec<Row>,
     by_id: HashMap<String, usize>,
     /// each row's props at the frame (its base where nothing set them)
@@ -54,9 +55,17 @@ impl Rows {
             rows.push(Row { from: r["from"].as_i64().unwrap_or(0), to: r["to"].as_i64().unwrap_or(frames), src, base });
         }
         let props = rows.iter().map(|r| r.base.clone()).collect();
-        let mut page = Page::new_on(w, h, None, Some(crate::device::render_creation()))?;
-        page.not_dumped();
-        Ok(Rows { page, rows, by_id, props, w, h, frames, drawn: None, rgba: Vec::new() })
+        Ok(Rows { page: None, rows, by_id, props, w, h, frames, drawn: None, rgba: Vec::new() })
+    }
+
+    /// The Blitz page, made on first use on the shared GPU device.
+    fn page(&mut self) -> R<&mut Page> {
+        if self.page.is_none() {
+            let mut page = Page::new_on(self.w, self.h, None, Some(crate::device::render_creation()))?;
+            page.not_dumped();
+            self.page = Some(page);
+        }
+        Ok(self.page.as_mut().expect("page set just above"))
     }
 
     /// Row `id`'s props as installed.
@@ -76,10 +85,13 @@ impl Rows {
     }
 
     /// Frame `f` drawn (unless it's what was drawn last); its picture is `texture`, or `rgba`.
-    pub fn draw(&mut self, f: i64) -> bool {
+    ///
+    /// # Errors
+    /// The page could not be made (first draw only).
+    pub fn draw(&mut self, f: i64) -> R<bool> {
         let shown: Vec<(usize, Map<String, Value>)> = (0..self.rows.len()).filter(|&i| f >= self.rows[i].from && f < self.rows[i].to).map(|i| (i, self.props[i].clone())).collect();
         if self.drawn.as_ref() == Some(&shown) {
-            return false;
+            return Ok(false);
         }
         let root = json!({"style": {"position": "absolute", "left": 0, "top": 0, "width": self.w, "height": self.h, "overflow": "hidden"}});
         let mut want = vec![Want { id: ROOT, parent: 0, kind: "div".into(), props: root.as_object().cloned().unwrap_or_default(), text: None, path: "root".into() }];
@@ -95,32 +107,33 @@ impl Rows {
             want.push(Want { id, parent: ROOT, kind: "img".into(), props: p, text: None, path: format!("r{i}") });
             order.entry(ROOT).or_default().push(id);
         }
-        self.page.sync(&want, &order);
-        self.page.draw();
+        let page = self.page()?;
+        page.sync(&want, &order);
+        page.draw();
         self.drawn = Some(shown);
         self.rgba.clear();
-        true
+        Ok(true)
     }
 
     /// The last frame drawn, read back: premultiplied RGBA, `w` x `h`.
     pub fn rgba(&mut self) -> R<&[u8]> {
         if self.rgba.is_empty() {
-            self.rgba = self.page.frame()?;
+            self.rgba = self.page()?.frame()?;
         }
         Ok(&self.rgba)
     }
 
     /// Frame `f`, drawn and read back (premultiplied RGBA) into `out`.
     pub fn render(&mut self, f: i64, out: &mut Vec<u8>) -> R<()> {
-        self.draw(f);
+        self.draw(f)?;
         out.clear();
         out.extend_from_slice(self.rgba()?);
         Ok(())
     }
 
-    /// The last frame drawn: its texture on the shared device (`Rgba8UnormSrgb`, premultiplied).
+    /// The last frame drawn: its texture on the shared device (`Rgba8UnormSrgb`, premultiplied); None before the first draw.
     pub fn texture(&self) -> Option<wgpu::Texture> {
-        self.page.texture().map(|t| (*t).clone())
+        self.page.as_ref()?.texture().map(|t| (*t).clone())
     }
 }
 
