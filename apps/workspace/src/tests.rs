@@ -35,13 +35,18 @@ fn scratch(name: &str) -> PathBuf {
 #[test]
 fn next_walks_a_project_from_brief_to_show() {
     let d = scratch("next");
+    std::fs::create_dir_all(d.join(".raea")).unwrap();
+    std::fs::write(d.join(".raea/project"), "").unwrap();
     let shaped = next::Brief { needs: vec![], modes: vec!["tool".into()] };
     let unshaped = next::Brief { needs: vec!["who it's for (audience)".into()], modes: vec!["pitch".into()] };
     let s = next::steps(&d, &unshaped, 0);
     assert!(s[0].starts_with("shape the brief: who it's for") && s[1].starts_with("plan it") && s[2].starts_with("make the first item"), "{s:?}");
     assert!(next::steps(&d, &shaped, 2)[0].starts_with("raea doctor: 2"));
-    std::fs::write(d.join("piece.tsx"), "registerRoot(() => null)").unwrap();
-    assert!(next::steps(&d, &shaped, 0)[0].starts_with("render piece.tsx"));
+    std::fs::write(d.join("card.tsx"), "export const Card = () => null;\n").unwrap();
+    let s = next::steps(&d, &shaped, 0);
+    assert!(s[0].starts_with("connect the project's files: 1 thing(s) aren't connected, first card.tsx:1: isn't a composition"), "{s:?}");
+    std::fs::write(d.join("piece.tsx"), "import { Composition, registerRoot } from \"raea\";\nimport { Card } from \"./card\";\nregisterRoot(() => <Composition id=\"piece\" component={Card} width={1080} height={1920} fps={30} durationInFrames={90} />);\n").unwrap();
+    assert!(next::steps(&d, &shaped, 0)[0].starts_with("render piece.tsx"), "{:?}", next::steps(&d, &shaped, 0));
     std::fs::create_dir_all(d.join("out")).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(20));
     std::fs::write(d.join("out/piece.mp4"), "").unwrap();
@@ -51,6 +56,24 @@ fn next_walks_a_project_from_brief_to_show() {
     assert_eq!(next::steps(&d, &shaped, 0)[0], "polish piece.mp4: P1 text clipped at 2 s (`raea guide polish`)");
     std::fs::write(d.join("out/piece.check.json"), r#"{"issues":[{"p":"P3","says":"minor"}]}"#).unwrap();
     assert!(next::steps(&d, &shaped, 0)[0].starts_with("show piece.mp4"));
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
+fn doctor_connects_a_projects_files() {
+    let d = scratch("doctor-pj8");
+    std::fs::create_dir_all(d.join(".raea")).unwrap();
+    std::fs::write(d.join(".raea/project"), "").unwrap();
+    std::fs::write(d.join("loose.tsx"), "export const Loose = () => null;\n").unwrap();
+    std::fs::write(d.join("pace.ts"), "import { controller } from \"raea/brief\";\nexport default controller({ title: \"Pace\", fields: {} });\n").unwrap();
+    let found = doctor::registry_findings(&d);
+    let says: Vec<&String> = found.iter().map(|f| &f.says).collect();
+    assert_eq!(found.len(), 2, "{says:?}");
+    assert!(says[0].contains("loose.tsx:1: isn't a composition") && !found[0].fixable(), "{says:?}");
+    assert!(says[1].contains("pace.ts:2: a controller outside controllers/") && found[1].fixable(), "{says:?}");
+    let out = doctor::doctor(&["--fix".into(), d.display().to_string()], &[], "0.0.1", &|_| Ok(String::new())).unwrap();
+    assert!(out.starts_with("APPLIED  3 of 4 fixed") && out.contains("fixed  ") && d.join("controllers/pace.ts").is_file() && !d.join("pace.ts").exists(), "{out}");
+    assert_eq!(doctor::registry_findings(&d).len(), 1, "only the loose file is left");
     let _ = std::fs::remove_dir_all(&d);
 }
 

@@ -5,7 +5,7 @@
 use super::*;
 use std::process::Command;
 
-const USAGE: &str = "usage: raea workspace [--json] | raea workspace init [NAME] [--layout monorepo|submodules] | raea workspace adopt DIR [--name NAME] [--layout monorepo|submodules]\n       raea project [--json] | raea project new NAME [--storage inline|submodule] | raea project split NAME [--remote URL] | raea project join NAME";
+const USAGE: &str = "usage: raea workspace [--json] | raea workspace init [NAME] [--layout monorepo|submodules] | raea workspace adopt DIR [--name NAME] [--layout monorepo|submodules]\n       raea project [--json] | raea project new NAME [--storage inline|submodule] | raea project split NAME [--remote URL] | raea project join NAME | raea project scan [DIR] [--json]";
 
 /// git for raea's own commits. A new Mac has no user.email and a hostname git can't make one from, so every commit
 /// failed with "Author identity unknown" and the person's first project was never made. git reads $EMAIL only when
@@ -305,6 +305,12 @@ pub fn project(args: &[String]) -> R<String> {
         Some("new") => new_project(w.get(1).ok_or(USAGE)?, flag(args, "--storage")),
         Some("split") => storage::split(w.get(1).ok_or(USAGE)?, flag(args, "--remote")),
         Some("join") => storage::join(w.get(1).ok_or(USAGE)?),
+        // PJ8: the folder's compositions, components and controllers, and what isn't connected
+        Some("scan") => {
+            let dir = w.get(1).map(PathBuf::from).map_or_else(|| std::env::current_dir().map_err(|e| e.to_string()), Ok)?;
+            let r = crate::registry::scan(&dir);
+            Ok(if args.iter().any(|a| a == "--json") { r.json().to_string() } else { r.text() })
+        }
         Some(v) => Err(format!("raea project has no {v:?}\n{USAGE}")),
     }
 }

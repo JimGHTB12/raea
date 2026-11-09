@@ -134,6 +134,10 @@ fn context_body(out: &mut String, dir: &Path, taste_dir: Option<PathBuf>, modes:
     if let Some(text) = raea_app_workspace::summary(&dir, spec::spec_json) {
         section("CONTROLLERS (raea controller ls; a project's own values marked)".into(), text);
     }
+    // the project's compositions, components and controllers as raea's project system reads them (PJ8)
+    if let Some(d) = raea_app_workspace::doctor::registry_dir(dir) {
+        section("PROJECT FILES (raea project scan)".into(), raea_app_workspace::registry::scan(&d).summary());
+    }
     section(format!("BRIEF {}", brief_path.display()), brief.clone());
     for (p, t) in &subs {
         section(format!("{} {}", if p.to_string_lossy().contains("script") { "SCRIPT" } else { "BRIEF" }, p.display()), t.clone());

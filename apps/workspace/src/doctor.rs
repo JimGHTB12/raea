@@ -2,6 +2,8 @@
 //! files raea no longer reads, a workspace or project file missing what this version writes (or not included from the
 //! repo's git config), and an agent's copy of the raea skill from another version. `raea context` runs the same checks
 //! and prints CONTEXT_STALE when any finds something, so they stay cheap: file reads and git config, no engine.
+//! It also lists what in the project isn't connected to raea's project system (docs/projects.feature PJ8, registry.rs):
+//! `--fix` registers a default export and moves a stray controller to controllers/, as a commit.
 use super::*;
 use crate::workspace::{get, git, include, new_id, set};
 
@@ -19,6 +21,8 @@ enum Fix {
     Include(PathBuf, PathBuf),
     /// an agent's skills reinstalled from this raea
     Skills(String),
+    /// a project file connected to raea's project system (PJ8)
+    Registry(crate::registry::Fix),
 }
 
 impl Finding {
@@ -97,15 +101,59 @@ pub fn findings(from: &Path, skills: &[(&str, PathBuf)], version: &str) -> Vec<F
     out
 }
 
+/// The folder a registry scan reads from here: the project, else the folder itself unless it's the workspace's root
+/// (whose projects are each scanned in their own).
+pub fn registry_dir(from: &Path) -> Option<PathBuf> {
+    if let Some(p) = up(from, ".raea/project") {
+        return Some(p);
+    }
+    let from = from.canonicalize().unwrap_or_else(|_| from.to_path_buf());
+    (up(&from, ".raea/workspace").as_deref() != Some(from.as_path())).then_some(from)
+}
+
+/// What isn't connected to raea's project system (PJ8's warnings; its notes are `raea project scan`'s), as findings.
+pub fn registry_findings(from: &Path) -> Vec<Finding> {
+    let Some(dir) = registry_dir(from) else { return vec![] };
+    let reg = crate::registry::scan(&dir);
+    reg.lint
+        .into_iter()
+        .filter(|l| l.level == crate::registry::Level::Warn)
+        .map(|l| {
+            let at = if l.file.is_empty() { reg.dir.display().to_string() } else { reg.dir.join(&l.file).display().to_string() };
+            let at = if l.line > 0 { format!("{at}:{}", l.line) } else { at };
+            Finding { says: format!("{at}: {} ({})", l.says, l.fix), fix: l.action.map_or(Fix::No, Fix::Registry) }
+        })
+        .collect()
+}
+
+/// A commit of the files a registry fix touched, in the repo that holds them, naming only them.
+fn commit_touched(paths: &[PathBuf]) {
+    let Some(first) = paths.iter().find_map(|p| p.parent().filter(|d| d.is_dir())) else { return };
+    let Ok(top) = git(first, &["rev-parse", "--show-toplevel"]) else { return };
+    let top = PathBuf::from(top);
+    let rel: Vec<String> = paths.iter().map(|p| p.strip_prefix(&top).unwrap_or(p).display().to_string()).collect();
+    let mut add = vec!["add", "-A", "--"];
+    add.extend(rel.iter().map(String::as_str));
+    let mut changed = vec!["diff", "--cached", "--quiet", "--"];
+    changed.extend(rel.iter().map(String::as_str));
+    if git(&top, &add).is_ok() && git(&top, &changed).is_err() {
+        let mut c = vec!["commit", "-q", "-m", "raea: doctor --fix connected the project's files", "--"];
+        c.extend(rel.iter().map(String::as_str));
+        let _ = git(&top, &c);
+    }
+}
+
 /// `raea doctor [--fix] [DIR]`: what it found and, with --fix, what it fixed. `reinstall` puts an agent's skills back
 /// (the raea CLI's `skills install`).
 pub fn doctor(args: &[String], skills: &[(&str, PathBuf)], version: &str, reinstall: &dyn Fn(&str) -> R<String>) -> R<String> {
     let fix = args.iter().any(|a| a == "--fix");
     let from = PathBuf::from(args.iter().find(|a| !a.starts_with("--")).map(String::as_str).unwrap_or("."));
-    let found = findings(&from, skills, version);
+    let mut found = findings(&from, skills, version);
+    found.extend(registry_findings(&from));
     if found.is_empty() {
-        return Ok("CHECKED  nothing to fix: this folder's files and the agents' raea skill match this raea".into());
+        return Ok("CHECKED  nothing to fix: this folder's files and the agents' raea skill match this raea, and its compositions, components and controllers are connected".into());
     }
+    let mut touched = Vec::new();
     let mut lines = Vec::new();
     let mut fixed = 0;
     for f in &found {
@@ -113,6 +161,13 @@ pub fn doctor(args: &[String], skills: &[(&str, PathBuf)], version: &str, reinst
             (Fix::Set(file, k, v), true) => set(file, k, v).map(|_| true),
             (Fix::Include(repo, file), true) => include(repo, file).map(|_| true),
             (Fix::Skills(agent), true) => reinstall(agent).map(|_| true),
+            (Fix::Registry(r), true) => {
+                touched.extend(match r {
+                    crate::registry::Fix::Register { file, .. } => vec![file.clone()],
+                    crate::registry::Fix::Move { from, to } => vec![from.clone(), to.clone()],
+                });
+                crate::registry::apply(r).map(|_| true)
+            }
             _ => Ok(false),
         };
         match done {
@@ -131,6 +186,7 @@ pub fn doctor(args: &[String], skills: &[(&str, PathBuf)], version: &str, reinst
                 let _ = crate::workspace::commit(&repo, &[marker], "doctor --fix");
             }
         }
+        commit_touched(&touched);
     }
     let can = found.iter().filter(|f| f.fixable()).count();
     let head = if fix { format!("APPLIED  {fixed} of {} fixed", found.len()) } else { format!("CHECKED  {} to fix ({can} by raea doctor --fix)", found.len()) };

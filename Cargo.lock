@@ -13704,6 +13704,7 @@ dependencies = [
 name = "raea-app-workspace"
 version = "0.1.0"
 dependencies = [
+ "oxc",
  "raea-core-brief",
  "serde_json",
 ]

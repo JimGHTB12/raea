@@ -9,6 +9,7 @@ mod controllers;
 pub mod doctor;
 mod literal;
 pub mod next;
+pub mod registry;
 mod storage;
 mod workspace;
 

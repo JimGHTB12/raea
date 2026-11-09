@@ -55,7 +55,7 @@ fn parse(f: &Field, s: &str) -> R<serde_json::Value> {
 }
 
 /// The overrides of the project `from` is in, by path.
-fn overrides(from: &Path) -> Vec<(String, String)> {
+pub(crate) fn overrides(from: &Path) -> Vec<(String, String)> {
     let Some(p) = workspace::up(from, ".raea/project") else { return vec![] };
     let text = workspace::config(Some(&p.join(".raea/project")), &["--get-regexp", "^controller\\."]).unwrap_or_default();
     text.lines().filter_map(|l| l.split_once(' ')).map(|(k, v)| (k.trim_start_matches("controller.").to_string(), v.to_string())).collect()
