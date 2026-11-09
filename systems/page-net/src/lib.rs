@@ -15,6 +15,30 @@ pub struct FileNet {
     pub roots: Vec<std::path::PathBuf>,
 }
 
+/// A file URL's path: `to_file_path`'s, else its decoded path as written, root-absolute, for the roots to find. On
+/// Windows `to_file_path` refuses a path with no drive, which is every root-absolute URL a page names (`/media/pong.jpg`,
+/// as `file:///media/pong.jpg`), so none of them was looked for under the page's roots, and an app's posters and
+/// pictures were missing there alone
+fn file_path(url: &url::Url) -> Option<std::path::PathBuf> {
+    url.to_file_path().ok().or_else(|| written(url))
+}
+
+fn written(url: &url::Url) -> Option<std::path::PathBuf> {
+    let p = percent_encoding::percent_decode_str(url.path()).decode_utf8().ok()?;
+    p.starts_with('/').then(|| std::path::PathBuf::from(p.as_ref()))
+}
+
+#[cfg(test)]
+mod tests {
+    /// a root-absolute file URL's path as it was written, decoded, and relative to "/" for a root to join
+    #[test]
+    fn a_root_absolute_url_is_a_path_for_the_roots() {
+        let p = super::written(&url::Url::parse("file:///media/a%20b.jpg").unwrap()).unwrap();
+        assert_eq!(p, std::path::PathBuf::from("/media/a b.jpg"));
+        assert_eq!(p.strip_prefix("/").unwrap(), std::path::Path::new("media/a b.jpg"));
+    }
+}
+
 /// RAEA_PAGE_ROOT's roots, a list as PATH is (an app's Blitz build, then its public/)
 pub fn page_roots() -> Vec<std::path::PathBuf> {
     std::env::var_os("RAEA_PAGE_ROOT").map(|v| std::env::split_paths(&v).collect()).unwrap_or_default()
@@ -24,7 +48,7 @@ impl NetProvider for FileNet {
     fn fetch(&self, _doc_id: usize, request: Request, handler: Box<dyn NetHandler>) {
         let url = request.url;
         let bytes = match url.scheme() {
-            "file" => url.to_file_path().ok().and_then(|p| {
+            "file" => file_path(&url).and_then(|p| {
                 std::fs::read(&p).ok().or_else(|| {
                     let rel = p.strip_prefix("/").ok()?;
                     self.roots.iter().find_map(|r| std::fs::read(r.join(rel)).ok())
@@ -34,7 +58,7 @@ impl NetProvider for FileNet {
             // the page's own origin (http://localhost/, as page_fetch has it): the file under the roots, confined, so an
             // @font-face, image or stylesheet the app names by its URL loads as in Chrome (Excalidraw's fonts did not)
             "http" if url.host_str() == Some("localhost") && url.port().is_none() && !self.roots.is_empty() => {
-                let path = url::Url::parse(&format!("file://{}", url.path())).ok().and_then(|u| u.to_file_path().ok());
+                let path = url::Url::parse(&format!("file://{}", url.path())).ok().and_then(|u| file_path(&u));
                 path.and_then(|p| FrameNet { roots: self.roots.clone() }.confined(&p)).filter(|p| p.is_file()).and_then(|p| std::fs::read(p).ok())
             }
             "http" | "https" => match raea_io_net::cache::read(url.as_str()) {
@@ -82,7 +106,7 @@ impl NetProvider for FrameNet {
             return FileNet::default().fetch(doc_id, request, handler);
         }
         let url = request.url;
-        let bytes = url.to_file_path().ok().and_then(|p| self.confined(&p)).and_then(|p| std::fs::read(p).ok());
+        let bytes = file_path(&url).and_then(|p| self.confined(&p)).and_then(|p| std::fs::read(p).ok());
         if bytes.is_none() {
             bevy::log::warn!("raea-page: a frame's {url} isn't a file inside the page's root");
         }
@@ -133,7 +157,7 @@ pub fn page_fetch(args: &serde_json::Value) -> Option<serde_json::Value> {
         return None;
     }
     // its path decoded, as a file URL's
-    let path = url::Url::parse(&format!("file://{}", u.path())).ok()?.to_file_path().ok()?;
+    let path = file_path(&url::Url::parse(&format!("file://{}", u.path())).ok()?)?;
     // /media/x from the root's media/, then its assets/ (Bevy's assets folder: docs/sdk.feature S5a), confined either way
     let assets = path.strip_prefix("/media").ok().map(|rest| std::path::Path::new("/assets").join(rest));
     let net = FrameNet { roots };
