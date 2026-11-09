@@ -6,7 +6,7 @@ import package::scene::brdf::{brdf_pdf, evaluate_and_sample_brdf, evaluate_brdf,
 import package::realtime::presample_light_tiles::unpack_resolved_light_sample;
 import package::realtime::bindings::{empty_reservoir, light_tile_resolved_samples, light_tile_samples, Reservoir, constants, view};
 import package::scene::sampling::{calculate_resolved_light_contribution, isinf, LightSample, NULL_LIGHT_ID, power_heuristic, trace_visibility, sample_environment_map_light_and_sun};
-import package::scene::bindings::{light_sources, RAY_T_MAX, RAY_T_MIN, resolve_ray_hit_full, ResolvedMaterial, ResolvedRayHitFull, trace_ray};
+import package::scene::bindings::{light_sources, MIRROR_ROUGHNESS_THRESHOLD, RAY_T_MAX, RAY_T_MIN, resolve_ray_hit_full, ResolvedMaterial, ResolvedRayHitFull, trace_ray};
 import package::realtime::world_cache_query::{get_cell_size, query_world_cache, WORLD_CACHE_CELL_LIFETIME};
 
 @if(DLSS_RR_GUIDE_BUFFERS)
@@ -92,7 +92,11 @@ fn generate_initial_path(world_position: vec3<f32>, world_normal: vec3<f32>, mat
         // Stochastic NEE, with probability proportional to how diffuse the vertex is. Mirror-like
         // metals have too narrow a lobe for NEE to help, so mostly skip it there and let
         // BRDF-sampled emissive do the work. Pure dielectrics always run NEE.
-        let p_nee = mix(1.0, path.material.perceptual_roughness, path.material.metallic);
+        // raea: at least a quarter on a glossy metal short of a perfect mirror, so a small bright light it reflects (a
+        // panorama's sun, EnvironmentSun) is sampled often enough to show; NEE's weights divide by p_nee, so this stays
+        // unbiased. A perfect mirror still never samples lights and sees the sun in the environment map.
+        let p_nee_upstream = mix(1.0, path.material.perceptual_roughness, path.material.metallic);
+        let p_nee = select(max(p_nee_upstream, 0.25), p_nee_upstream, path.material.roughness <= MIRROR_ROUGHNESS_THRESHOLD);
         let di_samples = select(constants.secondary_di_samples, constants.primary_di_samples, bounce == 0u);
         generate_nee_candidate(&path, F_ab, p_nee, di_samples, workgroup_id, bounce, rng);
 
@@ -107,8 +111,8 @@ fn generate_initial_path(world_position: vec3<f32>, world_normal: vec3<f32>, mat
                 psr_environment_miss(pixel_id, wo);
             }
 
-            // raea: the sun only where this vertex never samples lights (a mirror); elsewhere light sampling finds it
-            let environment_map_light_radiance = sample_environment_map_light_and_sun(next_bounce.wi, p_nee <= 0.0);
+            // raea: the sun only off a mirror's specular lobe, which light sampling can't reach; elsewhere it finds the sun
+            let environment_map_light_radiance = sample_environment_map_light_and_sun(next_bounce.wi, path.material.roughness <= MIRROR_ROUGHNESS_THRESHOLD && !next_bounce.diffuse_selected);
             @if(RESTIR) {
                 generate_environment_map_light_candidate(&path, next_bounce, environment_map_light_radiance, primary_F_ab, bounce, rng);
             } @else {

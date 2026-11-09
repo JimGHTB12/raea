@@ -73,7 +73,6 @@ fn pathtrace(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
             // Sample direct lighting, but only if the surface is not mirror-like
             let is_perfectly_specular = ray_hit.material.roughness <= MIRROR_ROUGHNESS_THRESHOLD && ray_hit.material.metallic > 0.9999;
-            sees_sun = is_perfectly_specular;
             if !is_perfectly_specular {
                 let direct_lighting = sample_random_light(ray_hit.world_position, ray_hit.world_normal, &rng);
 
@@ -90,6 +89,8 @@ fn pathtrace(@builtin(global_invocation_id) global_id: vec3<u32>) {
             // Sample new ray direction from the material BRDF for next bounce and apply BRDF
             let next_bounce = evaluate_and_sample_brdf(wo, ray_hit.world_normal, ray_hit.material, F_ab, &rng);
             if next_bounce.pdf == 0.0 { break; }
+            // raea: off a mirror's specular lobe, which light sampling can't reach, the ray sees the sun itself
+            sees_sun = ray_hit.material.roughness <= MIRROR_ROUGHNESS_THRESHOLD && !next_bounce.diffuse_selected;
             ray_direction = next_bounce.wi;
             ray_origin = ray_hit.world_position + (ray_hit.geometric_world_normal * RAY_T_MIN);
             ray_t_min = RAY_T_MIN;
