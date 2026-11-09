@@ -196,14 +196,18 @@ jobs:
           if ($im) { Add-Content $env:GITHUB_PATH $im.FullName }
       # without the loader's debug lines (lavapipe.sh sets them for the driver's registration), and a failing case's
       # log tail in the job's log, since the runner and its logs go when the job ends
+      # each case is bounded by check.sh (RAEA_CASE_SECONDS: a fresh runner's first play opens in about 100s, the next in
+      # seconds); the step's own bound is for the rest
       - name: Live play (bevy-ts's play cases)
+        timeout-minutes: 75
         env:
           VK_LOADER_DEBUG: ""
+          RAEA_CASE_SECONDS: "300"
         run: |
           b="$PWD/target/dist/raea.exe"
           out="${TMPDIR:-/tmp}/raea-bevy-ts"
-          s=0; RAEA_BIN="$b" RAEA_PLUGIN_BIN="$b" bash sdk/raea/bench/bevy-ts/check.sh $(grep -l '^// play:' sdk/raea/bench/bevy-ts/cases/*.tsx) > "$RUNNER_TEMP/play.txt" 2>&1 || s=$?
-          tee -a "$GITHUB_STEP_SUMMARY" < "$RUNNER_TEMP/play.txt"
+          s=0; RAEA_BIN="$b" RAEA_PLUGIN_BIN="$b" bash sdk/raea/bench/bevy-ts/check.sh $(grep -l '^// play:' sdk/raea/bench/bevy-ts/cases/*.tsx) 2>&1 | tee "$RUNNER_TEMP/play.txt" || s=$?
+          cat "$RUNNER_TEMP/play.txt" >> "$GITHUB_STEP_SUMMARY"
           for n in $(sed -n 's/^\([^ ]*\) (.*): OPEN.*/\1/p' "$RUNNER_TEMP/play.txt"); do echo "--- $n"; grep -v "known driver" "$out/$n.log" | tail -25; done
           exit $s
       - uses: actions/attest-build-provenance@v2

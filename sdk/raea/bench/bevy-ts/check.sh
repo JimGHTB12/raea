@@ -25,6 +25,11 @@ BIN=${RAEA_BIN:-raea}
 PLUGIN_BIN=${RAEA_PLUGIN_BIN:-$ROOT/sdk/raea/bench/bevy-plugins/motion.sh}
 OUT=${TMPDIR:-/tmp}/raea-bevy-ts
 mkdir -p "$OUT"
+# each case's run bounded (RAEA_CASE_SECONDS, default 180), so a run that hangs is that case open rather than the whole
+# check stuck (a Windows release job's Live play hung until it was cancelled); coreutils' timeout, gtimeout on a Mac
+# with Homebrew's, else unbounded
+bound=()
+for t in timeout gtimeout; do command -v $t > /dev/null && { bound=($t -k 10 "${RAEA_CASE_SECONDS:-180}"); break; }; done
 cases=()
 if [ $# -eq 0 ]; then
   for f in "$HERE"/cases/*.tsx; do cases+=("$f"); done
@@ -56,9 +61,11 @@ for edit in "${cases[@]}"; do
   else
     run=("$bin" render "$edit" --frame "${frame:-0}" ${extra[@]+"${extra[@]}"} -o "$png")
   fi
-  if ! RAEA_SCENE_ROWS=1 nice -n 10 "${run[@]}" > "$log" 2>&1 || [ ! -f "$png" ]; then
+  s=0; RAEA_SCENE_ROWS=1 nice -n 10 ${bound[@]+"${bound[@]}"} "${run[@]}" > "$log" 2>&1 || s=$?
+  if [ $s -ne 0 ] || [ ! -f "$png" ]; then
     # (not the Vulkan loader's own INFO lines, which VK_LOADER_DEBUG prints on a CI runner: "... is not recognized ...")
     why=$(grep -iE "error|refused|not |no " "$log" | grep -v "global logger" | grep -v "INFO |" | tail -1 | cut -c1-160)
+    [ $s -eq 124 ] || [ $s -eq 137 ] && why="it ran past ${RAEA_CASE_SECONDS:-180}s and was stopped"
     echo "$name ($gap): OPEN  the render failed: ${why:-see $log}"; open=$((open + 1)); continue
   fi
   bad=""
