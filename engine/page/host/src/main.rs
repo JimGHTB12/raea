@@ -37,7 +37,8 @@ fn args() -> Result<Args, String> {
     while let Some(a) = it.next() {
         let mut val = || it.next().ok_or(format!("{a} needs a value"));
         match a.as_str() {
-            "--css" => css = Some(val()?.split(':').map(str::to_string).collect()),
+            // a list as PATH is (`;` on Windows, where `:` is in every C:\ path)
+            "--css" => css = Some(std::env::split_paths(&val()?).map(|p| p.to_string_lossy().into_owned()).collect()),
             // read by raea-page's net.rs (page_roots), a list as PATH is
             "--root" => unsafe { std::env::set_var("RAEA_PAGE_ROOT", val()?) },
             "--size" => {
@@ -53,7 +54,7 @@ fn args() -> Result<Args, String> {
             s => bundle = Some(s.to_string()),
         }
     }
-    let bundle = bundle.ok_or("usage: raea-page-host BUNDLE [--css FILE[:FILE]] [--root DIR[:DIR]] [--size WxH]")?;
+    let bundle = bundle.ok_or("usage: raea-page-host BUNDLE [--css FILE[:FILE]] [--root DIR[:DIR]] (lists as PATH is: ; on Windows) [--size WxH]")?;
     Ok(Args { bundle, css, size, window, title, chrome })
 }
 
