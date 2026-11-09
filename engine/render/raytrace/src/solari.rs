@@ -10,6 +10,7 @@
 
 use super::*;
 use bevy::camera::CameraMainTextureUsages;
+use bevy::core_pipeline::prepass::{DeferredPrepass, DepthPrepass};
 use bevy::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
 use bevy::solari::pathtracer::{Pathtracer, PathtracingPlugin};
 use bevy::solari::prelude::{RaytracingMesh3d, SolariLighting, SolariPlugins};
@@ -23,11 +24,16 @@ pub fn add(app: &mut App) {
 struct Done;
 
 // Solari's camera needs: no MSAA and a main texture it can write to (SolariLighting's docs); Hdr, the prepasses and
-// deferred come with its required components
-fn cameras(mut cmd: Commands, q: Query<(Entity, Option<&CameraMainTextureUsages>), (Or<(With<SolariLighting>, With<Pathtracer>)>, Without<Done>)>) {
-    for (e, u) in &q {
+// deferred come with SolariLighting's required components. Pathtracer requires only Hdr, but SolariPlugins makes every
+// StandardMaterial deferred, so a Pathtracer camera without a deferred prepass panicked on its first frame (Bevy's
+// prepass queue unwraps the view's opaque deferred phase): it gets the depth and deferred prepasses too.
+fn cameras(mut cmd: Commands, q: Query<(Entity, Option<&CameraMainTextureUsages>, Has<Pathtracer>), (Or<(With<SolariLighting>, With<Pathtracer>)>, Without<Done>)>) {
+    for (e, u, path) in &q {
         let usages = u.map_or_else(|| CameraMainTextureUsages::default().0, |u| u.0) | bevy::render::render_resource::TextureUsages::STORAGE_BINDING;
         cmd.entity(e).insert((Msaa::Off, CameraMainTextureUsages(usages), Done));
+        if path {
+            cmd.entity(e).insert_if_new((DepthPrepass, DeferredPrepass));
+        }
     }
 }
 

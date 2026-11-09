@@ -15522,6 +15522,7 @@ name = "raea-sys-shader"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "raea-gpu-device",
  "raea-sys-material",
  "raea-sys-sampler",
  "raea-sys-shader-wgsl",

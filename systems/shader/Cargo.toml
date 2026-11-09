@@ -10,6 +10,8 @@ description = "Shaders written in TypeScript over the lit standard surface (docs
 raea-sys-material = { path = "../material" }
 raea-sys-sampler = { path = "../sampler" }
 raea-sys-shader-wgsl = { path = "wgsl" }
+# a shader that does not compile refuses the render (failed.rs)
+raea-gpu-device = { path = "../../gpu/device" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std", "default_app", "3d_bevy_render", "bevy_ui", "bevy_ui_render"] }
 wgpu = "=30.0.1"
 serde_json = "1"

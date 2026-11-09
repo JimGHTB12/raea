@@ -37,6 +37,7 @@ pub mod own;
 pub mod own_array;
 mod own_images;
 pub mod own_live;
+mod failed;
 pub mod ui;
 use raea_sys_shader_wgsl::ui_bind;
 
@@ -52,6 +53,7 @@ pub fn install(app: &mut App) {
     app.add_plugins(MaterialPlugin::<ShadedMaterial>::default());
     own::install(app);
     ui::install(app);
+    failed::install(app);
 }
 
 #[derive(Asset, AsBindGroup, Reflect, Clone, Debug)]
@@ -284,6 +286,7 @@ pub fn register(world: &mut World, module: String, defs: &[ShaderDefVal], kind: 
     let hi = h.finish();
     kind.hash(&mut h);
     let id = ((hi as u128) << 64) | h.finish() as u128;
+    failed::ours(id);
     let aid = AssetId::<Shader>::Uuid { uuid: bevy::asset::uuid::Uuid::from_u128(id) };
     let mut shaders = world.resource_mut::<Assets<Shader>>();
     if shaders.get(aid).is_none() {
