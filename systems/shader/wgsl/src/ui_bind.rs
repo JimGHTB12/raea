@@ -16,6 +16,10 @@ pub const STORAGE: [usize; 2] = [23, 24];
 /// A Material's depth texture (`dims`): its texture_depth_2d at 25 and its sampler_comparison at 26 (Bevy's
 /// render_depth_to_texture samples a camera's depth so).
 pub const DEPTH: [usize; 2] = [25, 26];
+/// A Material's binding_array<texture_2d<f32>> (`dims`) at 27, of up to ARRAY_LEN pictures (Bevy's
+/// texture_binding_array), where the device has texture binding arrays.
+pub const ARRAY: usize = 27;
+pub const ARRAY_LEN: usize = 16;
 /// Where a Material's slots (`dims`) start: past a sprite's own bindings (0 to 2, 10 when bindless), whose group a
 /// SpriteMaterial's share (shader/sprite_material). A UiMaterial's start at 0.
 pub const OWN_BASE: usize = 30;
@@ -104,6 +108,12 @@ pub fn rebind_with(src: &str, groups: &[&str], what: &str, dims: bool, place: &d
                 return Err(format!("{what} binds at most {max_samplers} samplers, {name} is one more"));
             }
             UNIFORMS + 2 * (samplers - 1) + 1
+        } else if dims && ty.replace(char::is_whitespace, "") == "binding_array<texture_2d<f32>>" {
+            if others.iter().any(|(_, o)| *o == "binding_array") {
+                return Err(format!("{what} binds one binding_array, {name} is a second"));
+            }
+            others.push((name.clone(), "binding_array"));
+            ARRAY
         } else if dims && (ty == "texture_depth_2d" || ty == "sampler_comparison") {
             let (d, slot) = if ty == "sampler_comparison" { ("comparison", DEPTH[1]) } else { ("depth", DEPTH[0]) };
             if others.iter().any(|(_, o)| *o == d) {
@@ -236,5 +246,14 @@ fn f() { @if(BINDLESS) let x = 1; }
         assert!(r.src.contains(&format!("@binding({}) var depth_texture", OWN_BASE + DEPTH[0])) && r.src.contains(&format!("@binding({}) var depth_sampler", OWN_BASE + DEPTH[1])), "{}", r.src);
         assert_eq!(r.others, vec![("depth_texture".to_string(), "depth"), ("depth_sampler".to_string(), "comparison")]);
         assert!(rebind_in(src, &["3"], "a UiMaterial", false).is_err());
+    }
+
+    #[test]
+    fn a_materials_texture_binding_array_goes_to_its_slot() {
+        // Bevy's texture_binding_array.wesl: the array and a sampler with no texture_2d of its own
+        let src = "@group(3) @binding(0) var textures: binding_array<texture_2d<f32>>;\n@group(3) @binding(1) var nearest_sampler: sampler;\n";
+        let r = rebind_in(src, &["3"], "a Material", true).unwrap();
+        assert!(r.src.contains(&format!("@binding({}) var textures", OWN_BASE + ARRAY)), "{}", r.src);
+        assert_eq!((r.others, r.samplers), (vec![("textures".to_string(), "binding_array")], 1));
     }
 }

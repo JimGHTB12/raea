@@ -104,6 +104,9 @@ export interface MeshStandardMaterialProps extends SurfaceDrawProps {
  * imported. Shadows, depth and the prepass stay the standard surface's. */
 const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+/** A texture a shader binds: an asset path, "render:NAME", or a picture with its sampler ({ src, sampler }). */
+export type ShaderTexture = string | Record<string, unknown>;
+
 export interface SurfaceShaderSpec {
   /** the source in WESL (Bevy 0.20's shader language, a superset of WGSL) */
   wesl?: string;
@@ -119,8 +122,10 @@ export interface SurfaceShaderSpec {
   uniforms?: Record<string, number | number[] | string>;
   /** up to 4: an asset path, a picture made in code ({ width, height, pixels }) or "render:NAME"; with a sampler,
    * { src, sampler } (or a picture with its `sampler`). One more may be an array, read as texture_2d_array<f32> by
-   * layer: { layers: [picture, ...] } (one size and format) or { src, layers: N } (N layers stacked top to bottom) */
-  textures?: Record<string, string | Record<string, unknown>>;
+   * layer: { layers: [picture, ...] } (one size and format) or { src, layers: N } (N layers stacked top to bottom). A
+   * <Material>'s may also bind one binding_array<texture_2d<f32>>, a list of 1 to 16 pictures (Bevy's
+   * texture_binding_array; a GPU without texture binding arrays refuses it) */
+  textures?: Record<string, ShaderTexture | ShaderTexture[]>;
   /** shader defs: each NAME a WESL condition for `@if(NAME)` (a number is true), and a whole number also
    * `constants::NAME`; each set of defs compiles its own pipeline */
   defs?: ShaderDefs;
@@ -206,13 +211,21 @@ export function surfaceShader(owner: string, sh: SurfaceShaderSpec, hook: RegExp
   // a picture's path found as the fragment's is (staticFile's /media/x); "render:NAME", data: URLs and pictures made in
   // code kept as given
   const file = (s: unknown) => (typeof s === "string" && !s.includes(":") ? assetPath(s) : s);
-  const found = Object.fromEntries(Object.entries(textures).map(([k, t]) => [k, typeof t === "string" ? file(t) : t !== null && typeof t === "object" && "src" in t ? { ...t, src: file(t.src) } : t]));
+  const one = (t: ShaderTexture) => (typeof t === "string" ? file(t) : t !== null && typeof t === "object" && "src" in t ? { ...t, src: file(t.src) } : t);
+  const found = Object.fromEntries(Object.entries(textures).map(([k, t]) => [k, Array.isArray(t) ? t.map(one) : one(t)]));
   return { ...(fragment !== undefined ? { fragment: assetPath(fragment) } : wesl !== undefined ? { wesl } : { wgsl }), uniforms, textures: found, ...(defs !== undefined ? { defs: shaderDefs(owner, defs) } : {}), ...(own !== undefined ? { own, ...(own.vertex !== undefined ? { vertex: assetPath(own.vertex) } : {}), ...(buffers !== undefined ? { buffers } : {}) } : {}) };
 }
 
 /** A shader's textures checked: up to 4 pictures and one array (docs/shaders.feature SH9). */
-export function checkTextures(owner: string, textures: Record<string, string | Record<string, unknown>>): void {
-  const ts = Object.keys(textures);
+export function checkTextures(owner: string, textures: Record<string, ShaderTexture | ShaderTexture[]>): void {
+  const lists = Object.keys(textures).filter((k) => Array.isArray(textures[k]));
+  if (lists.length > 1) throw new RangeError(`${owner}: a shader has one binding_array, got ${lists.join(", ")}`);
+  for (const k of lists) {
+    const l = textures[k] as ShaderTexture[];
+    if (l.length < 1 || l.length > 16) throw new RangeError(`${owner}: binding_array ${k} takes 1 to 16 pictures, got ${l.length}`);
+    for (const t of l) if (typeof t === "object" && t !== null && t.sampler !== undefined) samplerSpec(`${owner}: texture ${k}`, t.sampler as SamplerSpec);
+  }
+  const ts = Object.keys(textures).filter((k) => !lists.includes(k));
   const arrays = ts.filter((k) => typeof textures[k] === "object" && textures[k] !== null && "layers" in (textures[k] as object));
   if (arrays.length > 1) throw new RangeError(`${owner}: a shader has one texture array, got ${arrays.join(", ")}`);
   if (ts.length - arrays.length > 4) throw new RangeError(`${owner}: a shader has at most 4 textures (and one array), got ${ts.length - arrays.length}`);

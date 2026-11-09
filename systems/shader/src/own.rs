@@ -27,9 +27,10 @@ use serde_json::Value;
 use crate::own_live::{storage, Packing};
 use crate::ui_bind::{rebind_in, Rebound};
 use crate::{layout, register, Inputs, OwnSurface, Shaded};
+pub use crate::own_images::{depth_image, picture};
 
 /// The fragment shader every pipeline starts from, swapped in `specialize` for the material's own (its uuid).
-const PLACEHOLDER: Handle<Shader> = uuid_handle!("5d1e7a3c-2b9f-4e6d-8a1c-3f7b9d2e6c41");
+pub(crate) const PLACEHOLDER: Handle<Shader> = uuid_handle!("5d1e7a3c-2b9f-4e6d-8a1c-3f7b9d2e6c41");
 const STUB: &str = "import bevy_pbr::render::forward_io::VertexOutput;\n@fragment\nfn fragment(in: VertexOutput) -> @location(0) vec4<f32> { return vec4(1.0, 0.0, 1.0, 1.0); }\n";
 /// The same for a 2D one (Material2d's), whose vertex output is mesh2d's.
 const PLACEHOLDER_2D: Handle<Shader> = uuid_handle!("5d1e7a3c-2b9f-4e6d-8a1c-3f7b9d2e6c42");
@@ -95,14 +96,16 @@ pub struct OwnMaterial {
     #[texture(55, sample_type = "depth")]
     #[sampler(56, sampler_type = "comparison")]
     depth: Option<Handle<Image>>,
+    /// its binding_array<texture_2d<f32>>'s pictures, bound by the OwnArrayMaterial wrapping it (own_array.rs)
+    pub(crate) array: Vec<Handle<Image>>,
     /// what its uniforms and buffers are packed from, for a frame's new values (own_live.rs)
     pub(crate) packing: Arc<Packing>,
     shader: u128,
     /// the vertex shader's uuid, 0 for Bevy's mesh vertex shader
     vertex: u128,
     /// None when the spec gives none: Opaque as a Material's, a sprite's own as a SpriteMaterial's
-    alpha: Option<AlphaMode>,
-    depth_bias: f32,
+    pub(crate) alpha: Option<AlphaMode>,
+    pub(crate) depth_bias: f32,
     /// the faces it culls (the pipeline's primitive.cull_mode); None keeps the pipeline's (3D culls Back, 2D none)
     cull: Option<Option<Face>>,
     /// its fragment stage's pipeline-overridable constants (WGSL `override`): their hash in CONSTANTS, 0 for none
@@ -243,7 +246,7 @@ fn alpha2d(a: AlphaMode) -> AlphaMode2d {
 /// A pipeline given the material's own shaders: its fragment where it is `placeholder`, its vertex shader (if any) in
 /// that same pipeline (the main pass's: the prepass and shadow pipelines keep Bevy's), the faces it culls, and its
 /// fragment's pipeline-overridable constants (as Bevy's pipeline_constants pushes LEVELS in its specialize).
-fn swap(descriptor: &mut RenderPipelineDescriptor, layout: &MeshVertexBufferLayoutRef, placeholder: &Handle<Shader>, k: OwnKey) -> Result<(), SpecializedMeshPipelineError> {
+pub(crate) fn swap(descriptor: &mut RenderPipelineDescriptor, layout: &MeshVertexBufferLayoutRef, placeholder: &Handle<Shader>, k: OwnKey) -> Result<(), SpecializedMeshPipelineError> {
     let Some(f) = descriptor.fragment.as_mut().filter(|f| f.shader.id() == placeholder.id()) else { return Ok(()) };
     let shader = |id: u128| Handle::Uuid(bevy::asset::uuid::Uuid::from_u128(id), core::marker::PhantomData);
     f.shader = shader(k.shader);
@@ -265,7 +268,7 @@ fn swap(descriptor: &mut RenderPipelineDescriptor, layout: &MeshVertexBufferLayo
 pub fn install(app: &mut App) {
     let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER, Shader::from_wesl(STUB, "embedded://raea_sys_shader/own_placeholder.wesl"));
     let _ = app.world_mut().resource_mut::<Assets<Shader>>().insert(&PLACEHOLDER_2D, Shader::from_wesl(STUB_2D, "embedded://raea_sys_shader/own_placeholder_2d.wesl"));
-    app.add_plugins((MaterialPlugin::<OwnMaterial>::default(), Material2dPlugin::<OwnMaterial>::default(), SpriteMaterialPlugin::<OwnMaterial>::default()));
+    app.add_plugins((MaterialPlugin::<OwnMaterial>::default(), MaterialPlugin::<crate::own_array::OwnArrayMaterial>::default(), Material2dPlugin::<OwnMaterial>::default(), SpriteMaterialPlugin::<OwnMaterial>::default()));
 }
 
 /// The material a `<Material>` spec asks for: {fragment, vertex?, uniforms, textures, defs, own: {alpha_mode,
@@ -340,13 +343,14 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
         constants.push((k.clone(), n));
     }
     let constants = intern(constants);
+    let array = crate::own_images::array(world, ins.bindings.as_ref(), &others, textures.is_empty(), !packing.uniforms.is_empty(), &mut t[0], two_d, path)?;
     let [t0, t1, t2, t3] = t;
     let depth = Some(match others.iter().find(|o| o.1 == "depth").and_then(|(n, _)| ins.textures.iter().find(|(k, _)| k == n)) {
         Some((_, h)) => h.clone(),
-        None => no_depth(world),
+        None => crate::own_images::no_depth(world),
     });
     let [d1, d2a, cube, cube_array, d3] = dims;
-    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, depth, b0: b[0].clone(), b1: b[1].clone(), packing, shader, vertex, alpha, depth_bias, cull, constants, layout: layout_of(own.get("vertex_attributes"))? })
+    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, depth, array, b0: b[0].clone(), b1: b[1].clone(), packing, shader, vertex, alpha, depth_bias, cull, constants, layout: layout_of(own.get("vertex_attributes"))? })
 }
 
 /// Bevy's AlphaMode as the SDK writes it: "Opaque", "Blend", {"Mask": cutoff}, "Premultiplied", "AlphaToCoverage",
@@ -368,39 +372,6 @@ fn alpha_mode(v: Option<&Value>) -> Result<Option<AlphaMode>, String> {
             None => return Err(format!("a Material's alpha_mode is a name or {{\"Mask\": cutoff}}, got {v}")),
         },
     }))
-}
-
-/// A depth image a shader samples (texture_depth_2d with a sampler_comparison): Depth32Float, its sampler comparing
-/// Always, as Bevy's render_depth_to_texture makes the image its depth-only camera's depth is copied into.
-pub fn depth_image(w: u32, h: u32) -> Image {
-    use bevy::image::{ImageCompareFunction, ImageSampler, ImageSamplerDescriptor};
-    use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-    let mut img = Image::new_uninit(Extent3d { width: w, height: h, depth_or_array_layers: 1 }, TextureDimension::D2, TextureFormat::Depth32Float, bevy::asset::RenderAssetUsages::default());
-    img.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor { compare: Some(ImageCompareFunction::Always), ..default() });
-    img
-}
-
-/// The 1 x 1 depth image every Material that binds no depth texture binds (made once).
-fn no_depth(world: &mut World) -> Handle<Image> {
-    #[derive(Resource)]
-    struct NoDepth(Handle<Image>);
-    if let Some(h) = world.get_resource::<NoDepth>() {
-        return h.0.clone();
-    }
-    let h = world.resource_mut::<Assets<Image>>().add(depth_image(1, 1));
-    world.insert_resource(NoDepth(h.clone()));
-    h
-}
-
-/// A picture file decoded now as an Image (sRGB, the default sampler, as asset_server.load reads a colour texture), so
-/// the first frame that draws it has it.
-pub fn picture(world: &mut World, path: &str) -> Result<Handle<Image>, String> {
-    use bevy::asset::RenderAssetUsages;
-    use bevy::image::{CompressedImageFormats, ImageSampler, ImageType};
-    let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
-    let ext = std::path::Path::new(path).extension().and_then(|e| e.to_str()).unwrap_or("png");
-    let image = Image::from_buffer(&bytes, ImageType::Extension(ext), CompressedImageFormats::NONE, true, ImageSampler::Default, RenderAssetUsages::default()).map_err(|e| format!("{path}: {e}"))?;
-    Ok(world.resource_mut::<Assets<Image>>().add(image))
 }
 
 /// The embedded folder a file's module goes in (raea_sys_shader/d{hash of its folder}), with every module it imports
@@ -479,7 +450,13 @@ pub fn shared(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &
 /// kept aside as `Shaded` (so the rows' sync finds it) and the scene's <SurfaceShader> kept off it.
 pub fn put(world: &mut World, e: Entity, h: Handle<OwnMaterial>) -> Result<(), String> {
     let Some(std) = world.get::<MeshMaterial3d<StandardMaterial>>(e).map(|m| m.0.clone()) else { return Ok(()) };
-    world.entity_mut(e).remove::<MeshMaterial3d<StandardMaterial>>().insert((MeshMaterial3d(h), Shaded { std }, OwnSurface));
+    let array = crate::own_array::wrap(world, &h);
+    let mut w = world.entity_mut(e);
+    w.remove::<MeshMaterial3d<StandardMaterial>>().insert((Shaded { std }, OwnSurface));
+    match array {
+        Some(a) => w.insert(MeshMaterial3d(a)),
+        None => w.insert(MeshMaterial3d(h)),
+    };
     crate::own_live::settle(world, e)
 }
 

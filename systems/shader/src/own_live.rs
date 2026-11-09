@@ -12,6 +12,7 @@ use serde_json::Value;
 
 use crate::layout;
 use crate::own::OwnMaterial;
+use crate::own_array::OwnArrayMaterial;
 
 /// What a material's uniforms and buffers are packed from: its source as compiled (its struct types), its uniforms'
 /// and storage buffers' (name, WGSL type) in slot order, and its defs (a struct field under `@if`).
@@ -47,22 +48,33 @@ fn handle<C: Component + std::ops::Deref<Target = Handle<OwnMaterial>>>(world: &
     world.get::<C>(e).map(|m| (**m).clone())
 }
 
+/// What a Material's values are packed from, and its storage buffers.
+fn packed(m: &OwnMaterial) -> (std::sync::Arc<Packing>, [Handle<ShaderBuffer>; 2]) {
+    (m.packing.clone(), m.buffers())
+}
+
 /// An `own:uniforms` component row: the frame's {uniforms, buffers} packed into the part's own Material (3D, 2D or a
 /// sprite's) and its storage buffers.
 pub fn patch(world: &mut World, e: Entity, v: &Value) -> Result<(), String> {
     let h = [handle::<MeshMaterial3d<OwnMaterial>>(world, e), handle::<MeshMaterial2d<OwnMaterial>>(world, e), handle::<SpriteMaterial<OwnMaterial>>(world, e)];
-    let h = h.into_iter().flatten().next();
-    // a row applied before the part's Material is put on (shade_rows runs after the rows): kept for `put`
-    let Some(h) = h else {
-        world.entity_mut(e).insert(Pending(v.clone()));
-        return Ok(());
+    let (h, arr) = (h.into_iter().flatten().next(), world.get::<MeshMaterial3d<OwnArrayMaterial>>(e).map(|m| m.0.clone()));
+    let got = match (&h, &arr) {
+        (Some(h), _) => world.resource::<Assets<OwnMaterial>>().get(h).map(packed),
+        (None, Some(a)) => world.resource::<Assets<OwnArrayMaterial>>().get(a).map(|m| packed(&m.own)),
+        // a row applied before the part's Material is put on (shade_rows runs after the rows): kept for `put`
+        (None, None) => {
+            world.entity_mut(e).insert(Pending(v.clone()));
+            return Ok(());
+        }
     };
-    let Some((p, bufs)) = world.resource::<Assets<OwnMaterial>>().get(&h).map(|m| (m.packing.clone(), m.buffers())) else { return Err("own:uniforms: its Material isn't made".into()) };
+    let Some((p, bufs)) = got else { return Err("own:uniforms: its Material isn't made".into()) };
     if let Some(given) = v.get("uniforms").and_then(Value::as_object) {
         let slots = layout::slots(&p.src, &p.uniforms, given, &p.defs)?;
-        if let Some(mut m) = world.resource_mut::<Assets<OwnMaterial>>().get_mut(&h) {
-            m.set_slots(slots);
-        }
+        match (h, arr) {
+            (Some(h), _) => world.resource_mut::<Assets<OwnMaterial>>().get_mut(&h).map(|mut m| m.set_slots(slots)),
+            (None, Some(a)) => world.resource_mut::<Assets<OwnArrayMaterial>>().get_mut(&a).map(|mut m| m.own.set_slots(slots)),
+            (None, None) => None,
+        };
     }
     let given = v.get("buffers").and_then(Value::as_object).cloned().unwrap_or_default();
     for ((name, ty), b) in p.storages.iter().zip(bufs) {

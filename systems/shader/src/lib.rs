@@ -34,6 +34,8 @@ pub use layout::slots as uniform_slots;
 /// A storage buffer's words in its WGSL type's storage layout (a compute as written's own: raea-sys-compute slab.rs).
 pub use storage_layout::words as storage_words;
 pub mod own;
+pub mod own_array;
+mod own_images;
 pub mod own_live;
 pub mod ui;
 use raea_sys_shader_wgsl::ui_bind;
@@ -203,6 +205,8 @@ pub struct Inputs {
     pub textures: Vec<(String, Handle<Image>)>,
     /// the one texture array, `{layers}` (raea-sys-sampler's arrays)
     pub array: Option<(String, Handle<Image>)>,
+    /// the one binding_array<texture_2d<f32>>, a list of pictures (own.rs, Bevy's texture_binding_array)
+    pub bindings: Option<(String, Vec<Handle<Image>>)>,
     pub defs: Vec<ShaderDefVal>,
 }
 
@@ -226,10 +230,19 @@ impl Inputs {
         }
         let mut textures = vec![];
         let mut array = None;
+        let mut bindings = None;
         if let Some(t) = o.get("textures") {
             for (k, x) in t.as_object().ok_or_else(|| format!("{what}'s textures are {{name: picture}}"))? {
                 if !ident(k) {
                     return Err(format!("a texture's name is a WGSL identifier, got {k:?}"));
+                }
+                if let Some(list) = x.as_array() {
+                    if bindings.is_some() {
+                        return Err(format!("{what} has one binding_array, got a second ({k})"));
+                    }
+                    let pics = list.iter().enumerate().map(|(i, p)| raea_sys_sampler::texture(world, p, &format!("{what} texture {k}[{i}]"), image).map_err(|e| format!("texture {k}[{i}]: {e}")));
+                    bindings = Some((k.clone(), pics.collect::<Result<Vec<_>, _>>()?));
+                    continue;
                 }
                 if raea_sys_sampler::arrays::is_array(x) {
                     if array.is_some() {
@@ -244,7 +257,7 @@ impl Inputs {
         if textures.len() > TEXTURES {
             return Err(format!("{what} has at most {TEXTURES} textures, got {}", textures.len()));
         }
-        Ok(Inputs { src, uniforms, textures, array, defs: defs(o, what)? })
+        Ok(Inputs { src, uniforms, textures, array, bindings, defs: defs(o, what)? })
     }
 
     /// The uniforms' names and WGSL types, and the textures' names.
