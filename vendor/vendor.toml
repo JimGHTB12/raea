@@ -44,6 +44,13 @@ kind = "patch"
 reason = "on Taffy 0.15 (Blitz's), so one Taffy builds"
 exit = "a Bevy release on Taffy 0.15"
 
+[bevy_solari]
+path = "vendor/bevy_solari"
+upstream = "crates.io:0.20.0"
+kind = "patch"
+reason = "materials traced by their alpha (mask, blend, a premultiplied coat), uv_transform, and a panorama sun sampled as a directional light"
+exit = "a Bevy release whose Solari traces alpha and importance-samples the environment map"
+
 # checked 2026-10-26: crates.io bevy_ui_widgets 0.20.0 (latest) is still on parley ^0.11; a Bevy git revision with 0.12 is Bevy main, not 0.20
 [bevy_ui_widgets]
 path = "vendor/bevy_ui_widgets"

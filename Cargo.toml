@@ -269,6 +269,10 @@ bevy_seedling = { path = "vendor/bevy_seedling" }
 bevy_text = { path = "vendor/bevy_text" }
 # bevy_ui 0.20.0 on Taffy 0.15, Blitz's, so one Taffy builds (changes marked "raea:", docs/bevy-upgrade.md)
 bevy_ui = { path = "vendor/bevy_ui" }
+# bevy_solari 0.20.0 with alpha-tested and alpha-blended materials traced by their alpha, StandardMaterial's
+# uv_transform, and a panorama's sun sampled as a light rather than found by reflection rays alone (changes marked
+# "raea:", docs/raytracing.feature RT6). Back to upstream once Solari has these.
+bevy_solari = { path = "vendor/bevy_solari" }
 # bevy_ui_widgets 0.20.0 on parley 0.12, Blitz's (docs/blitz-bevy.feature B0a)
 bevy_ui_widgets = { path = "vendor/bevy_ui_widgets" }
 # blitz-paint 0.3.0-beta.4 with angled gradients in tiles laid out around the tile, many-tile gradient layers drawn

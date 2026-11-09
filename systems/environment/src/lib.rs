@@ -32,6 +32,9 @@ use bevy::render::render_resource::{Extent3d, TextureDimension, TextureViewDescr
 mod prefiltered;
 use prefiltered::prefiltered;
 pub use prefiltered::{sync_prefiltered, Prefiltered};
+/// A panorama's sun, for traced lighting (RT6)
+mod sun;
+pub use sun::{sync_suns, Suns};
 
 /// The camera's panoramas as cubemaps, in env_srcs' order, and each one's bake entity (its filtered light).
 #[derive(Component)]
@@ -315,6 +318,7 @@ pub fn environment(world: &mut World, e: Entity, vals: &BTreeMap<String, V>, ins
     world.entity_mut(e).insert((
         EnvironmentMapLight { diffuse_map: at.diffuse_map.clone(), specular_map: at.specular_map.clone(), intensity: if num(vals, "env_i", 0.0) < -0.5 { 0.0 } else { num(vals, "env_k", 1000.0) }, rotation: rot, ..default() },
         EnvMaps(maps.clone(), bakes),
+        Suns(eqs.iter().map(Equirect::sun).collect()),
     ));
     if vals.contains_key("sky_k") {
         let k = num(vals, "sky_k", 0.0);
@@ -353,6 +357,9 @@ fn grow(world: &mut World, e: Entity, vals: &BTreeMap<String, V>, inserted: &[Tu
         let mut m = world.get_mut::<EnvMaps>(e).ok_or("camera: its environment went")?;
         m.0.push(map);
         m.1.push(bake);
+        if let Some(mut s) = world.get_mut::<Suns>(e) {
+            s.0.push(q.sun());
+        }
     }
     Ok(())
 }
