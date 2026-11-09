@@ -356,6 +356,7 @@ describe("video and audio play on the host's player (runtime/dom media.rs, raea-
     news("timeupdate", { time: 2 });
     v.muted = false;
     expect(prop("__muted")).toBe(false);
+    v.muted = true;
     v.pause();
     expect(v.paused).toBe(true);
     expect(prop("__play")).toEqual([false, 2, 2, true]);
@@ -388,5 +389,22 @@ describe("video and audio play on the host's player (runtime/dom media.rs, raea-
     expect(seen.at(-1)).toBe("play@120.6");
     expect(v.canPlayType("video/mp4")).toBe("maybe");
     expect(v.canPlayType("video/x-unknown")).toBe("");
+  });
+
+  test("React's muted reaches the host's player when it changes, as React DOM sets the property", () => {
+    const host = fresh();
+    let setMuted: (m: boolean) => void = () => {};
+    function App() {
+      const [muted, set] = useState(true);
+      setMuted = set;
+      return <video data-testid="v" src="/media/renders/film.mp4" muted={muted} />;
+    }
+    mount(<App />, 0, { dom: true });
+    const id = host.tid("v");
+    flush();
+    expect(host.nodes.get(id)!.props.__muted).toBe(true);
+    flushSync(() => setMuted(false));
+    flush();
+    expect(host.nodes.get(id)!.props.__muted).toBe(false);
   });
 });

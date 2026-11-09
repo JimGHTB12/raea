@@ -1,7 +1,7 @@
 // An element on the wire, React's host instances in DOM mode, and which events the host sends each element.
 import * as wire from "../wire";
 import type { Ev } from "../wire";
-import { Control_, Element_, FOCUSABLE_TAGS, HTMLOptionElement_, HTMLSelectElement_, HTML_HIDDEN, Node_, S, SKIP_PROPS, SVG_NS, TEXT_INPUTS, Text_, attrName, attrValue, body, cssText, doc, g, hostEvent, html, htmlDoc, htmlValue, installed, isEditable, makeElement, mutated, nativelyFocusable, query, rootContainer, scrollable, tellCapture, typesOn, unwire } from "./all";
+import { Control_, Element_, FOCUSABLE_TAGS, HTMLMediaElement_, HTMLOptionElement_, HTMLSelectElement_, HTML_HIDDEN, Node_, S, SKIP_PROPS, SVG_NS, TEXT_INPUTS, Text_, attrName, attrValue, body, cssText, doc, g, hostEvent, html, htmlDoc, htmlValue, installed, isEditable, makeElement, mutated, nativelyFocusable, query, rootContainer, scrollable, tellCapture, typesOn, unwire } from "./all";
 
 // ---------------------------------------------------------------- what an element is on the wire
 
@@ -81,7 +81,8 @@ export function hostElement(id: number, type: string, props: Record<string, unkn
   el._wired = true;
   el._fiber = fiber;
   applyProps(el, {}, props, true);
-  const w = wireOf(type, props, el);
+  // a video's or audio's own props for its player (__muted) go with its create
+  const w = wireOf(type, el instanceof HTMLMediaElement_ ? { ...props, ...el._extra } : props, el);
   if (type === "text" && (typeof props.children === "string" || typeof props.children === "number")) el._inline = String(props.children);
   return { el, kind: w.kind, props: svgNs(el, w.props), text: el._inline };
 }
@@ -150,6 +151,12 @@ function applyProps(el: Element_, old: Record<string, unknown>, next: Record<str
     if (text) el._attrs.set("style", text);
     else el._attrs.delete("style");
     if (!init && before !== (el._attrs.get("style") ?? null)) mutated(el, { type: "attributes", attributeName: "style", oldValue: before });
+  }
+  // muted: React DOM sets the property, so the host's player hears it (dom/media.ts's setter tells it; at creation,
+  // _extra goes with the create). As a prop alone, an unmuted player stayed silent (11-09).
+  if (el instanceof HTMLMediaElement_ && next.muted !== undefined) {
+    if (init) el._extra.__muted = el._muted = !!next.muted;
+    else if (next.muted !== old.muted) el.muted = !!next.muted;
   }
   el._props = next;
 }
