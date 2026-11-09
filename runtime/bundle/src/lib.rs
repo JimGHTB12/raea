@@ -61,16 +61,10 @@ pub fn bundle_css(js: &str) -> Option<String> {
 pub fn page_css(dir: &Path, w: u32, js: &Path) -> Option<String> {
     // its url()s as files from the edit's folder (urls.rs), where the CSS files it imports are found
     let bundled = std::fs::read_to_string(js).ok().and_then(|t| bundle_css(&t)).map(|c| css_file_urls(&c, dir, dir, |_| ()));
-    let css = match (brand_css(dir, w), bundled) {
-        (Some(b), Some(c)) => Some(format!("{b}\n{c}")),
-        (b, c) => b.or(c),
-    };
-    match (css, raea_sys_layers::hidden_css()) {
-        (Some(c), Some(h)) => Some(format!("{c}\n{h}")),
-        (c, h) => c.or(h),
-    }
+    // then the layers RAEA_HIDE_LAYERS hides (the layer pass's oracle)
+    let parts: Vec<String> = [brand_css(dir, w), bundled, raea_sys_layers::hidden_css()].into_iter().flatten().collect();
+    (!parts.is_empty()).then(|| parts.join("\n"))
 }
-
 
 /// A `\u` escape in a JSX attribute's plain string (`unit="\u00a0pts"`) is no escape there: the page shows the six
 /// characters. Said once per bundle, with the fix (braces: `unit={"\u00a0pts"}`), for the edit's .tsx files.
