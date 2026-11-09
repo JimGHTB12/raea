@@ -33,7 +33,7 @@ and the command says so.
 ## Usage
 
 ```sh
-raea render EDIT.tsx -o OUT.mp4|OUT.png|DIR [--frame N | --at A,B] [--composition ID] [--w W] [--h H] [--fps FPS] [--frames N] [--words W.json] [--perception P.json] [--input I.json|inputs.rrl] [--manifest render.json] [--stage WxH] [--10bit] [--aov] [--alpha] [--kbps N | --quality draft|high|master|0..1] [--clay]   (also: --lite --comps)
+raea render EDIT.tsx -o OUT.mp4|OUT.png|DIR [--frame N | --at A,B] [--composition ID] [--w W] [--h H] [--fps FPS] [--frames N] [--words W.json] [--perception P.json] [--input I.json|inputs.rrl] [--manifest render.json] [--layers] [--stage WxH] [--10bit] [--aov] [--alpha] [--kbps N | --quality draft|high|master|0..1] [--clay]   (also: --lite --comps)
 raea render EDIT.tsx --review DIR [--frame N]   (fixed cameras hero, front, right, top, iso, low in colour and clay: DIR/colour.png, clay.png, review.json)
 raea render PAGE.html -o OUT.mp4|OUT.png|DIR [--at A,B] [--alpha]   (an HTML composition)
 raea render --bundle NAME.comp.js -o OUT.png|DIR [--dir DIR] [--frame N]   (a bundle from raea bundle, as render_bundle draws it)
@@ -60,6 +60,7 @@ Headless: it needs nothing running and opens no window. Takes up to 1 argument b
 | `--h` | `H` | Height in pixels for a file with no `<Composition>` or `config` (1920 by default). |
 | `--input` | `I.json\|inputs.rrl` | A game's input over time: a JSON timeline, or the step keys of an `inputs.rrl`, so a recorded play-through renders the same every time. |
 | `--kbps` | `N` | A fixed video bitrate in kbit/s, in place of the default that follows size and frame rate. |
+| `--layers` | – | Write `NAME.layers` beside the export: which layer (a 3D part, an element, its text, an image or a video, by where its JSX is written) each pixel of each frame shows, for raea's player to select layers by clicking. The manifest (`--manifest`, or `NAME.render.json` beside it) names it. The export cache is skipped. |
 | `--lite` | – | Draw with raea's live view runtime instead of React, as a live game does. Used by the app when it opens a game. |
 | `--manifest` | `render.json` | Write a manifest of the render to this file: every frame's element boxes as drawn, the 3D's clipping and the sounds heard, which `raea check` reads. |
 | `--perception` | `P.json` | The perception the composition's Clock reads (faces, boxes, one for every frame or by frame), when it isn't the `perception.json` beside it. |
