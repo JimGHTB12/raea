@@ -136,3 +136,18 @@ export function MeshShaderPass(p: MeshShaderPassProps) {
   if (!Array.isArray(groups) || groups.length !== 3 || !groups.every((n) => Number.isInteger(n) && n >= 0)) throw new TypeError(`MeshShaderPass: groups is [x, y, z] whole numbers, got ${JSON.stringify(groups)}`);
   return <BevyComponent type="raea_sys_phase::MeshShaderPass" value={{ task: task === undefined ? "" : assetPath(task), mesh: assetPath(mesh), fragment: assetPath(fragment), groups }} />;
 }
+
+export interface DepthCopyProps {
+  /** the depth image, "render:NAME:WxH:depth": the camera's depth is copied into it, and a Material's texture of that
+   *  name is it (a texture_depth_2d with a sampler_comparison) */
+  image: string;
+}
+
+/** Inside a Camera3d: its depth buffer copied each frame, after its prepass and before its main pass, into a depth
+ * image a Material samples (Bevy's shader_advanced/render_depth_to_texture, whose depth-only camera has Bevy's
+ * DepthPrepass, RenderTarget::None and Msaa off).
+ * @bevy raea_sys_phase::DepthCopy */
+export function DepthCopy({ image }: DepthCopyProps) {
+  if (typeof image !== "string" || !/^render:[^:]+:\d+x\d+:depth$/.test(image)) throw new TypeError(`DepthCopy: image is a depth image, "render:NAME:WxH:depth", got ${JSON.stringify(image)}`);
+  return <BevyComponent type="raea_sys_phase::DepthCopy" value={{ image }} />;
+}

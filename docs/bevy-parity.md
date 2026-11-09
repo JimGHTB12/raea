@@ -4,7 +4,7 @@ Bevy v0.20.0's examples against their raea TSX ports (docs/control.feature FC0a)
 don't edit. An example passes when every probed frame passes pixels (SSIM 0.98 and no 32 px tile off by more than 24 of 255) and cost (batch keys and
 frame time at most 1.25x the example's). Wall time is one machine's, measured in the same run.
 
-Examples: **438**, ported **148**, passing **148**, excluded **17** (docs/bevy-parity/excluded.tsv), left **273**.
+Examples: **438**, ported **149**, passing **149**, excluded **17** (docs/bevy-parity/excluded.tsv), left **272**.
 
 raea's frame ms is its update's plus the time React takes to step a frame for its 3D (step), which the example
 doesn't pay.
@@ -249,6 +249,10 @@ doesn't pay.
 | shader_advanced/mesh_shader_intro | 300 | 1.000000 | 0 | 1 / 1 | 442 / 527 | 6 / 8 | 2 / 2 | 2.146 / 1.378 = 1.378 + 0 | yes |  |
 | shader_advanced/mesh_shader_intro | 5 | 1.000000 | 0 | 1 / 1 | 442 / 527 | 6 / 8 | 2 / 2 | 56.432 / 3.063 = 3.063 + 0 | yes |  |
 | shader_advanced/mesh_shader_intro | 60 | 1.000000 | 0 | 1 / 1 | 442 / 527 | 6 / 8 | 2 / 2 | 2.447 / 1.525 = 1.525 + 0 | yes |  |
+| shader_advanced/render_depth_to_texture | 10 | 0.999617 | 6 | 1 / 1 | 452 / 536 | 7 / 9 | 2 / 3 | 2.511 / 1.737 = 1.737 + 0 | yes |  |
+| shader_advanced/render_depth_to_texture | 30 | 0.999617 | 6 | 1 / 1 | 452 / 536 | 7 / 9 | 2 / 3 | 2.149 / 1.113 = 1.113 + 0 | yes |  |
+| shader_advanced/render_depth_to_texture | 5 | 0.999617 | 6 | 1 / 1 | 452 / 536 | 7 / 9 | 2 / 3 | 47.576 / 2.77 = 2.77 + 0 | yes |  |
+| shader_advanced/render_depth_to_texture | 60 | 0.999617 | 6 | 1 / 1 | 452 / 536 | 7 / 9 | 2 / 3 | 1.975 / 0.999 = 0.999 + 0 | yes |  |
 
 ## Excluded
 

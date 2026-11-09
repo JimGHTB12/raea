@@ -90,6 +90,11 @@ pub struct OwnMaterial {
     b0: Handle<ShaderBuffer>,
     #[storage(54, read_only)]
     b1: Handle<ShaderBuffer>,
+    // its depth texture and comparison sampler (ui_bind.rs DEPTH): a 1 x 1 depth image when it binds none, as Bevy has no
+    // depth fallback image
+    #[texture(55, sample_type = "depth")]
+    #[sampler(56, sampler_type = "comparison")]
+    depth: Option<Handle<Image>>,
     /// what its uniforms and buffers are packed from, for a frame's new values (own_live.rs)
     pub(crate) packing: Arc<Packing>,
     shader: u128,
@@ -278,7 +283,7 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     let ins = Inputs::read(world, &rest, what, image)?;
     let Rebound { src, uniforms, textures, others, storages, .. } = rebind_in(&ins.src, groups, what, true).map_err(|e| format!("{path}: {e}"))?;
     let [u0, u1, u2, u3, u4, u5, u6, u7] = layout::slots(&src, &uniforms, &given, &ins.defs).map_err(|e| format!("{path}: {e}"))?;
-    if let Some((k, _)) = ins.textures.iter().find(|(k, _)| !textures.contains(k)) {
+    if let Some((k, _)) = ins.textures.iter().find(|(k, _)| !textures.contains(k) && !others.contains(&((*k).clone(), "depth"))) {
         return Err(format!("{path} has no texture_2d {k}"));
     }
     // a texture the source declares and the spec doesn't give is Bevy's fallback image, as an Option<Handle<Image>>
@@ -336,8 +341,12 @@ pub fn build(world: &mut World, v: &Value, image: &mut impl FnMut(&mut World, &V
     }
     let constants = intern(constants);
     let [t0, t1, t2, t3] = t;
+    let depth = Some(match others.iter().find(|o| o.1 == "depth").and_then(|(n, _)| ins.textures.iter().find(|(k, _)| k == n)) {
+        Some((_, h)) => h.clone(),
+        None => no_depth(world),
+    });
     let [d1, d2a, cube, cube_array, d3] = dims;
-    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, b0: b[0].clone(), b1: b[1].clone(), packing, shader, vertex, alpha, depth_bias, cull, constants, layout: layout_of(own.get("vertex_attributes"))? })
+    Ok(OwnMaterial { u0, u1, u2, u3, u4, u5, u6, u7, t0, t1, t2, t3, d1, d2a, cube, cube_array, d3, depth, b0: b[0].clone(), b1: b[1].clone(), packing, shader, vertex, alpha, depth_bias, cull, constants, layout: layout_of(own.get("vertex_attributes"))? })
 }
 
 /// Bevy's AlphaMode as the SDK writes it: "Opaque", "Blend", {"Mask": cutoff}, "Premultiplied", "AlphaToCoverage",
@@ -359,6 +368,28 @@ fn alpha_mode(v: Option<&Value>) -> Result<Option<AlphaMode>, String> {
             None => return Err(format!("a Material's alpha_mode is a name or {{\"Mask\": cutoff}}, got {v}")),
         },
     }))
+}
+
+/// A depth image a shader samples (texture_depth_2d with a sampler_comparison): Depth32Float, its sampler comparing
+/// Always, as Bevy's render_depth_to_texture makes the image its depth-only camera's depth is copied into.
+pub fn depth_image(w: u32, h: u32) -> Image {
+    use bevy::image::{ImageCompareFunction, ImageSampler, ImageSamplerDescriptor};
+    use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
+    let mut img = Image::new_uninit(Extent3d { width: w, height: h, depth_or_array_layers: 1 }, TextureDimension::D2, TextureFormat::Depth32Float, bevy::asset::RenderAssetUsages::default());
+    img.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor { compare: Some(ImageCompareFunction::Always), ..default() });
+    img
+}
+
+/// The 1 x 1 depth image every Material that binds no depth texture binds (made once).
+fn no_depth(world: &mut World) -> Handle<Image> {
+    #[derive(Resource)]
+    struct NoDepth(Handle<Image>);
+    if let Some(h) = world.get_resource::<NoDepth>() {
+        return h.0.clone();
+    }
+    let h = world.resource_mut::<Assets<Image>>().add(depth_image(1, 1));
+    world.insert_resource(NoDepth(h.clone()));
+    h
 }
 
 /// A picture file decoded now as an Image (sRGB, the default sampler, as asset_server.load reads a colour texture), so

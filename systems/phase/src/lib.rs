@@ -7,19 +7,22 @@
 //! ShaderInstances draws it many times in one draw, a vertex buffer of yours stepped per instance
 //! (shader_advanced/custom_shader_instancing, instances.rs). A camera's GBufferPass draws a fullscreen shader into the
 //! deferred G-buffer and the shadow maps (shader_advanced/deferred_raymarch, gbuffer.rs), and its MeshShaderPass draws by task and mesh shaders
-//! (shader_advanced/mesh_shader_intro, mesh_shader.rs).
+//! (shader_advanced/mesh_shader_intro, mesh_shader.rs), and its DepthCopy copies its depth into an image a Material
+//! samples (shader_advanced/render_depth_to_texture, depth_copy.rs).
 
 use bevy::camera::visibility::{self, VisibilityClass};
 use bevy::prelude::*;
 use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
 use bevy::render::RenderApp;
 
+mod depth_copy;
 mod draw;
 mod gbuffer;
 mod instances;
 mod mesh_pass;
 mod mesh_shader;
 
+pub use depth_copy::DepthCopy;
 pub use gbuffer::GBufferPass;
 pub use instances::ShaderInstances;
 pub use mesh_pass::MeshPass;
@@ -127,6 +130,7 @@ pub fn install(app: &mut App) {
     instances::install(app);
     gbuffer::install(app);
     mesh_shader::install(app);
+    depth_copy::install(app);
     if let Some(r) = app.get_sub_app_mut(bevy::render::RenderApp) {
         r.add_systems(bevy::render::RenderStartup, pipelines.after(bevy::pbr::MeshPipelineSystems));
     }

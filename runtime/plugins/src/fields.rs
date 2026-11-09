@@ -190,8 +190,11 @@ impl Fields<'_> {
             // a named image a camera draws into ("render:mirror" or "render:mirror:256x256", 512 x 512 if not
             // given): every field naming it gets the same image, so a camera's RenderTarget and a material's texture
             // meet in it
+            // ("render:NAME:WxH:depth" a depth image, Depth32Float with a comparison sampler, a camera's DepthCopy
+            // copies its depth into and a Material samples as texture_depth_2d)
             Value::String(x) if asset == TypeId::of::<Image>() && x.starts_with("render:") => {
                 let rest = &x["render:".len()..];
+                let (rest, depth) = rest.strip_suffix(":depth").map_or((rest, false), |r| (r, true));
                 let (name, size) = match rest.rsplit_once(':') {
                     Some((n, sz)) if sz.contains('x') => (n, Some(sz)),
                     _ => (rest, None),
@@ -213,7 +216,7 @@ impl Fields<'_> {
                     }
                     return Ok(hd.0.clone().untyped());
                 }
-                let img = Image::new_target_texture(w, h, bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb, None);
+                let img = if depth { raea_sys_shader::own::depth_image(w, h) } else { Image::new_target_texture(w, h, bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb, None) };
                 let hd = self.world.resource_mut::<Assets<Image>>().add(img);
                 self.world.get_resource_or_init::<RenderImages>().0.insert(name.to_string(), (hd.clone(), (w, h)));
                 Ok(hd.untyped())
