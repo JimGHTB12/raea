@@ -12,6 +12,8 @@ use raea_core_program::ir::{Program, V};
 pub mod bevy_api;
 /// a camera row's order, clear and viewport among the cameras on its target
 pub mod camera;
+/// layer keys (docs/review.feature R2)
+pub mod layer;
 /// pipelined updates: the render world drawing the last frame while the main world runs this one
 pub mod pipe;
 // the edit's rows as entities, each column a component of its own, found by kind and id

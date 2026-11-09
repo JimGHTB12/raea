@@ -118,6 +118,8 @@ pub fn install(app: &mut App, fps: f64) {
     // them without registering them for reflection; the gamepad's ButtonInput it registers itself)
     app.register_type::<ButtonInput<KeyCode>>();
     app.register_type::<ButtonInput<MouseButton>>();
+    // a drawn part's layer key, a component row from its source stamp (docs/review.feature R2a)
+    app.register_type::<raea_sys_frame::layer::LayerKey>();
     // a Range field (a Viewport's depth) is reflected opaque without serde's data: given it, it reads as {start, end}
     app.register_type_data::<core::ops::Range<f32>, ReflectDeserialize>();
     app.register_type_data::<core::ops::Range<f32>, ReflectSerialize>();

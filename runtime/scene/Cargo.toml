@@ -19,3 +19,5 @@ raea-sys-wear = { path = "../../systems/wear" }
 raea-sys-procmat = { path = "../../systems/procmat" }
 # a review's fixed camera (RAEA_CAMERA) in place of the scene's own
 raea-core-review = { path = "../../core/review" }
+# a part's layer key from its source stamp (docs/review.feature R2a)
+raea-sys-frame = { path = "../../systems/frame" }

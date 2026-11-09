@@ -183,7 +183,17 @@ fn name_column(row: &mut BTreeMap<String, V>, props: &Map<String, Value>) {
 /// The <BevyComponent> children of a part (a Mesh, a Model, a light, the camera) onto its item as `components`: Bevy's
 /// own reflected components, or a compiled-in plugin's, applied by raea-render through the TypeRegistry (plugins.rs).
 fn bevy_parts(n: &Node3, it: &mut Item) {
-    let comps: Vec<Value> = n.kids.iter().filter(|k| &*k.kind == "BevyComponent").map(|k| Value::Object((*k.props).clone())).collect();
+    let mut comps: Vec<Value> = n.kids.iter().filter(|k| &*k.kind == "BevyComponent").map(|k| Value::Object((*k.props).clone())).collect();
+    // its source stamp as its layer key (docs/review.feature R2a), a component on the part, not a column its kind reads
+    let s = |k: &str| n.props.get(k).and_then(Value::as_str);
+    let idx = n.props.get("data-raea-idx").map(|v| v.as_str().map_or_else(|| v.to_string(), str::to_string));
+    if let Some(key) = raea_sys_frame::layer::key_of(s("data-raea-loc"), idx.as_deref(), s("data-raea-use")) {
+        // RAEA_HIDE_LAYERS names it: drawn hidden, for the layer pass's oracle (bench/layers; a page element's: page_css)
+        if std::env::var("RAEA_HIDE_LAYERS").is_ok_and(|h| h.split([',', '\n']).any(|k| k.trim() == key)) {
+            comps.push(serde_json::json!({ "type": "bevy_camera::visibility::Visibility", "value": "Hidden" }));
+        }
+        comps.push(serde_json::json!({ "type": "raea_sys_frame::layer::LayerKey", "value": key }));
+    }
     if !comps.is_empty() {
         std::sync::Arc::make_mut(&mut it.props).insert("components".into(), Value::Array(comps));
     }

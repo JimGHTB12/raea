@@ -395,6 +395,10 @@ impl BlitzPage {
                     if let Some(uses) = node.attr(LocalName::from("data-raea-use")).filter(|u| !u.is_empty()) {
                         entry["use"] = json!(uses.split('|').collect::<Vec<_>>());
                     }
+                    // its place in a list (its .map()'s key), when it has one
+                    if let Some(idx) = node.attr(LocalName::from("data-raea-idx")) {
+                        entry["index"] = json!(idx);
+                    }
                     return;
                 }
                 at = node.parent;

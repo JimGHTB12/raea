@@ -28,6 +28,21 @@ const HTML: &[&str] = &[
     "div", "span", "p", "h1", "h2", "h3", "h4", "h5", "h6", "section", "article", "header", "footer", "main", "aside", "nav", "figure", "figcaption", "blockquote", "pre", "code", "strong", "em", "b", "i", "u", "s", "small", "mark", "sub", "sup", "label", "ul", "ol", "li", "dl", "dt", "dd", "img", "video", "audio", "picture", "a", "button", "table", "tr", "td", "th", "svg", "canvas", "br", "hr",
 ];
 
+/// raea's modules whose components draw 3D parts (a Mesh3d, a Model, a Sprite): their uses are stamped as an HTML
+/// element is, and the scene gives the part a LayerKey component from it (runtime/scene bevy_parts), so a 3D part is
+/// a layer as an element is (docs/review.feature R2a). Never a prop the part's kind reads.
+const PARTS3D: &[&str] = &["raea/3d", "raea/mesh", "raea/sprite"];
+
+/// The parts among them, by the name they're exported as: what draws a thing on its own. Never a shape or a material
+/// inside one (a Mesh3d reads its <Cuboid> child's props, and an extra prop there made it no shape at all).
+const PART_NAMES: &[&str] = &["Mesh3d", "Model", "SceneRoot", "Entity", "Sprite", "Text3D", "Text2d", "ImagePlane", "ShaderMesh", "Plate", "Decal", "Splat", "Grass", "Mesh2d"];
+
+/// Package components that read their children's types, whose children are left as written (a wrapper there would
+/// hide a <Series.Sequence> from its <Series>, a <Cuboid> from its <Mesh3d>): every component of raea's 3D, material,
+/// light and camera modules, and these by name
+const READERS_MODULES: &[&str] = &["raea/3d", "raea/mesh", "raea/sprite", "raea/pbr", "raea/light", "raea/camera"];
+const READERS: &[&str] = &["Series", "TransitionSeries"];
+
 /// The helper module stamped files import: the context and its two readers.
 pub const HELPER: &str = r#"// raea's source stamps (engine/bundle stamp.rs): the use sites of the edit's components, nearest first
 import { createContext, useContext } from "react";
@@ -42,9 +57,10 @@ const read = (): string => {
 };
 export const __RaeaAt = At.Provider;
 export const __raeaUse = (): string | undefined => read() || undefined;
-export const __raeaChain = (loc: string): string => {
+export const __raeaChain = (loc: string, key?: unknown): string => {
+  const at = key === undefined || key === null ? loc : `${loc}#${String(key)}`;
   const up = read();
-  return up ? `${loc}|${up}` : loc;
+  return up ? `${at}|${up}` : at;
 };
 "#;
 
@@ -59,14 +75,29 @@ pub fn stamp(source: &str, rel: &str, jsx: bool, helper: &str) -> Option<String>
         return None;
     }
     let mut imports = HashMap::new();
+    let mut parts3d = std::collections::HashSet::new();
+    let mut readers = std::collections::HashSet::new();
     for s in &parsed.program.body {
         let Statement::ImportDeclaration(d) = s else { continue };
-        let local = d.source.value.starts_with('.');
+        let (local, module) = module_of(rel, d.source.value.as_str());
+        let is3d = PARTS3D.contains(&module.as_str());
+        let reads = is3d || READERS_MODULES.contains(&module.as_str());
         for sp in d.specifiers.iter().flatten() {
             imports.insert(sp.local().name.to_string(), local);
+            let name = sp.local().name.to_string();
+            if !local && (reads || READERS.contains(&name.as_str())) {
+                readers.insert(name);
+            }
+            let exported = match sp {
+                ImportDeclarationSpecifier::ImportSpecifier(x) => x.imported.name().to_string(),
+                _ => String::new(),
+            };
+            if is3d && PART_NAMES.contains(&exported.as_str()) {
+                parts3d.insert(sp.local().name.to_string());
+            }
         }
     }
-    let mut v = Stamper { src: source, rel, imports, parents: Vec::new(), edits: Vec::new(), lines: line_starts(source) };
+    let mut v = Stamper { src: source, rel, imports, parts3d, readers, parents: Vec::new(), edits: Vec::new(), lines: line_starts(source) };
     v.visit_program(&parsed.program);
     if v.edits.is_empty() {
         return None;
@@ -102,6 +133,10 @@ struct Stamper<'s> {
     rel: &'s str,
     /// each imported name: true when it's from a relative path (the edit's own)
     imports: HashMap<String, bool>,
+    /// the names imported from PARTS3D's modules
+    parts3d: std::collections::HashSet<String>,
+    /// the package components that read their children's types (READERS)
+    readers: std::collections::HashSet<String>,
     parents: Vec<Kind>,
     /// (at, end, text): `src[at..end]` replaced by `text`
     edits: Vec<(usize, usize, String)>,
@@ -117,13 +152,31 @@ impl Stamper<'_> {
     }
 }
 
+impl Stamper<'_> {
+    /// The source of an element's `key` value, as an expression: `{i}` gives `i`, `"a"` gives `"a"`
+    fn key_expr(&self, open: &JSXOpeningElement) -> Option<String> {
+        open.attributes.iter().find_map(|a| match a {
+            JSXAttributeItem::Attribute(x) if matches!(&x.name, JSXAttributeName::Identifier(n) if n.name == "key") => match x.value.as_ref()? {
+                JSXAttributeValue::ExpressionContainer(c) => c.expression.as_expression().map(|e| self.src[e.span().start as usize..e.span().end as usize].to_string()),
+                JSXAttributeValue::StringLiteral(l) => Some(json(l.value.as_str())),
+                _ => None,
+            },
+            _ => None,
+        })
+    }
+}
+
 impl<'a> Visit<'a> for Stamper<'_> {
     fn visit_jsx_element(&mut self, it: &JSXElement<'a>) {
         let open = &it.opening_element;
         let mut kind = Kind::Open;
         match &open.name {
             JSXElementName::Identifier(id) if HTML.contains(&id.name.as_str()) => {
-                let text = format!(" data-raea-loc={} data-raea-use={{__raeaUse()}}", json(&self.loc(it.span.start as usize)));
+                let mut text = format!(" data-raea-loc={} data-raea-use={{__raeaUse()}}", json(&self.loc(it.span.start as usize)));
+                // its place in a list (a .map()'s key), so five cards drawn by one line have five keys
+                if let Some(k) = self.key_expr(open) {
+                    text.push_str(&format!(" data-raea-idx={{{k}}}"));
+                }
                 let at = open.name.span().end as usize;
                 self.edits.push((at, at, text));
             }
@@ -133,7 +186,19 @@ impl<'a> Visit<'a> for Stamper<'_> {
                 // the edit's own: defined here (not imported) or imported from a relative path
                 let own = self.imports.get(name).copied().unwrap_or(true);
                 if !own {
-                    kind = Kind::Package;
+                    // a package component that reads its children's types (a Series, a 3D part's shape and material)
+                    // gets them as written; any other (an AbsoluteFill, a Sequence) is a plain element's parent
+                    if self.readers.contains(name) {
+                        kind = Kind::Package;
+                    }
+                    if self.parts3d.contains(name) {
+                        let mut text = format!(" data-raea-loc={} data-raea-use={{__raeaUse()}}", json(&self.loc(it.span.start as usize)));
+                        if let Some(k) = self.key_expr(open) {
+                            text.push_str(&format!(" data-raea-idx={{{k}}}"));
+                        }
+                        let at = r.span.end as usize;
+                        self.edits.push((at, at, text));
+                    }
                 } else if self.parents.last() != Some(&Kind::Package) {
                     let (start, end) = (it.span.start as usize, it.span.end as usize);
                     // a key belongs on what's in the list: the wrapper
@@ -141,7 +206,8 @@ impl<'a> Visit<'a> for Stamper<'_> {
                         JSXAttributeItem::Attribute(x) if matches!(&x.name, JSXAttributeName::Identifier(n) if n.name == "key") => Some(x.span),
                         _ => None,
                     });
-                    let mut wrap = format!("<__RaeaAt value={{__raeaChain({})}}", json(&self.loc(start)));
+                    let idx = self.key_expr(open).map(|k| format!(", {k}")).unwrap_or_default();
+                    let mut wrap = format!("<__RaeaAt value={{__raeaChain({}{idx})}}", json(&self.loc(start)));
                     if let Some(k) = key {
                         wrap.push(' ');
                         wrap.push_str(&self.src[k.start as usize..k.end as usize]);
@@ -164,6 +230,36 @@ impl<'a> Visit<'a> for Stamper<'_> {
         self.parents.push(Kind::Open);
         walk::walk_jsx_fragment(self, it);
         self.parents.pop();
+    }
+}
+
+/// Whether an import from the file at `rel` (its path under src/) is the edit's own, and the module it names as an
+/// edit would write it. The work folder's copies import raea's SDK at motion/ beside src/ ("raea/mesh" is
+/// "../motion/mesh" there: fresh.rs rewrite_into), so a relative path is the edit's own only while it stays in src/,
+/// and one into motion/ is raea's ("raea/mesh"); a bare one is a package's as it is.
+fn module_of(rel: &str, spec: &str) -> (bool, String) {
+    if !spec.starts_with('.') {
+        return (false, spec.to_string());
+    }
+    let mut at: Vec<&str> = rel.split('/').collect();
+    at.pop();
+    let mut out = false;
+    for part in spec.split('/') {
+        match part {
+            "." | "" => {}
+            ".." if at.pop().is_none() => out = true,
+            ".." => {}
+            p if out => at.push(p),
+            p => at.push(p),
+        }
+    }
+    if !out {
+        return (true, spec.to_string());
+    }
+    match at.split_first() {
+        Some((&"motion", rest)) if rest.is_empty() || rest == ["index"] => (false, "raea".into()),
+        Some((&"motion", rest)) => (false, format!("raea/{}", rest.join("/"))),
+        _ => (false, spec.to_string()),
     }
 }
 
@@ -205,7 +301,47 @@ mod tests {
     fn own_components_are_wrapped_with_their_use_and_keep_the_key() {
         let src = "import { Card } from \"./card\";\nimport { Series } from \"raea\";\nconst X = () => <>{[1, 2].map((i) => <Card key={i} n={i} />)}</>;\n";
         let out = stamp(src, "p.tsx", false, H).unwrap();
-        assert!(out.contains(r#"<__RaeaAt value={__raeaChain("p.tsx:3:38")} key={i}><Card  n={i} /></__RaeaAt>"#), "{out}");
+        assert!(out.contains(r#"<__RaeaAt value={__raeaChain("p.tsx:3:38", i)} key={i}><Card  n={i} /></__RaeaAt>"#), "{out}");
+    }
+
+    #[test]
+    fn an_html_element_in_a_list_carries_its_key() {
+        let src = "const X = () => <ul>{[\"a\", \"b\"].map((t) => <li key={t}>{t}</li>)}<li key=\"z\" /></ul>;\n";
+        let out = stamp(src, "l.tsx", false, H).unwrap();
+        assert!(out.contains(r#"<li data-raea-loc="l.tsx:1:44" data-raea-use={__raeaUse()} data-raea-idx={t} key={t}>"#), "{out}");
+        assert!(out.contains(r#"data-raea-idx={"z"} key="z""#), "{out}");
+    }
+
+    #[test]
+    fn a_3d_part_from_raeas_3d_modules_is_stamped_and_other_packages_are_not() {
+        let src = "import { Mesh3d, Cuboid } from \"raea/mesh\";\nimport { Model } from \"raea/3d\";\nimport { Series } from \"raea\";\nconst X = () => <Series>{[0, 1].map((i) => <Mesh3d key={i} />)}<Model src=\"a.glb\" /></Series>;\n";
+        let out = stamp(src, "s.tsx", false, H).unwrap();
+        assert!(out.contains(r#"<Mesh3d data-raea-loc="s.tsx:4:44" data-raea-use={__raeaUse()} data-raea-idx={i} key={i} />"#), "{out}");
+        assert!(out.contains(r#"<Model data-raea-loc="s.tsx:4:64" data-raea-use={__raeaUse()} src="a.glb" />"#), "{out}");
+        assert!(out.contains("<Series>{"), "{out}");
+        // a shape inside a part is the part's, left as written
+        let out = stamp("import { Mesh3d, Cuboid } from \"raea/mesh\";\nconst Y = () => <Mesh3d><Cuboid /></Mesh3d>;\n", "s.tsx", false, H).unwrap();
+        assert!(out.contains("<Cuboid />"), "{out}");
+    }
+
+    #[test]
+    fn the_work_folders_sdk_imports_are_raeas_not_the_edits() {
+        assert_eq!(module_of("comp.tsx", "./card"), (true, "./card".into()));
+        assert_eq!(module_of("lib/x.tsx", "../card"), (true, "../card".into()));
+        assert_eq!(module_of("comp.tsx", "../motion/mesh"), (false, "raea/mesh".into()));
+        assert_eq!(module_of("lib/x.tsx", "../../motion"), (false, "raea".into()));
+        assert_eq!(module_of("comp.tsx", "raea/3d"), (false, "raea/3d".into()));
+        // as the work folder has it: the SDK's parts stamped, its shapes and own wrappers not
+        let src = "import { Cuboid, Mesh3d } from \"../motion/mesh\";\nimport { Camera3d } from \"../motion/camera\";\nconst X = () => <><Camera3d /><Mesh3d><Cuboid /></Mesh3d></>;\n";
+        let out = stamp(src, "comp.tsx", false, H).unwrap();
+        assert!(out.contains("<><Camera3d /><Mesh3d data-raea-loc=\"comp.tsx:3:31\" data-raea-use={__raeaUse()}><Cuboid /></Mesh3d></>"), "{out}");
+    }
+
+    #[test]
+    fn a_plain_package_component_is_a_parent_like_an_element() {
+        let src = "import { AbsoluteFill } from \"raea\";\nimport { Card } from \"./card\";\nconst X = () => <AbsoluteFill><Card /></AbsoluteFill>;\n";
+        let out = stamp(src, "p.tsx", false, H).unwrap();
+        assert!(out.contains(r#"<AbsoluteFill><__RaeaAt value={__raeaChain("p.tsx:3:31")}><Card /></__RaeaAt></AbsoluteFill>"#), "{out}");
     }
 
     #[test]
