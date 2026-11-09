@@ -8,8 +8,11 @@ import { usePointer2d, type Flat, type PointerHandlers3d } from "../events3d";
 /** Where a 2D part is: composition px from the frame's top left, y down (as the page's), its centre there; and its
  * pointer and drag handlers, called as a 3D part's are (2D parts are picked first, the top one by z). */
 export interface Place2dProps extends PointerHandlers3d {
+  /** the entity's name, for picking, the inspector and world.* */
   name?: string;
+  /** px from the frame's left edge to the part's centre */
   x?: number;
+  /** px from the frame's top edge to the part's centre, down positive */
   y?: number;
   /** radians, clockwise (as CSS rotate) */
   rotation?: number;
@@ -30,6 +33,7 @@ export interface SpriteProps extends Place2dProps {
   src: string;
   /** size in px (the picture's, or one cell's, by default); one given, the other follows the picture's shape */
   width?: number;
+  /** in px; given alone, the width follows the picture's shape */
   height?: number;
   /** a sprite sheet: the picture is `[columns, rows]` cells of equal size, read left to right, top to bottom */
   grid?: [number, number];
@@ -38,7 +42,9 @@ export interface SpriteProps extends Place2dProps {
   atlasPick?: number;
   /** with `grid`: which cell shows (0 is the top left); animate it to play the sheet: frame={Math.floor(f / 3)} */
   frame?: number;
+  /** mirrored left to right */
   flipX?: boolean;
+  /** mirrored top to bottom */
   flipY?: boolean;
   /** a tint multiplied over the picture (white by default) */
   color?: string;
@@ -46,7 +52,9 @@ export interface SpriteProps extends Place2dProps {
    * stretching to it, a tile every `tileStretch` x the picture's size (1 by default): a floor, a fence, a wall. Animate
    * width and height to show more or fewer tiles */
   tileX?: boolean;
+  /** tile the picture down its height instead of stretching it */
   tileY?: boolean;
+  /** a tile every this many times the picture's size (1) */
   tileStretch?: number;
   /** Bevy's SpriteImageMode, as its reflected value: "Auto" (stretched to the size), { Scale: "FillCenter" } (and
    * FillStart, FillEnd, FitCenter, FitStart, FitEnd: the picture kept to its shape, cropped or fitted), { Sliced:
@@ -127,6 +135,7 @@ export interface Shape2DProps extends Place2dProps {
   shape?: "rect" | "circle" | "ellipse" | "triangle" | "polygon";
   /** [width, height] in px ([100, 100] by default); a circle's and a polygon's diameter is the width */
   size?: [number, number];
+  /** a polygon's number of sides (5) */
   sides?: number;
   /** a CSS colour (white by default); with a texture, it tints it */
   color?: string;

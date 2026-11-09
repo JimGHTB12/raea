@@ -7,8 +7,11 @@ import { MeshToonMaterial, Vec3, checkPass, checkVec, node3d, shapeFromChildren 
 /** One copy's placement in an <Instances>, in the Instances' own space (its position, rotation and scale move every
  * copy together). Rotation in radians, XYZ order, as everywhere. */
 export interface Instance {
+  /** where this copy stands, metres, in the Instances' space */
   position: Vec3;
+  /** its rotation, Euler angles in radians (x, y, z) */
   rotation?: Vec3;
+  /** its scale: one number, or x, y and z */
   scale?: number | Vec3;
 }
 
@@ -19,10 +22,13 @@ export interface InstancesProps {
   /** where each copy stands. Fixed for the shot: the first frame's list is drawn on every frame (move, turn, scale,
    * hide or recolour the whole set by the Instances' own props) */
   at: Instance[];
+  /** the entity's name, for picking, the inspector and world.* */
   name?: string;
+  /** where it stands, metres (x, y, z) */
   position?: Vec3;
   /** radians */
   rotation?: Vec3;
+  /** its scale: one number, or x, y and z */
   scale?: number | Vec3;
   /** of a glTF: which of its scenes (0 by default) */
   scene?: number;
@@ -32,6 +38,7 @@ export interface InstancesProps {
   shadow?: boolean;
   /** false: no shadow falls on the copies */
   receiveShadow?: boolean;
+  /** the composition pass it draws in ("scene" by default) */
   pass?: string;
   /** the mesh form: a geometry and a material (MeshStandardMaterial, MeshPhysicalMaterial or MeshBasicMaterial).
    * The glTF form: MeshStandardMaterial children re-covering its materials, as on a Model */
@@ -90,7 +97,9 @@ export function Instances(props: InstancesProps) {
 
 /** A box on the plan (x, z, metres): the room SDK's Footprint, or any { min, max }. */
 export interface PlanBox {
+  /** the low corner (x, z), metres */
   min: [number, number];
+  /** the high corner (x, z), metres */
   max: [number, number];
 }
 

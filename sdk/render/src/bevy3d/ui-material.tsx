@@ -20,6 +20,7 @@ export interface MaterialNodeProps extends NodeProps {
   textures?: Record<string, string>;
   /** shader defs, as a Material's */
   defs?: Record<string, boolean | number>;
+  /** the nodes inside it */
   children?: ReactNode;
 }
 

@@ -29,6 +29,7 @@ export function list_rows_from_strings(labels: string[], selected?: number): Rea
 export interface FeathersSelectProps extends NodeProps {
   /** its options: FeathersListRows, one of them selected (list_rows_from_strings) */
   options: ReactNode;
+  /** which corners are rounded */
   corners?: RoundedCorners;
   /** the popup's most rows (8 by default) */
   max_visible?: number;

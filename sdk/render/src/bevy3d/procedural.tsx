@@ -10,20 +10,35 @@ import type { ProceduralSurface } from "../overlays";
  *  faces up, `dirt` in joints, hollows, undersides and the floor line, `edges` worn lighter. The pattern overrides the
  *  base's colour and roughness; its lighting stays. It goes in an ExtendedMaterial's `extension`, alone. */
 export interface ProceduralExtensionProps {
+  /** what it draws: noise, wood, marble, stone, brick, tiles, fabric, brushed or plaster */
   pattern: ProceduralSurface["pattern"];
+  /** the pattern's two colours */
   colors?: [string, string];
+  /** how many metres across its features are */
   scale?: number;
+  /** the first colour's roughness, 0..1 */
   rough_a?: number;
+  /** the second colour's roughness, 0..1 */
   rough_b?: number;
+  /** how deep the pattern's relief looks (0 or more) */
   bump?: number;
+  /** brick and tiles: a cell's [width, height] in metres */
   tile?: [number, number];
+  /** brick and tiles: the joints' width in metres */
   gap?: number;
+  /** the joints' colour */
   gap_color?: string;
+  /** 0..1 dust on what faces up */
   dust?: number;
+  /** 0..1 dirt in joints, hollows, undersides and along the floor line */
   dirt?: number;
+  /** 0..1 wear on the edges, lighter */
   edges?: number;
+  /** the dust's colour */
   dust_color?: string;
+  /** the dirt's colour */
   dirt_color?: string;
+  /** which randomness the pattern uses */
   seed?: number;
 }
 

@@ -10,7 +10,9 @@ import { Move, MoveLike, move, toMove } from "./all";
 export type Step = [part: string, move: MoveLike] | { part: string; move: MoveLike; offset?: number } | Group | number;
 
 export interface Group {
+  /** sequence: one after another; parallel: together */
   kind: "sequence" | "parallel";
+  /** its steps, in order */
   steps: Step[];
   /** frames between steps of a sequence (negative overlaps) */
   gap: number;
@@ -63,7 +65,9 @@ export function gridDelay(cols: number, rows: number, from: GridFrom, index: num
 
 /** A timeline's plan: each part's start frame and move, and the whole length. */
 export interface Plan {
+  /** each part's start frame and move, by its name */
   parts: Record<string, { at: number; move: Move }>;
+  /** the whole timeline's length in frames */
   frames: number;
 }
 

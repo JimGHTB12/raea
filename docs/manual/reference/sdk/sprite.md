@@ -147,11 +147,9 @@ Used in: [2d/2d_shapes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/
 
 bevy_math's Rectangle (half_size [0.5, 0.5] by default)
 
-Bevy: `bevy_shape::Rectangle`.
-
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `half_size` | `Vec2` | Bevy: Half of the width and height of the rectangle |
+| `half_size` | `Vec2` | half its width and height |
 
 Also takes the props of [`MeshAttributes`](#meshattributes) (`vertex_colors`); [`RingProps`](#ringprops) (`ring`, `inner`).
 
@@ -231,9 +229,9 @@ Bevy: `bevy_image::texture_atlas_builder::TextureAtlasBuilder`, `bevy_image::tex
 
 | Member | What it does |
 | --- | --- |
-| `.padding(p: [number, number]): TextureAtlasBuilder` | – |
-| `.addTexture(src: string): TextureAtlasBuilder` | – |
-| `.build({ sampler }?: { sampler?: SamplerSpec \| undefined; }): BuiltAtlas` | – |
+| `.padding(p: [number, number]): TextureAtlasBuilder` | Whole px of space around each picture, [x, y]. |
+| `.addTexture(src: string): TextureAtlasBuilder` | Adds a picture, packed in the order added. |
+| `.build({ sampler }?: { sampler?: SamplerSpec \| undefined; }): BuiltAtlas` | Packs the atlas, with its own sampler if given (Bevy's default otherwise). |
 
 Used in: [2d/texture_atlas](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/2d/texture_atlas.tsx).
 
@@ -257,10 +255,10 @@ an arc: its radius and half its angle in radians (Bevy's CircularSector::new(r, 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `arc` | `{ radius: number; half_angle: number }` | – |
-| `vertex_colors` | `(LinearRgba \| [number, number, number, number])[]` | – |
-| `ring` | `number` | – |
-| `inner` | `Record<string, unknown>` | – |
+| `arc` | `{ radius: number; half_angle: number }` | its radius and half its angle in radians |
+| `vertex_colors` | `(LinearRgba \| [number, number, number, number])[]` | one linear colour a vertex, in the mesh's vertex order (ATTRIBUTE_COLOR) |
+| `ring` | `number` | a thickness: the shape made a ring that thick (to_ring) |
+| `inner` | `Record<string, unknown>` | the ring's inner shape, as the same shape's fields |
 
 ### `AtlasSprite`
 
@@ -268,9 +266,9 @@ What a <Sprite> takes to show a built atlas: the whole of it, or one of its pict
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `src` (required) | `string` | – |
-| `sampler` | `SamplerSpec` | – |
-| `atlasPick` | `number` | – |
+| `src` (required) | `string` | the atlas picture |
+| `sampler` | `SamplerSpec` | how it's sampled (the atlas's own sampler) |
+| `atlasPick` | `number` | which of its pictures shows (the whole atlas when left out) |
 
 ### `BuiltAtlas`
 
@@ -279,8 +277,8 @@ A built atlas: `image` the whole atlas as a sprite's picture, `sources.handle(te
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `image` (required) | `AtlasSprite` | – |
-| `sources` (required) | `{ handle(texture: string): AtlasSprite }` | – |
+| `image` (required) | `AtlasSprite` | the whole atlas, as a sprite's picture |
+| `sources` (required) | `{ handle(texture: string): AtlasSprite }` | \`handle(texture)\`: one of the pictures packed into it, by its file |
 
 ### `Capsule2dProps`
 
@@ -302,26 +300,26 @@ The props of [`Ellipse`](#ellipse), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `transform` | `TransformValue` | – |
-| `visibility` | `"Inherited" \| "Visible" \| "Hidden"` | – |
+| `transform` | `TransformValue` | where it stands: translation, rotation (a quaternion) and scale |
+| `visibility` | `"Inherited" \| "Visible" \| "Hidden"` | "Hidden" draws nothing; "Visible" and "Inherited" draw |
 | `children` | `ReactNode` | one of bevy_math's 2D primitives (<Circle>, <Capsule2d>,...) and a <ColorMaterial>, or your own <Material> |
-| `name` | `string` | – |
-| `onClick` | `(e: Event3d) => void` | – |
-| `onDrag` | `(e: Event3d) => void` | – |
-| `onDragEnd` | `(e: Event3d) => void` | – |
-| `onDragEnter` | `(e: Event3d) => void` | – |
-| `onDragLeave` | `(e: Event3d) => void` | – |
-| `onDragOver` | `(e: Event3d) => void` | – |
-| `onDragStart` | `(e: Event3d) => void` | – |
-| `onDrop` | `(e: Event3d) => void` | – |
-| `onPointerDown` | `(e: Event3d) => void` | – |
-| `onPointerMove` | `(e: Event3d) => void` | – |
-| `onPointerUp` | `(e: Event3d) => void` | – |
-| `onPointerEnter` | `(e: Event3d) => void` | – |
-| `onPointerLeave` | `(e: Event3d) => void` | – |
-| `onPointerOver` | `(e: Event3d) => void` | – |
-| `onPointerOut` | `(e: Event3d) => void` | – |
-| `onWheel` | `(e: Event3d) => void` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `onClick` | `(e: Event3d) => void` | a press and release over the part |
+| `onDrag` | `(e: Event3d) => void` | the part pressed is being dragged, each frame it moves |
+| `onDragEnd` | `(e: Event3d) => void` | the drag of the part pressed ended |
+| `onDragEnter` | `(e: Event3d) => void` | a dragged part came over this one (`dragged` names it) |
+| `onDragLeave` | `(e: Event3d) => void` | a dragged part left this one |
+| `onDragOver` | `(e: Event3d) => void` | a dragged part is over this one |
+| `onDragStart` | `(e: Event3d) => void` | a drag began on the part pressed |
+| `onDrop` | `(e: Event3d) => void` | a dragged part was dropped on this one |
+| `onPointerDown` | `(e: Event3d) => void` | a button pressed over the part |
+| `onPointerMove` | `(e: Event3d) => void` | the pointer moved over the part |
+| `onPointerUp` | `(e: Event3d) => void` | a button released over the part |
+| `onPointerEnter` | `(e: Event3d) => void` | the pointer came over the part (doesn't bubble) |
+| `onPointerLeave` | `(e: Event3d) => void` | the pointer left the part (doesn't bubble) |
+| `onPointerOver` | `(e: Event3d) => void` | the pointer came over the part (bubbles, as the DOM's) |
+| `onPointerOut` | `(e: Event3d) => void` | the pointer left the part (bubbles) |
+| `onWheel` | `(e: Event3d) => void` | the wheel turned over the part (`deltaX`, `deltaY`) |
 | `quat` | `Quat` | Bevy's rotation as it is, a quaternion [x, y, z, w] in Bevy's axes (y up, z toward the viewer), in place of `rotation`: a turn out of the frame's plane too, as a Sprite's Transform takes it (camera/2d_on_ui) |
 | `opacity` | `number` | 0 to 1 (1 by default) |
 
@@ -331,7 +329,7 @@ a primitive's mesh attributes: its Mesh::ATTRIBUTE_COLOR, one linear colour per 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `vertex_colors` | `(LinearRgba \| [number, number, number, number])[]` | – |
+| `vertex_colors` | `(LinearRgba \| [number, number, number, number])[]` | one linear colour a vertex, in the mesh's vertex order (ATTRIBUTE_COLOR) |
 
 ### `Place2dProps`
 
@@ -340,30 +338,30 @@ pointer and drag handlers, called as a 3D part's are (2D parts are picked first,
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` | `string` | – |
-| `x` | `number` | – |
-| `y` | `number` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `x` | `number` | px from the frame's left edge to the part's centre |
+| `y` | `number` | px from the frame's top edge to the part's centre, down positive |
 | `rotation` | `number` | radians, clockwise (as CSS rotate) |
 | `quat` | `Quat` | Bevy's rotation as it is, a quaternion [x, y, z, w] in Bevy's axes (y up, z toward the viewer), in place of `rotation`: a turn out of the frame's plane too, as a Sprite's Transform takes it (camera/2d_on_ui) |
 | `scale` | `number \| [number, number]` | 1 by default; [x, y] to stretch |
 | `z` | `number` | draw order among the 2D parts: higher draws over lower (0 by default) |
 | `opacity` | `number` | 0 to 1 (1 by default) |
-| `onClick` | `(e: Event3d) => void` | – |
-| `onPointerDown` | `(e: Event3d) => void` | – |
-| `onPointerUp` | `(e: Event3d) => void` | – |
-| `onPointerOver` | `(e: Event3d) => void` | – |
-| `onPointerOut` | `(e: Event3d) => void` | – |
-| `onPointerEnter` | `(e: Event3d) => void` | – |
-| `onPointerLeave` | `(e: Event3d) => void` | – |
-| `onPointerMove` | `(e: Event3d) => void` | – |
-| `onWheel` | `(e: Event3d) => void` | – |
-| `onDragStart` | `(e: Event3d) => void` | – |
-| `onDrag` | `(e: Event3d) => void` | – |
-| `onDragEnd` | `(e: Event3d) => void` | – |
-| `onDragEnter` | `(e: Event3d) => void` | – |
-| `onDragOver` | `(e: Event3d) => void` | – |
-| `onDragLeave` | `(e: Event3d) => void` | – |
-| `onDrop` | `(e: Event3d) => void` | – |
+| `onClick` | `(e: Event3d) => void` | a press and release over the part |
+| `onPointerDown` | `(e: Event3d) => void` | a button pressed over the part |
+| `onPointerUp` | `(e: Event3d) => void` | a button released over the part |
+| `onPointerOver` | `(e: Event3d) => void` | the pointer came over the part (bubbles, as the DOM's) |
+| `onPointerOut` | `(e: Event3d) => void` | the pointer left the part (bubbles) |
+| `onPointerEnter` | `(e: Event3d) => void` | the pointer came over the part (doesn't bubble) |
+| `onPointerLeave` | `(e: Event3d) => void` | the pointer left the part (doesn't bubble) |
+| `onPointerMove` | `(e: Event3d) => void` | the pointer moved over the part |
+| `onWheel` | `(e: Event3d) => void` | the wheel turned over the part (`deltaX`, `deltaY`) |
+| `onDragStart` | `(e: Event3d) => void` | a drag began on the part pressed |
+| `onDrag` | `(e: Event3d) => void` | the part pressed is being dragged, each frame it moves |
+| `onDragEnd` | `(e: Event3d) => void` | the drag of the part pressed ended |
+| `onDragEnter` | `(e: Event3d) => void` | a dragged part came over this one (`dragged` names it) |
+| `onDragOver` | `(e: Event3d) => void` | a dragged part is over this one |
+| `onDragLeave` | `(e: Event3d) => void` | a dragged part left this one |
+| `onDrop` | `(e: Event3d) => void` | a dragged part was dropped on this one |
 
 ### `RectangleProps`
 
@@ -383,8 +381,8 @@ a 2D shape as Bevy's Ring: of it and `inner` (the same shape's fields), or its t
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `ring` | `number` | – |
-| `inner` | `Record<string, unknown>` | – |
+| `ring` | `number` | a thickness: the shape made a ring that thick (to_ring) |
+| `inner` | `Record<string, unknown>` | the ring's inner shape, as the same shape's fields |
 
 ### `Shape2DProps`
 
@@ -392,7 +390,7 @@ a 2D shape as Bevy's Ring: of it and `inner` (the same shape's fields), or its t
 | --- | --- | --- |
 | `shape` | `"rect" \| "circle" \| "ellipse" \| "triangle" \| "polygon"` | a rect by default; a polygon has `sides` (5 by default) |
 | `size` | `[number, number]` | [width, height] in px ([100, 100] by default); a circle's and a polygon's diameter is the width |
-| `sides` | `number` | – |
+| `sides` | `number` | a polygon's number of sides (5) |
 | `color` | `string` | a CSS colour (white by default); with a texture, it tints it |
 | `srgb` | `[number, number, number]` | the colour as a Bevy Srgba's [r, g, b], unrounded, over `color` (a Mesh2d's ColorMaterial gives it) |
 | `texture` | `string \| { path: string; sampler: SamplerSpec }` | a picture on it, mapped by the mesh's UVs (Bevy's ColorMaterial texture), or one with its own sampler (Bevy's load_with_settings: { path, sampler: { wrap: "repeat" } }) |
@@ -401,30 +399,30 @@ a 2D shape as Bevy's Ring: of it and `inner` (the same shape's fields), or its t
 | `vertex_colors` | `[number, number, number, number][]` | one linear [r, g, b, a] per vertex of the shape's mesh (Bevy's Mesh::ATTRIBUTE_COLOR): the material's colour and texture are multiplied by them. A rect has 4 (top right, top left, bottom left, bottom right), a triangle 3. |
 | `shader` | `Record<string, unknown>` | its own Material2d in place of the ColorMaterial: the spec a <Material> in a Mesh2d makes; the shape's colour, texture and alpha_mode are then the material's to draw |
 | `primitive` | `Record<string, unknown>` | one of Bevy's 2D primitives in place of `shape`, its reflected fields over Bevy's default: { primitive: "Capsule2d", radius: 25, half_length: 25 }; a 2D shape given `inner` (the same shape's fields) is Bevy's Ring, or given `ring: thickness` its to_ring (raea-sys-mesh primitive_mesh). A Mesh2d's primitive child makes it. |
-| `name` | `string` | – |
-| `x` | `number` | – |
-| `y` | `number` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `x` | `number` | px from the frame's left edge to the part's centre |
+| `y` | `number` | px from the frame's top edge to the part's centre, down positive |
 | `rotation` | `number` | radians, clockwise (as CSS rotate) |
 | `quat` | `Quat` | Bevy's rotation as it is, a quaternion [x, y, z, w] in Bevy's axes (y up, z toward the viewer), in place of `rotation`: a turn out of the frame's plane too, as a Sprite's Transform takes it (camera/2d_on_ui) |
 | `scale` | `number \| [number, number]` | 1 by default; [x, y] to stretch |
 | `z` | `number` | draw order among the 2D parts: higher draws over lower (0 by default) |
 | `opacity` | `number` | 0 to 1 (1 by default) |
-| `onClick` | `(e: Event3d) => void` | – |
-| `onPointerDown` | `(e: Event3d) => void` | – |
-| `onPointerUp` | `(e: Event3d) => void` | – |
-| `onPointerOver` | `(e: Event3d) => void` | – |
-| `onPointerOut` | `(e: Event3d) => void` | – |
-| `onPointerEnter` | `(e: Event3d) => void` | – |
-| `onPointerLeave` | `(e: Event3d) => void` | – |
-| `onPointerMove` | `(e: Event3d) => void` | – |
-| `onWheel` | `(e: Event3d) => void` | – |
-| `onDragStart` | `(e: Event3d) => void` | – |
-| `onDrag` | `(e: Event3d) => void` | – |
-| `onDragEnd` | `(e: Event3d) => void` | – |
-| `onDragEnter` | `(e: Event3d) => void` | – |
-| `onDragOver` | `(e: Event3d) => void` | – |
-| `onDragLeave` | `(e: Event3d) => void` | – |
-| `onDrop` | `(e: Event3d) => void` | – |
+| `onClick` | `(e: Event3d) => void` | a press and release over the part |
+| `onPointerDown` | `(e: Event3d) => void` | a button pressed over the part |
+| `onPointerUp` | `(e: Event3d) => void` | a button released over the part |
+| `onPointerOver` | `(e: Event3d) => void` | the pointer came over the part (bubbles, as the DOM's) |
+| `onPointerOut` | `(e: Event3d) => void` | the pointer left the part (bubbles) |
+| `onPointerEnter` | `(e: Event3d) => void` | the pointer came over the part (doesn't bubble) |
+| `onPointerLeave` | `(e: Event3d) => void` | the pointer left the part (doesn't bubble) |
+| `onPointerMove` | `(e: Event3d) => void` | the pointer moved over the part |
+| `onWheel` | `(e: Event3d) => void` | the wheel turned over the part (`deltaX`, `deltaY`) |
+| `onDragStart` | `(e: Event3d) => void` | a drag began on the part pressed |
+| `onDrag` | `(e: Event3d) => void` | the part pressed is being dragged, each frame it moves |
+| `onDragEnd` | `(e: Event3d) => void` | the drag of the part pressed ended |
+| `onDragEnter` | `(e: Event3d) => void` | a dragged part came over this one (`dragged` names it) |
+| `onDragOver` | `(e: Event3d) => void` | a dragged part is over this one |
+| `onDragLeave` | `(e: Event3d) => void` | a dragged part left this one |
+| `onDrop` | `(e: Event3d) => void` | a dragged part was dropped on this one |
 
 ### `SpriteImageMode`
 
@@ -442,51 +440,51 @@ type SpriteImageMode = | "Auto" | { Scale: "FillCenter" | "FillStart" | "FillEnd
 | --- | --- | --- |
 | `src` (required) | `string` | a picture in the media folder: staticFile("hero.png"), or a "render:NAME" image a camera or a <Compute> draws (a frame may switch it to another by name) |
 | `width` | `number` | size in px (the picture's, or one cell's, by default); one given, the other follows the picture's shape |
-| `height` | `number` | – |
+| `height` | `number` | in px; given alone, the width follows the picture's shape |
 | `grid` | `[number, number]` | a sprite sheet: the picture is `[columns, rows]` cells of equal size, read left to right, top to bottom |
 | `atlasPick` | `number` | one picture of a built atlas (TextureAtlasBuilder's sources.handle gives it with its src): its index in the atlas's list |
 | `frame` | `number` | with `grid`: which cell shows (0 is the top left); animate it to play the sheet: frame={Math.floor(f / 3)} |
-| `flipX` | `boolean` | – |
-| `flipY` | `boolean` | – |
+| `flipX` | `boolean` | mirrored left to right |
+| `flipY` | `boolean` | mirrored top to bottom |
 | `color` | `string` | a tint multiplied over the picture (white by default) |
 | `tileX` | `boolean` | Bevy's SpriteImageMode::Tiled: the picture repeats across the sprite's width (tileX) or height (tileY) instead of stretching to it, a tile every `tileStretch` x the picture's size (1 by default): a floor, a fence, a wall. Animate width and height to show more or fewer tiles |
-| `tileY` | `boolean` | – |
-| `tileStretch` | `number` | – |
+| `tileY` | `boolean` | tile the picture down its height instead of stretching it |
+| `tileStretch` | `number` | a tile every this many times the picture's size (1) |
 | `image_mode` | `SpriteImageMode` | Bevy's SpriteImageMode, as its reflected value: "Auto" (stretched to the size), { Scale: "FillCenter" } (and FillStart, FillEnd, FitCenter, FitStart, FitEnd: the picture kept to its shape, cropped or fitted), { Sliced: TextureSlicer } (nine-slice: border a number of px or { min_inset: [x, y], max_inset: [x, y] }; center_scale_mode and sides_scale_mode "Stretch" or { Tile: { stretch_value } }; max_corner_scale) or { Tiled: { tile_x, tile_y, stretch_value } }. Not with tileX or tileY |
 | `sampler` | `SamplerSpec` | the picture's sampler (Bevy's load_with_settings: { filter, mipmap, wrap, anisotropy }), Bevy's default (linear) otherwise; { filter: "nearest" } is pixel art as Bevy's ImagePlugin::default_nearest() draws it |
 | `children` | `ReactNode` | your own <Material> as its child: Bevy's SpriteMaterial, extending the sprite's own material (the shader reads the sprite's picture, tint and alpha with bevy_sprite_render::sprite_mesh::functions), its uniforms per frame |
-| `name` | `string` | – |
-| `x` | `number` | – |
-| `y` | `number` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `x` | `number` | px from the frame's left edge to the part's centre |
+| `y` | `number` | px from the frame's top edge to the part's centre, down positive |
 | `rotation` | `number` | radians, clockwise (as CSS rotate) |
 | `quat` | `Quat` | Bevy's rotation as it is, a quaternion [x, y, z, w] in Bevy's axes (y up, z toward the viewer), in place of `rotation`: a turn out of the frame's plane too, as a Sprite's Transform takes it (camera/2d_on_ui) |
 | `scale` | `number \| [number, number]` | 1 by default; [x, y] to stretch |
 | `z` | `number` | draw order among the 2D parts: higher draws over lower (0 by default) |
 | `opacity` | `number` | 0 to 1 (1 by default) |
-| `onClick` | `(e: Event3d) => void` | – |
-| `onPointerDown` | `(e: Event3d) => void` | – |
-| `onPointerUp` | `(e: Event3d) => void` | – |
-| `onPointerOver` | `(e: Event3d) => void` | – |
-| `onPointerOut` | `(e: Event3d) => void` | – |
-| `onPointerEnter` | `(e: Event3d) => void` | – |
-| `onPointerLeave` | `(e: Event3d) => void` | – |
-| `onPointerMove` | `(e: Event3d) => void` | – |
-| `onWheel` | `(e: Event3d) => void` | – |
-| `onDragStart` | `(e: Event3d) => void` | – |
-| `onDrag` | `(e: Event3d) => void` | – |
-| `onDragEnd` | `(e: Event3d) => void` | – |
-| `onDragEnter` | `(e: Event3d) => void` | – |
-| `onDragOver` | `(e: Event3d) => void` | – |
-| `onDragLeave` | `(e: Event3d) => void` | – |
-| `onDrop` | `(e: Event3d) => void` | – |
+| `onClick` | `(e: Event3d) => void` | a press and release over the part |
+| `onPointerDown` | `(e: Event3d) => void` | a button pressed over the part |
+| `onPointerUp` | `(e: Event3d) => void` | a button released over the part |
+| `onPointerOver` | `(e: Event3d) => void` | the pointer came over the part (bubbles, as the DOM's) |
+| `onPointerOut` | `(e: Event3d) => void` | the pointer left the part (bubbles) |
+| `onPointerEnter` | `(e: Event3d) => void` | the pointer came over the part (doesn't bubble) |
+| `onPointerLeave` | `(e: Event3d) => void` | the pointer left the part (doesn't bubble) |
+| `onPointerMove` | `(e: Event3d) => void` | the pointer moved over the part |
+| `onWheel` | `(e: Event3d) => void` | the wheel turned over the part (`deltaX`, `deltaY`) |
+| `onDragStart` | `(e: Event3d) => void` | a drag began on the part pressed |
+| `onDrag` | `(e: Event3d) => void` | the part pressed is being dragged, each frame it moves |
+| `onDragEnd` | `(e: Event3d) => void` | the drag of the part pressed ended |
+| `onDragEnter` | `(e: Event3d) => void` | a dragged part came over this one (`dragged` names it) |
+| `onDragOver` | `(e: Event3d) => void` | a dragged part is over this one |
+| `onDragLeave` | `(e: Event3d) => void` | a dragged part left this one |
+| `onDrop` | `(e: Event3d) => void` | a dragged part was dropped on this one |
 
 ### `VerticesProps`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `vertices` | `Vec2[]` | – |
-| `vertex_colors` | `(LinearRgba \| [number, number, number, number])[]` | – |
-| `ring` | `number` | – |
-| `inner` | `Record<string, unknown>` | – |
+| `vertices` | `Vec2[]` | the outline's points, in order |
+| `vertex_colors` | `(LinearRgba \| [number, number, number, number])[]` | one linear colour a vertex, in the mesh's vertex order (ATTRIBUTE_COLOR) |
+| `ring` | `number` | a thickness: the shape made a ring that thick (to_ring) |
+| `inner` | `Record<string, unknown>` | the ring's inner shape, as the same shape's fields |
 
 <!-- generated:end -->

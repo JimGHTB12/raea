@@ -75,13 +75,16 @@ export interface StateConfig<C, E, N extends string> {
   onDone?: Transitions<C, E, N>;
   /** a final state: no transitions out (a dead enemy, the game won, the work shipped) */
   type?: "final";
+  /** what the state means, for reports and a decider */
   description?: string;
 }
 
 export interface MachineConfig<C, E, N extends string, K extends string> {
   /** the machine's name in traces and reports */
   id: string;
+  /** the state it starts in */
   initial: NoInfer<N>;
+  /** its states by name, each a StateConfig (substates nest inside) */
   states: { [S in N]?: StateConfig<C, E, N> };
   /** the context's field holding the snapshot ("sm") */
   key?: K;
@@ -96,17 +99,25 @@ export interface MachineConfig<C, E, N extends string, K extends string> {
  *  edge the last transition took (an index into machine.edges); `by` names the decider that chose it (absent: a
  *  guard); `hist` is each history state's last substate. */
 export interface Snapshot<N extends string = string> {
+  /** the active states, outermost first ([] before the first step) */
   path: N[];
+  /** the step each state in `path` was entered on */
   at: number[];
+  /** the machine's steps so far, from 0 */
   n: number;
+  /** the edge the last transition took, an index into `machine.edges` */
   e: number;
+  /** the decider that chose the last transition (absent: a guard did) */
   by?: string;
+  /** each history state's last substate */
   hist?: { [S in N]?: N };
 }
 
 /** A machine's state in some context, for a trace (`Playtest.machines`). */
 export interface Watched {
+  /** the machine */
   machine: AnyMachine;
+  /** its runtime state in that context */
   snapshot: Snapshot;
 }
 
@@ -124,29 +135,37 @@ export function inState<N extends string>(snap: Snapshot<N>, name: N): boolean {
 
 /** A choice point as a decider sees it: which machine, where, and the candidates whose guards hold. */
 export interface ChoicePoint<C = unknown, E = unknown> {
+  /** the machine's id */
   machine: string;
   /** the state whose `choose` list this is, and the active leaf */
   state: string;
+  /** the active leaf state */
   leaf: string;
   /** the machine's step */
   n: number;
   /** the candidates whose guards hold, in their order (each an edge of machine.edges) */
   candidates: { edge: number; to: string; description?: string }[];
+  /** the context the machine drives */
   ctx: C;
+  /** whatever the step was given as env */
   env: E;
 }
 
 /** What a decider answers: the edge it picks (one of the candidates' `edge`), or null to wait this step; `evidence` is
  *  whatever supports the choice (a bot's score, a model's probabilities), recorded beside the transition. */
 export interface Decision {
+  /** the edge picked, one of the candidates' `edge`; null waits this step */
   edge: number | null;
+  /** what supports the choice (a bot's score, a model's probabilities), recorded with the transition */
   evidence?: unknown;
 }
 
 /** Picks a transition at a choice point. Called inside the step, so it must answer synchronously: a model or a person
  *  is asked outside the step and their answer replayed (`replayDecider`). Deterministic deciders keep a fold pure. */
 export interface Decider {
+  /** its name in the trace's `by` column */
   name: string;
+  /** picks a candidate at a choice point, synchronously */
   decide(point: ChoicePoint): Decision;
 }
 
@@ -169,14 +188,21 @@ export function replayDecider(log: Record<string, Record<number, number | { edge
 /** One transition as a row: what a trace keeps and rdb loads (step, machine, from, to, edge, decider, evidence). `from` is
  *  null for the first step's entry into the initial states. */
 export interface TransitionRecord {
+  /** the machine's id */
   machine: string;
+  /** the machine's step it happened on */
   step: number;
+  /** the leaf it left (null for the first entry) */
   from: string | null;
+  /** the leaf it entered */
   to: string;
+  /** the edge it took, an index into `machine.edges` */
   edge: number;
+  /** what kind of edge: always, after, on, choose, done (an onDone), or start for the first entry */
   kind: Edge["kind"] | "start";
   /** "guard" for a trigger, "start" for the first entry, else the decider's name */
   by: string;
+  /** the decider's evidence for the choice */
   evidence?: unknown;
 }
 

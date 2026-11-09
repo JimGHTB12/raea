@@ -4,8 +4,11 @@
 export type AssetKind = "lyria" | "sao" | "tokensynth";
 
 export interface GeneratedAsset {
+  /** which generator makes it: lyria (music), sao (sound effects) or tokensynth (an instrument's note) */
   kind: AssetKind;
+  /** what to make, in words */
   prompt: string;
+  /** how long it is */
   seconds: number;
   /** a stable hash of kind, prompt and seconds */
   id: string;

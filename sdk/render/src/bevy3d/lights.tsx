@@ -87,6 +87,7 @@ export interface DirectionalLightProps extends Omit<LightCommon, "children"> {
   shadow_maps_enabled?: boolean;
   /** soft shadows (PCSS): the sun's size as its shadows see it, in metres */
   soft_shadow_size?: number | null;
+  /** Bevy components on the light: shadow settings, cascades */
   children?: ReactNode;
 }
 
@@ -101,7 +102,9 @@ export function DirectionalLight(p: DirectionalLightProps) {
 }
 
 export interface AmbientLightProps {
+  /** the entity's name, for picking, the inspector and world.* */
   name?: string;
+  /** its colour, as CSS writes one (a name, hex, rgb()) */
   color?: string;
   /** cd/m² (Bevy's default 80) */
   brightness?: number;

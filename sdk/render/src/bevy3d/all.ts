@@ -3,6 +3,7 @@
 export * from "./core";
 export * from "./colors";
 export * from "./procedural";
+export * from "./extensions";
 export * from "./materials";
 export * from "./material";
 export * from "./lights";

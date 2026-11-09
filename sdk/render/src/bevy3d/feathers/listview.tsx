@@ -17,6 +17,7 @@ const GUTTER = 14;
 export interface FeathersScrollbarProps extends NodeProps {
   /** the Name of the Node it scrolls */
   target: string;
+  /** which way it scrolls: Vertical or Horizontal */
   orientation?: ControlOrientation;
   /** hidden: the auto_hide decision, made by the list view (Bevy makes it after layout) */
   hidden?: boolean;

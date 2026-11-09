@@ -36,11 +36,10 @@ insert, query and step it, and add TypeScript systems to its schedules.
 
 | Member | What it does |
 | --- | --- |
-| `new BevyApp(id: number, methods: string[])` | – |
 | `BevyApp.open(o: OpenOptions): BevyApp` | A headless App with these plugins; Startup has run, no frame has stepped. TypeScript plugins are built in order once the App is open, then finished and cleaned up; their Startup systems run before the first frame. |
 | `BevyApp.stepTogether(apps: BevyApp[], frames?: number): number[]` | Apps stepped together, a frame at a time: a network's peers. Returns each one's frame. |
 | `.methods: string[]` | the methods this App answers (BRP's, raea's and its plugins') |
-| `.id: number` | – |
+| `.id: number` | the App's handle in the engine |
 | `.isPluginAdded(name: string): boolean` | Whether a plugin of this name is in the App (Bevy's is_plugin_added), Rust or TypeScript. |
 | `.addPlugins(...refs: PluginRef[]): BevyApp` | Adds TypeScript plugins and groups (Bevy's add_plugins): each built in order, then each finished, then each cleaned up. A Rust plugin is compiled in and must be named when the App opens; naming a new one here throws. |
 | `.addSystems(schedule: string, systems: ((app: BevyApp, frame: number) => void) \| ((app: BevyApp, frame: number) => void)[], o?: SystemOptions): BevyApp` | Systems in a schedule (Bevy's add_systems), each as `system` adds one; one of the startup schedules (PreStartup, Startup, PostStartup) runs them once, before the App's next frame. Returns the App, to chain. |
@@ -53,11 +52,11 @@ insert, query and step it, and add TypeScript systems to its schedules.
 | `.frameSchedules(): string[]` | The schedules a frame runs, in order (Bevy's MainScheduleOrder). |
 | `.call<A = unknown>(method: string, params?: unknown): A` | Any method of the App's table, run now: its answer, or a throw with the method's message. |
 | `.spawn(...components: With[]): number` | A new entity with these components. |
-| `.insert(entity: number, ...components: With[]): void` | – |
+| `.insert(entity: number, ...components: With[]): void` | Adds these components to an entity, replacing any it has of the same type. |
 | `.get<T>(entity: number, c: Component<T>): T \| undefined` | One component of an entity, or undefined when it hasn't got one. |
 | `.query(o: { data?: Component<unknown>[] \| undefined; has?: Component<unknown>[] \| undefined; without?: Component<unknown>[] \| undefined; }): { entity: number…` | Entities with every component in `has` (and none in `without`), with the `data` components' values. |
-| `.resource<T>(r: Resource<T>): T` | – |
-| `.setResource<T>(r: Resource<T>, value: T): void` | – |
+| `.resource<T>(r: Resource<T>): T` | A resource's value. |
+| `.setResource<T>(r: Resource<T>, value: T): void` | Sets a resource's value, adding it if the app hasn't got one. |
 | `.trigger<T>(e: Event<T>, value: T): void` | Triggers an event: its observers run now. |
 | `.write<T>(m: Message<T>, value: T): void` | Writes a message, for its readers' next run. |
 | `.observe<T>(e: Event<T>, entity?: number \| undefined): () => T[]` | Starts observing an event (BRP's world.observe+watch). Each call of the returned function gives the events triggered since the last call, in order. `entity` limits it to events aimed at that entity. |
@@ -66,7 +65,7 @@ insert, query and step it, and add TypeScript systems to its schedules.
 | `.state<T>(s: State<T>): T \| null` | A state's value (null before it exists). |
 | `.setState<T>(s: State<T>, value: T): void` | A state's next value: it changes at the next frame's StateTransition. |
 | `.schema(crates?: string[] \| undefined): Record<string, unknown>` | The App's registered types as JSON schema (BRP's registry.schema), filtered by crate. |
-| `.close(): void` | – |
+| `.close(): void` | Shuts the app down; its methods fail after. |
 
 ## Types
 

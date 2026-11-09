@@ -7,35 +7,49 @@ import { node } from "./all";
 // ---- mesh sequences and goo -----------------------------------------------------------------------------------
 
 export interface MeshSequenceProps {
+  /** the entity's name, for picking and the inspector */
   name?: string;
   /** a .rseq (tools/goo writes them; raea_render::meshseq) */
   src: string;
   /** which of its frames (clamped) */
   frame: number;
+  /** where it stands, metres (x, y, z) */
   position?: Vec3;
+  /** its rotation, Euler angles in radians (x, y, z) */
   rotation?: Vec3;
+  /** a uniform scale */
   scale?: number;
   /** multiplies the vertex colours */
   color?: string;
+  /** 0..1, smooth to matte */
   roughness?: number;
+  /** 0..1, a dielectric to a metal */
   metalness?: number;
+  /** 0..1 strength of a clear varnish layer over the surface */
   clearcoat?: number;
+  /** 0..1 roughness of that clear layer */
   clearcoatRoughness?: number;
   /** 0..1 specular strength at normal incidence (0.5: 4%, a dielectric's) */
   reflectance?: number;
   /** 0..1 light let through (diffuse transmission): a jelly's glow */
   subsurface?: number;
+  /** how thick the mesh is, metres, for the light let through */
   thickness?: number;
   /** 0..1 light let straight through and bent (a clear liquid: water, tea, juice), with its index of refraction (1.33
    * water) and, for a tinted one, the colour it takes after `attenuationDistance` metres through it. Screen space: it
    * refracts what's on screen behind it, and one clear layer doesn't show another through it */
   transmission?: number;
+  /** the index of refraction of what light passes through (1.33 water) */
   ior?: number;
+  /** the colour light takes after `attenuationDistance` metres through it */
   attenuationColor?: string;
+  /** metres through it until light has taken `attenuationColor` */
   attenuationDistance?: number;
+  /** 0..1, see-through to solid */
   opacity?: number;
   /** a picture over its texture coordinates */
   map?: string;
+  /** draw the back faces too (an open shell, a petal) */
   doubleSided?: boolean;
 }
 
@@ -48,35 +62,47 @@ export function MeshSequence(p: MeshSequenceProps) {
 }
 
 export interface GooObject {
+  /** the object's name; the bake's stats list it, with the frame its original model should go */
   name: string;
   /** a glTF's nodes (world space as they stand in it), moved by `transform` (column-major 4x4) if given; or, with no
    * src, `cup` and `level`: a liquid filling one of the goo's cups to `level` metres above its foot */
   src?: string;
+  /** the glTF nodes it's made of (all of them when left out) */
   nodes?: string[];
+  /** with no src: the index of the cup in `cups` it fills */
   cup?: number;
+  /** with no src: metres above the cup's foot it's filled to */
   level?: number;
+  /** a column-major 4x4 that moves the glTF's nodes */
   transform?: number[];
   /** sph: what it is ("water" by default: coffee, tea, milk, juice, oil, syrup, honey set its colour, density and
    * viscosity), and where it comes from if not a cup or a glTF (filled): a box of it, or an emitter pouring a round
    * stream from `at` along `dir` (down) at `speed` m/s, `radius` m (6 mm) across, from `start` to `end` seconds */
   liquid?: "water" | "coffee" | "tea" | "milk" | "juice" | "oil" | "syrup" | "honey";
+  /** sph: a box of liquid, world min and max corners */
   block?: { min: Vec3; max: Vec3 };
+  /** sph: a round stream poured from `at` along `dir`, `radius` m across, at `speed` m/s, from `start` to `end` seconds */
   emitter?: { at: Vec3; dir?: Vec3; radius?: number; speed?: number; start?: number; end?: number };
   /** seconds from the goo's start when it begins to soften, and how long until it runs (mpm) */
   start: number;
+  /** seconds from `start` until it runs (2) */
   melt?: number;
   /** of the solid (3e4) and the fluid it becomes (4) */
   stiffness?: number;
+  /** how thick the fluid it becomes is (4) */
   viscosity?: number;
+  /** its density, kg/m³ (1000) */
   density?: number;
   /** the share of its pressure it keeps under tension (0.6): goo holds together in strands, a liquid (0.02) barely */
   cohesion?: number;
   /** the share of its shear stiffness a fluid keeps (0.12) and the strain it must pass to flow (0.005): 0 and 0 for a
    * liquid */
   residual?: number;
+  /** the strain a fluid must pass to flow (0.005; 0 for a liquid) */
   yield?: number;
   /** "solid" fills its volume; "shell" a skin `thickness` thick (plates, petals) */
   fill?: "solid" | "shell";
+  /** with `fill: "shell"`: the skin's thickness, metres */
   thickness?: number;
   /** its goo's colour (else its texture's) */
   color?: string;
@@ -92,10 +118,13 @@ export interface GooCup {
 }
 
 export interface GooProps {
+  /** the entity's name, for picking and the inspector */
   name?: string;
   /** how long, seconds, from `from` (a frame of the enclosing Sequence) */
   seconds: number;
+  /** the frame of the enclosing Sequence the bake starts at (0) */
   from?: number;
+  /** what goes in: solids that melt and liquids that pour */
   objects: GooObject[];
   /** static boxes the goo lies on and runs off (world) */
   colliders?: { box: { min: Vec3; max: Vec3 }; friction?: number }[];
@@ -127,17 +156,24 @@ export interface GooProps {
   bounds?: { min: Vec3; max: Vec3 };
   /** grid cell, metres (0.005): finer is slower and smoother */
   dx?: number;
+  /** the random seed the particles are placed with: the same seed bakes the same goo (0) */
   seed?: number;
+  /** gravity, m/s² (0, -9.81, 0) */
   gravity?: Vec3;
   /** the surface: glossy, a little light through it */
   roughness?: number;
+  /** 0..1 clear varnish over the surface */
   clearcoat?: number;
+  /** 0..1 light let through the surface */
   subsurface?: number;
+  /** the goo's colour where an object gives none */
   color?: string;
 }
 
 export interface GooBake {
+  /** the baked .rseq this goo plays */
   file: string;
+  /** what the bake measured, with each object's name and the frame its original model should go */
   stats: { objects?: { name: string; hideFrame: number }[]; [k: string]: unknown };
 }
 

@@ -105,11 +105,11 @@ What a glyph is, for a <RichText>'s `glyph` function.
 | --- | --- | --- |
 | `index` (required) | `number` | its place among the drawn glyphs (spaces aren't glyphs), from 0 |
 | `count` (required) | `number` | how many glyphs the block has |
-| `char` (required) | `string` | – |
+| `char` (required) | `string` | the character it draws |
 | `word` (required) | `number` | its word's place among the words, from 0, and how many there are |
-| `words` (required) | `number` | – |
+| `words` (required) | `number` | how many words the block has |
 | `inWord` (required) | `number` | its place in its word, and the word's glyph count |
-| `wordLength` (required) | `number` | – |
+| `wordLength` (required) | `number` | how many glyphs its word has |
 | `line` (required) | `number` | its line (by the newlines in the text), from 0 |
 | `span` (required) | `number` | its run: the <Span> it's in (0 for text outside any, counted in order) |
 
@@ -122,10 +122,10 @@ multiplied into (scale, opacity) or replacing (color, visible) what the block's 
 | --- | --- | --- |
 | `position` | `Vec3` | metres, from its place in the block |
 | `rotation` | `Vec3` | radians, XYZ |
-| `scale` | `number \| Vec3` | – |
-| `color` | `string` | – |
-| `opacity` | `number` | – |
-| `visible` | `boolean` | – |
+| `scale` | `number \| Vec3` | multiplies its size: one number, or x, y and z |
+| `color` | `string` | replaces its colour |
+| `opacity` | `number` | multiplies its opacity, 0..1 |
+| `visible` | `boolean` | false hides it this frame |
 
 ### `RichTextProps`
 
@@ -133,57 +133,57 @@ multiplied into (scale, opacity) or replacing (color, visible) what the block's 
 | --- | --- | --- |
 | `name` | `string` | what it's called across frames, and its glyphs' names over world.* (`${name}:${index}`) |
 | `pass` | `string` | the composition pass it draws in ("scene" by default): a frame-wide effect told to skip a pass (<Look skip>, <Outline skip>, <Bloom skip>, <Grade skip>) leaves its pixels as drawn, and <Look passes> gives one its own paint; a piece names at most three passes besides "scene"; keyed per frame |
-| `position` | `Vec3` | – |
-| `rotation` | `Vec3` | – |
-| `scale` | `number \| Vec3` | – |
+| `position` | `Vec3` | where the block's origin is, metres (x, y, z) |
+| `rotation` | `Vec3` | the block's rotation, radians (x, y, z) |
+| `scale` | `number \| Vec3` | the block's scale: one number, or x, y and z |
 | `size` | `number` | the em in metres (0.5 by default) |
-| `font` | `string` | – |
-| `weight` | `number` | – |
-| `italic` | `boolean` | – |
+| `font` | `string` | a family (raea's bundled faces: Inter by default, Montserrat, Oswald, Playfair Display...; or one on this machine) |
+| `weight` | `number` | 100..900 (700 by default) |
+| `italic` | `boolean` | slanted (false by default) |
 | `color` | `string` | each glyph's colour unless its <Span> gives one |
 | `align` | `"left" \| "center" \| "right"` | where the origin is: the left edge, the middle (default) or the right edge of the lines; the block's middle vertically |
 | `lineHeight` | `number` | times the em (1.2 by default) |
 | `maxWidth` | `number` | wrapped at this width in metres (no wrapping by default) |
-| `roughness` | `number` | – |
-| `metalness` | `number` | – |
-| `emissive` | `string` | – |
-| `emissiveIntensity` | `number` | – |
-| `unlit` | `boolean` | – |
+| `roughness` | `number` | 0..1, smooth to matte |
+| `metalness` | `number` | 0..1, a dielectric to a metal |
+| `emissive` | `string` | the colour it glows with |
+| `emissiveIntensity` | `number` | how strongly it glows (1 by default; 2-10 with bloom) |
+| `unlit` | `boolean` | drawn in its flat colour, without light or shade |
 | `castShadow` | `boolean` | letter-shaped shadows (true by default) |
-| `receiveShadow` | `boolean` | – |
-| `layers` | `number[]` | – |
+| `receiveShadow` | `boolean` | other things' shadows fall on it |
+| `layers` | `number[]` | the render layers it's on ([0] by default): a camera draws only the layers it's given |
 | `enter` | `MoveLike` | each glyph's (or word's) entrance: a move's name, a move or several (rise, pop, slam, slide, fade... the 2D ones, their px read at 100 an em, their degrees as degrees), `each` frames apart from `at` |
 | `each` | `number` | frames between one glyph's (or word's) entrance and the next (2 by default) |
 | `by` | `"letter" \| "word"` | the entrance and exit staggered by letter (default) or by word |
-| `at` | `number` | – |
-| `exit` | `MoveLike` | – |
-| `exitAt` | `number` | – |
+| `at` | `number` | the local frame the first entrance starts (0) |
+| `exit` | `MoveLike` | each glyph's (or word's) exit: a move or its name, played backwards from `exitAt` |
+| `exitAt` | `number` | the local frame the first exit starts; an exit needs it |
 | `exitEach` | `number` | frames between exits (0: together) |
 | `reveal` | `number` | how many glyphs are shown, a typewriter's count: the next one fades in over its fraction |
 | `glyph` | `(g: GlyphInfo) => GlyphStyle` | each glyph's own motion this frame, from anything the frame gives (useCurrentFrame, spring, interpolate) |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | the text: strings and <Span> runs |
 
 ### `SpanProps`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | the run's text |
 | `font` | `string` | a family (raea's bundled faces: Inter, Montserrat, Oswald, Playfair Display...; or one on this machine) |
-| `weight` | `number` | – |
-| `italic` | `boolean` | – |
+| `weight` | `number` | 100..900 (the block's by default) |
+| `italic` | `boolean` | slanted (the block's by default) |
 | `size` | `number` | times the block's size |
-| `color` | `string` | – |
+| `color` | `string` | the run's colour (the block's by default) |
 
 ### `Text3DProps`
 
 | Field | Type | What it is |
 | --- | --- | --- |
 | `children` | `string` | the words, extruded |
-| `text` | `string` | – |
+| `text` | `string` | the words, when they aren't its child (no quotes or backslashes) |
 | `size` | `number` | letter height in scene units (default 0.5) |
 | `depth` | `number` | extrusion depth (default 0.2) |
-| `font` | `string` | – |
-| `weight` | `number` | – |
+| `font` | `string` | a family (Inter by default, or another of raea's bundled faces) |
+| `weight` | `number` | 100..900 (800 by default) |
 
 ### `WordOptions`
 

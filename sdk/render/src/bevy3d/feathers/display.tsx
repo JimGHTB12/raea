@@ -42,18 +42,39 @@ function only(who: string, children: unknown): ReactElement<Record<string, unkno
   return children as ReactElement<Record<string, unknown>>;
 }
 
+export interface ThemeBackgroundColorProps {
+  /** the theme colour's token */
+  token: ThemeToken;
+  /** the one element it colours */
+  children: ReactElement;
+}
+
 /** The element inside on the theme's colour for `token`. @bevy bevy_feathers::theme::ThemeBackgroundColor */
-export function ThemeBackgroundColor({ token, children }: { token: ThemeToken; children: ReactElement }) {
+export function ThemeBackgroundColor({ token, children }: ThemeBackgroundColorProps) {
   return cloneElement(only("ThemeBackgroundColor", children), { background_color: useThemeColor(token) });
 }
 
+export interface ThemeBorderColorProps {
+  /** the theme colour's token */
+  token: ThemeToken;
+  /** the one element it borders */
+  children: ReactElement;
+}
+
 /** The element inside bordered in the theme's colour for `token`. @bevy bevy_feathers::theme::ThemeBorderColor */
-export function ThemeBorderColor({ token, children }: { token: ThemeToken; children: ReactElement }) {
+export function ThemeBorderColor({ token, children }: ThemeBorderColorProps) {
   return cloneElement(only("ThemeBorderColor", children), { border_color: useThemeColor(token) });
 }
 
+export interface ThemeTextColorProps {
+  /** the theme colour's token */
+  token: ThemeToken;
+  /** the Text it colours */
+  children: ReactElement;
+}
+
 /** The Text inside in the theme's colour for `token`. @bevy bevy_feathers::theme::ThemeTextColor */
-export function ThemeTextColor({ token, children }: { token: ThemeToken; children: ReactElement }) {
+export function ThemeTextColor({ token, children }: ThemeTextColorProps) {
   return cloneElement(only("ThemeTextColor", children), { color: useThemeColor(token) });
 }
 

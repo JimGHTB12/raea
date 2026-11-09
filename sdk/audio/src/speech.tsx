@@ -24,6 +24,7 @@
 import { native } from "raea/native";
 
 export interface Line {
+  /** the words to say */
   text: string;
   /** a Pocket voice ("alba", "marius", ...), a clip in ~/.raea-feed/voices by name ("watts"), or a WAV
    *  ("/media/narrator.wav" or staticFile("narrator.wav")); the default is "watts" when that clip's there, else alba */

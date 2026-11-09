@@ -7,10 +7,15 @@ const NAMES: readonly RegionName[] = ["auto", "top", "bottom", "center", "full"]
 
 /** The band a Region occupies, in composition px. */
 export interface RegionBox {
+  /** the band it took: top, bottom, center or full ("auto" resolves to top or bottom) */
   name: RegionName;
+  /** the left edge, px */
   x: number;
+  /** the top edge, px */
   y: number;
+  /** width, px */
   w: number;
+  /** height, px */
   h: number;
 }
 
@@ -55,10 +60,15 @@ export function useRegion(): RegionBox {
 }
 
 export interface RegionProps {
+  /** the band: "auto" (default) takes the larger of top and bottom; top and bottom stay clear of the face; center is the middle third; full is the safe area */
   name?: RegionName;
+  /** the gap kept from the face and the sides, as a share of the width (0.06) */
   margin?: number;
+  /** merged under the box's own placement */
   style?: CSSProperties;
+  /** Tailwind or CSS classes */
   className?: string;
+  /** what goes in the band; `useRegion()` reads its box */
   children?: ReactNode;
 }
 
@@ -115,15 +125,20 @@ export function Region({ name = "auto", margin = 0.06, style, className, childre
 }
 
 export interface ProofPart extends Rect {
+  /** the part's name, in the faults */
   name: string;
   /** the band the part must fit in, [top, bottom] in px */
   band?: [number, number];
 }
 
 export interface ProofInput {
+  /** the composition's width, px */
   width: number;
+  /** the composition's height, px */
   height: number;
+  /** the face's box, when perception found one */
   face?: Rect;
+  /** the measured boxes of the parts to check */
   parts: ProofPart[];
 }
 

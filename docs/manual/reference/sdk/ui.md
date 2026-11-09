@@ -39,9 +39,9 @@ A box over the whole of its parent, laid out as a flex column; `style` is merged
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
+| `style` | `CSSProperties` | merged over the fill's own style (absolute, inset 0, a flex column) |
+| `className` | `string` | Tailwind or CSS classes |
+| `children` | `ReactNode` | what fills it |
 
 ### `BoxShadowSamples`
 
@@ -52,8 +52,8 @@ Bevy: `bevy_ui_render::BoxShadowSamples`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `samples` (required) | `number` | – |
-| `children` | `ReactNode` | – |
+| `samples` (required) | `number` | steps each shadow's blur is summed in (4) |
+| `children` | `ReactNode` | the UI it applies to |
 
 Used in: [ui/styling/box_shadow](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/styling/box_shadow.tsx).
 
@@ -77,7 +77,7 @@ Bevy: `bevy_text::EditableText`.
 | `cursor_style` | `TextCursorStyle` | TextCursorStyle |
 | `auto_focus` | `boolean` | AutoFocus: it has the input focus, so its caret is drawn |
 | `justify` | `TextProps["justify"]` | TextLayout's justify and linebreak |
-| `linebreak` | `TextProps["linebreak"]` | – |
+| `linebreak` | `TextProps["linebreak"]` | where lines break: WordBoundary, AnyCharacter, WordOrCharacter or NoWrap |
 
 Also takes the props of [`NodeProps`](#nodeprops); `PickProps` (`popover`, `onClick`, `onPointerDown`, `onPointerUp`, `onPointerOver`, `onPointerOut`, `onPointerEnter`, `onPointerLeave`, `onPointerMove`); [`TextStyleProps`](#textstyleprops).
 
@@ -92,7 +92,7 @@ Bevy: `bevy_ui::experimental::GhostNode`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | what's laid out as the parent's children |
 
 Used in: [ui/layout/ghost_nodes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/ghost_nodes.tsx).
 
@@ -105,7 +105,7 @@ Bevy: `bevy_ui_render::GlobalUiDebugOptions`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | the UI the overlay draws over |
 
 Also takes the props of [`UiDebugOptions`](#uidebugoptions).
 
@@ -141,8 +141,8 @@ Bevy: `bevy_image::ImagePlugin`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `default_sampler` | `"Linear" \| "Nearest"` | Bevy: The default image sampler to use when `ImageSampler` is set to `Default`. |
-| `children` | `ReactNode` | – |
+| `default_sampler` | `"Linear" \| "Nearest"` | "Linear" (the default) or "Nearest" (pixel art) |
+| `children` | `ReactNode` | the UI and sprites whose pictures it samples |
 
 Used in: [ui/images/ui_texture_atlas](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas.tsx).
 
@@ -175,7 +175,7 @@ Bevy: `bevy_ui_render::ui_material::MaterialNode`.
 | `uniforms` | `Record<string, Uniform \| Record<string, Uniform>>` | each `var<uniform>` the shader declares, by name: a number, [x, y], [x, y, z], [x, y, z, w] (a LinearRgba's to_f32_array()) or "#rrggbb"; a struct's as {field: value} |
 | `textures` | `Record<string, string>` | each `texture_2d<f32>` it declares, by name: a picture file (staticFile), sampled with Bevy's default sampler |
 | `defs` | `Record<string, boolean \| number>` | shader defs, as a Material's |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | the nodes inside it |
 
 Also takes the props of [`NodeProps`](#nodeprops); `PickProps` (`popover`, `onClick`, `onPointerDown`, `onPointerUp`, `onPointerOver`, `onPointerOut`, `onPointerEnter`, `onPointerLeave`, `onPointerMove`).
 
@@ -198,11 +198,11 @@ A box at the band its name stands for, clear of the face perception found at thi
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `name` | `RegionName` | – |
-| `margin` | `number` | – |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
+| `name` | `RegionName` | the band: "auto" (default) takes the larger of top and bottom; top and bottom stay clear of the face; center is the middle third; full is the safe area |
+| `margin` | `number` | the gap kept from the face and the sides, as a share of the width (0.06) |
+| `style` | `CSSProperties` | merged under the box's own placement |
+| `className` | `string` | Tailwind or CSS classes |
+| `children` | `ReactNode` | what goes in the band; `useRegion()` reads its box |
 
 ### `Scrollbar`
 
@@ -263,7 +263,7 @@ Bevy: `bevy_sprite::text2d::Text2d`.
 | `anchor` | `[number, number]` | Bevy's Anchor, as its Vec2: which point of the block sits at its Transform, [-0.5, -0.5] its bottom left to [0.5, 0.5] its top right ([0, 0], the centre, by default; Anchor::TOP_CENTER is [0, 0.5]) |
 | `bounds` | `[number \| null, number \| null]` | TextBounds: the box its lines wrap in, [width, height] px (either null, unbounded), the anchor then the box's point; inside a Canvas3D |
 | `shadow` | `Text2dShadow \| true` | Text2dShadow (true for its default); inside a Canvas3D |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | the text, and TextSpan runs |
 
 Also takes the props of [`TextStyleProps`](#textstyleprops); [`TextRunProps`](#textrunprops) (`underline`, `strikethrough`, `underline_color`, `strikethrough_color`, `text_background_color`).
 
@@ -277,7 +277,7 @@ Bevy: `bevy_text::text::TextSpan`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | the run's text |
 
 Also takes the props of [`TextStyleProps`](#textstyleprops); [`TextRunProps`](#textrunprops) (`underline`, `strikethrough`, `underline_color`, `strikethrough_color`, `text_background_color`).
 
@@ -293,8 +293,8 @@ Bevy: `bevy_ui::UiScale`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `value` (required) | `number` | – |
-| `children` | `ReactNode` | – |
+| `value` (required) | `number` | how many times as big the UI is drawn (UiScale) |
+| `children` | `ReactNode` | the UI it scales |
 
 Used in: [ui/images/ui_texture_slice_flip_and_tile](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice_flip_and_tile.tsx), [ui/scroll_and_overflow/scrollbars](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/scrollbars.tsx), [ui/scroll_and_overflow/drag_to_scroll](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/drag_to_scroll.tsx).
 
@@ -310,8 +310,8 @@ Bevy: `bevy_ui::UiTargetCamera`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `order` | `number` | – |
-| `children` | `ReactNode` | – |
+| `order` | `number` | the camera, by its order, these roots draw with (0) |
+| `children` | `ReactNode` | the UI roots that camera draws |
 
 Used in: [ui/ui_target_camera](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/ui_target_camera.tsx), [3d/split_screen](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/split_screen.tsx).
 
@@ -325,8 +325,8 @@ Bevy: `bevy_camera::RenderTarget::Image`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `target` (required) | `string` | – |
-| `children` | `ReactNode` | – |
+| `target` (required) | `string` | the image's name, as a material or ImageNode uses it |
+| `children` | `ReactNode` | the UI roots drawn into it |
 
 Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx).
 
@@ -340,9 +340,9 @@ Bevy: `bevy_camera::Viewport`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `physical_position` (required) | `[number, number]` | Bevy: The physical position to render this viewport to within the `RenderTarget` of this `Camera`. (0,0) corresponds to the top-left corner |
-| `physical_size` (required) | `[number, number]` | Bevy: The physical size of the viewport rectangle to render to within the `RenderTarget` of this `Camera`. The origin of the rectangle is in the top-left corner. |
-| `children` | `ReactNode` | – |
+| `physical_position` (required) | `[number, number]` | the region's top-left corner, px from the window's |
+| `physical_size` (required) | `[number, number]` | the region's width and height, px |
+| `children` | `ReactNode` | the cameras and UI drawn into the region |
 
 Used in: [ui/relative_cursor_position](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/relative_cursor_position.tsx), [3d/split_screen](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/split_screen.tsx).
 
@@ -492,8 +492,6 @@ Used in: [ui/text/text_input](https://github.com/shinyobjectz/raea/blob/main/sdk
 
 Bevy's BorderRadius: a Val (circular) or a CornerRadius (elliptical) for each corner (0 by default).
 
-Bevy: `bevy_ui::BorderRadius`.
-
 Used in: [ui/layout/ghost_nodes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/ghost_nodes.tsx), [ui/navigation/directional_navigation_overrides](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/navigation/directional_navigation_overrides.tsx), [ui/navigation/directional_navigation](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/navigation/directional_navigation.tsx), [ui/scroll_and_overflow/scrollbars](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/scrollbars.tsx), [ui/scroll_and_overflow/overflow_transform](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/overflow_transform.tsx), [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/ui_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/ui_material.tsx), [ui/styling/gradients](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/styling/gradients.tsx), and 7 more.
 
 ### `BoxShadow`
@@ -524,8 +522,6 @@ Used in: [ui/styling/stacked_gradients](https://github.com/shinyobjectz/raea/blo
 ### `CornerRadius`
 
 Bevy's CornerRadius: a corner's x and y radii, an elliptical corner (a Val alone is a circular one).
-
-Bevy: `bevy_ui::CornerRadius`.
 
 Used in: [ui/styling/borders](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/styling/borders.tsx).
 
@@ -620,15 +616,11 @@ Used in: [ui/styling/stacked_gradients](https://github.com/shinyobjectz/raea/blo
 
 Bevy's Overflow: each axis Visible, Clip, Hidden or Scroll.
 
-Bevy: `bevy_ui::Overflow`.
-
 Used in: [ui/scroll_and_overflow/overflow](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/overflow.tsx), [ui/scroll_and_overflow/scrollbars](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/scrollbars.tsx), [ui/scroll_and_overflow/drag_to_scroll](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/drag_to_scroll.tsx), [ui/scroll_and_overflow/scroll](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/scroll.tsx), [ui/scroll_and_overflow/overflow_clip_margin](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/overflow_clip_margin.tsx), [ui/text/multiple_text_inputs](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/text/multiple_text_inputs.tsx), [ui/text/text_wrap_debug](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/text/text_wrap_debug.tsx), [ui/widgets/headless_tabs](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/headless_tabs.tsx).
 
 ### `OverflowClipMargin`
 
 Bevy's OverflowClipMargin: the box an overflow clip clips to, grown by a margin in px (the padding box by default).
-
-Bevy: `bevy_ui::OverflowClipMargin`.
 
 Used in: [ui/scroll_and_overflow/overflow_clip_margin](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/overflow_clip_margin.tsx), [ui/text/multiple_text_inputs](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/text/multiple_text_inputs.tsx).
 
@@ -691,8 +683,6 @@ Used in: [ui/styling/stacked_gradients](https://github.com/shinyobjectz/raea/blo
 
 Bevy's UiRect: a Val for each side (0 by default).
 
-Bevy: `bevy_ui::UiRect`.
-
 Used in: [ui/images/image_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node.tsx), [ui/images/image_node_resizing](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node_resizing.tsx), [ui/images/ui_texture_atlas_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas_slice.tsx), [ui/images/ui_texture_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice.tsx), [ui/layout/grid](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/grid.tsx), [ui/layout/ghost_nodes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/ghost_nodes.tsx), [ui/layout/flex_layout](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/flex_layout.tsx), [ui/layout/size_constraints](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/size_constraints.tsx), and 43 more.
 
 ### `UiTransform`
@@ -740,8 +730,8 @@ Bevy: `bevy_text::FontAtlas`.
 | Field | Type | What it is |
 | --- | --- | --- |
 | `texture` (required) | `string` | Bevy: The texture where this font atlas is located |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
+| `width` (required) | `number` | the texture's width in px |
+| `height` (required) | `number` | the texture's height in px |
 
 ### `GenericFontFamily`
 
@@ -791,8 +781,8 @@ Bevy: `bevy_ui::IgnoreScroll`.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `x` (required) | `boolean` | – |
-| `y` (required) | `boolean` | – |
+| `x` (required) | `boolean` | it keeps its place while the parent scrolls across |
+| `y` (required) | `boolean` | it keeps its place while the parent scrolls down |
 
 ### `ImageNodeProps`
 
@@ -846,9 +836,9 @@ panel's state.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `about` (required) | `string` | – |
-| `args` | `Record<string, string>` | – |
-| `run` (required) | `(state: S, args: A) => S` | – |
+| `about` (required) | `string` | what the action does, for the agent |
+| `args` | `Record<string, string>` | its arguments by name, a few words each |
+| `run` (required) | `(state: S, args: A) => S` | the panel's state after it |
 
 ### `PanelActions`
 
@@ -884,21 +874,21 @@ Bevy: `bevy_ui_widgets::popover::PopoverPlacement`.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `face` | `Rect` | – |
-| `parts` (required) | `ProofPart[]` | – |
+| `width` (required) | `number` | the composition's width, px |
+| `height` (required) | `number` | the composition's height, px |
+| `face` | `Rect` | the face's box, when perception found one |
+| `parts` (required) | `ProofPart[]` | the measured boxes of the parts to check |
 
 ### `ProofPart`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
+| `name` (required) | `string` | the part's name, in the faults |
 | `band` | `[number, number]` | the band the part must fit in, [top, bottom] in px |
-| `x` (required) | `number` | – |
-| `y` (required) | `number` | – |
-| `w` (required) | `number` | – |
-| `h` (required) | `number` | – |
+| `x` (required) | `number` | the left edge, px |
+| `y` (required) | `number` | the top edge, px |
+| `w` (required) | `number` | width, px |
+| `h` (required) | `number` | height, px |
 
 ### `RadialGradientShape`
 
@@ -918,11 +908,11 @@ The band a Region occupies, in composition px.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `RegionName` | – |
-| `x` (required) | `number` | – |
-| `y` (required) | `number` | – |
-| `w` (required) | `number` | – |
-| `h` (required) | `number` | – |
+| `name` (required) | `RegionName` | the band it took: top, bottom, center or full ("auto" resolves to top or bottom) |
+| `x` (required) | `number` | the left edge, px |
+| `y` (required) | `number` | the top edge, px |
+| `w` (required) | `number` | width, px |
+| `h` (required) | `number` | height, px |
 
 ### `RegionName`
 
@@ -991,9 +981,9 @@ What bevy_text draws with a section's own glyphs (a Text's string, not its spans
 | Field | Type | What it is |
 | --- | --- | --- |
 | `underline` | `boolean` | Underline and Strikethrough: a line under or through the run, as thick as the font says |
-| `strikethrough` | `boolean` | – |
+| `strikethrough` | `boolean` | a line through the run |
 | `underline_color` | `Color` | UnderlineColor and StrikethroughColor: the lines' colours (the text's colour by default) |
-| `strikethrough_color` | `Color` | – |
+| `strikethrough_color` | `Color` | the strikethrough's colour (the text's by default) |
 | `text_background_color` | `Color` | TextBackgroundColor: a box behind the run, line by line |
 
 ### `TextStyleProps`
@@ -1023,10 +1013,10 @@ default), and the corners' most scale (1 by default)
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `border` (required) | `{ left: number; right: number; top: number; bottom: number }` | – |
-| `center_scale_mode` | `SliceScaleMode` | – |
-| `sides_scale_mode` | `SliceScaleMode` | – |
-| `max_corner_scale` | `number` | – |
+| `border` (required) | `{ left: number; right: number; top: number; bottom: number }` | the slices' insets, in the picture's px |
+| `center_scale_mode` | `SliceScaleMode` | how the centre scales (Stretch) |
+| `sides_scale_mode` | `SliceScaleMode` | how the sides scale (Stretch) |
+| `max_corner_scale` | `number` | how much the corners may scale at most (1) |
 
 ### `UiDebugOptions`
 

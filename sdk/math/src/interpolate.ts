@@ -4,8 +4,11 @@ import type { EasingFn } from "./easing";
 export type ExtrapolateMode = "extend" | "clamp" | "identity" | "wrap";
 
 export interface InterpolateOptions {
+  /** the curve between keyframes: one for all, or one a segment */
   easing?: EasingFn | EasingFn[];
+  /** below the first keyframe: extend the line (default), clamp to it, identity (the input itself) or wrap */
   extrapolateLeft?: ExtrapolateMode;
+  /** past the last keyframe: extend (default), clamp, identity or wrap */
   extrapolateRight?: ExtrapolateMode;
 }
 

@@ -9,12 +9,15 @@ import type { Vec3 } from "./3d";
 
 /** The camera as a scene sets it: a PerspectiveCamera's props (fov in degrees, vertical) or an OrthographicCamera's. */
 export interface PickCamera {
+  /** where it stands, metres (x, y, z) */
   position?: Vec3;
+  /** the point it faces */
   lookAt?: Vec3;
   /** vertical field of view in degrees (50 by default); ignored when `height` is set */
   fov?: number;
   /** an orthographic camera's view height in metres */
   height?: number;
+  /** which way is up for it (+Y) */
   up?: Vec3;
 }
 
@@ -22,6 +25,7 @@ export interface PickCamera {
 export type Pickable = { name: string; box: { min: Vec3; max: Vec3 } } | { name: string; sphere: { center: Vec3; radius: number } };
 
 export interface Hit {
+  /** the pickable it hit */
   name: string;
   /** metres from the camera (from its near plane's point, for an orthographic one) along the ray */
   distance: number;

@@ -33,6 +33,7 @@ pub struct Animation {
     pub freeze: Option<f64>,
     /// the frames per second its frames count; springs measure their settle time with it (0: the clock's)
     pub fps: f64,
+    /// the element's keyframed properties, one track each
     pub tracks: Vec<AnimTrack>,
     /// the local frame it's shown from, when it shows only for a window (mount="during"); before it, display none
     pub show_from: Option<f64>,
@@ -45,7 +46,9 @@ pub struct Animation {
 #[cfg_attr(feature = "bevy", derive(bevy::prelude::Reflect), reflect(Default))]
 #[serde(default)]
 pub struct AnimTrack {
+    /// the property it keys: opacity, x, y, z, scale, rotate, width, height, blur, clip, a colour, `text`, or another number
     pub prop: String,
+    /// its keyframes in frame order
     pub keys: Vec<AnimKey>,
     /// a length's unit: "px" (when empty) or "%"
     pub unit: String,
@@ -55,6 +58,7 @@ pub struct AnimTrack {
     pub digits: u32,
     /// written before and after a `text` number (a counter's "$" and " pts")
     pub prefix: String,
+    /// written after a `text` number
     pub suffix: String,
     /// between a `text` number's thousands ("," writes 12,345); empty: none
     pub separator: String,
@@ -65,7 +69,9 @@ pub struct AnimTrack {
 #[cfg_attr(feature = "bevy", derive(bevy::prelude::Reflect), reflect(Default))]
 #[serde(default)]
 pub struct AnimKey {
+    /// the local frame it's at
     pub at: f64,
+    /// a number property's value there
     pub value: f64,
     /// a colour property's value (CSS text); empty for numbers
     pub color: String,

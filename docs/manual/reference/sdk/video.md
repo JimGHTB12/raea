@@ -44,8 +44,8 @@ Shows its children as they are at `frame`, whatever the parent's frame.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `frame` (required) | `number` | – |
-| `children` | `ReactNode` | – |
+| `frame` (required) | `number` | the frame its children see, whatever the parent's frame |
+| `children` | `ReactNode` | what's held |
 
 ### `Loop`
 
@@ -53,13 +53,13 @@ Repeats its children every `durationInFrames` frames, `times` times (forever by 
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `durationInFrames` (required) | `number` | – |
-| `times` | `number` | – |
-| `name` | `string` | – |
-| `layout` | `SequenceLayout` | – |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
+| `durationInFrames` (required) | `number` | the length of one loop, in frames |
+| `times` | `number` | how many times it plays (forever by default) |
+| `name` | `string` | its label in the timeline and the render manifest |
+| `layout` | `SequenceLayout` | "absolute-fill" (default) or "none", as a Sequence's |
+| `style` | `CSSProperties` | the wrapping box's style |
+| `className` | `string` | the wrapping box's classes |
+| `children` | `ReactNode` | what loops |
 
 ### `Sequence`
 
@@ -67,15 +67,15 @@ Shifts time by `from` and shows its children only for `durationInFrames` frames.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `from` | `number` | – |
-| `durationInFrames` | `number` | – |
-| `name` | `string` | – |
-| `layout` | `SequenceLayout` | – |
-| `width` | `number` | – |
-| `height` | `number` | – |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
+| `from` | `number` | the parent frame its frame 0 falls on (0) |
+| `durationInFrames` | `number` | how many frames it shows its children (forever by default) |
+| `name` | `string` | its label in the timeline and the render manifest (`data-sequence`) |
+| `layout` | `SequenceLayout` | "absolute-fill" (default) wraps the children in a full-size box; "none" adds no box |
+| `width` | `number` | the width its children see, px (the parent's by default) |
+| `height` | `number` | the height its children see, px (the parent's by default) |
+| `style` | `CSSProperties` | the wrapping box's style |
+| `className` | `string` | the wrapping box's classes |
+| `children` | `ReactNode` | what plays in it, at its own local time |
 
 ### `Series`
 
@@ -83,7 +83,7 @@ Plays its Series.Sequence children back to back, each shifted by its own offset.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | the Series.Sequence slots, played back to back |
 
 ### `Video`
 
@@ -110,22 +110,22 @@ The props of [`Loop`](#loop), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `src` (required) | `string` | – |
-| `startFrom` | `number` | – |
-| `endAt` | `number` | – |
-| `trimBefore` | `number` | – |
-| `trimAfter` | `number` | – |
+| `src` (required) | `string` | the file: staticFile("clip.mp4"), or a generated asset |
+| `startFrom` | `number` | the media's own frame it starts playing from (0); the same as trimBefore |
+| `endAt` | `number` | the media's frame it stops before (exclusive): it holds the last frame, or loops; the same as trimAfter |
+| `trimBefore` | `number` | frames of the media cut off its start (the newer name for startFrom) |
+| `trimAfter` | `number` | the media's frame it's cut at (the newer name for endAt) |
 | `volume` | `VolumeProp` | linear gain, 1 being unity (0.5 is about -6 dB, 1.78 about +5 dB), or a function of the media's own frame |
 | `gainDb` | `VolumeProp` | ours: the gain in decibels (or a function of the media's own frame returning it); wins over volume |
 | `fadeIn` | `number` | ours: seconds to ramp the sound in from silence at its start (applied by the renderer at the audio's rate) |
 | `fadeOut` | `number` | ours: seconds to ramp the sound out to silence at its end |
-| `playbackRate` | `number` | – |
-| `muted` | `boolean` | – |
-| `loop` | `boolean` | – |
+| `playbackRate` | `number` | how fast it plays (1): 2 is double speed |
+| `muted` | `boolean` | play no sound |
+| `loop` | `boolean` | start again from `startFrom` when it reaches `endAt` |
 | `bus` | `string` | the bus it plays into: a named channel of the edit's Tone graph (music, sfx, voice, ambience, ui), so it takes that bus's volume, effects and ducking (raea/tone `buses`) |
-| `name` | `string` | – |
-| `className` | `string` | – |
-| `style` | `CSSProperties` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `className` | `string` | Tailwind or CSS classes |
+| `style` | `CSSProperties` | inline style |
 
 ### `SequenceLayout`
 
@@ -141,14 +141,14 @@ The props of [`Sequence`](#sequence), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `offset` | `number` | – |
-| `height` | `number` | – |
-| `style` | `CSSProperties` | – |
-| `children` | `ReactNode` | – |
-| `className` | `string` | – |
-| `name` | `string` | – |
-| `width` | `number` | – |
-| `durationInFrames` | `number` | – |
+| `offset` | `number` | frames from the previous slot's end to this one's start (0); negative overlaps |
+| `height` | `number` | the height its children see, px (the parent's by default) |
+| `style` | `CSSProperties` | the wrapping box's style |
+| `children` | `ReactNode` | what plays in it, at its own local time |
+| `className` | `string` | the wrapping box's classes |
+| `name` | `string` | its label in the timeline and the render manifest (`data-sequence`) |
+| `width` | `number` | the width its children see, px (the parent's by default) |
+| `durationInFrames` | `number` | how many frames it shows its children (forever by default) |
 
 ### `VideoProps`
 

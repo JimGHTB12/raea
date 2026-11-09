@@ -28,14 +28,21 @@ export type Keys<V = number | string> = Record<number, V>;
 
 /** One property's keyframes: values by frame, the curve between each pair (one for all, or one per segment). */
 export interface TrackSpec<V = number | string> {
+  /** [frame, value] pairs in frame order, frames from the move's start */
   keys: [number, V][];
+  /** the curve between keys: one for all, or one a segment */
   ease: Curve | Curve[];
+  /** a length's unit: px (the default) or % */
   unit?: "px" | "%";
+  /** past the last key: hold (the default), loop or pingpong, for ever or N times ("loop:3") */
   repeat?: "hold" | "loop" | "pingpong" | `${"loop" | "pingpong"}:${number}`;
+  /** decimals a `text` counter writes */
   digits?: number;
   /** a `text` counter's text before and after the number, and between its thousands ("," writes 12,345) */
   prefix?: string;
+  /** written after a `text` counter's number (" pts") */
   suffix?: string;
+  /** between a `text` counter's thousands ("," writes 12,345) */
   separator?: string;
 }
 
@@ -94,6 +101,7 @@ function makeTrack<V>(keys: Keys<V>, ease: Curve | Curve[], opts: Omit<TrackSpec
 
 /** Tracks by property, in frames from the move's own start. */
 export interface Move {
+  /** keyframes by property, in frames from the move's start */
   tracks: Record<string, TrackSpec | TrackSpec[]>;
   /** how long it runs (its last key) */
   frames: number;

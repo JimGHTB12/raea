@@ -3,6 +3,7 @@
 import { createContext, useContext, useLayoutEffect, useReducer, useRef, version, type ReactNode } from "react";
 
 export interface TimelineWord {
+  /** the word as spoken */
   text: string;
   /** first frame of the word */
   from: number;
@@ -11,25 +12,37 @@ export interface TimelineWord {
 }
 
 export interface VideoConfig {
+  /** the composition's id ("main" by default) */
   id: string;
+  /** in px */
   width: number;
+  /** in px */
   height: number;
+  /** frames a second */
   fps: number;
+  /** its length in frames */
   durationInFrames: number;
+  /** the props the composition is rendered with */
   defaultProps: Record<string, unknown>;
 }
 
 /** A box in composition px. */
 export interface Rect {
+  /** the left edge, px */
   x: number;
+  /** the top edge, px */
   y: number;
+  /** width, px */
   w: number;
+  /** height, px */
   h: number;
 }
 
 /** What perception saw at this frame: the largest face, and the platform's safe area (composition px). */
 export interface Perception {
+  /** the largest face's box, when there's one */
   face?: Rect;
+  /** px the platform's UI covers at the top and bottom */
   safe?: { top?: number; bottom?: number };
 }
 
@@ -66,10 +79,13 @@ export interface ClockState {
 
 /** The local time a subtree sees: its own frame, and the composition frame its frame 0 falls on. */
 export interface LocalTime {
+  /** the subtree's own frame: the composition's frame minus `origin` */
   frame: number;
+  /** the composition frame the subtree's frame 0 falls on */
   origin: number;
   /** width and height a Sequence overrides for its children */
   width: number;
+  /** in px, what the Sequence gives its children */
   height: number;
 }
 
@@ -203,16 +219,27 @@ export function useVideoConfig(): VideoConfig {
 }
 
 export interface ClockProps {
+  /** the composition frame to draw */
   frame: number;
+  /** frames a second */
   fps: number;
+  /** in px */
   width: number;
+  /** in px */
   height: number;
+  /** the composition's length in frames */
   durationInFrames: number;
+  /** the composition's id ("main" by default) */
   id?: string;
+  /** the props the composition is rendered with */
   defaultProps?: Record<string, unknown>;
+  /** the transcript, in composition frames, that captions and word cuts read */
   words?: readonly TimelineWord[];
+  /** what perception saw at this frame (faces, the safe area) */
   perception?: Perception;
+  /** a game's recorded input by frame */
   input?: InputTimeline;
+  /** the composition */
   children?: ReactNode;
 }
 

@@ -18,15 +18,29 @@ const EMPTY: ThemeProps = { semantic_base: {}, semantic_overrides: {}, token_ass
 const ThemeCx = createContext<ThemeProps>(EMPTY);
 const LevelCx = createContext<SurfaceLevel>("Base");
 
+export interface UiThemeProps {
+  /** the theme's colours by token */
+  theme: ThemeProps;
+  /** the widgets that use it */
+  children?: ReactNode;
+}
+
 /** Bevy's UiTheme resource: the theme every feathers widget inside looks its colours up in (create_dark_theme()).
  *  @bevy bevy_feathers::theme::UiTheme */
-export function UiTheme({ theme, children }: { theme: ThemeProps; children?: ReactNode }) {
+export function UiTheme({ theme, children }: UiThemeProps) {
   return <ThemeCx.Provider value={theme}>{children}</ThemeCx.Provider>;
+}
+
+export interface ThemeContextProps {
+  /** the surface level they sit on */
+  level: SurfaceLevel;
+  /** the widgets on it */
+  children?: ReactNode;
 }
 
 /** the surface level the widgets inside sit on, which picks the theme's overrides for it.
  *  @bevy bevy_feathers::theme::ThemeContext */
-export function ThemeContext({ level, children }: { level: SurfaceLevel; children?: ReactNode }) {
+export function ThemeContext({ level, children }: ThemeContextProps) {
   return <LevelCx.Provider value={level}>{children}</LevelCx.Provider>;
 }
 

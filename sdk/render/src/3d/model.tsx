@@ -10,6 +10,7 @@ import { MeshStandardMaterialProps, PerspectiveCameraProps, Vec3, checkMaterial,
 /** What a light or camera holds: Bevy's own reflected components on it (<BevyComponent>, or a generated wrapper such
  * as bevy_light's ShadowFilteringMethod or bevy_pbr's ScreenSpaceReflections), applied through Bevy's TypeRegistry. */
 export interface BevyParts {
+  /** Bevy components on it: <BevyComponent>, or a generated wrapper */
   children?: ReactNode;
   /** a camera: the render layers it draws ([0] by default); a light: the layers it lights (Bevy's RenderLayers) */
   layers?: number[];
@@ -51,9 +52,11 @@ export function eulerOf(q: [number, number, number, number]): Vec3 {
 export interface EntityProps {
   /** what an Entity field elsewhere names it by (a ChildOf's parent, an observer's target); unique in the scene */
   name?: string;
+  /** where it stands, metres (x, y, z) */
   position?: Vec3;
   /** Euler XYZ in radians */
   rotation?: Vec3;
+  /** one number, or x, y and z */
   scale?: Vec3 | number;
   /** Bevy's Transform (Transform.fromXyz(..).withRotation(..)), in place of position, rotation and scale: the entity
    * is then a parent whose children (meshes, lights, models, other entities) move with it, as Bevy's ChildOf
@@ -105,10 +108,17 @@ export interface GroupProps {
 }
 
 /** Moves, turns and scales everything inside it together (a product and its stand, a car and its wheels). */
+export interface RefinishProps {
+  /** the finishes, each a <MeshStandardMaterial>'s props, over every glTF material or the one its `material` names */
+  materials: MeshStandardMaterialProps[];
+  /** the models refinished */
+  children?: ReactNode;
+}
+
 /** Every <Model> inside re-covered: each of its glTF materials (all, or the one each names by `material`) given the
  * colour, texture or finish each gives, the rest of it kept (a run of cabinets painted, the doors and drawers with them;
  * `map: null` takes the wood's picture off). A model's own <MeshStandardMaterial> children go first. */
-export function Refinish({ materials, children }: { materials: MeshStandardMaterialProps[]; children?: ReactNode }) {
+export function Refinish({ materials, children }: RefinishProps) {
   if (!Array.isArray(materials) || materials.length === 0) throw new TypeError("Refinish: materials is a list of MeshStandardMaterial props ([{ color: \"#8a9a7b\", map: null }])");
   const specs = materials.map((m) => {
     checkMaterial("Refinish", m as Record<string, unknown>);
@@ -133,6 +143,7 @@ export function Group(props: GroupProps) {
 export interface ModelProps {
   /** a glTF file in the media folder: staticFile("models/shoe.glb") */
   src: string;
+  /** the entity's name, for picking and the inspector */
   name?: string;
   /** how its own glTF textures are read (docs/shaders.feature SH5): { filter: "nearest" } for hard pixels, whatever
    * the file says; a <MeshStandardMaterial> child's maps take their own `sampler` */
@@ -155,9 +166,11 @@ export interface ModelProps {
    * a ragdoll's bodies move one skin that bends at its joints rather than rigid pieces. The model's own placement
    * stays at the origin. */
   bones?: Record<string, string>;
+  /** where it stands, metres (x, y, z) */
   position?: Vec3;
   /** radians */
   rotation?: Vec3;
+  /** one number, or x, y and z */
   scale?: number | Vec3;
   /** it may pass through other parts on purpose (a blade into a body, a ghost through a wall): raea's clipping
    * check leaves it out */
@@ -195,6 +208,7 @@ export interface ModelProps {
   morphs?: Record<string, number> | number[];
   /** seconds into the clip (by default the Sequence's time: frame / fps); the clip loops unless loop={false} */
   time?: number;
+  /** false plays the clip once and holds its last pose */
   loop?: boolean;
   /** which of the file's scenes (0 by default) */
   scene?: number;
@@ -218,6 +232,7 @@ export interface ModelProps {
   theme?: "dark" | "light";
   /** the site look's ink: lift + light * gain, before the dither (0.28 and 0.9 by default; on the light greys light is inverted, 0.35 and 0.75) */
   lift?: number;
+  /** the site look's ink gain: lift + light * gain (0.9 by default, 0.75 on the light greys) */
   gain?: number;
   /** <MeshToonMaterial> children: toon surfaces over the model's own materials (all of them, or one each by name);
    * <MeshStandardMaterial> children: its materials (all, or one each by `material`) given the colour, texture or
@@ -347,13 +362,17 @@ export function Model(props: ModelProps) {
 export interface ImagePlaneProps {
   /** a picture in the media folder: staticFile("poster.png") */
   src: string;
+  /** the entity's name, for picking and the inspector */
   name?: string;
   /** width in scene units (1 by default); height follows the picture unless given */
   width?: number;
+  /** in scene units (follows the picture's shape by default) */
   height?: number;
+  /** where its centre stands, metres (x, y, z) */
   position?: Vec3;
   /** radians */
   rotation?: Vec3;
+  /** one number, or x, y and z */
   scale?: number | Vec3;
   /** a turn as a quaternion [x, y, z, w], instead of `rotation` (a card turned to face a point) */
   quaternion?: [number, number, number, number];

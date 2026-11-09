@@ -4,17 +4,27 @@ import { BevyComponent, Entity } from "./all";
 import { assetPath } from "./materials";
 
 /** A vertex attribute: Bevy's VertexFormat by name, its byte offset in a vertex and its shader @location. */
-export interface PhaseAttribute { format: "Float32" | "Float32x2" | "Float32x3" | "Float32x4" | "Uint32" | "Uint32x2" | "Uint32x3" | "Uint32x4" | "Sint32" | "Sint32x2" | "Sint32x3" | "Sint32x4" | "Unorm8x4"; offset: number; location: number }
+export interface PhaseAttribute {
+  /** the attribute's VertexFormat, by name */
+  format: "Float32" | "Float32x2" | "Float32x3" | "Float32x4" | "Uint32" | "Uint32x2" | "Uint32x3" | "Uint32x4" | "Sint32" | "Sint32x2" | "Sint32x3" | "Sint32x4" | "Unorm8x4";
+  /** its byte offset in a vertex */
+  offset: number;
+  /** its shader @location */
+  location: number;
+}
 
 export interface PhaseItemProps {
   /** the shader file, compiled as written: staticFile("shaders/x.wesl") */
   shader: string;
   /** its entry points (Bevy's default names) */
   vertex?: string;
+  /** the fragment entry point's name */
   fragment?: string;
   /** the vertex buffer: each vertex `stride` bytes, its 32-bit words in order (a u32 pad of 0 is a 0) */
   stride: number;
+  /** the vertex buffer's attributes */
   attributes: PhaseAttribute[];
+  /** the vertex buffer's 32-bit words, every vertex's in order */
   words: number[];
   /** the index buffer (u32), drawn whole */
   indices: number[];
@@ -53,6 +63,7 @@ export interface MeshPassProps {
   shader: string;
   /** its entry points (Bevy's default names) */
   vertex?: string;
+  /** the fragment entry point's name */
   fragment?: string;
   /** whether it tests and writes the view's depth (GreaterEqual), as a mesh in Bevy's opaque phase does (Bevy's
    *  shader_advanced/specialized_mesh_pipeline); without, it draws over everything */

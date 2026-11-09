@@ -3,7 +3,14 @@
 // shape on transparency, which icon() tints with the text colour around it.
 
 /** a feathers icon: its picture and size in px */
-export interface FeathersIcon { image: string; width: number; height: number }
+export interface FeathersIcon {
+  /** the icon's picture */
+  image: string;
+  /** in px */
+  width: number;
+  /** in px */
+  height: number;
+}
 
 /** bevy_feathers' icons. @bevy bevy_feathers::constants::icons */
 export const icons = {

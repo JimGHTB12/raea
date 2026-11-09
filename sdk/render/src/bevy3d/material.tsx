@@ -1,5 +1,6 @@
 // Your own Material (docs/control.feature FC2a): Bevy's Material, its shaders the author's files compiled as written.
-import { ExtendedMaterial, ShaderExtension, StandardMaterial, type AlphaMode } from "./materials";
+import { ShaderExtension } from "./extensions";
+import { ExtendedMaterial, StandardMaterial, type AlphaMode } from "./materials";
 import { surfaceShader, type SurfaceShaderSpec } from "../3d";
 import type { StorageValue } from "../3d/materials";
 import type { MeshVertexAttribute } from "../3d/attribute";

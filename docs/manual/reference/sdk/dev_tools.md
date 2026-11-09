@@ -42,12 +42,12 @@ function motionLint(lib: MotionLibrary, perf: Performance, o?: { margin?: number
 | Field | Type | What it is |
 | --- | --- | --- |
 | `frame` (required) | `number` | first and peak frames |
-| `peak` (required) | `number` | – |
-| `frames` (required) | `number` | – |
-| `joint` (required) | `string` | – |
-| `kind` (required) | `"speed" \| "jerk" \| "buckle"` | – |
+| `peak` (required) | `number` | the frame it's worst on |
+| `frames` (required) | `number` | how many frames it lasts |
+| `joint` (required) | `string` | the joint it's on |
+| `kind` (required) | `"speed" \| "jerk" \| "buckle"` | what's wrong: too fast (speed), a jolt (jerk) or a joint bent past its limit (buckle) |
 | `value` (required) | `number` | the peak's value (degrees a frame, a frame², or degrees past the clip's knee) and what the library allows |
-| `limit` (required) | `number` | – |
+| `limit` (required) | `number` | what the library allows |
 | `stage` (required) | `Stage` | the first stage that shows it |
 | `causes` (required) | `string[]` | what happened within three frames of it |
 
@@ -55,8 +55,8 @@ function motionLint(lib: MotionLibrary, perf: Performance, o?: { margin?: number
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `findings` (required) | `Finding[]` | – |
-| `frames` (required) | `number` | – |
+| `findings` (required) | `Finding[]` | what's wrong, each with its frames, joint and cause |
+| `frames` (required) | `number` | how many frames were checked |
 
 ### `Stage`
 

@@ -30,6 +30,7 @@ export interface Text2dProps extends TextStyleProps, TextRunProps {
   bounds?: [number | null, number | null];
   /** Text2dShadow (true for its default); inside a Canvas3D */
   shadow?: Text2dShadow | true;
+  /** the text, and TextSpan runs */
   children?: ReactNode;
 }
 

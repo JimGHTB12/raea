@@ -121,9 +121,9 @@ type AssetKind = "lyria" | "sao" | "tokensynth"
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `kind` (required) | `AssetKind` | – |
-| `prompt` (required) | `string` | – |
-| `seconds` (required) | `number` | – |
+| `kind` (required) | `AssetKind` | which generator makes it: lyria (music), sao (sound effects) or tokensynth (an instrument's note) |
+| `prompt` (required) | `string` | what to make, in words |
+| `seconds` (required) | `number` | how long it is |
 | `id` (required) | `string` | a stable hash of kind, prompt and seconds |
 | `src` (required) | `string` | "asset:<kind>/<id>" |
 | `options` | `Record<string, unknown>` | the generator's own settings (a TokenSynth note's midi, velocity, seed and device) |
@@ -132,7 +132,7 @@ type AssetKind = "lyria" | "sao" | "tokensynth"
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
+| `name` (required) | `string` | the clip's name, as a Model's \`animation\` picks it |
 | `times` (required) | `ArrayLike<number>` | sample times (any unit the Model's `time` uses) |
 | `rotations` (required) | `ArrayLike<number>[]` | per joint, a quaternion x y z w per sample: the joint's rotation in its parent's frame |
 | `translations` | `Record<number, ArrayLike<number>>` | per root joint (by joint index), a translation offset x y z per sample, added to its rest translation |
@@ -141,7 +141,7 @@ type AssetKind = "lyria" | "sao" | "tokensynth"
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
+| `name` (required) | `string` | the joint's name (a bone's, as a retarget maps it) |
 | `parent` (required) | `number` | index of the parent joint, -1 for a root |
 | `head` (required) | `[number, number, number]` | the joint's head in world space at rest (its node's rest translation is head - parent's head) |
 
@@ -152,31 +152,31 @@ type AssetKind = "lyria" | "sao" | "tokensynth"
 | `color` | `string \| Rgba` | hex (#rrggbb) or linear rgba 0..1 |
 | `unlit` | `boolean` | drawn without light (KHR_materials_unlit) |
 | `blend` | `boolean` | alpha-blended (the colour's alpha, times the vertex colours' alpha) |
-| `doubleSided` | `boolean` | – |
-| `roughness` | `number` | – |
-| `metalness` | `number` | – |
-| `emissive` | `string` | – |
+| `doubleSided` | `boolean` | draw the back faces too |
+| `roughness` | `number` | 0..1, smooth to matte |
+| `metalness` | `number` | 0..1, a dielectric to a metal |
+| `emissive` | `string` | the colour it glows with |
 
 ### `GlbPrimitive`
 
 | Field | Type | What it is |
 | --- | --- | --- |
 | `positions` (required) | `ArrayLike<number>` | x y z per vertex |
-| `normals` | `ArrayLike<number>` | – |
+| `normals` | `ArrayLike<number>` | x y z per vertex, unit length |
 | `colors` | `ArrayLike<number>` | r g b a per vertex, linear 0..1 (multiplies the material's colour) |
 | `indices` | `ArrayLike<number>` | by threes for triangles, by twos for lines; none: every vertex in order |
-| `mode` | `"triangles" \| "lines"` | – |
+| `mode` | `"triangles" \| "lines"` | what the indices draw: triangles (the default) or lines |
 | `joints` | `ArrayLike<number>` | four joint indices per vertex (a skinned mesh) |
 | `weights` | `ArrayLike<number>` | four weights per vertex, summing to 1 |
-| `material` | `GlbMaterial` | – |
+| `material` | `GlbMaterial` | its surface: colour, roughness, metalness, glow |
 
 ### `GlbScene`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `primitives` (required) | `GlbPrimitive[]` | – |
+| `primitives` (required) | `GlbPrimitive[]` | the meshes it holds |
 | `joints` | `GlbJoint[]` | a skin: all primitives are skinned by these joints when it's given |
-| `clips` | `GlbClip[]` | – |
+| `clips` | `GlbClip[]` | animation clips over the joints |
 
 ### `Rgba`
 

@@ -4,15 +4,20 @@ import { samplerSpec, type SamplerSpec } from "./materials";
 
 /** What a <Sprite> takes to show a built atlas: the whole of it, or one of its pictures (`atlasPick`). */
 export interface AtlasSprite {
+  /** the atlas picture */
   src: string;
+  /** how it's sampled (the atlas's own sampler) */
   sampler?: SamplerSpec;
+  /** which of its pictures shows (the whole atlas when left out) */
   atlasPick?: number;
 }
 
 /** A built atlas: `image` the whole atlas as a sprite's picture, `sources.handle(texture)` one picture of it
  * (TextureAtlasSources::handle). */
 export interface BuiltAtlas {
+  /** the whole atlas, as a sprite's picture */
   image: AtlasSprite;
+  /** \`handle(texture)\`: one of the pictures packed into it, by its file */
   sources: { handle(texture: string): AtlasSprite };
 }
 
@@ -24,18 +29,21 @@ export class TextureAtlasBuilder {
   private pad: [number, number] = [0, 0];
   private textures: string[] = [];
 
+  /** Whole px of space around each picture, [x, y]. */
   padding(p: [number, number]): this {
     if (!(Array.isArray(p) && p.length === 2 && p.every((n) => Number.isInteger(n) && n >= 0))) throw new TypeError(`TextureAtlasBuilder: padding is [x, y], whole px of 0 or more, got ${JSON.stringify(p)}`);
     this.pad = p;
     return this;
   }
 
+  /** Adds a picture, packed in the order added. */
   addTexture(src: string): this {
     if (typeof src !== "string" || src === "" || src.startsWith("render:") || src.startsWith("atlas:")) throw new TypeError(`TextureAtlasBuilder: a texture is a picture (staticFile("x.png")), got ${JSON.stringify(src)}`);
     this.textures.push(src);
     return this;
   }
 
+  /** Packs the atlas, with its own sampler if given (Bevy's default otherwise). */
   build({ sampler }: { sampler?: SamplerSpec } = {}): BuiltAtlas {
     if (this.textures.length === 0) throw new TypeError("TextureAtlasBuilder: add a texture before build()");
     if (sampler !== undefined) samplerSpec("TextureAtlasBuilder: sampler", sampler);

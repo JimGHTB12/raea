@@ -87,20 +87,30 @@ export function about(about: Vec3, q: Quat, move: Vec3 = [0, 0, 0]): { position:
 // ---- parts ----------------------------------------------------------------------------------------------------
 
 export interface PartInfo {
+  /** the part's own .glb in the asset store */
   file: string;
+  /** the middle of its bounds, metres, where it stands in the source file */
   centre: Vec3;
+  /** its bounds' low corner */
   lo: Vec3;
+  /** its bounds' high corner */
   hi: Vec3;
+  /** how many triangles it has */
   tris: number;
 }
 
 export interface PartMaterial {
   /** the magenta-and-black checker of a texture that didn't load */
   missing?: boolean;
+  /** a colour over its own */
   color?: string;
+  /** the colour it glows with */
   emissive?: string;
+  /** 0..1, see-through to solid */
   opacity?: number;
+  /** 0..1, smooth to matte */
   roughness?: number;
+  /** drawn in its flat colour, without light or shade */
   unlit?: boolean;
 }
 
@@ -134,16 +144,23 @@ export interface Glitch {
 }
 
 export interface PartProps {
+  /** the entity's name (the first node's by default) */
   name?: string;
   /** the glTF (staticFile("x.glb")) and the nodes that make the part */
   src: string;
+  /** the glTF nodes that make the part */
   nodes: string[];
   /** a rigid motion from where it stands in the file (see `about`): position, and a quaternion [x, y, z, w] */
   position?: Vec3;
+  /** its turn as a quaternion [x, y, z, w] (see `about`) */
   quaternion?: Quat;
+  /** a uniform scale (1) */
   scale?: number;
+  /** a material over the part's own (colour, glow, opacity) */
   material?: PartMaterial;
+  /** how the part breaks up this frame: explode, scramble, jitter, snap, smear */
   glitch?: Glitch;
+  /** it casts shadows */
   castShadow?: boolean;
 }
 
@@ -156,9 +173,18 @@ export function Part(p: PartProps) {
     node("Model", { src: info.file, name: p.name, time: 0, castShadow: p.castShadow, allowOverlap: true, ...(glitch ? { glitch } : {}) }));
 }
 
+export interface EchoesProps extends PartProps {
+  /** how many echoes trail the part */
+  count: number;
+  /** metres between one echo and the next, or a function of the echo's number (1, 2, ...) giving its offset */
+  step: Vec3 | ((k: number) => Vec3);
+  /** the echoes' material (the part's by default): a flat glowing one reads as copies */
+  echo?: PartMaterial;
+}
+
 /** Copies of a part trailing it: `count` echoes at offsets `step` apart (metres; or a function of the echo's number),
  *  in a flat glowing `material`, so a fork "duplicates" along a line. */
-export function Echoes(p: PartProps & { count: number; step: Vec3 | ((k: number) => Vec3); echo?: PartMaterial }) {
+export function Echoes(p: EchoesProps) {
   const out: ReactNode[] = [];
   for (let k = 1; k <= p.count; k++) {
     const o = typeof p.step === "function" ? p.step(k) : (p.step.map((x) => x * k) as Vec3);
@@ -168,9 +194,16 @@ export function Echoes(p: PartProps & { count: number; step: Vec3 | ((k: number)
   return <>{out}</>;
 }
 
+export interface ZFightProps extends PartProps {
+  /** radians the second copy is turned (~0.002): more is stronger stripes */
+  amount: number;
+  /** the second copy's material */
+  other?: PartMaterial;
+}
+
 /** The part drawn twice in the same place, the second a hair turned, in another material: the two surfaces fight
  *  for the depth buffer and flicker in stripes (z-fighting), stronger with `amount` (radians, ~0.002). */
-export function ZFight(p: PartProps & { amount: number; other?: PartMaterial }) {
+export function ZFight(p: ZFightProps) {
   const info = part(p.src, p.nodes);
   const q = quatMul(p.quaternion ?? [0, 0, 0, 1], quatAxis([0.3, 1, 0.2], p.amount));
   const m = about(info.centre, quatAxis([0.3, 1, 0.2], p.amount));

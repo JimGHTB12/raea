@@ -20,9 +20,14 @@ export interface UiDebugOptions {
 
 const Global = createContext<UiDebugOptions | null>(null);
 
+export interface GlobalUiDebugOptionsProps extends UiDebugOptions {
+  /** the UI the overlay draws over */
+  children?: ReactNode;
+}
+
 /** bevy_ui's GlobalUiDebugOptions: the debug overlay for every node inside that has no UiDebugOptions of its own
  *  (a node's `ui_debug`). @bevy bevy_ui_render::GlobalUiDebugOptions */
-export function GlobalUiDebugOptions({ children, ...options }: UiDebugOptions & { children?: ReactNode }) {
+export function GlobalUiDebugOptions({ children, ...options }: GlobalUiDebugOptionsProps) {
   return <Global.Provider value={options}>{children}</Global.Provider>;
 }
 

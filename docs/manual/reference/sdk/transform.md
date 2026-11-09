@@ -54,14 +54,14 @@ function surfaceTurn(normal: Vec3, spin?: number): [number, number, number, numb
 A rotation as glam's Quat: [x, y, z, w].
 glam's Quat constructors, by their Rust names in camelCase.
 
-Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [3d/3d_shapes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/3d_shapes.tsx), [3d/texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/texture.tsx), [3d/shadow_caster_receiver](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/shadow_caster_receiver.tsx), [3d/split_screen](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/split_screen.tsx), [3d/spotlight](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spotlight.tsx), [3d/mesh_ray_cast](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/mesh_ray_cast.tsx), [3d/3d_scene](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/3d_scene.tsx), and 24 more.
+Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [3d/3d_shapes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/3d_shapes.tsx), [3d/texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/texture.tsx), [3d/shadow_caster_receiver](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/shadow_caster_receiver.tsx), [3d/split_screen](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/split_screen.tsx), [3d/spotlight](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spotlight.tsx), [3d/mesh_ray_cast](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/mesh_ray_cast.tsx), [3d/3d_scene](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/3d_scene.tsx), and 23 more.
 
 ### `Transform`
 
 Bevy's Transform: the component's handle for a program (`with(Transform, Transform.fromXyz(1, 0, 0))`) and its
 builders for a scene (`<Mesh3d transform={Transform.fromXyz(0, 1, 0)}>`).
 
-Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog_volumes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog_volumes.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/vertex_colors](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/vertex_colors.tsx), [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/rotate_environment_map.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/spherical_area_lights](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx), and 72 more.
+Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog_volumes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog_volumes.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/vertex_colors](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/vertex_colors.tsx), [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/rotate_environment_map.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/spherical_area_lights](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx), and 71 more.
 
 ## Types
 
@@ -79,13 +79,13 @@ A Transform built with Bevy's builders: each returns a new one.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `withTranslation` (required) | `(v: Vec3) => TransformBuilt` | – |
-| `withRotation` (required) | `(q: Quat) => TransformBuilt` | – |
-| `withScale` (required) | `(s: number \| Vec3) => TransformBuilt` | – |
-| `lookingAt` (required) | `(target: Vec3, up?: Vec3 \| undefined) => TransformBuilt` | – |
-| `translation` (required) | `Vec3` | – |
-| `rotation` (required) | `Quat` | – |
-| `scale` (required) | `Vec3` | – |
+| `withTranslation` (required) | `(v: Vec3) => TransformBuilt` | the same transform, moved to `v` |
+| `withRotation` (required) | `(q: Quat) => TransformBuilt` | the same transform, turned to `q` |
+| `withScale` (required) | `(s: number \| Vec3) => TransformBuilt` | the same transform, scaled to `s` (one number for all three axes) |
+| `lookingAt` (required) | `(target: Vec3, up?: Vec3 \| undefined) => TransformBuilt` | the same transform, turned so its -Z faces `target` with `up` (+Y) up, as Bevy's looking_at |
+| `translation` (required) | `Vec3` | where it is, metres (x, y, z) |
+| `rotation` (required) | `Quat` | its rotation as a quaternion [x, y, z, w] |
+| `scale` (required) | `Vec3` | its scale along x, y and z |
 
 ### `TransformValue`
 
@@ -93,9 +93,9 @@ A Transform's value, as Bevy reflects it.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `translation` | `Vec3` | – |
-| `rotation` | `Quat` | – |
-| `scale` | `Vec3` | – |
+| `translation` | `Vec3` | where it is, metres (x, y, z) |
+| `rotation` | `Quat` | its rotation as a quaternion [x, y, z, w] |
+| `scale` | `Vec3` | its scale along x, y and z |
 
 ### `Vec3`
 

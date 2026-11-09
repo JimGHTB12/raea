@@ -45,6 +45,7 @@ export interface FeathersColorSwatchProps extends Omit<NodeProps, "border_radius
   color?: FeathersColor;
   /** how much of its right side shows the colour opaque, in percent */
   opaque_color_percentage?: number;
+  /** which corners are rounded */
   corners?: RoundedCorners;
   /** the corners' radius in px (5 by default), on the corners `corners` names */
   border_radius?: number;
@@ -120,6 +121,7 @@ const THUMB_SIZE = SLIDER_HEIGHT - 2;
 export interface FeathersColorSliderProps extends NodeProps {
   /** SliderValue: the channel's value, in its range */
   value?: number;
+  /** which colour channel it sets: Red, Green, Blue, Alpha, or HSL or Okhsl hue, saturation or lightness */
   channel?: ColorChannel;
   /** SliderBaseColor: the colour the track shows the channel of (white by default) */
   base_color?: FeathersColor;

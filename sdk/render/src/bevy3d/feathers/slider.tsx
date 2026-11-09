@@ -16,6 +16,7 @@ export interface FeathersSliderProps extends NodeProps {
   value?: number;
   /** SliderRange's ends (0 to 1 by default) */
   min?: number;
+  /** SliderRange's top end (1) */
   max?: number;
   /** SliderPrecision: decimal places shown (0 by default) */
   precision?: number;

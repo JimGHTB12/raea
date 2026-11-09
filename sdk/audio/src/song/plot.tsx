@@ -10,9 +10,13 @@ const EVENT_COLOUR: Record<SongEventKind, string> = {
 };
 
 export interface SongPlotProps {
+  /** the song's map, from \`raea song\` */
   map: SongMap;
+  /** in px */
   width?: number;
+  /** in px */
   height?: number;
+  /** the heading (the song's name, tempo, metre and length by default) */
   title?: string;
 }
 

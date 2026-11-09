@@ -68,13 +68,13 @@ Bevy's 3D: cameras, lights, materials, meshes and the frame after it's drawn.
 | --- | --- | --- |
 | [`raea/3d`](3d.md) | raea's scene layer: models, physics, splats, matchmoves, instancing, custom shader passes and 3D text. | 70 components, 4 hooks, 26 functions, 3 classes, 12 values, 126 types |
 | [`raea/camera`](camera.md) | Cameras and the views they make: Camera3d, the Canvas3D a 2D scene draws in, HDR and matchmoved cameras. | 5 components, 1 hook, 3 functions, 9 types |
-| [`raea/light`](light.md) | Bevy's lights in Bevy's units, environments, skies and daylight. | 15 components, 9 functions, 2 values, 13 types |
+| [`raea/light`](light.md) | Bevy's lights in Bevy's units, environments, skies and daylight. | 15 components, 9 functions, 2 values, 15 types |
 | [`raea/pbr`](pbr.md) | Materials and volumes: StandardMaterial, extended and toon materials, custom shaders, decals, fog and fire. | 22 components, 1 function, 1 value, 35 types |
 | [`raea/mesh`](mesh.md) | Shapes and solids: Mesh3d and Mesh2d, Bevy's primitives, buffer meshes, instancing and exact solids. | 14 components, 1 function, 2 classes, 10 values, 24 types |
 | [`raea/transform`](transform.md) | Where things are: Bevy's Transform and Quat, and nesting. | 2 functions, 2 values, 4 types |
 | [`raea/post_process`](post_process.md) | What's done to the frame after it's drawn: tone mapping, bloom, depth of field, motion blur, grading and outlines. | 12 components, 14 types |
 | [`raea/picking`](picking.md) | What the pointer is over: the nearest part under it, and the ray it casts. | 2 functions, 3 types |
-| [`raea/gizmos`](gizmos.md) | Lines drawn for looking: Bevy's gizmos and debug overlays. | 2 components, 1 function, 2 types |
+| [`raea/gizmos`](gizmos.md) | Lines drawn for looking: Bevy's gizmos and debug overlays. | 2 components, 1 function, 3 types |
 
 ## 2D and UI
 

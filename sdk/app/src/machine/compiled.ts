@@ -4,15 +4,21 @@ import { Action, Actions, Guard, MachineConfig, Snapshot, StateConfig, StepOptio
 // ---- the compiled machine ------------------------------------------------------------------------------------------
 
 export interface Edge<N extends string = string> {
+  /** its place in `machine.edges` */
   index: number;
+  /** the state it leaves */
   from: N;
+  /** the state it enters */
   to: N;
+  /** what fires it: a guard polled each step (always), a delay (after), an event (on), the substate finishing (done) or a decider (choose) */
   kind: "always" | "after" | "on" | "done" | "choose";
   /** the event an `on` edge waits for */
   event?: string;
   /** steps in `from` before it may fire */
   after: number;
+  /** whether it has a guard (`when`) */
   guarded: boolean;
+  /** what the transition means, from its config */
   description?: string;
 }
 
@@ -41,18 +47,24 @@ interface Node<C, E> {
 }
 
 export interface Analysis<N extends string = string> {
+  /** the machine's id */
   id: string;
+  /** every state with its parent, depth, kind and whether it's an initial state */
   states: { name: N; parent: N | null; depth: number; kind: "leaf" | "compound" | "final"; initial: boolean }[];
+  /** every transition */
   edges: Edge<N>[];
   /** states some sequence of transitions reaches from the initial state (guards assumed satisfiable) */
   reachable: N[];
+  /** states no sequence of transitions reaches */
   unreachable: N[];
   /** non-final leaves with no transition out (their own or an enclosing state's): once entered, never left */
   deadEnds: N[];
 }
 
 export interface Machine<C, E, N extends string, K extends string = "sm"> {
+  /** the machine's name in traces and reports */
   readonly id: string;
+  /** the context's field holding its snapshot ("sm") */
   readonly key: K;
   /** every state, in definition order (outer before inner) */
   readonly states: readonly N[];

@@ -9,20 +9,37 @@ import { LinearRgba, Srgba, type Affine2, type SampledImage, type TransformValue
 import { Material, materialShader, type MaterialProps } from "./material";
 
 /** a primitive's mesh attributes: its Mesh::ATTRIBUTE_COLOR, one linear colour per vertex (as mesh.insert_attribute) */
-export interface MeshAttributes { vertex_colors?: (LinearRgba | [number, number, number, number])[] }
+export interface MeshAttributes {
+  /** one linear colour a vertex, in the mesh's vertex order (ATTRIBUTE_COLOR) */
+  vertex_colors?: (LinearRgba | [number, number, number, number])[];
+}
 /** a 2D shape as Bevy's Ring: of it and `inner` (the same shape's fields), or its to_ring(`ring`, a thickness) */
-export interface RingProps { ring?: number; inner?: Record<string, unknown> }
+export interface RingProps {
+  /** a thickness: the shape made a ring that thick (to_ring) */
+  ring?: number;
+  /** the ring's inner shape, as the same shape's fields */
+  inner?: Record<string, unknown>;
+}
 type Vec2 = [number, number];
 export interface CircleProps extends MeshAttributes, RingProps { radius?: number }
-export interface RectangleProps extends MeshAttributes, RingProps { half_size?: Vec2 }
+export interface RectangleProps extends MeshAttributes, RingProps {
+  /** half its width and height */
+  half_size?: Vec2;
+}
 export interface EllipseProps extends MeshAttributes, RingProps { half_size?: Vec2 }
 export interface RegularPolygonProps extends MeshAttributes, RingProps { circumcircle?: { radius: number }; sides?: number }
 /** an arc: its radius and half its angle in radians (Bevy's CircularSector::new(r, a) gives half_angle a) */
-export interface ArcProps extends MeshAttributes, RingProps { arc?: { radius: number; half_angle: number } }
+export interface ArcProps extends MeshAttributes, RingProps {
+  /** its radius and half its angle in radians */
+  arc?: { radius: number; half_angle: number };
+}
 export interface AnnulusProps extends MeshAttributes, RingProps { inner_circle?: { radius: number }; outer_circle?: { radius: number } }
 export interface Capsule2dProps extends MeshAttributes, RingProps { radius?: number; half_length?: number }
 export interface RhombusProps extends MeshAttributes, RingProps { half_diagonals?: Vec2 }
-export interface VerticesProps extends MeshAttributes, RingProps { vertices?: Vec2[] }
+export interface VerticesProps extends MeshAttributes, RingProps {
+  /** the outline's points, in order */
+  vertices?: Vec2[];
+}
 export interface ColorMaterialProps {
   /** white by default; it tints the texture, and its alpha is the material's (Bevy's Srgba or LinearRgba, or a hex) */
   color?: string | Srgba | LinearRgba;
@@ -61,7 +78,9 @@ const PRIMITIVES = new Map<unknown, string>([[Circle, "Circle"], [Rectangle, "Re
 export const ColorMaterial = inMesh2d("ColorMaterial") as (p: ColorMaterialProps) => ReactNode;
 
 export interface Mesh2dProps extends Omit<Place2dProps, "x" | "y" | "rotation" | "scale" | "z"> {
+  /** where it stands: translation, rotation (a quaternion) and scale */
   transform?: TransformValue;
+  /** "Hidden" draws nothing; "Visible" and "Inherited" draw */
   visibility?: "Inherited" | "Visible" | "Hidden";
   /** one of bevy_math's 2D primitives (<Circle>, <Capsule2d>, ...) and a <ColorMaterial>, or your own <Material>
    *  (Bevy's Material2d, docs/control.feature FC2a) */

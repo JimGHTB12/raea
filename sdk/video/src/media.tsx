@@ -9,10 +9,15 @@ import { jsx } from "react/jsx-runtime";
 export type VolumeProp = number | ((mediaFrame: number) => number);
 
 export interface MediaProps {
+  /** the file: staticFile("clip.mp4"), or a generated asset */
   src: string;
+  /** the media's own frame it starts playing from (0); the same as trimBefore */
   startFrom?: number;
+  /** the media's frame it stops before (exclusive): it holds the last frame, or loops; the same as trimAfter */
   endAt?: number;
+  /** frames of the media cut off its start (the newer name for startFrom) */
   trimBefore?: number;
+  /** the media's frame it's cut at (the newer name for endAt) */
   trimAfter?: number;
   /** linear gain, 1 being unity (0.5 is about -6 dB, 1.78 about +5 dB), or a function of the media's own frame */
   volume?: VolumeProp;
@@ -22,14 +27,20 @@ export interface MediaProps {
   fadeIn?: number;
   /** ours: seconds to ramp the sound out to silence at its end */
   fadeOut?: number;
+  /** how fast it plays (1): 2 is double speed */
   playbackRate?: number;
+  /** play no sound */
   muted?: boolean;
+  /** start again from `startFrom` when it reaches `endAt` */
   loop?: boolean;
   /** the bus it plays into: a named channel of the edit's Tone graph (music, sfx, voice, ambience, ui), so it takes
    *  that bus's volume, effects and ducking (raea/tone `buses`) */
   bus?: string;
+  /** the entity's name, for picking, the inspector and world.* */
   name?: string;
+  /** Tailwind or CSS classes */
   className?: string;
+  /** inline style */
   style?: CSSProperties;
 }
 

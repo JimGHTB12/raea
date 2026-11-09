@@ -66,10 +66,15 @@ export function FeathersButton({ variant = "Normal", corners = "All", disabled =
   );
 }
 
+export interface VirtualKeyboardProps {
+  /** the keyboard's rows, each a row of key captions */
+  keys: string[][];
+}
+
 /** A grid of FeathersButtons, one row of keys a row (4 px apart both ways), each key's caption a plain Text (Bevy's
  *  default font, 20 px white: feathers' font reaches only a ThemedText), each key growing to share its row.
  *  VirtualKeyPressed fires on a key under input. @bevy bevy_feathers::controls::VirtualKeyboard */
-export function VirtualKeyboard({ keys }: { keys: string[][] }) {
+export function VirtualKeyboard({ keys }: VirtualKeyboardProps) {
   if (!Array.isArray(keys) || !keys.every((r) => Array.isArray(r) && r.every((k) => typeof k === "string"))) throw new TypeError(`VirtualKeyboard: keys is rows of strings ([["Q", "W"], ["space"]]), got ${JSON.stringify(keys)}`);
   return (
     <Node flex_direction="Column" row_gap={px(4)}>

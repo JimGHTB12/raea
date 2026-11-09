@@ -6,8 +6,11 @@ import { isGeneratedAsset } from "@raea/asset/assets";
 import { Audio } from "./media";
 
 export interface AbsoluteFillProps {
+  /** merged over the fill's own style (absolute, inset 0, a flex column) */
   style?: CSSProperties;
+  /** Tailwind or CSS classes */
   className?: string;
+  /** what fills it */
   children?: ReactNode;
   [attr: string]: unknown;
 }
@@ -34,14 +37,23 @@ export function AbsoluteFill({ style, children, ...rest }: AbsoluteFillProps) {
 export type SequenceLayout = "absolute-fill" | "none";
 
 export interface SequenceProps {
+  /** the parent frame its frame 0 falls on (0) */
   from?: number;
+  /** how many frames it shows its children (forever by default) */
   durationInFrames?: number;
+  /** its label in the timeline and the render manifest (`data-sequence`) */
   name?: string;
+  /** "absolute-fill" (default) wraps the children in a full-size box; "none" adds no box */
   layout?: SequenceLayout;
+  /** the width its children see, px (the parent's by default) */
   width?: number;
+  /** the height its children see, px (the parent's by default) */
   height?: number;
+  /** the wrapping box's style */
   style?: CSSProperties;
+  /** the wrapping box's classes */
   className?: string;
+  /** what plays in it, at its own local time */
   children?: ReactNode;
 }
 
@@ -145,6 +157,7 @@ export function Sequence(props: SequenceProps) {
 }
 
 export interface SeriesSequenceProps extends Omit<SequenceProps, "from" | "layout"> {
+  /** frames from the previous slot's end to this one's start (0); negative overlaps */
   offset?: number;
 }
 
@@ -165,8 +178,13 @@ function flatten(children: ReactNode): ReactNode[] {
   return out;
 }
 
+export interface SeriesProps {
+  /** the Series.Sequence slots, played back to back */
+  children?: ReactNode;
+}
+
 /** Plays its Series.Sequence children back to back, each shifted by its own offset. */
-function SeriesImpl({ children }: { children?: ReactNode }) {
+function SeriesImpl({ children }: SeriesProps) {
   const slots = flatten(children);
   let start = 0;
   const placed: ReactNode[] = [];
@@ -197,12 +215,19 @@ function SeriesImpl({ children }: { children?: ReactNode }) {
 export const Series = Object.assign(SeriesImpl, { Sequence: SeriesSequence });
 
 export interface LoopProps {
+  /** the length of one loop, in frames */
   durationInFrames: number;
+  /** how many times it plays (forever by default) */
   times?: number;
+  /** its label in the timeline and the render manifest */
   name?: string;
+  /** "absolute-fill" (default) or "none", as a Sequence's */
   layout?: SequenceLayout;
+  /** the wrapping box's style */
   style?: CSSProperties;
+  /** the wrapping box's classes */
   className?: string;
+  /** what loops */
   children?: ReactNode;
 }
 
@@ -234,7 +259,9 @@ export function Loop(props: LoopProps) {
 }
 
 export interface FreezeProps {
+  /** the frame its children see, whatever the parent's frame */
   frame: number;
+  /** what's held */
   children?: ReactNode;
 }
 

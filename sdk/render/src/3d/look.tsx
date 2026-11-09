@@ -135,14 +135,21 @@ export interface LookProps {
 /** One composition pass's own paint (<Look passes>): the frame's rag, grain and palette, and its surfaces' bands, torn
  * shadow edge, strokes, saturation and wash; what it leaves out is the Look's. */
 export interface LookPass {
+  /** how far its edges wander, px (the Look's by default) */
   rag?: number;
+  /** its paper grain, 0 to 1 */
   grain?: number;
   /** false: its pixels aren't snapped to the palette */
   palette?: boolean;
+  /** how many flat tones the light makes on its surfaces, 1-8 */
   bands?: number;
+  /** how far its cast shadows' edges tear, 0 to 0.5 */
   edge?: number;
+  /** brush strokes on its surfaces, 0 to 1 */
   stroke?: number;
+  /** its colour past (above 1) or toward grey (below 1) its own */
   saturate?: number;
+  /** its textures' colour taken as their patch average, 0 to 1 */
   wash?: number;
 }
 
@@ -281,10 +288,15 @@ export function Scene({ world }: SceneProps) {
   );
 }
 
+export interface EntitiesProps {
+  /** the game's world at this frame: anything with \`scene()\` giving its entities */
+  world: { scene(): unknown[] };
+}
+
 /** A world's entities drawn by the engine (no React element per entity): every entity with a Mesh component ({shape:
  * a Manifold expression or a Solid's expr, color, roughness, metalness}) and a Transform ({x, y, z, rx, ry, rz in
  * radians, scale}) is a mesh, placed in world space (a child's Transform is in its parent's). Give it the world at the
  * frame: `<Entities world={game.at(useCurrentFrame())} />`. Needs the engine's tables. */
-export function Entities({ world }: { world: { scene(): unknown[] } }) {
+export function Entities({ world }: EntitiesProps) {
   return node3d("Entities", { scene: world.scene() });
 }

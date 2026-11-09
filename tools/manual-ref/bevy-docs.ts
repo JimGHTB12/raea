@@ -1,4 +1,5 @@
-// Bevy's own doc comments for the types the SDK names with @bevy (docs/manual.feature DM3): each type's doc and its
+// Bevy's own doc comments for the types the SDK names with @bevy, or whose whole doc is a Rust path (the types
+// raea-bevy-sdk generates from raea's crates: `/** raea_core_animate::spec::AnimKey */`) (docs/manual.feature DM3): each type's doc and its
 // fields' and variants' docs, read from the Rust source of Bevy 0.20 (the cargo registry) and of raea's own crates,
 // kept in tools/manual-ref/bevy-docs.json so the SDK reference can be generated without the registry. sdk.ts gives a
 // prop Bevy's field doc, marked as Bevy's, where the SDK's own comment is missing.
@@ -91,7 +92,7 @@ const walk = (d: string): void => {
   for (const n of readdirSync(d, { withFileTypes: true })) {
     const p = path.join(d, n.name)
     if (n.isDirectory()) { if (n.name !== "node_modules") walk(p) }
-    else if (/\.tsx?$/.test(n.name)) for (const m of readFileSync(p, "utf8").matchAll(/@bevy ([a-z_0-9]+(?:::[A-Za-z_0-9]+)+)/g)) tags.add(m[1])
+    else if (/\.tsx?$/.test(n.name)) for (const m of readFileSync(p, "utf8").matchAll(/(?:@bevy |\/\*\* )([a-z_0-9]+(?:::[A-Za-z_0-9]+)+)(?= |\*\/|$)/gm)) tags.add(m[1])
   }
 }
 for (const pkg of readdirSync(path.join(ROOT, "sdk"))) if (existsSync(path.join(ROOT, "sdk", pkg, "src"))) walk(path.join(ROOT, "sdk", pkg, "src"))

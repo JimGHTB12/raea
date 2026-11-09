@@ -50,6 +50,7 @@ export interface EditableTextProps extends NodeProps, TextStyleProps {
   auto_focus?: boolean;
   /** TextLayout's justify and linebreak */
   justify?: TextProps["justify"];
+  /** where lines break: WordBoundary, AnyCharacter, WordOrCharacter or NoWrap */
   linebreak?: TextProps["linebreak"];
 }
 

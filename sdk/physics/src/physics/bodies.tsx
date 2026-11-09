@@ -16,44 +16,59 @@ export interface Impulse {
   impulse?: Vec3;
   /** where it's applied (world, metres): off the centre it spins the body too */
   at?: Vec3;
+  /** an angular impulse, N·m·s, world */
   torque?: Vec3;
 }
 
 export interface BodyProps {
+  /** the body's name, unique in its <Physics>: the bake keys its track by it */
   name: string;
   /** a glTF's nodes as the body (drawn as a <Part>, its collider their hull) */
   src?: string;
+  /** the glTF nodes that make the body */
   nodes?: string[];
   /** "hull" (default for nodes), "box" (their bounds), "mesh" (exact triangles, fixed bodies only), or a shape */
   shape?: Shape;
   /** where a given shape's centre stands at rest, world (a nodes' body: the middle of their bounds) */
   centre?: Vec3;
+  /** it never moves: a floor, a wall, a table */
   fixed?: boolean;
   /** kg (else volume x density) */
   mass?: number;
   /** kg/m³ (1000) */
   density?: number;
+  /** 0 slides, 1 grips (0.5) */
   friction?: number;
+  /** 0 lands dead, 1 bounces back fully (0.2) */
   restitution?: number;
+  /** m/s at the start, world */
   velocity?: Vec3;
+  /** radians a second at the start, world */
   angularVelocity?: Vec3;
+  /** how fast its motion bleeds off (0) */
   linearDamping?: number;
+  /** how fast its spin bleeds off (0.05) */
   angularDamping?: number;
   /** seconds: held where it is until then (a cup sits until it's knocked) */
   release?: number;
+  /** kicks at given seconds: an impulse, where it's applied, and a torque */
   impulses?: Impulse[];
   /** a kinematic mover: its rigid motion from rest at t seconds (see `about`); it pushes the others */
   path?: (t: number) => { position: Vec3; quaternion: Quat };
   /** drawn as the body's nodes are, or by its children (inside its motion: draw them where it stands at rest) */
   material?: PartMaterial;
+  /** how its part breaks up, or a function of seconds giving that */
   glitch?: Glitch | ((t: number) => Glitch | undefined);
+  /** it casts shadows */
   castShadow?: boolean;
+  /** what draws the body, in place of its nodes */
   children?: ReactNode;
 }
 
 export interface PhysicsProps {
   /** how long to simulate, seconds */
   seconds: number;
+  /** m/s² (0, -9.81, 0) */
   gravity?: Vec3;
   /** steps per frame (8) */
   substeps?: number;
@@ -61,13 +76,18 @@ export interface PhysicsProps {
   colliders?: { min: Vec3; max: Vec3; friction?: number; restitution?: number }[];
   /** the frame (of the enclosing Sequence) the simulation starts on (0); before it everything is at rest */
   from?: number;
+  /** the <Body> elements to simulate, and anything else to draw */
   children?: ReactNode;
 }
 
 export interface Baked {
+  /** the frame rate it was baked at */
   fps: number;
+  /** how many frames it holds */
   frames: number;
+  /** the bake's file in the asset store */
   file: string;
+  /** each body's track by name: positions and quaternions a frame, flat, and its rest centre */
   bodies: Record<string, { p: number[]; q: number[]; centre: Vec3 }>;
 }
 

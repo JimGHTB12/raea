@@ -141,11 +141,11 @@ type Actions = Action<C, E> | readonly Action<C, E>[]
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `states` (required) | `{ name: N; parent: N \| null; depth: number; kind: "leaf" \| "compound" \| "final"; initia…` | – |
-| `edges` (required) | `Edge<N>[]` | – |
+| `id` (required) | `string` | the machine's id |
+| `states` (required) | `{ name: N; parent: N \| null; depth: number; kind: "leaf" \| "compound" \| "final"; initia…` | every state with its parent, depth, kind and whether it's an initial state |
+| `edges` (required) | `Edge<N>[]` | every transition |
 | `reachable` (required) | `N[]` | states some sequence of transitions reaches from the initial state (guards assumed satisfiable) |
-| `unreachable` (required) | `N[]` | – |
+| `unreachable` (required) | `N[]` | states no sequence of transitions reaches |
 | `deadEnds` (required) | `N[]` | non-final leaves with no transition out (their own or an enclosing state's): once entered, never left |
 
 ### `AnyMachine`
@@ -160,13 +160,13 @@ A choice point as a decider sees it: which machine, where, and the candidates wh
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `machine` (required) | `string` | – |
+| `machine` (required) | `string` | the machine's id |
 | `state` (required) | `string` | the state whose `choose` list this is, and the active leaf |
-| `leaf` (required) | `string` | – |
+| `leaf` (required) | `string` | the active leaf state |
 | `n` (required) | `number` | the machine's step |
 | `candidates` (required) | `{ edge: number; to: string; description?: string }[]` | the candidates whose guards hold, in their order (each an edge of machine.edges) |
-| `ctx` (required) | `C` | – |
-| `env` (required) | `E` | – |
+| `ctx` (required) | `C` | the context the machine drives |
+| `env` (required) | `E` | whatever the step was given as env |
 
 ### `Decider`
 
@@ -175,8 +175,8 @@ is asked outside the step and their answer replayed (`replayDecider`). Determini
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
-| `decide` (required) | `(point: ChoicePoint<unknown, unknown>) => Decision` | – |
+| `name` (required) | `string` | its name in the trace's `by` column |
+| `decide` (required) | `(point: ChoicePoint<unknown, unknown>) => Decision` | picks a candidate at a choice point, synchronously |
 
 ### `Decision`
 
@@ -185,21 +185,21 @@ whatever supports the choice (a bot's score, a model's probabilities), recorded 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `edge` (required) | `number \| null` | – |
-| `evidence` | `unknown` | – |
+| `edge` (required) | `number \| null` | the edge picked, one of the candidates' `edge`; null waits this step |
+| `evidence` | `unknown` | what supports the choice (a bot's score, a model's probabilities), recorded with the transition |
 
 ### `Edge`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `index` (required) | `number` | – |
-| `from` (required) | `N` | – |
-| `to` (required) | `N` | – |
-| `kind` (required) | `"always" \| "after" \| "on" \| "done" \| "choose"` | – |
+| `index` (required) | `number` | its place in `machine.edges` |
+| `from` (required) | `N` | the state it leaves |
+| `to` (required) | `N` | the state it enters |
+| `kind` (required) | `"always" \| "after" \| "on" \| "done" \| "choose"` | what fires it: a guard polled each step (always), a delay (after), an event (on), the substate finishing (done) or a decider (choose) |
 | `event` | `string` | the event an `on` edge waits for |
 | `after` (required) | `number` | steps in `from` before it may fire |
-| `guarded` (required) | `boolean` | – |
-| `description` | `string` | – |
+| `guarded` (required) | `boolean` | whether it has a guard (`when`) |
+| `description` | `string` | what the transition means, from its config |
 
 ### `Guard`
 
@@ -213,8 +213,8 @@ type Guard = (ctx: C, env: E) => boolean
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `key` (required) | `K` | – |
+| `id` (required) | `string` | the machine's name in traces and reports |
+| `key` (required) | `K` | the context's field holding its snapshot ("sm") |
 | `states` (required) | `readonly N[]` | every state, in definition order (outer before inner) |
 | `edges` (required) | `readonly Edge<N>[]` | every transition, in the order they're checked within a state |
 | `start` (required) | `() => Snapshot<N>` | a snapshot before the first step: the first step enters the initial states (running their entry actions) |
@@ -232,8 +232,8 @@ type Guard = (ctx: C, env: E) => boolean
 | Field | Type | What it is |
 | --- | --- | --- |
 | `id` (required) | `string` | the machine's name in traces and reports |
-| `initial` (required) | `NoInfer<N>` | – |
-| `states` (required) | `{ [S in N]?: StateConfig<C, E, N> }` | – |
+| `initial` (required) | `NoInfer<N>` | the state it starts in |
+| `states` (required) | `{ [S in N]?: StateConfig<C, E, N> }` | its states by name, each a StateConfig (substates nest inside) |
 | `key` | `K` | the context's field holding the snapshot ("sm") |
 | `strict` | `boolean` | refuse unreachable states and non-final dead ends when the machine is built (true) |
 
@@ -264,12 +264,12 @@ guard); `hist` is each history state's last substate.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `path` (required) | `N[]` | – |
-| `at` (required) | `number[]` | – |
-| `n` (required) | `number` | – |
-| `e` (required) | `number` | – |
-| `by` | `string` | – |
-| `hist` | `{ [S in N]?: N }` | – |
+| `path` (required) | `N[]` | the active states, outermost first ([] before the first step) |
+| `at` (required) | `number[]` | the step each state in `path` was entered on |
+| `n` (required) | `number` | the machine's steps so far, from 0 |
+| `e` (required) | `number` | the edge the last transition took, an index into `machine.edges` |
+| `by` | `string` | the decider that chose the last transition (absent: a guard did) |
+| `hist` | `{ [S in N]?: N }` | each history state's last substate |
 
 ### `StateConfig`
 
@@ -287,7 +287,7 @@ guard); `hist` is each history state's last substate.
 | `history` | `"shallow" \| "deep"` | re-entering this compound state resumes the substate it left ("shallow"), or that substate's own (deep) |
 | `onDone` | `Transitions<C, E, N>` | a compound state's transition taken when its active substate is final |
 | `type` | `"final"` | a final state: no transitions out (a dead enemy, the game won, the work shipped) |
-| `description` | `string` | – |
+| `description` | `string` | what the state means, for reports and a decider |
 
 ### `StateName`
 
@@ -323,14 +323,14 @@ null for the first step's entry into the initial states.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `machine` (required) | `string` | – |
-| `step` (required) | `number` | – |
-| `from` (required) | `string \| null` | – |
-| `to` (required) | `string` | – |
-| `edge` (required) | `number` | – |
-| `kind` (required) | `Edge["kind"] \| "start"` | – |
+| `machine` (required) | `string` | the machine's id |
+| `step` (required) | `number` | the machine's step it happened on |
+| `from` (required) | `string \| null` | the leaf it left (null for the first entry) |
+| `to` (required) | `string` | the leaf it entered |
+| `edge` (required) | `number` | the edge it took, an index into `machine.edges` |
+| `kind` (required) | `Edge["kind"] \| "start"` | what kind of edge: always, after, on, choose, done (an onDone), or start for the first entry |
 | `by` (required) | `string` | "guard" for a trigger, "start" for the first entry, else the decider's name |
-| `evidence` | `unknown` | – |
+| `evidence` | `unknown` | the decider's evidence for the choice |
 
 ### `Transitions`
 
@@ -346,7 +346,7 @@ A machine's state in some context, for a trace (`Playtest.machines`).
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `machine` (required) | `AnyMachine` | – |
-| `snapshot` (required) | `Snapshot` | – |
+| `machine` (required) | `AnyMachine` | the machine |
+| `snapshot` (required) | `Snapshot` | its runtime state in that context |
 
 <!-- generated:end -->

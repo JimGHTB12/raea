@@ -346,20 +346,36 @@ export function usePlace3d(position: Vec3, rotation: Vec3, scale: number | Vec3,
 
 /** A part's pointer handlers, as a page element's. */
 export interface PointerHandlers3d {
+  /** a press and release over the part */
   onClick?: (e: Event3d) => void;
+  /** a button pressed over the part */
   onPointerDown?: (e: Event3d) => void;
+  /** a button released over the part */
   onPointerUp?: (e: Event3d) => void;
+  /** the pointer came over the part (bubbles, as the DOM's) */
   onPointerOver?: (e: Event3d) => void;
+  /** the pointer left the part (bubbles) */
   onPointerOut?: (e: Event3d) => void;
+  /** the pointer came over the part (doesn't bubble) */
   onPointerEnter?: (e: Event3d) => void;
+  /** the pointer left the part (doesn't bubble) */
   onPointerLeave?: (e: Event3d) => void;
+  /** the pointer moved over the part */
   onPointerMove?: (e: Event3d) => void;
+  /** the wheel turned over the part (`deltaX`, `deltaY`) */
   onWheel?: (e: Event3d) => void;
+  /** a drag began on the part pressed */
   onDragStart?: (e: Event3d) => void;
+  /** the part pressed is being dragged, each frame it moves */
   onDrag?: (e: Event3d) => void;
+  /** the drag of the part pressed ended */
   onDragEnd?: (e: Event3d) => void;
+  /** a dragged part came over this one (`dragged` names it) */
   onDragEnter?: (e: Event3d) => void;
+  /** a dragged part is over this one */
   onDragOver?: (e: Event3d) => void;
+  /** a dragged part left this one */
   onDragLeave?: (e: Event3d) => void;
+  /** a dragged part was dropped on this one */
   onDrop?: (e: Event3d) => void;
 }

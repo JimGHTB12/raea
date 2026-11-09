@@ -4,7 +4,8 @@
 // that use it, which are checked against Bevy and rendered in CI, so they work as examples.
 // A page's prose above and below its generated block is its own, kept by a rewrite as the CLI pages' is (cli.ts).
 //   bun tools/manual-ref/sdk.ts gen [DIR]     rewrite the pages in DIR (docs/manual/reference/sdk)
-//   bun tools/manual-ref/sdk.ts check [DIR]   the pages as gen would write them, every import path in GROUPS
+//   bun tools/manual-ref/sdk.ts check [DIR]   the pages as gen would write them, every import path in GROUPS, every
+//                                             prop and field they table described
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs"
 import path from "node:path"
 import { createRequire } from "node:module"
@@ -78,17 +79,22 @@ function propDoc(s: import("typescript").Symbol, bevy: BevyDoc | undefined) {
   if (p && (ts.isInterfaceDeclaration(p) || ts.isTypeAliasDeclaration(p)) && p.name) {
     const sym = checker.getSymbolAtLocation(p.name)
     const tags = sym ? docOf(sym).bevy : []
-    for (const t of tags) if (BEVY[t]?.fields[s.name]) return `Bevy: ${BEVY[t].fields[s.name]}`
+    for (const t of tags) if (BEVY[t]?.fields[s.name]) return `${ownRust(t) ? "" : "Bevy: "}${BEVY[t].fields[s.name]}`
     const n = BEVY[`name:${p.name.text}`]
     if (n?.fields[s.name]) return `Bevy: ${n.fields[s.name]}`
   }
   return bevy?.fields[s.name] ? `Bevy: ${bevy.fields[s.name]}` : ""
 }
 
-/** the doc comment and @bevy tags of a symbol */
+/** a type of raea's own Rust (a raea_* crate), as a type raea-bevy-sdk generates names it: its docs are raea's, not Bevy's */
+const ownRust = (path: string) => path.startsWith("raea_")
+const RUST_PATH = /^[a-z_0-9]+(?:::[A-Za-z_0-9]+)+$/
+/** the doc comment and @bevy tags of a symbol; a generated type's doc, its Rust path alone, is a tag, and the Rust
+ *  type's own doc stands for it */
 function docOf(sym: import("typescript").Symbol) {
-  const text = ts.displayPartsToString(sym.getDocumentationComment(checker)).trim()
+  let text = ts.displayPartsToString(sym.getDocumentationComment(checker)).trim()
   const bevy = sym.getJsDocTags(checker).filter((t) => t.name === "bevy").map((t) => ts.displayPartsToString(t.text).trim())
+  if (RUST_PATH.test(text)) { bevy.push(text); text = BEVY[text]?.doc ?? "" }
   return { text, bevy }
 }
 
@@ -218,6 +224,30 @@ for (const file of [...entries].sort((a, b) => Number(a.startsWith("index.")) - 
 }
 const typeLink = (name: string, from: string) => (home.has(name) ? `[\`${name}\`](${home.get(name) === from ? "" : home.get(name) + ".md"}#${name.toLowerCase()})` : "`" + name + "`")
 const shared = (name: string) => (uses.get(name) ?? 0) > 1 && home.has(name)
+// every prop and field the reference tables has a description (its own, or Bevy's): one problem a declaration, however many
+// pages table it
+const undescribed = new Set<string>()
+function described(s: import("typescript").Symbol, bevy: BevyDoc | undefined): string {
+  const d = plain(propDoc(s, bevy))
+  const decl = s.declarations?.[0]
+  if (!d && decl) {
+    const sf = decl.getSourceFile()
+    const at = `${path.relative(ROOT, sf.fileName)}:${sf.getLineAndCharacterOfPosition(decl.getStart()).line + 1}`
+    if (!undescribed.has(at + s.name)) { undescribed.add(at + s.name); problems.push(`${at}: ${s.name} has no doc comment`) }
+  }
+  return d
+}
+/** a constructor's doc comment, a problem without one */
+function ctorDoc(c: import("typescript").Signature, cls: string): string {
+  const decl = c.getDeclaration()
+  const d = decl ? plain(ts.displayPartsToString(c.getDocumentationComment(checker)).trim()) : ""
+  if (!d && decl) {
+    const sf = decl.getSourceFile()
+    const at = `${path.relative(ROOT, sf.fileName)}:${sf.getLineAndCharacterOfPosition(decl.getStart()).line + 1}`
+    if (!undescribed.has(at)) { undescribed.add(at); problems.push(`${at}: new ${cls} has no doc comment`) }
+  }
+  return d
+}
 
 entries.forEach((file, i) => {
   const entry = entryName(file)
@@ -237,11 +267,16 @@ entries.forEach((file, i) => {
     const doc0 = docOf(sym)
     const { text, bevy: tags } = doc0.text ? doc0 : wrappedDoc(sym).text ? { text: wrappedDoc(sym).text, bevy: [...doc0.bevy, ...wrappedDoc(sym).bevy] } : doc0
     const bv = bevyOf(ex.name, tags)
+    // a props type (StandardMaterialProps) is its component's Bevy type's fields: the component's tags stand for it
+    const of = /Props$/.test(ex.name) ? exps.find((e) => e.name === ex.name.slice(0, -5)) : undefined
+    const bvFields = bv ?? (of ? bevyOf(of.name, [...docOf(real(of)).bevy, ...wrappedDoc(real(of)).bevy]) : null)
     const md: string[] = [`### \`${ex.name}\``, ""]
     if (text) md.push(plain(text), "")
-    else if (bv?.doc.doc) md.push(`*From Bevy's \`${bv.path}\`:* ${bv.doc.doc}`, "")
-    if (tags.length) md.push(`Bevy: ${tags.map((t) => "`" + t + "`").join(", ")}.`, "")
-    else if (bv && text) md.push(`Bevy: \`${bv.path}\`.`, "")
+    else if (bv?.doc.doc) md.push(`*From ${ownRust(bv.path) ? "raea's Rust" : "Bevy's"} \`${bv.path}\`:* ${bv.doc.doc}`, "")
+    const bevyTags = tags.filter((t) => !ownRust(t)), rustTags = tags.filter(ownRust)
+    if (bevyTags.length) md.push(`Bevy: ${bevyTags.map((t) => "`" + t + "`").join(", ")}.`, "")
+    else if (bv && text && !rustTags.length) md.push(`Bevy: \`${bv.path}\`.`, "")
+    if (rustTags.length) md.push(`Rust: ${rustTags.map((t) => "`" + t + "`").join(", ")}.`, "")
     // a function's or hook's signatures, as the checker prints them (the first three overloads)
     if ((kind === "function" || kind === "hook") && sym.valueDeclaration) {
       const sigs = checker.getTypeOfSymbolAtLocation(sym, sym.valueDeclaration).getCallSignatures().slice(0, 3)
@@ -260,10 +295,10 @@ entries.forEach((file, i) => {
         const t = checker.getTypeOfSymbolAtLocation(m, d)
         const sig = t.getCallSignatures()[0]
         const shown = sig ? `${on}${m.name}${oneLine(checker.signatureToString(sig, undefined, fmt))}` : `${on}${m.name}: ${oneLine(checker.typeToString(t, undefined, fmt))}`
-        rows.push(`| \`${cell(shown.length > 160 ? shown.slice(0, 157) + "…" : shown)}\` | ${cell(plain(docOf(m).text)) || "–"} |`)
+        rows.push(`| \`${cell(shown.length > 160 ? shown.slice(0, 157) + "…" : shown)}\` | ${cell(described(m, bv?.doc)) || "–"} |`)
       }
       const statics = checker.getTypeOfSymbolAtLocation(sym, sym.valueDeclaration)
-      for (const c of statics.getConstructSignatures().slice(0, 2)) if (c.getParameters().length) rows.push(`| \`${cell(`new ${ex.name}${oneLine(checker.signatureToString(c, undefined, fmt)).replace(/:\s*[^:)]*$/, "")}`)}\` | ${cell(plain(docOf(c.getDeclaration()?.symbol ?? sym).text)) || "–"} |`)
+      for (const c of statics.getConstructSignatures().slice(0, 2)) if (c.getParameters().length && !(c.getDeclaration() && ts.getCombinedModifierFlags(c.getDeclaration() as import("typescript").Declaration) & ts.ModifierFlags.Private)) rows.push(`| \`${cell(`new ${ex.name}${oneLine(checker.signatureToString(c, undefined, fmt)).replace(/:\s*[^:)]*$/, "")}`)}\` | ${cell(ctorDoc(c, ex.name)) || "–"} |`)
       for (const m of checker.getPropertiesOfType(statics)) member(m, `${ex.name}.`)
       for (const m of checker.getPropertiesOfType(checker.getDeclaredTypeOfSymbol(sym))) member(m, ".")
       if (rows.length) md.push("| Member | What it does |", "| --- | --- |", ...rows.slice(0, 60), "")
@@ -281,7 +316,7 @@ entries.forEach((file, i) => {
           md.push("| Prop | Type | What it does |", "| --- | --- | --- |")
           for (const s of own) {
             const opt = s.flags & ts.SymbolFlags.Optional ? "" : " (required)"
-            md.push(`| \`${s.name}\`${opt} | \`${cell(typeText(s))}\` | ${cell(plain(propDoc(s, bv?.doc))) || "–"} |`)
+            md.push(`| \`${s.name}\`${opt} | \`${cell(typeText(s))}\` | ${cell(described(s, bv?.doc)) || "–"} |`)
           }
           md.push("")
         }
@@ -297,7 +332,7 @@ entries.forEach((file, i) => {
         const fields = ts.isInterfaceDeclaration(d) ? checker.getPropertiesOfType(checker.getDeclaredTypeOfSymbol(sym)) : []
         if (fields.length && fields.length <= 40) {
           md.push("| Field | Type | What it is |", "| --- | --- | --- |")
-          for (const s of fields) md.push(`| \`${s.name}\`${s.flags & ts.SymbolFlags.Optional ? "" : " (required)"} | \`${cell(typeText(s))}\` | ${cell(plain(propDoc(s, bv?.doc))) || "–"} |`)
+          for (const s of fields) md.push(`| \`${s.name}\`${s.flags & ts.SymbolFlags.Optional ? "" : " (required)"} | \`${cell(typeText(s))}\` | ${cell(described(s, bvFields?.doc)) || "–"} |`)
           md.push("")
         } else if (ts.isTypeAliasDeclaration(d)) {
           const t = oneLine(d.type.getText())

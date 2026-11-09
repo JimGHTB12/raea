@@ -93,9 +93,16 @@ export function shadowCss(who: string, b: BoxShadow): string {
 /** the BoxShadowSamples around a node: 4, bevy_ui_render's default, outside one */
 export const ShadowSamplesCx = createContext(4);
 
+export interface BoxShadowSamplesProps {
+  /** steps each shadow's blur is summed in (4) */
+  samples: number;
+  /** the UI it applies to */
+  children?: ReactNode;
+}
+
 /** bevy_ui_render's BoxShadowSamples: the steps each shadow's blur is summed in down its height (4 by default). Bevy sets
  *  it on a UI camera; here it wraps the UI that camera draws. @bevy bevy_ui_render::BoxShadowSamples */
-export function BoxShadowSamples({ samples, children }: { samples: number; children?: ReactNode }) {
+export function BoxShadowSamples({ samples, children }: BoxShadowSamplesProps) {
   if (!(Number.isInteger(samples) && samples >= 0)) throw new RangeError(`BoxShadowSamples: samples is a whole number, 0 or more, got ${samples}`);
   return createElement(ShadowSamplesCx.Provider, { value: samples }, children);
 }

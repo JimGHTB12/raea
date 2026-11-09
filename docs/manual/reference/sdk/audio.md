@@ -67,7 +67,7 @@ time: `{hit && <Seedling src={staticFile("hit.wav")} id={`hit-${hits}`} />}`.
 | `id` | `string` | the player's identity while it plays: a new id starts a new player (default: the src) |
 | `volume` | `number` | linear gain, from the first frame (default 1) |
 | `speed` | `number` | playback speed (default 1); may change frame to frame |
-| `loop` | `boolean` | – |
+| `loop` | `boolean` | start again from the beginning when it ends |
 | `fx` | `SeedlingFx[]` | a serial chain of effects on this player |
 | `at` | `[number, number, number]` | where it sounds from in the 3D scene (metres, the Canvas3D's frame): heard from the scene's camera, panned, fading and dulling with distance, pitched by its speed toward or away (doppler); may move frame to frame. Unset: a sound with no place |
 | `muffle` | `number` | a lowpass (Hz) for what stands between it and the camera: a wall, a window |
@@ -79,10 +79,10 @@ it, hits, the feature lanes, and the pacing (cuts per bar). `raea song FILE --pl
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `map` (required) | `SongMap` | – |
-| `width` | `number` | – |
-| `height` | `number` | – |
-| `title` | `string` | – |
+| `map` (required) | `SongMap` | the song's map, from \`raea song\` |
+| `width` | `number` | in px |
+| `height` | `number` | in px |
+| `title` | `string` | the heading (the song's name, tempo, metre and length by default) |
 
 ### `Sound3D`
 
@@ -214,7 +214,7 @@ The props of [`Audio`](#audio), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `text` (required) | `string` | – |
+| `text` (required) | `string` | the words to say |
 | `voice` | `string` | a Pocket voice ("alba", "marius",...), a clip in ~/.raea-feed/voices by name ("watts"), or a WAV ("/media/narrator.wav" or staticFile("narrator.wav")); the default is "watts" when that clip's there, else alba |
 | `seed` | `number` | which take: another seed says it another way (0) |
 | `temperature` | `number` | Pocket's sampling temperature: lower is calmer and more even, higher livelier (0.7) |
@@ -240,9 +240,9 @@ The props of [`Seedling`](#seedling), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `map` (required) | `SongMap` | – |
-| `fps` (required) | `number` | – |
-| `offset` (required) | `number` | – |
+| `map` (required) | `SongMap` | the song's map, from \`raea song\` |
+| `fps` (required) | `number` | the composition's frame rate, that frames are counted in |
+| `offset` (required) | `number` | seconds into the song frame 0 falls on (0) |
 | `frame` (required) | `(seconds: number) => number` | the frame a song time falls on |
 | `seconds` (required) | `(frame: number) => number` | the song's seconds at a frame |
 | `at` (required) | `(frame: number) => SongMoment` | where the song is at a frame |
@@ -255,32 +255,32 @@ The props of [`Seedling`](#seedling), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `time` (required) | `number` | – |
-| `beat` (required) | `number` | – |
-| `beats` (required) | `number` | – |
-| `energy` (required) | `number` | – |
-| `cuts` (required) | `number` | – |
+| `time` (required) | `number` | seconds from the song's start where the bar begins (its downbeat) |
+| `beat` (required) | `number` | the index of its first beat |
+| `beats` (required) | `number` | how many beats it holds |
+| `energy` (required) | `number` | its mean energy, 0..1 |
+| `cuts` (required) | `number` | suggested cuts in this bar: 0.25, 0.5, 1, 2 or 4 |
 
 ### `SongEvent`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `kind` (required) | `SongEventKind` | – |
+| `kind` (required) | `SongEventKind` | what the event is: build, drop, stop, hit, dip or break |
 | `time` (required) | `number` | seconds from the song's start: a beat (drop, a downbeat) or the grid's nearest beat or half beat (hit) |
 | `end` | `number` | spans (build, stop, dip, break) end here |
-| `beat` (required) | `number` | – |
-| `bar` (required) | `number` | – |
-| `beats` | `number` | – |
+| `beat` (required) | `number` | the index of the beat it starts on, in `SongMap.beats` |
+| `bar` (required) | `number` | the index of the bar it starts in |
+| `beats` | `number` | a span: how many beats it lasts |
 | `strength` (required) | `number` | 0..1 |
 | `into` | `number \| null` | a build or stop: the drop it leads into, seconds |
 | `hits` | `SongHit[]` | a stop: its sparse hits |
 | `rise` | `number` | a drop: the energy of the bar after minus the bar before (negative when the band cuts after one big hit) |
 | `holds` | `boolean` | a drop: the bar after stays up (false: one hit, then the band cuts out) |
-| `afterStop` | `boolean` | – |
-| `afterBuild` | `boolean` | – |
+| `afterStop` | `boolean` | a drop: it comes straight out of a stop |
+| `afterBuild` | `boolean` | a drop: it lands at the end of a build (within two bars of it) |
 | `gapBefore` | `boolean` | a drop: a breath of near-silence just before it |
 | `at` | `number` | a hit: the onset's own time; how far over the groove it stands |
-| `over` | `number` | – |
+| `over` | `number` | a hit: how far over the groove it stands |
 
 ### `SongEventKind`
 
@@ -292,12 +292,12 @@ type SongEventKind = "build" | "drop" | "stop" | "hit" | "dip" | "break"
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `loudness` (required) | `number[]` | – |
-| `onsets` (required) | `number[]` | – |
-| `brightness` (required) | `number[]` | – |
-| `low` (required) | `number[]` | – |
-| `high` (required) | `number[]` | – |
-| `energy` (required) | `number[]` | – |
+| `loudness` (required) | `number[]` | loudness (RMS) a beat, 0..1 over the song |
+| `onsets` (required) | `number[]` | onset strength (spectral flux) a beat, 0..1: how much is struck |
+| `brightness` (required) | `number[]` | brightness (spectral centroid) a beat, 0..1 |
+| `low` (required) | `number[]` | the low end (kick and bass, under 150 Hz) a beat, 0..1 |
+| `high` (required) | `number[]` | the high band (over 3 kHz) a beat, 0..1 |
+| `energy` (required) | `number[]` | the combined energy a beat, 0..1: loudness, low end, onsets and highs together |
 
 ### `SongHit`
 
@@ -305,9 +305,9 @@ A hit inside a stop: `time` on the beat grid (a beat or half beat), `at` where t
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `time` (required) | `number` | – |
-| `at` (required) | `number` | – |
-| `strength` (required) | `number` | – |
+| `time` (required) | `number` | seconds from the song's start, snapped to the beat grid (a beat or half beat) |
+| `at` (required) | `number` | seconds from the song's start where the onset itself is |
+| `strength` (required) | `number` | how hard the hit is, 0..1 |
 
 ### `SongLevel`
 
@@ -319,19 +319,19 @@ type SongLevel = "intro" | "low" | "mid" | "high" | "outro"
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `version` (required) | `number` | – |
-| `duration` (required) | `number` | – |
-| `tempo` (required) | `number \| null` | – |
-| `beatsPerBar` (required) | `number` | – |
-| `beats` (required) | `number[]` | – |
-| `downbeats` (required) | `number[]` | – |
+| `version` (required) | `number` | the map format's version (1) |
+| `duration` (required) | `number` | the song's length in seconds |
+| `tempo` (required) | `number \| null` | beats per minute, or null when no beat was found |
+| `beatsPerBar` (required) | `number` | beats in a bar (4 for 4/4) |
+| `beats` (required) | `number[]` | every beat's time in seconds, ascending |
+| `downbeats` (required) | `number[]` | every bar's first beat, in seconds |
 | `features` (required) | `SongFeatures` | one value a beat, 0..1 over the song |
-| `bars` (required) | `SongBar[]` | – |
-| `sections` (required) | `SongSection[]` | – |
-| `events` (required) | `SongEvent[]` | – |
-| `sectionsFrom` | `"markers" \| "novelty"` | – |
-| `boundaries` | `{ time: number; beat: number; bar: number; strength: number }[]` | – |
-| `source` | `string \| null` | – |
+| `bars` (required) | `SongBar[]` | the bars in order, each with its energy and suggested cut rate |
+| `sections` (required) | `SongSection[]` | the song's sections in order (intro, verse, chorus and so on) |
+| `events` (required) | `SongEvent[]` | builds, drops, stops, hits, dips and breaks, in time order |
+| `sectionsFrom` | `"markers" \| "novelty"` | where the sections came from: the song file's markers, or novelty in the music itself |
+| `boundaries` | `{ time: number; beat: number; bar: number; strength: number }[]` | the candidate section boundaries novelty found, each with its strength 0..1 |
+| `source` | `string \| null` | the song file's name |
 
 ### `SongMoment`
 
@@ -339,30 +339,30 @@ Where a moment of the song is. Seconds are the song's; infinities when there's n
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `time` (required) | `number` | – |
+| `time` (required) | `number` | the moment, seconds from the song's start |
 | `beat` (required) | `number` | the beat at or before `time` (-1 before the first) |
 | `bar` (required) | `number` | the bar at or before `time` (-1 before the first beat) |
 | `beatInBar` (required) | `number` | 0-based position in the bar |
 | `phase` (required) | `number` | 0..1 through the beat, and through the bar |
-| `barPhase` (required) | `number` | – |
+| `barPhase` (required) | `number` | 0..1 through the bar |
 | `energy` (required) | `number` | the features at `time`, interpolated between beats |
-| `loudness` (required) | `number` | – |
-| `onsets` (required) | `number` | – |
-| `brightness` (required) | `number` | – |
-| `low` (required) | `number` | – |
-| `section` (required) | `SongSection \| null` | – |
-| `sectionIndex` (required) | `number` | – |
+| `loudness` (required) | `number` | loudness at `time`, 0..1 |
+| `onsets` (required) | `number` | onset strength at `time`, 0..1 |
+| `brightness` (required) | `number` | brightness at `time`, 0..1 |
+| `low` (required) | `number` | the low end at `time`, 0..1 |
+| `section` (required) | `SongSection \| null` | the section `time` is in (null before the first) |
+| `sectionIndex` (required) | `number` | that section's index in `SongMap.sections` (-1 for none) |
 | `sectionProgress` (required) | `number` | 0..1 through the section |
 | `cutsPerBar` (required) | `number` | the bar's suggested cut rate (cuts per bar) |
 | `drop` (required) | `SongEvent \| null` | the last drop at or before `time`, the next after it |
-| `nextDrop` (required) | `SongEvent \| null` | – |
-| `sinceDrop` (required) | `number` | – |
-| `untilDrop` (required) | `number` | – |
+| `nextDrop` (required) | `SongEvent \| null` | the next drop after `time` |
+| `sinceDrop` (required) | `number` | seconds since the last drop (Infinity when there's none) |
+| `untilDrop` (required) | `number` | seconds until the next drop (Infinity when there's none) |
 | `build` (required) | `SongEvent \| null` | the build `time` is in, and 0..1 through it |
-| `inBuild` (required) | `boolean` | – |
-| `buildProgress` (required) | `number` | – |
+| `inBuild` (required) | `boolean` | whether `time` is inside a build |
+| `buildProgress` (required) | `number` | 0..1 through that build |
 | `stop` (required) | `SongEvent \| null` | the stop `time` is in |
-| `inStop` (required) | `boolean` | – |
+| `inStop` (required) | `boolean` | whether `time` is inside a stop |
 | `dip` (required) | `SongEvent \| null` | the dip or break `time` is in |
 | `next` (required) | `SongEvent \| null` | the next event of any kind after `time` |
 
@@ -381,13 +381,13 @@ The props of [`SongPlot`](#songplot), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
-| `level` (required) | `SongLevel` | – |
-| `time` (required) | `number` | – |
-| `end` (required) | `number` | – |
-| `beat` (required) | `number` | – |
-| `bar` (required) | `number` | – |
-| `energy` (required) | `number` | – |
+| `name` (required) | `string` | the section's marker name when the song file has markers, else its level |
+| `level` (required) | `SongLevel` | how high the section sits in the song: intro, low, mid, high or outro |
+| `time` (required) | `number` | seconds from the song's start where the section begins |
+| `end` (required) | `number` | seconds from the song's start where it ends |
+| `beat` (required) | `number` | the index of its first beat |
+| `bar` (required) | `number` | the index of its first bar |
+| `energy` (required) | `number` | its mean energy, 0..1 |
 | `cuts` (required) | `number` | suggested cuts per bar: 0.25, 0.5, 1, 2 or 4 |
 
 ### `SpeechProps`

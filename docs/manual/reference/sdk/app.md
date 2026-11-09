@@ -42,13 +42,13 @@ Declares a composition inside the root. It draws nothing itself; a renderer find
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `component` (required) | `ComponentType<P>` | – |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `durationInFrames` (required) | `number` | – |
-| `defaultProps` | `P` | – |
+| `id` (required) | `string` | the composition's id: letters, digits and dashes (`raea render --composition` picks it) |
+| `component` (required) | `ComponentType<P>` | the React component it renders |
+| `width` (required) | `number` | in px |
+| `height` (required) | `number` | in px |
+| `fps` (required) | `number` | frames a second |
+| `durationInFrames` (required) | `number` | its length in frames |
+| `defaultProps` | `P` | the props it's rendered with (JSON-like values only) |
 | `edit` | `Edit` | a hand edit laid over the composition (docs/craft-system.md, L): written back by the app's timeline |
 
 ## Functions
@@ -94,11 +94,10 @@ insert, query and step it, and add TypeScript systems to its schedules.
 
 | Member | What it does |
 | --- | --- |
-| `new App(id: number, methods: string[])` | – |
 | `App.open(o: OpenOptions): BevyApp` | A headless App with these plugins; Startup has run, no frame has stepped. TypeScript plugins are built in order once the App is open, then finished and cleaned up; their Startup systems run before the first frame. |
 | `App.stepTogether(apps: BevyApp[], frames?: number): number[]` | Apps stepped together, a frame at a time: a network's peers. Returns each one's frame. |
 | `.methods: string[]` | the methods this App answers (BRP's, raea's and its plugins') |
-| `.id: number` | – |
+| `.id: number` | the App's handle in the engine |
 | `.isPluginAdded(name: string): boolean` | Whether a plugin of this name is in the App (Bevy's is_plugin_added), Rust or TypeScript. |
 | `.addPlugins(...refs: PluginRef[]): BevyApp` | Adds TypeScript plugins and groups (Bevy's add_plugins): each built in order, then each finished, then each cleaned up. A Rust plugin is compiled in and must be named when the App opens; naming a new one here throws. |
 | `.addSystems(schedule: string, systems: ((app: BevyApp, frame: number) => void) \| ((app: BevyApp, frame: number) => void)[], o?: SystemOptions): BevyApp` | Systems in a schedule (Bevy's add_systems), each as `system` adds one; one of the startup schedules (PreStartup, Startup, PostStartup) runs them once, before the App's next frame. Returns the App, to chain. |
@@ -111,11 +110,11 @@ insert, query and step it, and add TypeScript systems to its schedules.
 | `.frameSchedules(): string[]` | The schedules a frame runs, in order (Bevy's MainScheduleOrder). |
 | `.call<A = unknown>(method: string, params?: unknown): A` | Any method of the App's table, run now: its answer, or a throw with the method's message. |
 | `.spawn(...components: With[]): number` | A new entity with these components. |
-| `.insert(entity: number, ...components: With[]): void` | – |
+| `.insert(entity: number, ...components: With[]): void` | Adds these components to an entity, replacing any it has of the same type. |
 | `.get<T>(entity: number, c: Component<T>): T \| undefined` | One component of an entity, or undefined when it hasn't got one. |
 | `.query(o: { data?: Component<unknown>[] \| undefined; has?: Component<unknown>[] \| undefined; without?: Component<unknown>[] \| undefined; }): { entity: number…` | Entities with every component in `has` (and none in `without`), with the `data` components' values. |
-| `.resource<T>(r: Resource<T>): T` | – |
-| `.setResource<T>(r: Resource<T>, value: T): void` | – |
+| `.resource<T>(r: Resource<T>): T` | A resource's value. |
+| `.setResource<T>(r: Resource<T>, value: T): void` | Sets a resource's value, adding it if the app hasn't got one. |
 | `.trigger<T>(e: Event<T>, value: T): void` | Triggers an event: its observers run now. |
 | `.write<T>(m: Message<T>, value: T): void` | Writes a message, for its readers' next run. |
 | `.observe<T>(e: Event<T>, entity?: number \| undefined): () => T[]` | Starts observing an event (BRP's world.observe+watch). Each call of the returned function gives the events triggered since the last call, in order. `entity` limits it to events aimed at that entity. |
@@ -124,7 +123,7 @@ insert, query and step it, and add TypeScript systems to its schedules.
 | `.state<T>(s: State<T>): T \| null` | A state's value (null before it exists). |
 | `.setState<T>(s: State<T>, value: T): void` | A state's next value: it changes at the next frame's StateTransition. |
 | `.schema(crates?: string[] \| undefined): Record<string, unknown>` | The App's registered types as JSON schema (BRP's registry.schema), filtered by crate. |
-| `.close(): void` | – |
+| `.close(): void` | Shuts the app down; its methods fail after. |
 
 ### `BevyApp`
 
@@ -133,11 +132,10 @@ insert, query and step it, and add TypeScript systems to its schedules.
 
 | Member | What it does |
 | --- | --- |
-| `new BevyApp(id: number, methods: string[])` | – |
 | `BevyApp.open(o: OpenOptions): BevyApp` | A headless App with these plugins; Startup has run, no frame has stepped. TypeScript plugins are built in order once the App is open, then finished and cleaned up; their Startup systems run before the first frame. |
 | `BevyApp.stepTogether(apps: BevyApp[], frames?: number): number[]` | Apps stepped together, a frame at a time: a network's peers. Returns each one's frame. |
 | `.methods: string[]` | the methods this App answers (BRP's, raea's and its plugins') |
-| `.id: number` | – |
+| `.id: number` | the App's handle in the engine |
 | `.isPluginAdded(name: string): boolean` | Whether a plugin of this name is in the App (Bevy's is_plugin_added), Rust or TypeScript. |
 | `.addPlugins(...refs: PluginRef[]): BevyApp` | Adds TypeScript plugins and groups (Bevy's add_plugins): each built in order, then each finished, then each cleaned up. A Rust plugin is compiled in and must be named when the App opens; naming a new one here throws. |
 | `.addSystems(schedule: string, systems: ((app: BevyApp, frame: number) => void) \| ((app: BevyApp, frame: number) => void)[], o?: SystemOptions): BevyApp` | Systems in a schedule (Bevy's add_systems), each as `system` adds one; one of the startup schedules (PreStartup, Startup, PostStartup) runs them once, before the App's next frame. Returns the App, to chain. |
@@ -150,11 +148,11 @@ insert, query and step it, and add TypeScript systems to its schedules.
 | `.frameSchedules(): string[]` | The schedules a frame runs, in order (Bevy's MainScheduleOrder). |
 | `.call<A = unknown>(method: string, params?: unknown): A` | Any method of the App's table, run now: its answer, or a throw with the method's message. |
 | `.spawn(...components: With[]): number` | A new entity with these components. |
-| `.insert(entity: number, ...components: With[]): void` | – |
+| `.insert(entity: number, ...components: With[]): void` | Adds these components to an entity, replacing any it has of the same type. |
 | `.get<T>(entity: number, c: Component<T>): T \| undefined` | One component of an entity, or undefined when it hasn't got one. |
 | `.query(o: { data?: Component<unknown>[] \| undefined; has?: Component<unknown>[] \| undefined; without?: Component<unknown>[] \| undefined; }): { entity: number…` | Entities with every component in `has` (and none in `without`), with the `data` components' values. |
-| `.resource<T>(r: Resource<T>): T` | – |
-| `.setResource<T>(r: Resource<T>, value: T): void` | – |
+| `.resource<T>(r: Resource<T>): T` | A resource's value. |
+| `.setResource<T>(r: Resource<T>, value: T): void` | Sets a resource's value, adding it if the app hasn't got one. |
 | `.trigger<T>(e: Event<T>, value: T): void` | Triggers an event: its observers run now. |
 | `.write<T>(m: Message<T>, value: T): void` | Writes a message, for its readers' next run. |
 | `.observe<T>(e: Event<T>, entity?: number \| undefined): () => T[]` | Starts observing an event (BRP's world.observe+watch). Each call of the returned function gives the events triggered since the last call, in order. `entity` limits it to events aimed at that entity. |
@@ -163,7 +161,7 @@ insert, query and step it, and add TypeScript systems to its schedules.
 | `.state<T>(s: State<T>): T \| null` | A state's value (null before it exists). |
 | `.setState<T>(s: State<T>, value: T): void` | A state's next value: it changes at the next frame's StateTransition. |
 | `.schema(crates?: string[] \| undefined): Record<string, unknown>` | The App's registered types as JSON schema (BRP's registry.schema), filtered by crate. |
-| `.close(): void` | – |
+| `.close(): void` | Shuts the app down; its methods fail after. |
 
 ### `PluginGroup`
 
@@ -172,12 +170,12 @@ leaves one out, and the App adds the rest in order.
 
 | Member | What it does |
 | --- | --- |
-| `new PluginGroup(name: string, plugins: (string \| Plugin \| { readonly plugin: string; })[])` | – |
-| `.name: string` | – |
-| `.set(p: Plugin): PluginGroup` | – |
-| `.disable(name: string): PluginGroup` | – |
-| `.enable(name: string): PluginGroup` | – |
-| `.build(): (string \| Plugin)[]` | – |
+| `new PluginGroup(name: string, plugins: (string \| Plugin \| { readonly plugin: string; })[])` | A group named `name` of these plugins, in the order the App adds them. |
+| `.name: string` | the group's name |
+| `.set(p: Plugin): PluginGroup` | Replaces the member of `p`'s name with `p`. |
+| `.disable(name: string): PluginGroup` | Leaves the member of this name out. |
+| `.enable(name: string): PluginGroup` | Puts a disabled member back. |
+| `.build(): (string \| Plugin)[]` | The plugins to add, in order, without the disabled ones. |
 
 ## Values
 
@@ -248,7 +246,7 @@ a split, a cut word or a moved span is a change to this list; the length becomes
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `segments` | `readonly (readonly [number, number])[]` | – |
+| `segments` | `readonly (readonly [number, number])[]` | the composition's own frame ranges, [from, to), played one after another |
 
 ### `OpenOptions`
 
@@ -266,11 +264,11 @@ does. Unique by `name` unless `isUnique` is false (Bevy panics on a unique plugi
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
-| `build` (required) | `(app: BevyApp) => void` | – |
-| `finish` | `((app: BevyApp) => void) \| undefined` | – |
-| `cleanup` | `((app: BevyApp) => void) \| undefined` | – |
-| `isUnique` | `boolean` | – |
+| `name` (required) | `string` | the plugin's name: two unique plugins of one name can't both be added |
+| `build` (required) | `(app: BevyApp) => void` | adds the plugin's systems, resources and other plugins to the app |
+| `finish` | `((app: BevyApp) => void) \| undefined` | called once every plugin is built, for setup that needs the others |
+| `cleanup` | `((app: BevyApp) => void) \| undefined` | called after every plugin's finish |
+| `isUnique` | `boolean` | whether adding it twice is an error (true) |
 
 ### `PluginRef`
 
@@ -286,13 +284,13 @@ type PluginRef = string | { readonly plugin: string } | Plugin | PluginGroup
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `component` (required) | `ComponentType<any>` | – |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `durationInFrames` (required) | `number` | – |
-| `defaultProps` (required) | `Record<string, unknown>` | – |
+| `id` (required) | `string` | the composition's id: letters, digits and dashes (`raea render --composition` picks it) |
+| `component` (required) | `ComponentType<any>` | the React component it renders |
+| `width` (required) | `number` | in px |
+| `height` (required) | `number` | in px |
+| `fps` (required) | `number` | frames a second |
+| `durationInFrames` (required) | `number` | its length in frames |
+| `defaultProps` (required) | `Record<string, unknown>` | the props it's rendered with (JSON-like values only) |
 
 ### `SystemOptions`
 

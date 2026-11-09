@@ -8,14 +8,20 @@ import { type PlanBox } from "./all";
 /** One step of detail: tiles nearer than `to` metres draw `keep` of their clumps (0 to 1), each with its first
  * `blades` blades in `segments` segments, `widen` times as wide. */
 export interface GrassLod {
+  /** tiles nearer than this many metres take this step */
   to: number;
+  /** the share of their clumps they draw, 0 to 1 */
   keep: number;
+  /** how many of each clump's blades they draw */
   blades: number;
+  /** segments each blade is drawn in */
   segments: number;
+  /** how many times as wide each blade is drawn, to fill in for the ones left out */
   widen: number;
 }
 
 export interface GrassProps {
+  /** the entity's name, for picking, the inspector and world.* */
   name?: string;
   /** the ground the field covers: a box on the plan (x, z, metres) */
   area: PlanBox;
@@ -31,16 +37,21 @@ export interface GrassProps {
   tints?: [string, string][];
   /** the tips' highlight colour ("#f2e7a0") and how much of it each tip takes (0.22) */
   highlight?: string;
+  /** how much of the highlight each tip takes (0.22) */
   highlightMix?: number;
   /** blades in a clump (14), their height in metres (0.3; each 0.55 to 1.3 times it), width range ([0.034, 0.05]) */
   blades?: number;
+  /** their height in metres (0.3; each 0.55 to 1.3 times it) */
   bladeHeight?: number;
+  /** a blade's width range, metres ([0.034, 0.05]) */
   width?: [number, number];
   /** how far from its clump's centre a blade stands (0.06 m), and how far it leans over its height ([0.2, 0.7]) */
   spread?: number;
+  /** how far a blade leans over its height ([0.2, 0.7]) */
   lean?: [number, number];
   /** each clump's scale, a random pick between these ([0.85, 1.35]), times `size` */
   scale?: [number, number];
+  /** which randomness places the clumps */
   seed?: number;
   /** grid points a metre the functions are sampled at (2) */
   resolution?: number;

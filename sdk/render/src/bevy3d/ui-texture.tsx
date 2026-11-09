@@ -15,10 +15,17 @@ export function targetImage(name: string, width: number, height: number): string
   return `raea-screen:${name}@${width}x${height}`;
 }
 
+export interface UiTextureProps {
+  /** the image's name, as a material or ImageNode uses it */
+  target: string;
+  /** the UI roots drawn into it */
+  children?: ReactNode;
+}
+
 /** The UI roots inside drawn into `target` instead of the window (a Camera2d with RenderTarget::Image, the roots'
  *  UiTargetCamera): laid out in a box the image's size, see-through where they draw nothing, and nowhere in the frame
  *  itself. A root's 100% is the image's size. @bevy bevy_camera::RenderTarget::Image */
-export function UiTexture({ target, children }: { target: string; children?: ReactNode }) {
+export function UiTexture({ target, children }: UiTextureProps) {
   const m = /^raea-screen:([A-Za-z0-9_-]+)@(\d+)x(\d+)$/.exec(target);
   if (!m) throw new TypeError(`UiTexture: target is a targetImage(name, width, height), got ${JSON.stringify(target)}`);
   return screenContent(m[1], { resolution: [Number(m[2]), Number(m[3])], crt: false, background: "transparent", children });

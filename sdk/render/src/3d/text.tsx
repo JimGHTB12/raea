@@ -8,13 +8,17 @@ import { Vec3, checkVec, node3d } from "./all";
 // ---- text in the 3D world (docs/ts-native.feature P19) ----
 
 export interface SpanProps {
+  /** the run's text */
   children?: ReactNode;
   /** a family (raea's bundled faces: Inter, Montserrat, Oswald, Playfair Display...; or one on this machine) */
   font?: string;
+  /** 100..900 (the block's by default) */
   weight?: number;
+  /** slanted (the block's by default) */
   italic?: boolean;
   /** times the block's size */
   size?: number;
+  /** the run's colour (the block's by default) */
   color?: string;
 }
 
@@ -29,12 +33,15 @@ export interface GlyphInfo {
   index: number;
   /** how many glyphs the block has */
   count: number;
+  /** the character it draws */
   char: string;
   /** its word's place among the words, from 0, and how many there are */
   word: number;
+  /** how many words the block has */
   words: number;
   /** its place in its word, and the word's glyph count */
   inWord: number;
+  /** how many glyphs its word has */
   wordLength: number;
   /** its line (by the newlines in the text), from 0 */
   line: number;
@@ -49,9 +56,13 @@ export interface GlyphStyle {
   position?: Vec3;
   /** radians, XYZ */
   rotation?: Vec3;
+  /** multiplies its size: one number, or x, y and z */
   scale?: number | Vec3;
+  /** replaces its colour */
   color?: string;
+  /** multiplies its opacity, 0..1 */
   opacity?: number;
+  /** false hides it this frame */
   visible?: boolean;
 }
 
@@ -62,13 +73,19 @@ export interface RichTextProps {
    * <Outline skip>, <Bloom skip>, <Grade skip>) leaves its pixels as drawn, and <Look passes> gives one its own paint;
    * a piece names at most three passes besides "scene"; keyed per frame */
   pass?: string;
+  /** where the block's origin is, metres (x, y, z) */
   position?: Vec3;
+  /** the block's rotation, radians (x, y, z) */
   rotation?: Vec3;
+  /** the block's scale: one number, or x, y and z */
   scale?: number | Vec3;
   /** the em in metres (0.5 by default) */
   size?: number;
+  /** a family (raea's bundled faces: Inter by default, Montserrat, Oswald, Playfair Display...; or one on this machine) */
   font?: string;
+  /** 100..900 (700 by default) */
   weight?: number;
+  /** slanted (false by default) */
   italic?: boolean;
   /** each glyph's colour unless its <Span> gives one */
   color?: string;
@@ -79,14 +96,21 @@ export interface RichTextProps {
   lineHeight?: number;
   /** wrapped at this width in metres (no wrapping by default) */
   maxWidth?: number;
+  /** 0..1, smooth to matte */
   roughness?: number;
+  /** 0..1, a dielectric to a metal */
   metalness?: number;
+  /** the colour it glows with */
   emissive?: string;
+  /** how strongly it glows (1 by default; 2-10 with bloom) */
   emissiveIntensity?: number;
+  /** drawn in its flat colour, without light or shade */
   unlit?: boolean;
   /** letter-shaped shadows (true by default) */
   castShadow?: boolean;
+  /** other things' shadows fall on it */
   receiveShadow?: boolean;
+  /** the render layers it's on ([0] by default): a camera draws only the layers it's given */
   layers?: number[];
   /** each glyph's (or word's) entrance: a move's name, a move or several (rise, pop, slam, slide, fade... the 2D ones,
    * their px read at 100 an em, their degrees as degrees), `each` frames apart from `at` */
@@ -95,8 +119,11 @@ export interface RichTextProps {
   each?: number;
   /** the entrance and exit staggered by letter (default) or by word */
   by?: "letter" | "word";
+  /** the local frame the first entrance starts (0) */
   at?: number;
+  /** each glyph's (or word's) exit: a move or its name, played backwards from `exitAt` */
   exit?: MoveLike;
+  /** the local frame the first exit starts; an exit needs it */
   exitAt?: number;
   /** frames between exits (0: together) */
   exitEach?: number;
@@ -104,6 +131,7 @@ export interface RichTextProps {
   reveal?: number;
   /** each glyph's own motion this frame, from anything the frame gives (useCurrentFrame, spring, interpolate) */
   glyph?: (g: GlyphInfo) => GlyphStyle;
+  /** the text: strings and <Span> runs */
   children?: ReactNode;
 }
 

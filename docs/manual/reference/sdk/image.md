@@ -61,9 +61,9 @@ Bevy: `bevy_image::texture_atlas_builder::TextureAtlasBuilder`, `bevy_image::tex
 
 | Member | What it does |
 | --- | --- |
-| `.padding(p: [number, number]): TextureAtlasBuilder` | – |
-| `.addTexture(src: string): TextureAtlasBuilder` | – |
-| `.build({ sampler }?: { sampler?: SamplerSpec \| undefined; }): BuiltAtlas` | – |
+| `.padding(p: [number, number]): TextureAtlasBuilder` | Whole px of space around each picture, [x, y]. |
+| `.addTexture(src: string): TextureAtlasBuilder` | Adds a picture, packed in the order added. |
+| `.build({ sampler }?: { sampler?: SamplerSpec \| undefined; }): BuiltAtlas` | Packs the atlas, with its own sampler if given (Bevy's default otherwise). |
 
 ## Types
 
@@ -73,9 +73,9 @@ What a <Sprite> takes to show a built atlas: the whole of it, or one of its pict
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `src` (required) | `string` | – |
-| `sampler` | `SamplerSpec` | – |
-| `atlasPick` | `number` | – |
+| `src` (required) | `string` | the atlas picture |
+| `sampler` | `SamplerSpec` | how it's sampled (the atlas's own sampler) |
+| `atlasPick` | `number` | which of its pictures shows (the whole atlas when left out) |
 
 ### `BuiltAtlas`
 
@@ -84,20 +84,20 @@ A built atlas: `image` the whole atlas as a sprite's picture, `sources.handle(te
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `image` (required) | `AtlasSprite` | – |
-| `sources` (required) | `{ handle(texture: string): AtlasSprite }` | – |
+| `image` (required) | `AtlasSprite` | the whole atlas, as a sprite's picture |
+| `sources` (required) | `{ handle(texture: string): AtlasSprite }` | \`handle(texture)\`: one of the pictures packed into it, by its file |
 
 ### `ImagePlaneProps`
 
 | Field | Type | What it is |
 | --- | --- | --- |
 | `src` (required) | `string` | a picture in the media folder: staticFile("poster.png") |
-| `name` | `string` | – |
+| `name` | `string` | the entity's name, for picking and the inspector |
 | `width` | `number` | width in scene units (1 by default); height follows the picture unless given |
-| `height` | `number` | – |
-| `position` | `Vec3` | – |
+| `height` | `number` | in scene units (follows the picture's shape by default) |
+| `position` | `Vec3` | where its centre stands, metres (x, y, z) |
 | `rotation` | `Vec3` | radians |
-| `scale` | `number \| Vec3` | – |
+| `scale` | `number \| Vec3` | one number, or x, y and z |
 | `quaternion` | `[number, number, number, number]` | a turn as a quaternion [x, y, z, w], instead of `rotation` (a card turned to face a point) |
 | `shadow` | `boolean` | false: the card casts no shadow (a cursor or a UI floating in the scene); true by default |
 | `cutout` | `boolean` | the picture cut out at half alpha instead of blended: its clear parts are no surface at all (no fog on them, no sorting) and its shadow is the picture's shape, not the card's. For hard-edged pictures: a baked cloud, a sprite |
@@ -113,7 +113,7 @@ The props of [`Img`](#img), tabled there.
 | Field | Type | What it is |
 | --- | --- | --- |
 | `src` (required) | `string` | a video in the media folder: staticFile("clip.mp4") |
-| `name` | `string` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
 | `time` | `number` | the clip's time on this frame, in seconds (by default the Sequence's: frame / fps) |
 | `k1` | `number` | the lens's radial distortion (SIMPLE_RADIAL's k1, from a solve): the plate is drawn undistorted, so the footage's straight lines are straight where the 3D's are |
 

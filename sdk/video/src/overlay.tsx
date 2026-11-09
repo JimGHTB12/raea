@@ -10,8 +10,15 @@ export function overlays(): string[] {
   return Array.isArray(o) ? o.filter((x): x is string => typeof x === "string") : [];
 }
 
+export interface OverlayProps {
+  /** the overlay's name, as the render asks for it */
+  name: string;
+  /** what the overlay draws */
+  children?: ReactNode;
+}
+
 /** Its children only in a render asked for the overlay `name`. */
-export function Overlay({ name, children }: { name: string; children?: ReactNode }) {
+export function Overlay({ name, children }: OverlayProps) {
   const on = overlays();
   return on.includes(name) || on.includes("*") ? (children ?? null) : null;
 }

@@ -5,6 +5,7 @@ export * from "./materials";
 export * from "./lights";
 export * from "./model";
 export * from "./effects";
+export * from "./volumetric";
 export * from "./post";
 export * from "./look";
 export * from "./bevy";

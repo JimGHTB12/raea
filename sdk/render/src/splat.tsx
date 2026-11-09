@@ -28,22 +28,30 @@ export interface SplatProps {
   /** the splat file (staticFile("x.ply")): a 3DGS .ply (spherical harmonics up to degree 3), a .splat or a .spz. A
    * `x.ply.json` beside it (raea splat train writes one) places it: +Y up, centred, metres */
   src: string;
+  /** where it stands, metres (x, y, z) */
   position?: Vec3;
   /** radians, Euler XYZ */
   rotation?: Vec3;
+  /** its scale: one number, or x, y and z */
   scale?: number | Vec3;
   /** every gaussian's size times this (1 by default): below 1 the scene breaks into points */
   splatScale?: number;
+  /** 0..1, multiplying every gaussian's */
   opacity?: number;
   /** grade: colour times brightness, saturation and contrast about mid grey, times tint */
   brightness?: number;
+  /** 1 as trained; 0 grey, above 1 richer */
   saturation?: number;
+  /** 1 as trained; about mid grey */
   contrast?: number;
+  /** a colour every gaussian's is multiplied by */
   tint?: string;
   /** reveal 0..1: each splat scales in as a front passes it, from `revealFrom` (a point; the centre by default)
    * outward, or along `revealAxis` (a plane sweeping through) when that's given */
   reveal?: number;
+  /** the point the reveal grows outward from (the centre by default) */
   revealFrom?: Vec3;
+  /** a direction: the reveal sweeps a plane along it instead of growing from a point */
   revealAxis?: Vec3;
   /** how wide the front is, as a share of the sweep (0.15) */
   revealSoft?: number;
@@ -63,13 +71,17 @@ export interface SplatProps {
   spread?: number;
   /** explode 0..1: thrown out from the centre, falling and fading */
   explode?: number;
+  /** a ripple running out through the splats: amplitude, wavelength and phase */
   wave?: SplatWave;
   /** radians a metre about the vertical through the centre */
   twist?: number;
+  /** becomes another splat file: `to` and `amount` 0..1 */
   morph?: SplatMorph;
   /** a value the composition passes (a beat's envelope 0..1): bigger by pulseScale, brighter by pulseGlow */
   pulse?: number;
+  /** how much bigger a full pulse makes it */
   pulseScale?: number;
+  /** how much brighter a full pulse makes it */
   pulseGlow?: number;
   /** nothing past this many metres from the centre (trims a trained scene's floaters) */
   crop?: number;

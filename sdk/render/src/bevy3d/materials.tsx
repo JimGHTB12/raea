@@ -1,16 +1,18 @@
-// Materials: standard, grid, paint, toon, extended (their colours in colors.ts).
-import { isValidElement, memo, useContext, type ReactElement, type ReactNode } from "react";
+// Materials: standard, toon and extended (their colours in colors.ts, the extensions in extensions.tsx).
+import { isValidElement, memo, useContext, type ReactElement } from "react";
 import type { TrackSpec } from "@raea/math/animate";
 import { InModel } from "../3d/all";
-import { LinearRgba, MADE_FROM, baseOf, emissiveOf, type Affine2, type Srgba } from "./all";
-import { samplerSpec, surfaceShader, type SamplerSpec, type SurfaceShaderSpec, type SurfaceDrawProps, type ToonBand, type ToonHighlight, type ToonOutline, type ToonRim } from "../3d";
+import { LinearRgba, MADE_FROM, baseOf, emissiveOf, GridExtension, PaintExtension, WearExtension, ShaderExtension, ToonExtension, wearOf, type Affine2, type Srgba, type Only, type GridExtensionProps, type PaintExtensionProps, type WearExtensionProps, type ShaderExtensionProps, type ToonExtensionProps } from "./all";
+import { samplerSpec, surfaceShader, type SamplerSpec, type SurfaceDrawProps } from "../3d";
 import { MeshBasicMaterial, MeshPhysicalMaterial, MeshStandardMaterial, MeshToonMaterial, type MeshStandardMaterialProps } from "../three";
 import { ProceduralExtension, proceduralOf, type ProceduralExtensionProps } from "./procedural";
 
 /** A picture read with its own sampler: Bevy's load_with_settings, whose ImageLoaderSettings give the Image its
  *  ImageSamplerDescriptor ({ path: "checker.png", sampler: { filter: "nearest" } } for hard pixels). */
 export interface SampledImage {
+  /** the picture, in the media folder */
   path: string;
+  /** how it's sampled: filter, address modes */
   sampler: SamplerSpec;
 }
 
@@ -21,7 +23,9 @@ type Tex = string | SampledImage;
  *  its green, the metalness map's as its blue (white without one, so metallic is its factor exactly). Poly Haven's
  *  "_rough" sets come this way; a packed "_arm" map is a plain path. */
 export interface MetallicRoughnessMaps {
+  /** a greyscale roughness map (white rough) */
   roughness?: string;
+  /** a greyscale metalness map (white metal) */
   metalness?: string;
 }
 
@@ -91,27 +95,48 @@ export interface StandardMaterialProps {
 /** The StandardMaterial fields `animate` takes, each a track of its own kind of value. An emissive brighter than white
  *  is LinearRgba keys of one colour: track({ 0: E.mul(0), 30: E.mul(2.5) }) with E = LinearRgba.from(Srgba.hex(c)). */
 export interface StandardMaterialAnimate {
+  /** a track of `base_color`, sampled each frame */
   base_color?: TrackSpec<string>;
+  /** a track of `emissive`, sampled each frame */
   emissive?: TrackSpec<string> | TrackSpec<LinearRgba>;
+  /** a track of `perceptual_roughness`, sampled each frame */
   perceptual_roughness?: TrackSpec<number>;
+  /** a track of `metallic`, sampled each frame */
   metallic?: TrackSpec<number>;
   // the rest of the fields that interpolate, each set on the part's own material frame by frame (docs/control.feature FC1c)
+  /** a track of `emissive_exposure_weight`, sampled each frame */
   emissive_exposure_weight?: TrackSpec<number>;
+  /** a track of `reflectance`, sampled each frame */
   reflectance?: TrackSpec<number>;
+  /** a track of `specular_tint`, sampled each frame */
   specular_tint?: TrackSpec<string>;
+  /** a track of `diffuse_transmission`, sampled each frame */
   diffuse_transmission?: TrackSpec<number>;
+  /** a track of `specular_transmission`, sampled each frame */
   specular_transmission?: TrackSpec<number>;
+  /** a track of `thickness`, sampled each frame */
   thickness?: TrackSpec<number>;
+  /** a track of `ior`, sampled each frame */
   ior?: TrackSpec<number>;
+  /** a track of `attenuation_distance`, sampled each frame */
   attenuation_distance?: TrackSpec<number>;
+  /** a track of `attenuation_color`, sampled each frame */
   attenuation_color?: TrackSpec<string>;
+  /** a track of `clearcoat`, sampled each frame */
   clearcoat?: TrackSpec<number>;
+  /** a track of `clearcoat_perceptual_roughness`, sampled each frame */
   clearcoat_perceptual_roughness?: TrackSpec<number>;
+  /** a track of `anisotropy_strength`, sampled each frame */
   anisotropy_strength?: TrackSpec<number>;
+  /** a track of `anisotropy_rotation`, sampled each frame */
   anisotropy_rotation?: TrackSpec<number>;
+  /** a track of `depth_bias`, sampled each frame */
   depth_bias?: TrackSpec<number>;
+  /** a track of `parallax_depth_scale`, sampled each frame */
   parallax_depth_scale?: TrackSpec<number>;
+  /** a track of `max_parallax_layer_count`, sampled each frame */
   max_parallax_layer_count?: TrackSpec<number>;
+  /** a track of `lightmap_exposure`, sampled each frame */
   lightmap_exposure?: TrackSpec<number>;
 }
 
@@ -123,8 +148,6 @@ const STANDARD_FIELDS: Record<string, "number" | "string"> = {
   parallax_depth_scale: "number", max_parallax_layer_count: "number", lightmap_exposure: "number",
 };
 
-// A fixes an `animate` to the fields T names: any other key is never, so a typo fails in tsc, not at render
-type Only<A, T> = { [K in keyof A]: K extends keyof T ? T[K] : never };
 
 // each animatable field's name in the old material's animate
 const STANDARD_ANIMATE: Record<string, string> = { base_color: "color", emissive: "emissive", perceptual_roughness: "roughness", metallic: "metalness" };
@@ -292,108 +315,6 @@ function standard(p: StandardMaterialProps, ext: Extended) {
   );
 }
 
-/** raea's extension of StandardMaterial (a Bevy MaterialExtension of raea's): graph paper over the surface for
- *  greybox levels, lines every `cell` world units (fixed in the world, so they run on across shapes), a heavier one
- *  every `major` cells (4), in `color`, and each face of a Box outlined in `edge` ("" for no outlines). Its colours are
- *  the first frame's. It goes in an ExtendedMaterial's `extension`. */
-export interface GridExtensionProps {
-  cell: number;
-  major?: number;
-  color?: string;
-  edge?: string;
-}
-
-/** raea's grid over a StandardMaterial, as an ExtendedMaterial's extension (engine/render grid.rs):
- * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_render::engine::grid::Grid>> */
-export function GridExtension(_: GridExtensionProps): ReactNode {
-  throw new TypeError("GridExtension goes in an ExtendedMaterial: <ExtendedMaterial base={<StandardMaterial />} extension={<GridExtension cell={0.5} />} />");
-}
-
-/** raea's extension of StandardMaterial for a paint look (<Look mode="paint">): the surface broken up by world-space
- *  noise of `scale` metres (1), its tone boundaries wandering by `breakup` (0.5) and patches of it taking `color`
- *  (`amount`, 0.6, of the way): a mottled field, rust, a wall's uneven paint. It goes in an ExtendedMaterial's
- *  `extension`. */
-export interface PaintExtensionProps {
-  breakup?: number;
-  scale?: number;
-  color?: string;
-  amount?: number;
-}
-
-export function PaintExtension(_: PaintExtensionProps): ReactNode {
-  throw new TypeError("PaintExtension goes in an ExtendedMaterial: <ExtendedMaterial base={<StandardMaterial />} extension={<PaintExtension scale={0.5} />} />");
-}
-
-/** raea's extension of StandardMaterial that wears it (the engine's Wear MaterialExtension, systems/wear): its paint
- *  mottled, chipped back to `chip_color` on edges and a few spots, `grime` gathered low and underneath and `rust` run
- *  down in streaks, fixed in the part's own space as it moves. `amount` 0-1; `chips`, `grime` and `rust` each 0-1 of it
- *  (0.6, 0.5, 0.25); `scale` a blotch's size in metres (0.08); `seed` moves the pattern. It goes in an
- *  ExtendedMaterial's `extension`. */
-export interface WearExtensionProps {
-  amount: number;
-  scale?: number;
-  chips?: number;
-  grime?: number;
-  rust?: number;
-  seed?: number;
-  chip_color?: string;
-  grime_color?: string;
-  rust_color?: string;
-}
-
-/** raea's chips, grime and rust over a StandardMaterial, as an ExtendedMaterial's extension (systems/wear):
- * @bevy bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_wear::Wear>> */
-export function WearExtension(_: WearExtensionProps): ReactNode {
-  throw new TypeError("WearExtension goes in an ExtendedMaterial: <ExtendedMaterial base={<StandardMaterial />} extension={<WearExtension amount={0.6} />} />");
-}
-
-// the old material's `wear` from WearExtension's fields (its colours camelCase there)
-function wearOf(w: WearExtensionProps): MeshStandardMaterialProps["wear"] {
-  const { chip_color, grime_color, rust_color, ...rest } = w;
-  return { ...rest, ...(chip_color !== undefined ? { chipColor: chip_color } : {}), ...(grime_color !== undefined ? { grimeColor: grime_color } : {}), ...(rust_color !== undefined ? { rustColor: rust_color } : {}) };
-}
-
-/** raea's extension of StandardMaterial written in WESL (the engine's ShaderExt, docs/shaders.feature SH1): its
- *  `fn surface` runs before Bevy's lighting and its `fn lit` after it, on the base's inputs, so the surface stays lit
- *  and shadowed. raea/3d's <MeshStandardMaterial shader> is the same thing; the spec is SurfaceShaderSpec. It goes in an
- *  ExtendedMaterial's `extension`, alone.
- *  @bevy bevy_pbr::extended_material::ExtendedMaterial<bevy_pbr::pbr_material::StandardMaterial, raea_sys_shader::ShaderExt> */
-export type ShaderExtensionProps = SurfaceShaderSpec;
-
-export function ShaderExtension(_: ShaderExtensionProps): ReactNode {
-  throw new TypeError("ShaderExtension goes in an ExtendedMaterial: <ExtendedMaterial base={<StandardMaterial />} extension={<ShaderExtension wesl={src} />} />");
-}
-
-
-/** raea's extension of StandardMaterial that cel-shades it (the engine's ToonExt; three.js's MeshToonMaterial): the
- *  scene's lights in `steps` hard bands (2; `bands` for an explicit ramp, darkest first), the bottom one
- *  `shadow_color` (the base colour darker, nudged towards violet), with an optional rim, highlight and ink outline
- *  (true for their defaults). Its base gives base_color, base_color_texture, emissive, alpha_mode and material; a
- *  toon surface has no roughness or metal. It goes in an ExtendedMaterial's `extension`, alone. */
-export interface ToonExtensionProps {
-  steps?: number;
-  bands?: ToonBand[];
-  shadow_color?: string;
-  rim?: boolean | ToonRim;
-  highlight?: boolean | ToonHighlight;
-  outline?: boolean | ToonOutline;
-  rim_intensity?: number;
-  highlight_intensity?: number;
-  outline_width?: number;
-  /** its fields' tracks, as a StandardMaterial's `animate` (its base animates base_color and emissive) */
-  animate?: ToonExtensionAnimate;
-}
-
-export interface ToonExtensionAnimate {
-  shadow_color?: TrackSpec<string>;
-  rim_intensity?: TrackSpec<number>;
-  highlight_intensity?: TrackSpec<number>;
-  outline_width?: TrackSpec<number>;
-}
-
-export function ToonExtension<A>(_: ToonExtensionProps & { animate?: Only<A, ToonExtensionAnimate> }): ReactNode {
-  throw new TypeError("ToonExtension goes in an ExtendedMaterial: <ExtendedMaterial base={<StandardMaterial />} extension={<ToonExtension steps={3} />} />");
-}
 
 // the base's fields a toon surface takes; the rest (roughness, metal, maps) it has no use for
 const TOON_BASE = new Set(["base_color", "base_color_texture", "emissive", "alpha_mode", "material", "animate"]);

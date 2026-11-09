@@ -11,9 +11,10 @@ const srgbToLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.
 
 const linearToSrgb = (c: number) => (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
 
-/** Bevy's Srgba: gamma-encoded colour, each channel 0..1. */
+/** Bevy's Srgba: gamma-encoded colour, each channel 0..1. @bevy bevy_color::srgba::Srgba */
 export class Srgba {
   [MADE_FROM]?: MadeFrom;
+  /** sRGB red, green, blue and alpha, each 0 to 1. */
   constructor(public red: number, public green: number, public blue: number, public alpha = 1) {}
   /** Bevy's Srgba::hex: rgb, rgba, rrggbb or rrggbbaa (the # optional), and also rgb() or a common name */
   static hex(hex: string): Srgba {
@@ -41,6 +42,7 @@ export class Srgba {
   lighter(amount: number): Srgba {
     return LinearRgba.from(this).lighter(amount).to_srgba();
   }
+  /** The same colour with this alpha. */
   with_alpha(alpha: number): Srgba {
     const s = new Srgba(this.red, this.green, this.blue, alpha);
     s[MADE_FROM] = this[MADE_FROM];
@@ -68,10 +70,12 @@ export function baseOf(c: string | Srgba | undefined): { color: string; alpha: n
   return { color: "#" + byte(c.red) + byte(c.green) + byte(c.blue), alpha: c.alpha };
 }
 
-/** Bevy's LinearRgba: linear light, which a StandardMaterial's emissive is; a channel past 1 is brighter than white. */
+/** Bevy's LinearRgba: linear light, which a StandardMaterial's emissive is; a channel past 1 is brighter than white. @bevy bevy_color::linear_rgba::LinearRgba */
 export class LinearRgba {
   [MADE_FROM]?: MadeFrom;
+  /** Linear red, green, blue (above 1 for brighter than white) and alpha. */
   constructor(public red: number, public green: number, public blue: number, public alpha = 1) {}
+  /** An opaque linear colour. */
   static rgb(red: number, green: number, blue: number): LinearRgba {
     return new LinearRgba(red, green, blue);
   }

@@ -12,7 +12,9 @@ import { PerspectiveCamera } from "./three";
 import { hasNative, native } from "@raea/app/native";
 
 export interface MatchmoveCamera {
+  /** seconds into the clip */
   t: number;
+  /** where the camera is, in the solved world (metres) */
   position: Vec3;
   /** camera to world, [x, y, z, w]; the camera looks down its -Z with +Y up */
   quaternion: [number, number, number, number];
@@ -22,28 +24,41 @@ export interface MatchmoveCamera {
 
 /** What `raea track` writes and <Matchmove> draws from. */
 export interface MatchmoveSolve {
+  /** "sfm": a full solve with structure; "rotation": the camera only turns (too little parallax, or too few frames registered); "static": it doesn't move */
   mode: "sfm" | "rotation" | "static";
   /** the footage's size in pixels, and its frame rate */
   width: number;
+  /** the footage's height in pixels */
   height: number;
+  /** the footage's frame rate */
   fps: number;
+  /** where in the clip the solve starts, seconds */
   from: number;
+  /** how long it runs, seconds */
   seconds: number;
+  /** how many frames it solved */
   frames: number;
   /** vertical field of view, degrees; focal length in pixels; the lens's radial distortion */
   fov: number;
+  /** the focal length in pixels, at the footage's full size */
   focal: number;
+  /** the lens's radial distortion */
   k1: number;
+  /** how many frames COLMAP registered; the rest were interpolated */
   registered: number;
   /** mean reprojection error in pixels (null without structure) */
   error: number | null;
+  /** the camera's height over the ground, metres, that set the world's scale */
   camera_height: number;
+  /** the camera a frame */
   cameras: MatchmoveCamera[];
   /** the sparse points, in the solved world */
   points: Vec3[];
+  /** the ground plane: its height (0) and normal (+Y) */
   ground: { y: number; normal: Vec3 };
   /** the subject's cut-outs, a path with %04d for the frame (1-based), or null */
   cut: string | null;
+  /** what the solver noticed: fallbacks, an assumed field of view, interpolated frames */
   notes: string[];
 }
 
@@ -52,6 +67,7 @@ export interface MatchmoveProps {
   src: string;
   /** where in the clip the shot starts, and how long it runs (seconds; 0 = to the end) */
   from?: number;
+  /** how long the shot runs, seconds (0: to the clip's end) */
   seconds?: number;
   /** the subject to keep in front of the 3D and out of the solve: a box around it on the first frame, [x, y, w, h] in
    * 0..1 of the frame (EdgeTAM tracks it from there) */
@@ -80,10 +96,13 @@ export interface MatchmoveProps {
 
 /** Each frame's state under a <Matchmove>, for the 3D inside it. */
 export interface MatchmoveState {
+  /** the solve it draws from */
   solve: MatchmoveSolve;
   /** the solve's frame shown now (0-based), and the clip's time */
   index: number;
+  /** the clip's time at this frame, seconds */
   time: number;
+  /** the solve's camera for this frame */
   camera: MatchmoveCamera;
   /** where a point of the solved world lands in the composition, in pixels ([x, y], and its distance in front of the
    * camera; behind it when that's 0 or less) */

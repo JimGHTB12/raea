@@ -11,8 +11,11 @@ import type { FrameInput } from "@raea/app/clock";
 /** One action: what it does (for the agent), its arguments by name with a few words each, and what it does to the
  *  panel's state. */
 export interface PanelAction<S, A = any> {
+  /** what the action does, for the agent */
   about: string;
+  /** its arguments by name, a few words each */
   args?: Record<string, string>;
+  /** the panel's state after it */
   run: (state: S, args: A) => S;
 }
 export type PanelActions<S> = Record<string, PanelAction<S>>;

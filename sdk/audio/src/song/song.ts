@@ -32,8 +32,11 @@ export interface CutOptions extends FrameRange {
 }
 
 export interface Song {
+  /** the song's map, from \`raea song\` */
   map: SongMap;
+  /** the composition's frame rate, that frames are counted in */
   fps: number;
+  /** seconds into the song frame 0 falls on (0) */
   offset: number;
   /** the frame a song time falls on */
   frame(seconds: number): number;

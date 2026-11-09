@@ -60,6 +60,8 @@ Bevy's ExtendedMaterial: a StandardMaterial with one of raea's extensions (GridE
 
   <ExtendedMaterial base={<StandardMaterial base_color="#cfc8bb" />} extension={<GridExtension cell={0.5} major={2} />} />
 
+Bevy: `bevy_pbr::ExtendedMaterial`.
+
 | Prop | Type | What it does |
 | --- | --- | --- |
 | `base` (required) | `ReactElement` | a <StandardMaterial>, or another <ExtendedMaterial> to put a second extension on (grid and paint both) |
@@ -108,10 +110,10 @@ Bevy: `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::Exte
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `cell` (required) | `number` | – |
-| `major` | `number` | – |
-| `color` | `string` | – |
-| `edge` | `string` | – |
+| `cell` (required) | `number` | world units between grid lines |
+| `major` | `number` | cells between heavier lines (4) |
+| `color` | `string` | the lines' colour |
+| `edge` | `string` | the colour each Box face is outlined in ("" for none) |
 
 ### `Lightmap`
 
@@ -134,10 +136,10 @@ Used in: [3d/lightmaps](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `breakup` | `number` | – |
-| `scale` | `number` | – |
-| `color` | `string` | – |
-| `amount` | `number` | – |
+| `breakup` | `number` | how far tone boundaries wander (0.5) |
+| `scale` | `number` | the noise's size in metres (1) |
+| `color` | `string` | the colour patches take |
+| `amount` | `number` | how far toward `color` the patches go (0.6) |
 
 ### `ProceduralExtension`
 
@@ -149,21 +151,21 @@ Bevy: `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::Exte
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `pattern` (required) | `ProceduralSurface["pattern"]` | – |
-| `colors` | `[string, string]` | – |
-| `scale` | `number` | – |
-| `rough_a` | `number` | – |
-| `rough_b` | `number` | – |
-| `bump` | `number` | – |
-| `tile` | `[number, number]` | – |
-| `gap` | `number` | – |
-| `gap_color` | `string` | – |
-| `dust` | `number` | – |
-| `dirt` | `number` | – |
-| `edges` | `number` | – |
-| `dust_color` | `string` | – |
-| `dirt_color` | `string` | – |
-| `seed` | `number` | – |
+| `pattern` (required) | `ProceduralSurface["pattern"]` | what it draws: noise, wood, marble, stone, brick, tiles, fabric, brushed or plaster |
+| `colors` | `[string, string]` | the pattern's two colours |
+| `scale` | `number` | how many metres across its features are |
+| `rough_a` | `number` | the first colour's roughness, 0..1 |
+| `rough_b` | `number` | the second colour's roughness, 0..1 |
+| `bump` | `number` | how deep the pattern's relief looks (0 or more) |
+| `tile` | `[number, number]` | brick and tiles: a cell's [width, height] in metres |
+| `gap` | `number` | brick and tiles: the joints' width in metres |
+| `gap_color` | `string` | the joints' colour |
+| `dust` | `number` | 0..1 dust on what faces up |
+| `dirt` | `number` | 0..1 dirt in joints, hollows, undersides and along the floor line |
+| `edges` | `number` | 0..1 wear on the edges, lighter |
+| `dust_color` | `string` | the dust's colour |
+| `dirt_color` | `string` | the dirt's colour |
+| `seed` | `number` | which randomness the pattern uses |
 
 ### `Refinish`
 
@@ -173,8 +175,8 @@ colour, texture or finish each gives, the rest of it kept (a run of cabinets pai
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `materials` (required) | `MeshStandardMaterialProps[]` | – |
-| `children` | `ReactNode` | – |
+| `materials` (required) | `MeshStandardMaterialProps[]` | the finishes, each a <MeshStandardMaterial>'s props, over every glTF material or the one its `material` names |
+| `children` | `ReactNode` | the models refinished |
 
 ### `ShaderExtension`
 
@@ -212,7 +214,7 @@ Bevy: `bevy_pbr::pbr_material::StandardMaterial`.
 
 Also takes the props of [`StandardMaterialProps`](#standardmaterialprops).
 
-Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/vertex_colors](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/vertex_colors.tsx), [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/rotate_environment_map.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/spherical_area_lights](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx), [3d/lightmaps](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/lightmaps.tsx), and 42 more.
+Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/vertex_colors](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/vertex_colors.tsx), [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/rotate_environment_map.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/spherical_area_lights](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx), [3d/lightmaps](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/lightmaps.tsx), and 41 more.
 
 ### `SurfaceShader`
 
@@ -274,15 +276,15 @@ Bevy: `bevy_pbr::mesh_material::MeshMaterial3d<bevy_pbr::extended_material::Exte
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `amount` (required) | `number` | – |
-| `scale` | `number` | – |
-| `chips` | `number` | – |
-| `grime` | `number` | – |
-| `rust` | `number` | – |
-| `seed` | `number` | – |
-| `chip_color` | `string` | – |
-| `grime_color` | `string` | – |
-| `rust_color` | `string` | – |
+| `amount` (required) | `number` | how worn it is, 0-1 |
+| `scale` | `number` | a blotch's size in metres (0.08) |
+| `chips` | `number` | chips on edges and a few spots, 0-1 of the wear (0.6) |
+| `grime` | `number` | grime low and underneath, 0-1 of the wear (0.5) |
+| `rust` | `number` | rust run down in streaks, 0-1 of the wear (0.25) |
+| `seed` | `number` | moves the pattern |
+| `chip_color` | `string` | what chips show beneath the paint |
+| `grime_color` | `string` | the grime's colour |
+| `rust_color` | `string` | the rust's colour |
 
 ## Functions
 
@@ -299,8 +301,6 @@ function volumeShadow(owner: string, v: unknown): number
 ### `FogFalloff`
 
 FogFalloff's constructors: the visibility distance (5% contrast left at it by default) to a density
-
-Bevy: `bevy_pbr::FogFalloff`.
 
 Used in: [3d/atmospheric_fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/atmospheric_fog.tsx).
 
@@ -326,18 +326,18 @@ type AlphaMode = "Opaque" | "Blend" | "Premultiplied" | "Add" | "Multiply" | "Al
 | Field | Type | What it is |
 | --- | --- | --- |
 | `src` (required) | `string` | the picture pressed onto the surface: staticFile("label.png"); its clear parts show the surface through |
-| `name` | `string` | – |
-| `normalMap` | `string` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `normalMap` | `string` | a normal map pressed with the picture: the label's relief |
 | `size` | `number \| [number, number]` | width by height in metres (a number: a square) |
-| `position` | `Vec3` | – |
+| `position` | `Vec3` | where it stands, metres (x, y, z) |
 | `normal` | `Vec3` | which way the surface faces at the decal (out of it; [0, 1, 0], a floor or counter, by default): turns the decal so the picture lies on it, upright on a wall, its top toward -z on a floor. Instead of rotation |
 | `spin` | `number` | a turn about the normal (radians) |
 | `rotation` | `Vec3` | radians, the decal's +y out of the surface (rather than normal) |
 | `color` | `string` | a tint times the picture (keyed: a stain darkening) |
 | `opacity` | `number` | 0 to 1 (keyed: a label fading in) |
-| `roughness` | `number` | – |
-| `metalness` | `number` | – |
-| `unlit` | `boolean` | – |
+| `roughness` | `number` | 0..1, smooth to matte |
+| `metalness` | `number` | 0..1, a dielectric to a metal |
+| `unlit` | `boolean` | drawn in its flat colour, without light or shade |
 | `fade` | `number` | how far off its plane (metres) it still lies on a surface, fading to nothing there (0.05 by default). Anything nearer the plane than this takes it, a cabinet's side or a fridge's as well as the wall: keep it small |
 
 ### `ExtendedMaterialProps`
@@ -366,7 +366,7 @@ The props of [`ExtendedMaterial`](#extendedmaterial), tabled there.
 | --- | --- | --- |
 | `color` | `FogColor` | what far things fade into: match the background |
 | `near` | `number` | linear fog from `near` to `far` (in the Canvas3D 5 and 20 by default; on the camera Bevy's 0 and 100) |
-| `far` | `number` | – |
+| `far` | `number` | where linear fog is full, from the camera (20 in the Canvas3D, 100 on a camera) |
 | `density` | `number` | or exponential fog of this density (0.05-0.3), instead of near and far |
 | `falloff` | `FogFalloff` | on the camera: Bevy's FogFalloff, in place of near, far and density (Bevy's default Linear 0 to 100) |
 | `directional_light_color` | `FogColor` | on the camera: the sun's colour in the fog looking towards it, its alpha its strength (Bevy's default none) |
@@ -409,8 +409,8 @@ its green, the metalness map's as its blue (white without one, so metallic is it
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `roughness` | `string` | – |
-| `metalness` | `string` | – |
+| `roughness` | `string` | a greyscale roughness map (white rough) |
+| `metalness` | `string` | a greyscale metalness map (white metal) |
 
 ### `PaintExtensionProps`
 
@@ -439,8 +439,8 @@ ImageSamplerDescriptor ({ path: "checker.png", sampler: { filter: "nearest" } } 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `path` (required) | `string` | – |
-| `sampler` (required) | `SamplerSpec` | – |
+| `path` (required) | `string` | the picture, in the media folder |
+| `sampler` (required) | `SamplerSpec` | how it's sampled: filter, address modes |
 
 ### `ShaderExtensionProps`
 
@@ -463,12 +463,12 @@ The props of [`ShaderExtension`](#shaderextension), tabled there.
 | `uniforms` | `Record<string, number \| number[] \| string>` | up to 16: a number (f32), [x, y], [x, y, z], [x, y, z, w] or "#rrggbb" (a linear vec4) |
 | `textures` | `Record<string, string \| Record<string, unknown>>` | up to 4: an asset path, a picture made in code ({ width, height, pixels }) or "render:NAME"; and one array, { layers: [picture,...] } or { src, layers: N }, read as texture_2d_array<f32> tex_NAME by layer |
 | `defs` | `ShaderDefs` | shader defs: each NAME a WESL condition for `@if(NAME)`, and a whole number also `constants::NAME` |
-| `alpha` | `"opaque" \| "blend" \| "add" \| "premultiplied"` | – |
-| `doubleSided` | `boolean` | – |
-| `name` | `string` | – |
-| `position` | `Vec3` | – |
-| `rotation` | `Vec3` | – |
-| `scale` | `Vec3 \| number` | – |
+| `alpha` | `"opaque" \| "blend" \| "add" \| "premultiplied"` | how it blends: opaque, blend, add or premultiplied |
+| `doubleSided` | `boolean` | draw the back faces too |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `position` | `Vec3` | where it stands, metres (x, y, z) |
+| `rotation` | `Vec3` | its rotation, Euler angles in radians (x, y, z) |
+| `scale` | `Vec3 \| number` | its scale: one number, or x, y and z |
 
 ### `SplatMorph`
 
@@ -484,18 +484,18 @@ The props of [`ShaderExtension`](#shaderextension), tabled there.
 | --- | --- | --- |
 | `name` | `string` | parts are matched by name across frames: name a splat that comes and goes |
 | `src` (required) | `string` | the splat file (staticFile("x.ply")): a 3DGS.ply (spherical harmonics up to degree 3), a.splat or a.spz. A `x.ply.json` beside it (raea splat train writes one) places it: +Y up, centred, metres |
-| `position` | `Vec3` | – |
+| `position` | `Vec3` | where it stands, metres (x, y, z) |
 | `rotation` | `Vec3` | radians, Euler XYZ |
-| `scale` | `number \| Vec3` | – |
+| `scale` | `number \| Vec3` | its scale: one number, or x, y and z |
 | `splatScale` | `number` | every gaussian's size times this (1 by default): below 1 the scene breaks into points |
-| `opacity` | `number` | – |
+| `opacity` | `number` | 0..1, multiplying every gaussian's |
 | `brightness` | `number` | grade: colour times brightness, saturation and contrast about mid grey, times tint |
-| `saturation` | `number` | – |
-| `contrast` | `number` | – |
-| `tint` | `string` | – |
+| `saturation` | `number` | 1 as trained; 0 grey, above 1 richer |
+| `contrast` | `number` | 1 as trained; about mid grey |
+| `tint` | `string` | a colour every gaussian's is multiplied by |
 | `reveal` | `number` | reveal 0..1: each splat scales in as a front passes it, from `revealFrom` (a point; the centre by default) outward, or along `revealAxis` (a plane sweeping through) when that's given |
-| `revealFrom` | `Vec3` | – |
-| `revealAxis` | `Vec3` | – |
+| `revealFrom` | `Vec3` | the point the reveal grows outward from (the centre by default) |
+| `revealAxis` | `Vec3` | a direction: the reveal sweeps a plane along it instead of growing from a point |
 | `revealSoft` | `number` | how wide the front is, as a share of the sweep (0.15) |
 | `revealGlow` | `number` | the front's glow (0 none, 1 bright), in `glowColor` |
 | `glowColor` | `string` | the colour of reveal and pulse glows (warm white) |
@@ -505,12 +505,12 @@ The props of [`ShaderExtension`](#shaderextension), tabled there.
 | `curl` | `number` | how much the wind curls (1) |
 | `spread` | `number` | the dust cloud's radius in metres (the splat's own size, before scale; 1.6 times its size by default) |
 | `explode` | `number` | explode 0..1: thrown out from the centre, falling and fading |
-| `wave` | `SplatWave` | – |
+| `wave` | `SplatWave` | a ripple running out through the splats: amplitude, wavelength and phase |
 | `twist` | `number` | radians a metre about the vertical through the centre |
-| `morph` | `SplatMorph` | – |
+| `morph` | `SplatMorph` | becomes another splat file: `to` and `amount` 0..1 |
 | `pulse` | `number` | a value the composition passes (a beat's envelope 0..1): bigger by pulseScale, brighter by pulseGlow |
-| `pulseScale` | `number` | – |
-| `pulseGlow` | `number` | – |
+| `pulseScale` | `number` | how much bigger a full pulse makes it |
+| `pulseGlow` | `number` | how much brighter a full pulse makes it |
 | `crop` | `number` | nothing past this many metres from the centre (trims a trained scene's floaters) |
 | `bands` | `number` | the light in this many flat bands (0 none); a paint or cartoon <Look> sets it |
 | `paint` | `number` | 0..1: the splats themselves painted (flat bands, grown into strokes with hard edges), for a painted shot in a timeline whose frame <Look> isn't paint |
@@ -531,27 +531,27 @@ is LinearRgba keys of one colour: track({ 0: E.mul(0), 30: E.mul(2.5) }) with E 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `base_color` | `TrackSpec<string>` | – |
-| `emissive` | `TrackSpec<string> \| TrackSpec<LinearRgba>` | – |
-| `perceptual_roughness` | `TrackSpec<number>` | – |
-| `metallic` | `TrackSpec<number>` | – |
-| `emissive_exposure_weight` | `TrackSpec<number>` | – |
-| `reflectance` | `TrackSpec<number>` | – |
-| `specular_tint` | `TrackSpec<string>` | – |
-| `diffuse_transmission` | `TrackSpec<number>` | – |
-| `specular_transmission` | `TrackSpec<number>` | – |
-| `thickness` | `TrackSpec<number>` | – |
-| `ior` | `TrackSpec<number>` | – |
-| `attenuation_distance` | `TrackSpec<number>` | – |
-| `attenuation_color` | `TrackSpec<string>` | – |
-| `clearcoat` | `TrackSpec<number>` | – |
-| `clearcoat_perceptual_roughness` | `TrackSpec<number>` | – |
-| `anisotropy_strength` | `TrackSpec<number>` | – |
-| `anisotropy_rotation` | `TrackSpec<number>` | – |
-| `depth_bias` | `TrackSpec<number>` | – |
-| `parallax_depth_scale` | `TrackSpec<number>` | – |
-| `max_parallax_layer_count` | `TrackSpec<number>` | – |
-| `lightmap_exposure` | `TrackSpec<number>` | – |
+| `base_color` | `TrackSpec<string>` | a track of `base_color`, sampled each frame |
+| `emissive` | `TrackSpec<string> \| TrackSpec<LinearRgba>` | a track of `emissive`, sampled each frame |
+| `perceptual_roughness` | `TrackSpec<number>` | a track of `perceptual_roughness`, sampled each frame |
+| `metallic` | `TrackSpec<number>` | a track of `metallic`, sampled each frame |
+| `emissive_exposure_weight` | `TrackSpec<number>` | a track of `emissive_exposure_weight`, sampled each frame |
+| `reflectance` | `TrackSpec<number>` | a track of `reflectance`, sampled each frame |
+| `specular_tint` | `TrackSpec<string>` | a track of `specular_tint`, sampled each frame |
+| `diffuse_transmission` | `TrackSpec<number>` | a track of `diffuse_transmission`, sampled each frame |
+| `specular_transmission` | `TrackSpec<number>` | a track of `specular_transmission`, sampled each frame |
+| `thickness` | `TrackSpec<number>` | a track of `thickness`, sampled each frame |
+| `ior` | `TrackSpec<number>` | a track of `ior`, sampled each frame |
+| `attenuation_distance` | `TrackSpec<number>` | a track of `attenuation_distance`, sampled each frame |
+| `attenuation_color` | `TrackSpec<string>` | a track of `attenuation_color`, sampled each frame |
+| `clearcoat` | `TrackSpec<number>` | a track of `clearcoat`, sampled each frame |
+| `clearcoat_perceptual_roughness` | `TrackSpec<number>` | a track of `clearcoat_perceptual_roughness`, sampled each frame |
+| `anisotropy_strength` | `TrackSpec<number>` | a track of `anisotropy_strength`, sampled each frame |
+| `anisotropy_rotation` | `TrackSpec<number>` | a track of `anisotropy_rotation`, sampled each frame |
+| `depth_bias` | `TrackSpec<number>` | a track of `depth_bias`, sampled each frame |
+| `parallax_depth_scale` | `TrackSpec<number>` | a track of `parallax_depth_scale`, sampled each frame |
+| `max_parallax_layer_count` | `TrackSpec<number>` | a track of `max_parallax_layer_count`, sampled each frame |
+| `lightmap_exposure` | `TrackSpec<number>` | a track of `lightmap_exposure`, sampled each frame |
 
 ### `StandardMaterialProps`
 
@@ -562,31 +562,31 @@ Bevy's StandardMaterial fields (colours as CSS colours, textures as file paths),
 | `base_color` | `string \| Srgba` | a colour, or Bevy's Srgba (its alpha shows with alpha_mode "Blend": Srgba.hex("#88ccff").with_alpha(0.5)) |
 | `base_color_texture` | `Tex \| null` | a picture in the media folder; null (Bevy's None) inside a Model drops the model's own base map |
 | `emissive` | `string \| LinearRgba` | a colour, or Bevy's LinearRgba for one brighter than white (LinearRgba.from(Srgba.hex("#ff8800")).mul(3)) |
-| `emissive_texture` | `Tex` | – |
+| `emissive_texture` | `Tex` | Bevy: The emissive map, multiplies pixels with `emissive` to get the final "emitting" color of a surface. |
 | `perceptual_roughness` | `number` | 0.5 by Bevy's default |
-| `metallic` | `number` | – |
-| `metallic_roughness_texture` | `Tex \| MetallicRoughnessMaps` | – |
-| `normal_map_texture` | `Tex` | – |
-| `occlusion_texture` | `Tex` | – |
+| `metallic` | `number` | Bevy: How "metallic" the material appears, within `[0.0, 1.0]`. |
+| `metallic_roughness_texture` | `Tex \| MetallicRoughnessMaps` | Bevy: Metallic and roughness maps, stored as a single texture. |
+| `normal_map_texture` | `Tex` | Bevy: Used to fake the lighting of bumps and dents on a material. |
+| `occlusion_texture` | `Tex` | Bevy: Specifies the level of exposure to ambient light. |
 | `uv_transform` | `Affine2` | every texture's UVs scaled, turned and moved (Affine2.fromScale([5, 5]) tiles a map five times across each face; a scaled texture repeats) |
 | `reflectance` | `number` | 0.5 by Bevy's default |
-| `clearcoat` | `number` | – |
-| `clearcoat_perceptual_roughness` | `number` | – |
+| `clearcoat` | `number` | Bevy: An extra thin translucent layer on top of the main PBR layer. This is typically used for painted surfaces. |
+| `clearcoat_perceptual_roughness` | `number` | Bevy: The roughness of the clearcoat material. This is specified in exactly the same way as the `StandardMaterial::perceptual_roughness`. |
 | `clearcoat_normal_texture` | `Tex` | the clearcoat layer's own normal map, read as data (not sRGB), as Bevy's examples load it with is_srgb false |
-| `specular_transmission` | `number` | – |
-| `ior` | `number` | – |
-| `thickness` | `number` | – |
-| `unlit` | `boolean` | – |
-| `alpha_mode` | `AlphaMode` | – |
-| `double_sided` | `boolean` | – |
+| `specular_transmission` | `number` | Bevy: The amount of light transmitted _specularly_ through the material (i.e. via refraction). |
+| `ior` | `number` | Bevy: The index of refraction of the material. |
+| `thickness` | `number` | Bevy: Thickness of the volume beneath the material surface. |
+| `unlit` | `boolean` | Bevy: Whether to apply only the base color to this material. |
+| `alpha_mode` | `AlphaMode` | Bevy: How to apply the alpha channel of the `base_color_texture`. |
+| `double_sided` | `boolean` | Bevy: Support two-sided lighting by automatically flipping the normals for "back" faces within the PBR lighting shader. |
 | `cull_mode` | `"Back" \| "Front" \| null` | the faces not drawn: "Back" (Bevy's default), "Front", or null for neither |
 | `material` | `string` | in a <Model>: the glTF material it re-covers, as MeshStandardMaterial's |
 | `fog_enabled` | `boolean` | false: left out of the scene's <Fog> |
 | `specular_tint` | `string` | the highlight's colour, over `reflectance` |
 | `anisotropy_strength` | `number` | stretched highlights (brushed metal, hair), 0..1, turned anisotropy_rotation radians along the tangent |
-| `anisotropy_rotation` | `number` | – |
+| `anisotropy_rotation` | `number` | Bevy: The direction of increased roughness, in radians relative to the mesh tangent. |
 | `attenuation_distance` | `number` | light absorbed through a transmissive volume (with specular_transmission and thickness) |
-| `attenuation_color` | `string` | – |
+| `attenuation_color` | `string` | Bevy: The resulting (non-absorbed) color after white light travels through the attenuation distance. |
 | `depth_map` | `Tex` | a greyscale height map (white deep) the parallax fields carve a flat face with |
 | `parallax_depth_scale` | `number` | 0.1 by Bevy's default |
 | `parallax_mapping_method` | `"Occlusion" \| { Relief: { max_steps: number } }` | "Occlusion" (Bevy's default) or { Relief: { max_steps } } |
@@ -594,7 +594,7 @@ Bevy's StandardMaterial fields (colours as CSS colours, textures as file paths),
 | `depth_bias` | `number` | drawn this much nearer in depth (a decal-like layer over a coplanar face) |
 | `opaque_render_method` | `"Forward" \| "Deferred"` | "Forward" or "Deferred" (in the deferred pass, with a camera that has one) |
 | `diffuse_transmission` | `number` | light passed through and scattered (leaves, paper, wax), 0..1; lightmap_exposure: a <Lightmap>'s bake times this |
-| `lightmap_exposure` | `number` | – |
+| `lightmap_exposure` | `number` | Bevy: The exposure (brightness) level of the lightmap, if present. |
 | `animate` | `StandardMaterialAnimate` | its fields' tracks, sampled by the engine from the frame clock: { base_color: track({ 0: "#3060ff", 30: "#ff4070" }) } |
 
 ### `SurfaceDrawProps`
@@ -619,7 +619,7 @@ from the first frame.
 | `textures` | `Record<string, ShaderTexture \| ShaderTexture[]>` | up to 4: an asset path, a picture made in code ({ width, height, pixels }) or "render:NAME"; with a sampler, { src, sampler } (or a picture with its `sampler`). One more may be an array, read as texture_2d_array<f32> by layer: { layers: [picture,...] } (one size and format) or { src, layers: N } (N layers stacked top to bottom). A <Material>'s may also bind one binding_array<texture_2d<f32>>, a list of 1 to 16 pictures (Bevy's texture_binding_array; a GPU without texture binding arrays refuses it) |
 | `defs` | `ShaderDefs` | shader defs: each NAME a WESL condition for `@if(NAME)` (a number is true), and a whole number also `constants::NAME`; each set of defs compiles its own pipeline |
 | `own` | `OwnMaterialFields` | a <Material>'s own: what its Material methods give, and its storage buffers; set by <Material> only |
-| `buffers` | `Record<string, StorageValue>` | – |
+| `buffers` | `Record<string, StorageValue>` | the material's storage buffers by binding name; set by <Material> only |
 
 ### `ThreeShaderMaterialProps`
 
@@ -630,12 +630,12 @@ from the first frame.
 | `uniforms` | `Record<string, ThreeUniform>` | each uniform's value this frame |
 | `textures` | `Record<string, string \| { src: string; colorSpace?: "srgb" \| "linear"; sampler?: Record…` | each sampler's picture: a file, a data URL, "render:NAME" (at most four); `colorSpace: "linear"` for one three samples raw (NoColorSpace: a distance field, a data map), "srgb" (the default) for a colour picture |
 | `output` | `"display" \| "linear"` | "display": its colour is what three's canvas shows (a ShaderMaterial's); "linear": scene light, tone-mapped as the rest of the frame is (a node material's) |
-| `transparent` | `boolean` | – |
-| `blending` | `"normal" \| "additive" \| "add" \| "multiply" \| "none"` | – |
-| `side` | `"front" \| "back" \| "double"` | – |
-| `depthWrite` | `boolean` | – |
-| `depthTest` | `boolean` | – |
-| `alphaTest` | `number` | – |
+| `transparent` | `boolean` | blended over what's behind it, as three's \`transparent\` |
+| `blending` | `"normal" \| "additive" \| "add" \| "multiply" \| "none"` | how it blends: normal, additive (add), multiply or none |
+| `side` | `"front" \| "back" \| "double"` | which faces draw: front, back or double |
+| `depthWrite` | `boolean` | it writes the depth buffer |
+| `depthTest` | `boolean` | it's hidden behind what's nearer |
+| `alphaTest` | `number` | pixels less opaque than this are dropped |
 | `time` | `[number, number, number]` | three's clock this frame: [seconds, delta, frame] |
 | `color` | `string` | the colour it's drawn in where its shader can't run (named in the render's warnings) |
 
@@ -650,10 +650,10 @@ from the first frame.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `shadow_color` | `TrackSpec<string>` | – |
-| `rim_intensity` | `TrackSpec<number>` | – |
-| `highlight_intensity` | `TrackSpec<number>` | – |
-| `outline_width` | `TrackSpec<number>` | – |
+| `shadow_color` | `TrackSpec<string>` | a track of `shadow_color`, sampled each frame |
+| `rim_intensity` | `TrackSpec<number>` | a track of `rim_intensity`, sampled each frame |
+| `highlight_intensity` | `TrackSpec<number>` | a track of `highlight_intensity`, sampled each frame |
+| `outline_width` | `TrackSpec<number>` | a track of `outline_width`, sampled each frame |
 
 ### `ToonExtensionProps`
 
@@ -665,15 +665,15 @@ toon surface has no roughness or metal. It goes in an ExtendedMaterial's `extens
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `steps` | `number` | – |
-| `bands` | `ToonBand[]` | – |
-| `shadow_color` | `string` | – |
-| `rim` | `boolean \| ToonRim` | – |
-| `highlight` | `boolean \| ToonHighlight` | – |
-| `outline` | `boolean \| ToonOutline` | – |
-| `rim_intensity` | `number` | – |
-| `highlight_intensity` | `number` | – |
-| `outline_width` | `number` | – |
+| `steps` | `number` | how many hard bands the light falls into (2) |
+| `bands` | `ToonBand[]` | an explicit ramp of bands, darkest first, in place of `steps` |
+| `shadow_color` | `string` | the bottom band's colour (the base colour darker, nudged towards violet) |
+| `rim` | `boolean \| ToonRim` | a rim light on the silhouette: true for its default, or its settings |
+| `highlight` | `boolean \| ToonHighlight` | a hard specular highlight: true for its default, or its settings |
+| `outline` | `boolean \| ToonOutline` | an ink outline: true for its default, or its settings |
+| `rim_intensity` | `number` | how bright the rim is |
+| `highlight_intensity` | `number` | how bright the highlight is |
+| `outline_width` | `number` | the outline's width |
 | `animate` | `ToonExtensionAnimate` | its fields' tracks, as a StandardMaterial's `animate` (its base animates base_color and emissive) |
 
 ### `ToonHighlight`
@@ -714,15 +714,15 @@ The props of [`ToonMaterial`](#toonmaterial), tabled there.
 | `colors` | `[string, string, string]` | its tones under a paint look: [lit, mid, dark] |
 | `threshold` | `number` | the density its painted surface sits at (0.12): lower is fatter, higher thinner |
 | `erode` | `number` | how much noise tears the painted surface's edge (0.08), and the tears' size in metres (0.6) |
-| `erodeSize` | `number` | – |
+| `erodeSize` | `number` | the tears' size in metres (0.6) |
 | `absorb` | `number` | how much light a unit of it stops (its shadow on itself; 1.2) |
 | `wind` | `Vec3` | the wind, m/s ([0, 0, 0]); how fast the volume takes it up, a second (1.2 smoke, 0.6 otherwise); the height it's full from, metres, weaker below (0: full everywhere) |
-| `windPull` | `number` | – |
-| `windHeight` | `number` | – |
+| `windPull` | `number` | how fast the volume takes up the wind, a second (1.2 smoke, 0.6 otherwise) |
+| `windHeight` | `number` | the height the wind is full from, metres; weaker below (0: full everywhere) |
 | `drag` | `number` | velocity the still air takes away a second (0.4) |
 | `vorticity` | `number` | curl kept curling (6); a drifting turbulent force, m/s² (0), and its size in metres (2) |
-| `turbulence` | `number` | – |
-| `turbulenceSize` | `number` | – |
+| `turbulence` | `number` | a drifting turbulent force, m/s² (0) |
+| `turbulenceSize` | `number` | the turbulence's size in metres (2) |
 | `steps` | `number` | samples along each ray (96) |
 | `shadow` | `boolean \| number` | its shadow, cast in the scene's light as a mesh's is (on by default): soft moving shadows on the ground, meshes and models under it, and, with a `volumetric` sun and a <FogVolume> under <VolumetricFog>, the sun's shafts breaking through the gaps between clouds. The shadow is where the volume has stopped half the sun; a number scales the density it sees: 1 as drawn, more reaches into its thinner parts (a fatter shadow; up to 4, a thin contrail's made to show), less keeps to the dense cores. false or 0 casts none. Under a paint look the shadow is the painted shape. Soften its edge with the sun's `softShadow` (2-4 for clouds) |
 
@@ -733,13 +733,13 @@ The props of [`ToonMaterial`](#toonmaterial), tabled there.
 | `position` | `Vec3` | the box's foot (the centre of its floor), metres ([0, 0, 0]) |
 | `size` (required) | `Vec3` | the box it lives in, [width, height, depth] in metres: what leaves it is cut |
 | `sources` | `VolumeSource[]` | where density and heat come in over time, and the puffs of density it starts with ([x, y, z, radius] in metres from the foot) |
-| `puffs` | `[number, number, number, number][]` | – |
+| `puffs` | `[number, number, number, number][]` | density it starts with: [x, y, z, radius] in metres from the foot |
 | `buoyancy` | `number` | heat's lift (4) and the density's weight (0.4), m/s² a unit; the heat lost a second (0.8) and the density lost a second (0.02), fractions |
-| `weight` | `number` | – |
-| `cooling` | `number` | – |
-| `dissipation` | `number` | – |
+| `weight` | `number` | the density's weight, m/s² a unit (0.4) |
+| `cooling` | `number` | the heat lost a second, a fraction (0.8) |
+| `dissipation` | `number` | the density lost a second, a fraction (0.02) |
 | `fire` | `[string, string, string] \| false` | fire where it's hot: three colours [red, orange, yellow] (paint's by default), or false for none; and the heat (a fraction of the hottest source's) each colour starts at ([0.35, 0.6, 0.85]) |
-| `fireAt` | `[number, number, number]` | – |
+| `fireAt` | `[number, number, number]` | the heat (a fraction of the hottest source's) each fire colour starts at ([0.35, 0.6, 0.85]) |
 | `name` | `string` | parts are matched by name across frames |
 | `time` | `number` | seconds on the simulation's clock (the Sequence's time, frame / fps, by default) |
 | `resolution` | `number` | cells along the box's longest side (64 by default; 32 is a quarter the cost a step, 96 finer) |
@@ -747,15 +747,15 @@ The props of [`ToonMaterial`](#toonmaterial), tabled there.
 | `colors` | `[string, string, string]` | its tones under a paint look: [lit, mid, dark] |
 | `threshold` | `number` | the density its painted surface sits at (0.12): lower is fatter, higher thinner |
 | `erode` | `number` | how much noise tears the painted surface's edge (0.08), and the tears' size in metres (0.6) |
-| `erodeSize` | `number` | – |
+| `erodeSize` | `number` | the tears' size in metres (0.6) |
 | `absorb` | `number` | how much light a unit of it stops (its shadow on itself; 1.2) |
 | `wind` | `Vec3` | the wind, m/s ([0, 0, 0]); how fast the volume takes it up, a second (1.2 smoke, 0.6 otherwise); the height it's full from, metres, weaker below (0: full everywhere) |
-| `windPull` | `number` | – |
-| `windHeight` | `number` | – |
+| `windPull` | `number` | how fast the volume takes up the wind, a second (1.2 smoke, 0.6 otherwise) |
+| `windHeight` | `number` | the height the wind is full from, metres; weaker below (0: full everywhere) |
 | `drag` | `number` | velocity the still air takes away a second (0.4) |
 | `vorticity` | `number` | curl kept curling (6); a drifting turbulent force, m/s² (0), and its size in metres (2) |
-| `turbulence` | `number` | – |
-| `turbulenceSize` | `number` | – |
+| `turbulence` | `number` | a drifting turbulent force, m/s² (0) |
+| `turbulenceSize` | `number` | the turbulence's size in metres (2) |
 | `steps` | `number` | samples along each ray (96) |
 | `shadow` | `boolean \| number` | its shadow, cast in the scene's light as a mesh's is (on by default): soft moving shadows on the ground, meshes and models under it, and, with a `volumetric` sun and a <FogVolume> under <VolumetricFog>, the sun's shafts breaking through the gaps between clouds. The shadow is where the volume has stopped half the sun; a number scales the density it sees: 1 as drawn, more reaches into its thinner parts (a fatter shadow; up to 4, a thin contrail's made to show), less keeps to the dense cores. false or 0 casts none. Under a paint look the shadow is the painted shape. Soften its edge with the sun's `softShadow` (2-4 for clouds) |
 
@@ -766,13 +766,13 @@ where density and heat come in: a burner, or an engine moving `at` -> `to` (a co
 | Field | Type | What it is |
 | --- | --- | --- |
 | `at` (required) | `Vec3` | where (metres from the box's foot), and where it has moved to by `until` if it moves |
-| `to` | `Vec3` | – |
+| `to` | `Vec3` | where a moving source has got to by `until` |
 | `from` | `number` | when it puts out, seconds ([0, Infinity]) |
-| `until` | `number` | – |
+| `until` | `number` | when it stops putting out, seconds (Infinity) |
 | `radius` | `number` | its radius (0.5 m); the density and heat it puts out a second at its centre (4 and 4); the velocity it pushes out with, m/s ([0, 0, 0]) |
-| `rate` | `number` | – |
-| `heat` | `number` | – |
-| `speed` | `Vec3` | – |
+| `rate` | `number` | the density it puts out a second at its centre (4) |
+| `heat` | `number` | the heat it puts out a second at its centre (4) |
+| `speed` | `Vec3` | the velocity it pushes out with, m/s ([0, 0, 0]) |
 
 ### `VolumetricFogProps`
 

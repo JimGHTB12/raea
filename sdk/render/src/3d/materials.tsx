@@ -131,6 +131,7 @@ export interface SurfaceShaderSpec {
   defs?: ShaderDefs;
   /** a <Material>'s own (FC2a): what its Material methods give, and its storage buffers; set by <Material> only */
   own?: OwnMaterialFields;
+  /** the material's storage buffers by binding name; set by <Material> only */
   buffers?: Record<string, StorageValue>;
 }
 

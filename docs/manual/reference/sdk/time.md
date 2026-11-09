@@ -38,17 +38,17 @@ own.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `frame` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `durationInFrames` (required) | `number` | – |
-| `id` | `string` | – |
-| `defaultProps` | `Record<string, unknown>` | – |
-| `words` | `readonly TimelineWord[]` | – |
-| `perception` | `Perception` | – |
-| `input` | `InputTimeline` | – |
-| `children` | `ReactNode` | – |
+| `frame` (required) | `number` | the composition frame to draw |
+| `fps` (required) | `number` | frames a second |
+| `width` (required) | `number` | in px |
+| `height` (required) | `number` | in px |
+| `durationInFrames` (required) | `number` | the composition's length in frames |
+| `id` | `string` | the composition's id ("main" by default) |
+| `defaultProps` | `Record<string, unknown>` | the props the composition is rendered with |
+| `words` | `readonly TimelineWord[]` | the transcript, in composition frames, that captions and word cuts read |
+| `perception` | `Perception` | what perception saw at this frame (faces, the safe area) |
+| `input` | `InputTimeline` | a game's recorded input by frame |
+| `children` | `ReactNode` | the composition |
 
 ## Hooks
 
@@ -111,10 +111,10 @@ The local time a subtree sees: its own frame, and the composition frame its fram
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `frame` (required) | `number` | – |
-| `origin` (required) | `number` | – |
+| `frame` (required) | `number` | the subtree's own frame: the composition's frame minus `origin` |
+| `origin` (required) | `number` | the composition frame the subtree's frame 0 falls on |
 | `width` (required) | `number` | width and height a Sequence overrides for its children |
-| `height` (required) | `number` | – |
+| `height` (required) | `number` | in px, what the Sequence gives its children |
 
 ### `Perception`
 
@@ -122,14 +122,14 @@ What perception saw at this frame: the largest face, and the platform's safe are
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `face` | `Rect` | – |
-| `safe` | `{ top?: number; bottom?: number }` | – |
+| `face` | `Rect` | the largest face's box, when there's one |
+| `safe` | `{ top?: number; bottom?: number }` | px the platform's UI covers at the top and bottom |
 
 ### `TimelineWord`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `text` (required) | `string` | – |
+| `text` (required) | `string` | the word as spoken |
 | `from` (required) | `number` | first frame of the word |
 | `to` (required) | `number` | frame after the word ends (exclusive) |
 
@@ -137,11 +137,11 @@ What perception saw at this frame: the largest face, and the platform's safe are
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `durationInFrames` (required) | `number` | – |
-| `defaultProps` (required) | `Record<string, unknown>` | – |
+| `id` (required) | `string` | the composition's id ("main" by default) |
+| `width` (required) | `number` | in px |
+| `height` (required) | `number` | in px |
+| `fps` (required) | `number` | frames a second |
+| `durationInFrames` (required) | `number` | its length in frames |
+| `defaultProps` (required) | `Record<string, unknown>` | the props the composition is rendered with |
 
 <!-- generated:end -->

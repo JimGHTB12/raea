@@ -123,16 +123,23 @@ function lookingAt(eye: Vec3, target: Vec3, up: Vec3): Quat {
 
 /** A Transform's value, as Bevy reflects it. */
 export interface TransformValue {
+  /** where it is, metres (x, y, z) */
   translation?: Vec3;
+  /** its rotation as a quaternion [x, y, z, w] */
   rotation?: Quat;
+  /** its scale along x, y and z */
   scale?: Vec3;
 }
 
 /** A Transform built with Bevy's builders: each returns a new one. */
 export interface TransformBuilt extends Required<TransformValue> {
+  /** the same transform, moved to `v` */
   withTranslation(v: Vec3): TransformBuilt;
+  /** the same transform, turned to `q` */
   withRotation(q: Quat): TransformBuilt;
+  /** the same transform, scaled to `s` (one number for all three axes) */
   withScale(s: Vec3 | number): TransformBuilt;
+  /** the same transform, turned so its -Z faces `target` with `up` (+Y) up, as Bevy's looking_at */
   lookingAt(target: Vec3, up?: Vec3): TransformBuilt;
 }
 
@@ -170,9 +177,11 @@ function place(t: TransformValue | undefined, animated = false): Pick<MeshProps,
 }
 
 export interface Mesh3dProps extends Omit<MeshProps, "position" | "rotation" | "scale"> {
+  /** where it stands: translation, rotation (a quaternion) and scale, as Bevy's Transform */
   transform?: TransformValue;
   /** Bevy's Visibility: "Hidden" draws nothing; "Visible" and "Inherited" draw */
   visibility?: "Visible" | "Hidden" | "Inherited";
+  /** its material and child entities */
   children?: ReactNode;
 }
 
@@ -205,7 +214,9 @@ export type Projection =
   | { Orthographic: { near?: number; far?: number; scaling_mode?: { FixedVertical: { viewport_height: number } } } };
 
 export interface Camera3dProps {
+  /** where the camera stands and faces (`Transform.fromXYZ(...).lookingAt(...)`) */
   transform?: TransformValue;
+  /** perspective (the default) or orthographic, as Bevy's Projection */
   projection?: Projection;
   /** Bevy's RenderLayers on the camera: it draws only the parts on these layers (a Mesh3d's `layers`; [0] by default) */
   layers?: number[];
@@ -217,12 +228,15 @@ export interface Camera3dProps {
   /** Bevy's Viewport: the camera draws into this region of the window only, `physical_position` from its top left and
    *  `physical_size` big (whole px, at a scale factor of 1) */
   viewport?: CameraViewport;
+  /** components on the camera: post effects, tone mapping, a skybox */
   children?: ReactNode;
 }
 
 /** Bevy's Viewport on a Camera, its depth range Bevy's default 0..1. */
 export interface CameraViewport {
+  /** the viewport's top-left corner, in px */
   physical_position: [number, number];
+  /** the viewport's width and height, in px */
   physical_size: [number, number];
 }
 

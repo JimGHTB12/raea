@@ -6,7 +6,9 @@ import { AbsoluteFill } from "./timeline";
 export interface NudgeProps {
   /** how far to move it, in the composition's pixels */
   x?: number;
+  /** how far to move it down, in the composition's pixels */
   y?: number;
+  /** the part it places: an element, or a component, which moves inside a full-frame layer */
   children?: ReactNode;
 }
 

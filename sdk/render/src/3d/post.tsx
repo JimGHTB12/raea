@@ -84,7 +84,9 @@ export interface DepthOfFieldProps {
   /** Bevy's fields, as Bevy's DepthOfField component on a Camera3d (inside it), Bevy's defaults: the distance in focus
    * (10; the camera's `focus`), the f-number (1), the largest blur in pixels (64), "Bokeh" or "Gaussian" */
   focal_distance?: number;
+  /** the f-number (1): lower is a shallower focus */
   aperture_f_stops?: number;
+  /** the largest blur, in px (64) */
   max_circle_of_confusion_diameter?: number;
 }
 
@@ -160,6 +162,7 @@ export interface FisheyeProps extends LensCommon {
 export interface LensDistortionProps extends LensCommon {
   /** Brown-Conrady: r' = r (1 + k1 r^2 + k2 r^4), r a share of the half-diagonal. Above 0 barrel, below 0 pincushion */
   k1?: number;
+  /** the r^4 term of the distortion */
   k2?: number;
   /** by default just enough for a barrel's corners to stay inside the picture (1 for pincushion) */
   zoom?: number;
@@ -198,6 +201,7 @@ export interface MotionBlurProps {
   shutterAngle?: number;
   /** samples each way per pixel (4 by default) */
   samples?: number;
+  /** declared animation of its numbers */
   animate?: Animate3d;
 }
 

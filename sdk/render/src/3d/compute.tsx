@@ -37,7 +37,12 @@ export interface ComputeProps {
  * for its compute to write (shader_advanced/compute_mesh): the mesh the part named `mesh` holds, a <BufferMesh> with
  * indices and normals (position, normal and uv interleaved, 8 floats a vertex).
  * @bevy bevy_render::mesh::allocator::MeshBufferSlice */
-export interface MeshSlab { mesh: string; slab: "vertices" | "indices" }
+export interface MeshSlab {
+  /** the mesh's name */
+  mesh: string;
+  /** which of its buffers: vertices or indices */
+  slab: "vertices" | "indices";
+}
 type SlabRange = { start: string } | { end: string };
 
 const storageValue = (x: unknown): boolean => Number.isFinite(x) || (Array.isArray(x) && x.every(storageValue)) || (typeof x === "object" && x !== null && Object.values(x).every(storageValue));

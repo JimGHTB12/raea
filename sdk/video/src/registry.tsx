@@ -6,12 +6,19 @@ import { Region } from "./region";
 import { Freeze, Loop, Sequence, Series } from "./timeline";
 
 export interface CompositionProps<P extends Record<string, unknown> = Record<string, unknown>> {
+  /** the composition's id: letters, digits and dashes (`raea render --composition` picks it) */
   id: string;
+  /** the React component it renders */
   component: ComponentType<P>;
+  /** in px */
   width: number;
+  /** in px */
   height: number;
+  /** frames a second */
   fps: number;
+  /** its length in frames */
   durationInFrames: number;
+  /** the props it's rendered with (JSON-like values only) */
   defaultProps?: P;
   /** a hand edit laid over the composition (docs/craft-system.md, L): written back by the app's timeline */
   edit?: Edit;
@@ -20,16 +27,24 @@ export interface CompositionProps<P extends Record<string, unknown> = Record<str
 /** A hand edit: `segments` are the composition's own frame ranges, [from, to), played one after another, so a trim,
  *  a split, a cut word or a moved span is a change to this list; the length becomes their sum. */
 export interface Edit {
+  /** the composition's own frame ranges, [from, to), played one after another */
   segments?: readonly (readonly [number, number])[];
 }
 
 export interface RegisteredComposition {
+  /** the composition's id: letters, digits and dashes (`raea render --composition` picks it) */
   id: string;
+  /** the React component it renders */
   component: ComponentType<any>;
+  /** in px */
   width: number;
+  /** in px */
   height: number;
+  /** frames a second */
   fps: number;
+  /** its length in frames */
   durationInFrames: number;
+  /** the props it's rendered with (JSON-like values only) */
   defaultProps: Record<string, unknown>;
 }
 

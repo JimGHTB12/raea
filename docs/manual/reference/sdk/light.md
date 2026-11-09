@@ -31,7 +31,7 @@ function Lights() {
 import { AmbientLight, Atmosphere, bounce, clearSun } from "raea/light"
 ```
 
-`raea/light` exports 15 components, 9 functions, 2 values, 13 types. Bevy's counterpart: `bevy_light`. Source: [sdk/raea/src/light.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/light.ts).
+`raea/light` exports 15 components, 9 functions, 2 values, 15 types. Bevy's counterpart: `bevy_light`. Source: [sdk/raea/src/light.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/light.ts).
 
 ## Components
 
@@ -44,7 +44,7 @@ Bevy: `bevy_light::ambient_light::AmbientLight`.
 
 Takes [`AmbientLightProps`](#ambientlightprops)'s props.
 
-Used in: [defaults/parts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/defaults/parts.tsx), [shader_advanced/deferred_raymarch](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/shader_advanced/deferred_raymarch.tsx), [manual: turntable](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/turntable.tsx).
+Used in: [defaults/parts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/defaults/parts.tsx), [shader_advanced/deferred_raymarch](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/shader_advanced/deferred_raymarch.tsx).
 
 ### `Atmosphere`
 
@@ -64,9 +64,9 @@ windows' own light comes from <WindowLight>.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `day` (required) | `Day` | – |
-| `indoor` | `number` | – |
-| `softShadow` | `boolean \| number` | – |
+| `day` (required) | `Day` | the day outside, from `daylight` |
+| `indoor` | `number` | the room's daylight factor, the share of the outside light its bounce gives as an even fill (0.02) |
+| `softShadow` | `boolean \| number` | the sun's shadow softness (0.6): true, or a number, as a DirectionalLight's |
 
 ### `DirectionalLight`
 
@@ -79,11 +79,11 @@ Bevy: `bevy_light::directional_light::DirectionalLight`.
 | `illuminance` | `number` | lux on a surface facing it (Bevy's default 10,000, light_consts::lux::AMBIENT_DAYLIGHT; full sun is about 100,000) |
 | `shadow_maps_enabled` | `boolean` | Bevy: Whether this light casts shadows. |
 | `soft_shadow_size` | `number \| null` | soft shadows (PCSS): the sun's size as its shadows see it, in metres |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | Bevy components on the light: shadow settings, cascades |
 
 Also takes the props of `LightCommon` (`color`, `name`, `visibility`, `transform`, `shadow_depth_bias`, `shadow_normal_bias`, `volumetric`).
 
-Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [3d/fog_volumes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog_volumes.tsx), [3d/shadow_caster_receiver](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/shadow_caster_receiver.tsx), [3d/split_screen](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/split_screen.tsx), [3d/pbr](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/pbr.tsx), [3d/mesh_ray_cast](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/mesh_ray_cast.tsx), [3d/atmospheric_fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/atmospheric_fog.tsx), [3d/3d_viewport_to_world](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/3d_viewport_to_world.tsx), and 16 more.
+Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [3d/fog_volumes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog_volumes.tsx), [3d/shadow_caster_receiver](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/shadow_caster_receiver.tsx), [3d/split_screen](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/split_screen.tsx), [3d/pbr](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/pbr.tsx), [3d/mesh_ray_cast](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/mesh_ray_cast.tsx), [3d/atmospheric_fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/atmospheric_fog.tsx), [3d/3d_viewport_to_world](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/3d_viewport_to_world.tsx), and 15 more.
 
 ### `Environment`
 
@@ -113,8 +113,6 @@ Used in: [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/m
 
 The same light as a resource, as Bevy 0.20 names it. (A function, not a const alias: an alias would keep 3D code in
 a 2D bundle through the prelude.)
-
-Bevy: `bevy_light::GlobalAmbientLight`.
 
 Takes [`AmbientLightProps`](#ambientlightprops)'s props.
 
@@ -224,12 +222,12 @@ A window's light as a lamp (windowLight), wide and soft, shadowed.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `day` (required) | `Day` | – |
-| `room` (required) | `Room` | – |
-| `opening` (required) | `Opening` | – |
-| `transmit` | `number` | – |
-| `ground` | `number` | – |
-| `name` | `string` | – |
+| `day` (required) | `Day` | the day outside |
+| `room` (required) | `Room` | the room the window is in |
+| `opening` (required) | `Opening` | the window: one of the room's openings |
+| `transmit` | `number` | the share of light the glass lets through (0.75) |
+| `ground` | `number` | the ground's reflectance outside (0.2) |
+| `name` | `string` | the light's name (window-WALL-AT by default) |
 
 ## Functions
 
@@ -335,8 +333,8 @@ Lights are given in Bevy's own units.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` | `string` | – |
-| `color` | `string` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `color` | `string` | its colour, as CSS writes one (a name, hex, rgb()) |
 | `brightness` | `number` | cd/m² (Bevy's default 80) |
 
 ### `AtmosphereProps`
@@ -352,18 +350,22 @@ The day outside, in physical units, for one set.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `sky` (required) | `string` | – |
+| `sky` (required) | `string` | the sky panorama's file |
 | `rotation` (required) | `number` | the panorama's turn that puts its sun where the day's is (radians, as <Environment rotation>) |
 | `sunDir` (required) | `Vec3` | toward the sun, world |
 | `sunLux` (required) | `number` | the sun's lux on a surface facing it, its colour temperature |
-| `sunK` (required) | `number` | – |
+| `sunK` (required) | `number` | the sun's colour temperature, kelvin |
 | `sunGround` (required) | `number` | the sun's and the sky's lux on level ground outside |
-| `skyGround` (required) | `number` | – |
+| `skyGround` (required) | `number` | the sky's lux on level ground outside |
 | `skyNits` (required) | `number` | the sky's mean luminance (cd/m²) and colour temperature |
-| `skyK` (required) | `number` | – |
+| `skyK` (required) | `number` | the sky's colour temperature, kelvin |
 | `scale` (required) | `number` | cd/m² per unit of the panorama |
 | `elevation` (required) | `number` | the sun's elevation (degrees) the light was made for, and the panorama's own (a different height shows in its shadows' length outside, never in the room's light) |
-| `skyElevation` (required) | `number \| null` | – |
+| `skyElevation` (required) | `number \| null` | the panorama's own sun elevation, degrees (null for an overcast one) |
+
+### `DaylightProps`
+
+The props of [`Daylight`](#daylight), tabled there.
 
 ### `DirectionalLightProps`
 
@@ -428,5 +430,9 @@ The props of [`SolariLighting`](#solarilighting), tabled there.
 ### `SpotLightProps`
 
 The props of [`SpotLight`](#spotlight), tabled there.
+
+### `WindowLightProps`
+
+The props of [`WindowLight`](#windowlight), tabled there.
 
 <!-- generated:end -->

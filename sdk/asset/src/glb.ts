@@ -17,29 +17,37 @@ export interface GlbMaterial {
   unlit?: boolean;
   /** alpha-blended (the colour's alpha, times the vertex colours' alpha) */
   blend?: boolean;
+  /** draw the back faces too */
   doubleSided?: boolean;
+  /** 0..1, smooth to matte */
   roughness?: number;
+  /** 0..1, a dielectric to a metal */
   metalness?: number;
+  /** the colour it glows with */
   emissive?: string;
 }
 
 export interface GlbPrimitive {
   /** x y z per vertex */
   positions: ArrayLike<number>;
+  /** x y z per vertex, unit length */
   normals?: ArrayLike<number>;
   /** r g b a per vertex, linear 0..1 (multiplies the material's colour) */
   colors?: ArrayLike<number>;
   /** by threes for triangles, by twos for lines; none: every vertex in order */
   indices?: ArrayLike<number>;
+  /** what the indices draw: triangles (the default) or lines */
   mode?: "triangles" | "lines";
   /** four joint indices per vertex (a skinned mesh) */
   joints?: ArrayLike<number>;
   /** four weights per vertex, summing to 1 */
   weights?: ArrayLike<number>;
+  /** its surface: colour, roughness, metalness, glow */
   material?: GlbMaterial;
 }
 
 export interface GlbJoint {
+  /** the joint's name (a bone's, as a retarget maps it) */
   name: string;
   /** index of the parent joint, -1 for a root */
   parent: number;
@@ -48,6 +56,7 @@ export interface GlbJoint {
 }
 
 export interface GlbClip {
+  /** the clip's name, as a Model's \`animation\` picks it */
   name: string;
   /** sample times (any unit the Model's `time` uses) */
   times: ArrayLike<number>;
@@ -58,9 +67,11 @@ export interface GlbClip {
 }
 
 export interface GlbScene {
+  /** the meshes it holds */
   primitives: GlbPrimitive[];
   /** a skin: all primitives are skinned by these joints when it's given */
   joints?: GlbJoint[];
+  /** animation clips over the joints */
   clips?: GlbClip[];
 }
 

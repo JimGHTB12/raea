@@ -18,14 +18,18 @@ export interface AnimateOwnProps {
   exitAt?: number;
   /** a timeline's plan and this element's part in it: the part's move, at its start (plus `at`) */
   timeline?: Plan;
+  /** the part in \`timeline\` whose move this element plays */
   part?: string;
   /** "always" (default): in the tree, and its layout, the whole time (invisible before an entrance that fades in);
    * "during": only from the entrance's start until the exit ends (it takes its space when it arrives) */
   mount?: "during" | "always";
   /** the element: "div" by default */
   as?: string;
+  /** inline style */
   style?: CSSProperties;
+  /** Tailwind or CSS classes */
   className?: string;
+  /** what moves */
   children?: ReactNode;
 }
 

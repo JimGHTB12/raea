@@ -2,21 +2,34 @@
 // m x'' + c x' + k (x - to) = 0, x(0) = from, x'(0) = 0, solved in closed form for each damping regime.
 
 export interface SpringConfig {
+  /** how heavy the spring's weight is (1): heavier is slower and swings further */
   mass?: number;
+  /** how fast the swing dies (10): lower bounces more */
   damping?: number;
+  /** how hard the spring pulls (100): stiffer is quicker */
   stiffness?: number;
+  /** stop at `to` the first time it gets there, with no overshoot (false) */
   overshootClamping?: boolean;
 }
 
 export interface SpringOptions {
+  /** the frame to sample, usually useCurrentFrame() */
   frame: number;
+  /** frames a second, from useVideoConfig() */
   fps: number;
+  /** the value it starts at (0) */
   from?: number;
+  /** the value it settles at (1) */
   to?: number;
+  /** the spring: mass, damping, stiffness, overshootClamping */
   config?: SpringConfig;
+  /** stretch or squeeze the spring to settle in this many frames */
   durationInFrames?: number;
+  /** how close to `to`, as a share of the travel, counts as settled when timing it (0.005) */
   durationRestThreshold?: number;
+  /** frames before it starts (0) */
   delay?: number;
+  /** play it backwards: from `to` back to `from` */
   reverse?: boolean;
 }
 

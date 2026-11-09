@@ -86,7 +86,9 @@ export interface ScreenProps extends ScreenSource {
   position?: Vec3;
   /** radians */
   rotation?: Vec3;
+  /** its scale: one number, or x, y and z */
   scale?: number | Vec3;
+  /** [width] or [width, height] in metres ([1.6], its height from the resolution) */
   size?: [number] | [number, number];
   /** the composition pass it draws in (Mesh's `pass`; "scene" by default): `pass="ui"` with <Look skip={["ui"]}> keeps
    * a page crisp under a paint look */

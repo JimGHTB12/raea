@@ -52,7 +52,9 @@ export const FontCx = {
  *  @bevy bevy_text::FontAtlas */
 export interface FontAtlas {
   texture: string;
+  /** the texture's width in px */
   width: number;
+  /** the texture's height in px */
   height: number;
 }
 

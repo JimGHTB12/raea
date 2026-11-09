@@ -11,7 +11,7 @@ const call: Call = (name, args) => (native as unknown as (n: string, a: unknown)
 export class BevyApp {
   /** the methods this App answers (BRP's, raea's and its plugins') */
   readonly methods: string[];
-  private constructor(readonly id: number, methods: string[]) {
+  private constructor(/** the App's handle in the engine */ readonly id: number, methods: string[]) {
     this.methods = methods;
   }
 
@@ -251,6 +251,7 @@ export class BevyApp {
     return r.entity;
   }
 
+  /** Adds these components to an entity, replacing any it has of the same type. */
   insert(entity: Entity, ...components: With[]): void {
     this.call("world.insert_components", { entity, components: Object.fromEntries(components.map((c) => [c.path, c.value])) });
   }
@@ -270,10 +271,12 @@ export class BevyApp {
     });
   }
 
+  /** A resource's value. */
   resource<T>(r: Resource<T>): T {
     return this.call<{ value: T }>("world.get_resources", { resource: r.path }).value;
   }
 
+  /** Sets a resource's value, adding it if the app hasn't got one. */
   setResource<T>(r: Resource<T>, value: T): void {
     this.call("world.insert_resources", { resource: r.path, value });
   }
@@ -335,6 +338,7 @@ export class BevyApp {
     return this.call("registry.schema", crates ? { with_crates: crates } : undefined);
   }
 
+  /** Shuts the app down; its methods fail after. */
   close(): void {
     call("bevy.app.close", { app: this.id });
   }

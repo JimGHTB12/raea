@@ -28,25 +28,35 @@ export type PlaceRule =
   | { clear: string; depth?: number };
 
 export interface PlaceObject {
+  /** its width, height and depth, metres */
   size: V3;
   /** a start (or, with fixed, the place) for its bottom centre */
   at?: V3;
   /** degrees */
   yaw?: number;
+  /** it stays at `at`: the rules move the others round it */
   fixed?: boolean;
 }
 
 export interface Placed {
+  /** the centre of its bottom face */
   base: V3;
+  /** its middle, where a centred Cuboid goes */
   center: V3;
+  /** its turn about y, radians (its front is +z before the turn) */
   yaw: number;
+  /** its width, height and depth, metres */
   size: V3;
 }
 
 export interface PlaceFinding {
+  /** the object it's about */
   part: string;
+  /** the rule that couldn't hold */
   check: string;
+  /** "ok", or how bad it is ("error" when the rule broke) */
   level: string;
+  /** what's wrong, in words */
   says: string;
 }
 

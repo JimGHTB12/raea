@@ -48,12 +48,27 @@ function boxed(timeline: InputTimeline, b: Box): InputTimeline {
   });
 }
 
+export interface InputRegionProps {
+  /** the box's left edge, composition px */
+  x: number;
+  /** its top edge, composition px */
+  y: number;
+  /** its width, px */
+  w: number;
+  /** its height, px */
+  h: number;
+  /** page px over the box's own points (1): the pointer is divided by it */
+  scale?: number;
+  /** the game or panel that sees the pointer as its own */
+  children?: ReactNode;
+}
+
 /**
  * Its children hear the pointer in their own box (x, y, w, h in points; the page's pixels are `scale` points each), as
  * a panel does when it's a page of its own: a press inside the box is the box's until it's let go. Outside the box,
  * and while another box holds a press, they see no pointer; keys reach every box.
  */
-export function InputRegion({ x, y, w, h, scale = 1, children }: { x: number; y: number; w: number; h: number; scale?: number; children?: ReactNode }) {
+export function InputRegion({ x, y, w, h, scale = 1, children }: InputRegionProps) {
   const clock = useContext(ClockContext);
   // its copy is a new object each frame, so its children hear the frame through it: it hears it from the Clock
   useClockTick(clock);

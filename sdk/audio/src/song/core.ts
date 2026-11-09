@@ -6,19 +6,26 @@ export type SongLevel = "intro" | "low" | "mid" | "high" | "outro";
 
 /** A hit inside a stop: `time` on the beat grid (a beat or half beat), `at` where the onset is. */
 export interface SongHit {
+  /** seconds from the song's start, snapped to the beat grid (a beat or half beat) */
   time: number;
+  /** seconds from the song's start where the onset itself is */
   at: number;
+  /** how hard the hit is, 0..1 */
   strength: number;
 }
 
 export interface SongEvent {
+  /** what the event is: build, drop, stop, hit, dip or break */
   kind: SongEventKind;
   /** seconds from the song's start: a beat (drop, a downbeat) or the grid's nearest beat or half beat (hit) */
   time: number;
   /** spans (build, stop, dip, break) end here */
   end?: number;
+  /** the index of the beat it starts on, in `SongMap.beats` */
   beat: number;
+  /** the index of the bar it starts in */
   bar: number;
+  /** a span: how many beats it lasts */
   beats?: number;
   /** 0..1 */
   strength: number;
@@ -30,63 +37,97 @@ export interface SongEvent {
   rise?: number;
   /** a drop: the bar after stays up (false: one hit, then the band cuts out) */
   holds?: boolean;
+  /** a drop: it comes straight out of a stop */
   afterStop?: boolean;
+  /** a drop: it lands at the end of a build (within two bars of it) */
   afterBuild?: boolean;
   /** a drop: a breath of near-silence just before it */
   gapBefore?: boolean;
   /** a hit: the onset's own time; how far over the groove it stands */
   at?: number;
+  /** a hit: how far over the groove it stands */
   over?: number;
 }
 
 export interface SongSection {
+  /** the section's marker name when the song file has markers, else its level */
   name: string;
+  /** how high the section sits in the song: intro, low, mid, high or outro */
   level: SongLevel;
+  /** seconds from the song's start where the section begins */
   time: number;
+  /** seconds from the song's start where it ends */
   end: number;
+  /** the index of its first beat */
   beat: number;
+  /** the index of its first bar */
   bar: number;
+  /** its mean energy, 0..1 */
   energy: number;
   /** suggested cuts per bar: 0.25, 0.5, 1, 2 or 4 */
   cuts: number;
 }
 
 export interface SongBar {
+  /** seconds from the song's start where the bar begins (its downbeat) */
   time: number;
+  /** the index of its first beat */
   beat: number;
+  /** how many beats it holds */
   beats: number;
+  /** its mean energy, 0..1 */
   energy: number;
+  /** suggested cuts in this bar: 0.25, 0.5, 1, 2 or 4 */
   cuts: number;
 }
 
 export interface SongFeatures {
+  /** loudness (RMS) a beat, 0..1 over the song */
   loudness: number[];
+  /** onset strength (spectral flux) a beat, 0..1: how much is struck */
   onsets: number[];
+  /** brightness (spectral centroid) a beat, 0..1 */
   brightness: number[];
+  /** the low end (kick and bass, under 150 Hz) a beat, 0..1 */
   low: number[];
+  /** the high band (over 3 kHz) a beat, 0..1 */
   high: number[];
+  /** the combined energy a beat, 0..1: loudness, low end, onsets and highs together */
   energy: number[];
 }
 
 export interface SongMap {
+  /** the map format's version (1) */
   version: number;
+  /** the song's length in seconds */
   duration: number;
+  /** beats per minute, or null when no beat was found */
   tempo: number | null;
+  /** beats in a bar (4 for 4/4) */
   beatsPerBar: number;
+  /** every beat's time in seconds, ascending */
   beats: number[];
+  /** every bar's first beat, in seconds */
   downbeats: number[];
   /** one value a beat, 0..1 over the song */
   features: SongFeatures;
+  /** the bars in order, each with its energy and suggested cut rate */
   bars: SongBar[];
+  /** the song's sections in order (intro, verse, chorus and so on) */
   sections: SongSection[];
+  /** builds, drops, stops, hits, dips and breaks, in time order */
   events: SongEvent[];
+  /** where the sections came from: the song file's markers, or novelty in the music itself */
   sectionsFrom?: "markers" | "novelty";
+  /** the candidate section boundaries novelty found, each with its strength 0..1 */
   boundaries?: { time: number; beat: number; bar: number; strength: number }[];
+  /** the song file's name */
   source?: string | null;
 }
 
 /** Where a moment of the song is. Seconds are the song's; infinities when there's no such event. */
 export interface SongMoment {
+  /** the moment, seconds from the song's start */
   time: number;
   /** the beat at or before `time` (-1 before the first) */
   beat: number;
@@ -96,14 +137,21 @@ export interface SongMoment {
   beatInBar: number;
   /** 0..1 through the beat, and through the bar */
   phase: number;
+  /** 0..1 through the bar */
   barPhase: number;
   /** the features at `time`, interpolated between beats */
   energy: number;
+  /** loudness at `time`, 0..1 */
   loudness: number;
+  /** onset strength at `time`, 0..1 */
   onsets: number;
+  /** brightness at `time`, 0..1 */
   brightness: number;
+  /** the low end at `time`, 0..1 */
   low: number;
+  /** the section `time` is in (null before the first) */
   section: SongSection | null;
+  /** that section's index in `SongMap.sections` (-1 for none) */
   sectionIndex: number;
   /** 0..1 through the section */
   sectionProgress: number;
@@ -111,15 +159,21 @@ export interface SongMoment {
   cutsPerBar: number;
   /** the last drop at or before `time`, the next after it */
   drop: SongEvent | null;
+  /** the next drop after `time` */
   nextDrop: SongEvent | null;
+  /** seconds since the last drop (Infinity when there's none) */
   sinceDrop: number;
+  /** seconds until the next drop (Infinity when there's none) */
   untilDrop: number;
   /** the build `time` is in, and 0..1 through it */
   build: SongEvent | null;
+  /** whether `time` is inside a build */
   inBuild: boolean;
+  /** 0..1 through that build */
   buildProgress: number;
   /** the stop `time` is in */
   stop: SongEvent | null;
+  /** whether `time` is inside a stop */
   inStop: boolean;
   /** the dip or break `time` is in */
   dip: SongEvent | null;

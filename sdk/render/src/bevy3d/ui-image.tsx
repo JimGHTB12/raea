@@ -29,7 +29,16 @@ export type SliceScaleMode = "Stretch" | { Tile: { stretch_value: number } };
 
 /** bevy_sprite's TextureSlicer: the slices' insets in the picture's px, how the sides and centre scale (Stretch by
  *  default), and the corners' most scale (1 by default) */
-export interface TextureSlicer { border: { left: number; right: number; top: number; bottom: number }; center_scale_mode?: SliceScaleMode; sides_scale_mode?: SliceScaleMode; max_corner_scale?: number }
+export interface TextureSlicer {
+  /** the slices' insets, in the picture's px */
+  border: { left: number; right: number; top: number; bottom: number };
+  /** how the centre scales (Stretch) */
+  center_scale_mode?: SliceScaleMode;
+  /** how the sides scale (Stretch) */
+  sides_scale_mode?: SliceScaleMode;
+  /** how much the corners may scale at most (1) */
+  max_corner_scale?: number;
+}
 
 /** bevy_image's TextureAtlasLayout: a sheet's size and its cells' rects in px. @bevy bevy_image::TextureAtlasLayout */
 export interface TextureAtlasLayout { size: [number, number]; textures: { x: number; y: number; w: number; h: number }[] }
@@ -108,9 +117,16 @@ function AtlasNode({ image, color, flip_x, flip_y, children, fixed, texture_atla
 const Sampler = createContext<"Linear" | "Nearest">("Linear");
 const RENDERING = { Linear: undefined, Nearest: "pixelated" } as const;
 
+export interface ImagePluginProps {
+  /** "Linear" (the default) or "Nearest" (pixel art) */
+  default_sampler?: "Linear" | "Nearest";
+  /** the UI and sprites whose pictures it samples */
+  children?: ReactNode;
+}
+
 /** bevy_image's ImagePlugin: its default_sampler for every picture drawn inside it (Linear by default;
  *  ImagePlugin::default_nearest() is default_sampler="Nearest", for pixel art). @bevy bevy_image::ImagePlugin */
-export function ImagePlugin({ default_sampler, children }: { default_sampler?: "Linear" | "Nearest"; children?: ReactNode }) {
+export function ImagePlugin({ default_sampler, children }: ImagePluginProps) {
   if (default_sampler !== undefined && !(default_sampler in RENDERING)) throw new TypeError(`ImagePlugin: default_sampler is Linear or Nearest, got ${JSON.stringify(default_sampler)}`);
   return <Sampler.Provider value={default_sampler ?? "Linear"}>{children}</Sampler.Provider>;
 }

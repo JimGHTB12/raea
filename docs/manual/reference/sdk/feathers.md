@@ -81,7 +81,7 @@ Bevy: `bevy_feathers::controls::FeathersColorSlider`.
 | Prop | Type | What it does |
 | --- | --- | --- |
 | `value` | `number` | SliderValue: the channel's value, in its range |
-| `channel` | `ColorChannel` | – |
+| `channel` | `ColorChannel` | which colour channel it sets: Red, Green, Blue, Alpha, or HSL or Okhsl hue, saturation or lightness |
 | `base_color` | `FeathersColor` | SliderBaseColor: the colour the track shows the channel of (white by default) |
 
 Also takes the props of [`NodeProps`](ui.md#nodeprops); `PickProps` (`popover`, `onClick`, `onPointerDown`, `onPointerUp`, `onPointerOver`, `onPointerOut`, `onPointerEnter`, `onPointerLeave`, `onPointerMove`).
@@ -99,7 +99,7 @@ Bevy: `bevy_feathers::controls::FeathersColorSwatch`.
 | --- | --- | --- |
 | `color` | `FeathersColor` | ColorSwatchValue: the colour shown over the checkerboard |
 | `opaque_color_percentage` | `number` | how much of its right side shows the colour opaque, in percent |
-| `corners` | `RoundedCorners` | – |
+| `corners` | `RoundedCorners` | which corners are rounded |
 | `border_radius` | `number` | the corners' radius in px (5 by default), on the corners `corners` names |
 
 Also takes the props of [`NodeProps`](ui.md#nodeprops); `PickProps` (`popover`, `onClick`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`).
@@ -263,7 +263,7 @@ Bevy: `bevy_feathers::controls::FeathersScrollbar`.
 | Prop | Type | What it does |
 | --- | --- | --- |
 | `target` (required) | `string` | the Name of the Node it scrolls |
-| `orientation` | `ControlOrientation` | – |
+| `orientation` | `ControlOrientation` | which way it scrolls: Vertical or Horizontal |
 | `hidden` | `boolean` | hidden: the auto_hide decision, made by the list view (Bevy makes it after layout) |
 
 Also takes the props of [`NodeProps`](ui.md#nodeprops); `PickProps` (`popover`, `onClick`, `onPointerDown`, `onPointerUp`, `onPointerOver`, `onPointerOut`, `onPointerEnter`, `onPointerLeave`, `onPointerMove`).
@@ -277,7 +277,7 @@ Bevy: `bevy_feathers::controls::FeathersSelect`.
 | Prop | Type | What it does |
 | --- | --- | --- |
 | `options` (required) | `ReactNode` | its options: FeathersListRows, one of them selected (list_rows_from_strings) |
-| `corners` | `RoundedCorners` | – |
+| `corners` | `RoundedCorners` | which corners are rounded |
 | `max_visible` | `number` | the popup's most rows (8 by default) |
 
 Also takes the props of [`NodeProps`](ui.md#nodeprops); `PickProps` (`popover`, `onClick`, `onPointerDown`, `onPointerUp`, `onPointerOver`, `onPointerOut`, `onPointerEnter`, `onPointerLeave`, `onPointerMove`).
@@ -294,7 +294,7 @@ Bevy: `bevy_feathers::controls::FeathersSlider`.
 | --- | --- | --- |
 | `value` | `number` | SliderValue (min by default) |
 | `min` | `number` | SliderRange's ends (0 to 1 by default) |
-| `max` | `number` | – |
+| `max` | `number` | SliderRange's top end (1) |
 | `precision` | `number` | SliderPrecision: decimal places shown (0 by default) |
 | `step` | `number` | SliderStep: a drag's or key's step |
 | `disabled` | `boolean` | InteractionDisabled |
@@ -359,7 +359,7 @@ a flat table of units with scale factors, as a UnitsFormat.
 
 Bevy: `bevy_feathers::controls::StandardUnitKind`.
 
-Also takes the props of `String` (`toString`, `charAt`, `charCodeAt`, `concat`, `indexOf`, `lastIndexOf`, `localeCompare`, `match`, `replace`, `search`, `slice`, `split`, `substring`, `toLowerCase`, `toLocaleLowerCase`, `toUpperCase`, `toLocaleUpperCase`, `trim`, `length`, `substr`, `valueOf`, `codePointAt`, `includes`, `endsWith`, `normalize`, `repeat`, `startsWith`, `anchor`, `big`, `blink`, `bold`, `fixed`, `fontcolor`, `fontsize`, `italics`, `link`, `small`, `strike`, `sub`, `sup`, `padStart`, `padEnd`, `trimEnd`, `trimStart`, `trimLeft`, `trimRight`, `matchAll`, `replaceAll`, `at`, `isWellFormed`, `toWellFormed`, `__@iterator@151`).
+Also takes the props of `String` (`toString`, `charAt`, `charCodeAt`, `concat`, `indexOf`, `lastIndexOf`, `localeCompare`, `match`, `replace`, `search`, `slice`, `split`, `substring`, `toLowerCase`, `toLocaleLowerCase`, `toUpperCase`, `toLocaleUpperCase`, `trim`, `length`, `substr`, `valueOf`, `codePointAt`, `includes`, `endsWith`, `normalize`, `repeat`, `startsWith`, `anchor`, `big`, `blink`, `bold`, `fixed`, `fontcolor`, `fontsize`, `italics`, `link`, `small`, `strike`, `sub`, `sup`, `padStart`, `padEnd`, `trimEnd`, `trimStart`, `trimLeft`, `trimRight`, `matchAll`, `replaceAll`, `at`, `isWellFormed`, `toWellFormed`, `__@iterator@155`).
 
 ### `ThemeBackgroundColor`
 
@@ -369,8 +369,8 @@ Bevy: `bevy_feathers::theme::ThemeBackgroundColor`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `token` (required) | `ThemeToken` | – |
-| `children` (required) | `ReactElement` | – |
+| `token` (required) | `ThemeToken` | the theme colour's token |
+| `children` (required) | `ReactElement` | the one element it colours |
 
 Used in: [ui/widgets/feathers_counter](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/feathers_counter.tsx), [ui/widgets/feathers_number_input](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/feathers_number_input.tsx), [ui/widgets/feathers_gallery](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/feathers_gallery.tsx).
 
@@ -382,8 +382,8 @@ Bevy: `bevy_feathers::theme::ThemeBorderColor`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `token` (required) | `ThemeToken` | – |
-| `children` (required) | `ReactElement` | – |
+| `token` (required) | `ThemeToken` | the theme colour's token |
+| `children` (required) | `ReactElement` | the one element it borders |
 
 ### `ThemeContext`
 
@@ -393,8 +393,8 @@ Bevy: `bevy_feathers::theme::ThemeContext`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `level` (required) | `SurfaceLevel` | – |
-| `children` | `ReactNode` | – |
+| `level` (required) | `SurfaceLevel` | the surface level they sit on |
+| `children` | `ReactNode` | the widgets on it |
 
 ### `ThemedText`
 
@@ -414,8 +414,8 @@ Bevy: `bevy_feathers::theme::ThemeTextColor`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `token` (required) | `ThemeToken` | – |
-| `children` (required) | `ReactElement` | – |
+| `token` (required) | `ThemeToken` | the theme colour's token |
+| `children` (required) | `ReactElement` | the Text it colours |
 
 ### `UiTheme`
 
@@ -425,8 +425,8 @@ Bevy: `bevy_feathers::theme::UiTheme`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `theme` (required) | `ThemeProps` | – |
-| `children` | `ReactNode` | – |
+| `theme` (required) | `ThemeProps` | the theme's colours by token |
+| `children` | `ReactNode` | the widgets that use it |
 
 Used in: [ui/styling/box_shadow](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/styling/box_shadow.tsx), [ui/widgets/virtual_keyboard](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/virtual_keyboard.tsx), [ui/widgets/feathers_counter](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/feathers_counter.tsx), [ui/widgets/feathers_number_input](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/feathers_number_input.tsx), [ui/widgets/feathers_gallery](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/feathers_gallery.tsx), [3d/split_screen](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/split_screen.tsx), [2d/2d_shapes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/2d/2d_shapes.tsx).
 
@@ -440,7 +440,7 @@ Bevy: `bevy_feathers::controls::VirtualKeyboard`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `keys` (required) | `string[][]` | – |
+| `keys` (required) | `string[][]` | the keyboard's rows, each a row of key captions |
 
 Used in: [ui/widgets/virtual_keyboard](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/virtual_keyboard.tsx).
 
@@ -874,9 +874,9 @@ a feathers icon: its picture and size in px
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `image` (required) | `string` | – |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
+| `image` (required) | `string` | the icon's picture |
+| `width` (required) | `number` | in px |
+| `height` (required) | `number` | in px |
 
 ### `FeathersListRowProps`
 
@@ -991,7 +991,7 @@ Bevy: `bevy_feathers::controls::UnitsFormat`.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `format` (required) | `(value: NumberInputValue, editing: boolean) => string` | – |
+| `id` (required) | `string` | the format's name |
+| `format` (required) | `(value: NumberInputValue, editing: boolean) => string` | the value as text: for display, or for editing when \`editing\` is true |
 
 <!-- generated:end -->

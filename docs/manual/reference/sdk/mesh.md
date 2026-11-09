@@ -76,15 +76,9 @@ Also takes the props of [`ConicalFrustumProps`](#conicalfrustumprops) (`radius_t
 
 Bevy's Cuboid: `<Cuboid half_size={[1, 0.5, 1]} />` is a Box of args [2, 1, 2].
 
-Bevy: `bevy_shape::Cuboid`.
+Also takes the props of [`CuboidProps`](3d.md#cuboidprops) (`half_size`); `BoxProps` (`args`).
 
-| Prop | Type | What it does |
-| --- | --- | --- |
-| `args` | `[number, number, number]` | – |
-
-Also takes the props of [`CuboidProps`](3d.md#cuboidprops) (`half_size`).
-
-Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/animated_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/animated_material.tsx), [3d/two_passes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/two_passes.tsx), [3d/spotlight](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spotlight.tsx), [3d/orthographic](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/orthographic.tsx), and 34 more.
+Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/animated_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/animated_material.tsx), [3d/two_passes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/two_passes.tsx), [3d/spotlight](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spotlight.tsx), [3d/orthographic](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/orthographic.tsx), and 33 more.
 
 ### `Cylinder`
 
@@ -124,13 +118,13 @@ shadow="only" draws it with the shadow-only material (engine/render shadow_only.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `transform` | `TransformValue` | – |
+| `transform` | `TransformValue` | where it stands: translation, rotation (a quaternion) and scale, as Bevy's Transform |
 | `visibility` | `"Visible" \| "Hidden" \| "Inherited"` | Bevy's Visibility: "Hidden" draws nothing; "Visible" and "Inherited" draw |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | its material and child entities |
 
 Also takes the props of `MeshProps` (`animate`, `name`, `pass`, `quaternion`, `allowOverlap`, `posed`, `shape`, `driven`, `shadow`, `material`, `castShadow`, `surface`, `receiveShadow`, `attributes`, `compressed`, `layers`); `PointerHandlers3d` (`onClick`, `onDrag`, `onDragEnd`, `onDragEnter`, `onDragLeave`, `onDragOver`, `onDragStart`, `onDrop`, `onPointerDown`, `onPointerMove`, `onPointerUp`, `onPointerEnter`, `onPointerLeave`, `onPointerOver`, `onPointerOut`, `onWheel`).
 
-Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/vertex_colors](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/vertex_colors.tsx), [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/rotate_environment_map.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/spherical_area_lights](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx), [3d/animated_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/animated_material.tsx), and 54 more.
+Used in: [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/widgets/viewport_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/widgets/viewport_node.tsx), [3d/fog](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog.tsx), [3d/vertex_colors](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/vertex_colors.tsx), [3d/rotate_environment_map](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/rotate_environment_map.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/spherical_area_lights](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx), [3d/animated_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/animated_material.tsx), and 53 more.
 
 ### `MeshSequence`
 
@@ -147,8 +141,6 @@ Takes [`Plane3dProps`](3d.md#plane3dprops)'s props.
 Used in: [3d/vertex_colors](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/vertex_colors.tsx), [3d/transparency_3d](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/transparency_3d.tsx), [3d/spherical_area_lights](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spherical_area_lights.tsx), [3d/texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/texture.tsx), [3d/shadow_caster_receiver](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/shadow_caster_receiver.tsx), [3d/split_screen](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/split_screen.tsx), [3d/two_passes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/two_passes.tsx), [3d/spotlight](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/spotlight.tsx), and 16 more.
 
 ### `Sphere`
-
-*From Bevy's `bevy_shape::Sphere`:* A sphere primitive, representing the set of all points some distance from the origin
 
 Also takes the props of [`SphereProps`](3d.md#sphereprops) (`args`, `radius`, `ico`, `uv`).
 
@@ -181,13 +173,12 @@ area and bounds. Offset, combine and move it, then extrude or revolve it into a 
 
 | Member | What it does |
 | --- | --- |
-| `new CrossSection(a: SectionAnswer)` | – |
 | `CrossSection.from(a: SectionAnswer): CrossSection` | From an engine answer (a slice, a projection, an operation). |
 | `CrossSection.of(polygons: Polygons): CrossSection` | Contours, overlaps merged and self-crossings resolved (Manifold's positive fill rule). |
-| `.polygons: Polygons` | – |
-| `.area: number` | – |
-| `.contours: number` | – |
-| `.bounds: { min: [number, number]; max: [number, number]; }` | – |
+| `.polygons: Polygons` | its contours, each a list of [x, y] points: counter-clockwise solid, clockwise holes |
+| `.area: number` | its area, m² |
+| `.contours: number` | how many contours it has |
+| `.bounds: { min: [number, number]; max: [number, number]; }` | its bounding box's low and high corners |
 | `.union(...others: CrossSection[]): CrossSection` | This and the others together. |
 | `.minus(...others: CrossSection[]): CrossSection` | This with the others cut away. |
 | `.intersect(...others: CrossSection[]): CrossSection` | Only where this and every other overlap. |
@@ -211,8 +202,8 @@ A handle to a native solid. Free it when done with many (or let the run end).
 
 | Member | What it does |
 | --- | --- |
-| `new Solid(id: number, expr: string)` | – |
-| `.id: number` | – |
+| `new Solid(id: number, expr: string)` | A handle to native solid `id`, which `expr` rebuilds; the shape functions make these, rarely you. |
+| `.id: number` | the native solid's handle |
 | `.expr: string` | the expression that rebuilds this solid (what a mesh row draws) |
 | `.union(...others: Solid[]): Solid` | This and the others together. |
 | `.minus(...others: Solid[]): Solid` | This with the others cut away. |
@@ -312,8 +303,8 @@ type Animate3d = Record<string, TrackSpec | TrackSpec[] | Keys> | Move
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `min` (required) | `Vec3` | – |
-| `max` (required) | `Vec3` | – |
+| `min` (required) | `Vec3` | the low corner |
+| `max` (required) | `Vec3` | the high corner |
 
 ### `BufferMeshProps`
 
@@ -332,23 +323,23 @@ Bevy's Capsule3d: radius and half_length, the straight part's half (0.5 each by 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `radius` | `number` | – |
-| `half_length` | `number` | – |
-| `args` | `[number, number]` | – |
+| `radius` | `number` | metres (0.5) |
+| `half_length` | `number` | half the straight part's length, metres (0.5) |
+| `args` | `[number, number]` | [radius, length of the straight part] |
 
 ### `CapsuleProps`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `args` | `[number, number]` | – |
+| `args` | `[number, number]` | [radius, length of the straight part] ([0.5, 1]) |
 
 ### `ConeProps`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `args` | `[number, number]` | – |
-| `radius` | `number` | – |
-| `height` | `number` | – |
+| `args` | `[number, number]` | [radius, height] |
+| `radius` | `number` | the base's radius, metres (0.5) |
+| `height` | `number` | metres (1) |
 
 ### `ConicalFrustumProps`
 
@@ -357,10 +348,10 @@ height (0.5), standing up: a tapered Cylinder of args [radius_top, radius_bottom
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `radius_top` | `number` | – |
-| `radius_bottom` | `number` | – |
-| `height` | `number` | – |
-| `args` | `[number, number, number]` | – |
+| `radius_top` | `number` | the top end's radius, metres (0.25) |
+| `radius_bottom` | `number` | the bottom end's radius, metres (0.5) |
+| `height` | `number` | metres (0.5) |
+| `args` | `[number, number, number]` | [radius_top, radius_bottom, height] |
 
 ### `CuboidProps`
 
@@ -368,7 +359,7 @@ Bevy's Cuboid: half its size along each axis ([0.5, 0.5, 0.5], a 1 m cube, as Be
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `half_size` | `[number, number, number]` | – |
+| `half_size` | `[number, number, number]` | half its size along x, y and z, metres ([0.5, 0.5, 0.5]) |
 
 ### `CylinderProps`
 
@@ -376,9 +367,9 @@ Bevy's Cuboid: half its size along each axis ([0.5, 0.5, 0.5], a 1 m cube, as Be
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `args` | `[number, number, number]` | – |
-| `radius` | `number` | – |
-| `half_height` | `number` | – |
+| `args` | `[number, number, number]` | [radius top, radius bottom, height], as three.js's args |
+| `radius` | `number` | metres (0.5) |
+| `half_height` | `number` | half its height, metres (0.5) |
 
 ### `Instance`
 
@@ -387,9 +378,9 @@ copy together). Rotation in radians, XYZ order, as everywhere.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `position` (required) | `Vec3` | – |
-| `rotation` | `Vec3` | – |
-| `scale` | `number \| Vec3` | – |
+| `position` (required) | `Vec3` | where this copy stands, metres, in the Instances' space |
+| `rotation` | `Vec3` | its rotation, Euler angles in radians (x, y, z) |
+| `scale` | `number \| Vec3` | its scale: one number, or x, y and z |
 
 ### `InstancesProps`
 
@@ -397,41 +388,41 @@ copy together). Rotation in radians, XYZ order, as everywhere.
 | --- | --- | --- |
 | `src` | `string` | a glTF file drawn at every placement: staticFile("models/house.glb"). Without it, a geometry child (or `shape`) and a material child draw a mesh at every placement |
 | `at` (required) | `Instance[]` | where each copy stands. Fixed for the shot: the first frame's list is drawn on every frame (move, turn, scale, hide or recolour the whole set by the Instances' own props) |
-| `name` | `string` | – |
-| `position` | `Vec3` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `position` | `Vec3` | where it stands, metres (x, y, z) |
 | `rotation` | `Vec3` | radians |
-| `scale` | `number \| Vec3` | – |
+| `scale` | `number \| Vec3` | its scale: one number, or x, y and z |
 | `scene` | `number` | of a glTF: which of its scenes (0 by default) |
 | `shape` | `string \| Solid` | a Manifold solid or its expression for the mesh form; wins over the geometry child |
 | `shadow` | `boolean` | false: the copies cast no shadow (true by default). Grass and flowers by the thousand usually want false |
 | `receiveShadow` | `boolean` | false: no shadow falls on the copies |
-| `pass` | `string` | – |
+| `pass` | `string` | the composition pass it draws in ("scene" by default) |
 | `children` | `ReactNode` | the mesh form: a geometry and a material (MeshStandardMaterial, MeshPhysicalMaterial or MeshBasicMaterial). The glTF form: MeshStandardMaterial children re-covering its materials, as on a Model |
 
 ### `Mesh2dProps`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `transform` | `TransformValue` | – |
-| `visibility` | `"Inherited" \| "Visible" \| "Hidden"` | – |
+| `transform` | `TransformValue` | where it stands: translation, rotation (a quaternion) and scale |
+| `visibility` | `"Inherited" \| "Visible" \| "Hidden"` | "Hidden" draws nothing; "Visible" and "Inherited" draw |
 | `children` | `ReactNode` | one of bevy_math's 2D primitives (<Circle>, <Capsule2d>,...) and a <ColorMaterial>, or your own <Material> |
-| `name` | `string` | – |
-| `onClick` | `(e: Event3d) => void` | – |
-| `onDrag` | `(e: Event3d) => void` | – |
-| `onDragEnd` | `(e: Event3d) => void` | – |
-| `onDragEnter` | `(e: Event3d) => void` | – |
-| `onDragLeave` | `(e: Event3d) => void` | – |
-| `onDragOver` | `(e: Event3d) => void` | – |
-| `onDragStart` | `(e: Event3d) => void` | – |
-| `onDrop` | `(e: Event3d) => void` | – |
-| `onPointerDown` | `(e: Event3d) => void` | – |
-| `onPointerMove` | `(e: Event3d) => void` | – |
-| `onPointerUp` | `(e: Event3d) => void` | – |
-| `onPointerEnter` | `(e: Event3d) => void` | – |
-| `onPointerLeave` | `(e: Event3d) => void` | – |
-| `onPointerOver` | `(e: Event3d) => void` | – |
-| `onPointerOut` | `(e: Event3d) => void` | – |
-| `onWheel` | `(e: Event3d) => void` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `onClick` | `(e: Event3d) => void` | a press and release over the part |
+| `onDrag` | `(e: Event3d) => void` | the part pressed is being dragged, each frame it moves |
+| `onDragEnd` | `(e: Event3d) => void` | the drag of the part pressed ended |
+| `onDragEnter` | `(e: Event3d) => void` | a dragged part came over this one (`dragged` names it) |
+| `onDragLeave` | `(e: Event3d) => void` | a dragged part left this one |
+| `onDragOver` | `(e: Event3d) => void` | a dragged part is over this one |
+| `onDragStart` | `(e: Event3d) => void` | a drag began on the part pressed |
+| `onDrop` | `(e: Event3d) => void` | a dragged part was dropped on this one |
+| `onPointerDown` | `(e: Event3d) => void` | a button pressed over the part |
+| `onPointerMove` | `(e: Event3d) => void` | the pointer moved over the part |
+| `onPointerUp` | `(e: Event3d) => void` | a button released over the part |
+| `onPointerEnter` | `(e: Event3d) => void` | the pointer came over the part (doesn't bubble) |
+| `onPointerLeave` | `(e: Event3d) => void` | the pointer left the part (doesn't bubble) |
+| `onPointerOver` | `(e: Event3d) => void` | the pointer came over the part (bubbles, as the DOM's) |
+| `onPointerOut` | `(e: Event3d) => void` | the pointer left the part (bubbles) |
+| `onWheel` | `(e: Event3d) => void` | the wheel turned over the part (`deltaX`, `deltaY`) |
 | `quat` | `Quat` | Bevy's rotation as it is, a quaternion [x, y, z, w] in Bevy's axes (y up, z toward the viewer), in place of `rotation`: a turn out of the frame's plane too, as a Sprite's Transform takes it (camera/2d_on_ui) |
 | `opacity` | `number` | 0 to 1 (1 by default) |
 
@@ -451,27 +442,27 @@ type MeshAttribute = [MeshVertexAttribute, (number | number[])[]]
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` | `string` | – |
+| `name` | `string` | the entity's name, for picking and the inspector |
 | `src` (required) | `string` | a.rseq (tools/goo writes them; raea_render::meshseq) |
 | `frame` (required) | `number` | which of its frames (clamped) |
-| `position` | `Vec3` | – |
-| `rotation` | `Vec3` | – |
-| `scale` | `number` | – |
+| `position` | `Vec3` | where it stands, metres (x, y, z) |
+| `rotation` | `Vec3` | its rotation, Euler angles in radians (x, y, z) |
+| `scale` | `number` | a uniform scale |
 | `color` | `string` | multiplies the vertex colours |
-| `roughness` | `number` | – |
-| `metalness` | `number` | – |
-| `clearcoat` | `number` | – |
-| `clearcoatRoughness` | `number` | – |
+| `roughness` | `number` | 0..1, smooth to matte |
+| `metalness` | `number` | 0..1, a dielectric to a metal |
+| `clearcoat` | `number` | 0..1 strength of a clear varnish layer over the surface |
+| `clearcoatRoughness` | `number` | 0..1 roughness of that clear layer |
 | `reflectance` | `number` | 0..1 specular strength at normal incidence (0.5: 4%, a dielectric's) |
 | `subsurface` | `number` | 0..1 light let through (diffuse transmission): a jelly's glow |
-| `thickness` | `number` | – |
+| `thickness` | `number` | how thick the mesh is, metres, for the light let through |
 | `transmission` | `number` | 0..1 light let straight through and bent (a clear liquid: water, tea, juice), with its index of refraction (1.33 water) and, for a tinted one, the colour it takes after `attenuationDistance` metres through it. Screen space: it refracts what's on screen behind it, and one clear layer doesn't show another through it |
-| `ior` | `number` | – |
-| `attenuationColor` | `string` | – |
-| `attenuationDistance` | `number` | – |
-| `opacity` | `number` | – |
+| `ior` | `number` | the index of refraction of what light passes through (1.33 water) |
+| `attenuationColor` | `string` | the colour light takes after `attenuationDistance` metres through it |
+| `attenuationDistance` | `number` | metres through it until light has taken `attenuationColor` |
+| `opacity` | `number` | 0..1, see-through to solid |
 | `map` | `string` | a picture over its texture coordinates |
-| `doubleSided` | `boolean` | – |
+| `doubleSided` | `boolean` | draw the back faces too (an open shell, a petal) |
 
 ### `PlanBox`
 
@@ -479,8 +470,8 @@ A box on the plan (x, z, metres): the room SDK's Footprint, or any { min, max }.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `min` (required) | `[number, number]` | – |
-| `max` (required) | `[number, number]` | – |
+| `min` (required) | `[number, number]` | the low corner (x, z), metres |
+| `max` (required) | `[number, number]` | the high corner (x, z), metres |
 
 ### `Plane3dProps`
 
@@ -490,8 +481,8 @@ its two axes ([0.5, 0.5]), laid out as Bevy's PlaneMeshBuilder does: facing +Z i
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `normal` | `Vec3` | – |
-| `half_size` | `[number, number]` | – |
+| `normal` | `Vec3` | the way it faces, along an axis (+Y by default, a floor) |
+| `half_size` | `[number, number]` | half its extent along its two axes, metres ([0.5, 0.5]) |
 
 ### `Polygons`
 
@@ -524,9 +515,9 @@ A cross-section of a solid at a height: its area, how many contours, and the con
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `area` (required) | `number` | – |
-| `contours` (required) | `number` | – |
-| `polygons` (required) | `[number, number][][]` | – |
+| `area` (required) | `number` | the section's area, m² |
+| `contours` (required) | `number` | how many outlines it has |
+| `polygons` (required) | `[number, number][][]` | the outlines, each a list of [x, y] points in the section's plane |
 
 ### `SphereProps`
 
@@ -535,10 +526,10 @@ subdivisions, or `ico` of them (Bevy's `.ico(n)`, 0 to 80), or a UV sphere of `u
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `args` | `[number]` | – |
-| `radius` | `number` | – |
-| `ico` | `number` | – |
-| `uv` | `[number, number]` | – |
+| `args` | `[number]` | [radius], as three.js's args |
+| `radius` | `number` | metres (0.5) |
+| `ico` | `number` | an icosphere of this many subdivisions (5 by default; 0 to 80) |
+| `uv` | `[number, number]` | a UV sphere instead: [sectors, stacks] |
 
 ### `TorusProps`
 
@@ -546,9 +537,9 @@ subdivisions, or `ico` of them (Bevy's `.ico(n)`, 0 to 80), or a UV sphere of `u
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `args` | `[number, number]` | – |
-| `major_radius` | `number` | – |
-| `minor_radius` | `number` | – |
+| `args` | `[number, number]` | [major radius, minor radius] |
+| `major_radius` | `number` | from the centre to the middle of the tube, metres (0.75) |
+| `minor_radius` | `number` | the tube's radius, metres (0.25) |
 
 ### `Vec3`
 

@@ -48,11 +48,11 @@ A box over the whole of its parent, laid out as a flex column; `style` is merged
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
+| `style` | `CSSProperties` | merged over the fill's own style (absolute, inset 0, a flex column) |
+| `className` | `string` | Tailwind or CSS classes |
+| `children` | `ReactNode` | what fills it |
 
-Used in: [ui/images/image_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node.tsx), [ui/images/ui_texture_slice_flip_and_tile](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice_flip_and_tile.tsx), [ui/images/image_node_resizing](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node_resizing.tsx), [ui/images/ui_texture_atlas_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas_slice.tsx), [ui/images/ui_texture_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice.tsx), [ui/images/ui_texture_atlas](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas.tsx), [ui/layout/grid](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/grid.tsx), [ui/layout/ghost_nodes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/ghost_nodes.tsx), and 98 more.
+Used in: [ui/images/image_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node.tsx), [ui/images/ui_texture_slice_flip_and_tile](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice_flip_and_tile.tsx), [ui/images/image_node_resizing](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node_resizing.tsx), [ui/images/ui_texture_atlas_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas_slice.tsx), [ui/images/ui_texture_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice.tsx), [ui/images/ui_texture_atlas](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas.tsx), [ui/layout/grid](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/grid.tsx), [ui/layout/ghost_nodes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/ghost_nodes.tsx), and 95 more.
 
 ### `Animate`
 
@@ -81,17 +81,17 @@ own.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `frame` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `durationInFrames` (required) | `number` | – |
-| `id` | `string` | – |
-| `defaultProps` | `Record<string, unknown>` | – |
-| `words` | `readonly TimelineWord[]` | – |
-| `perception` | `Perception` | – |
-| `input` | `InputTimeline` | – |
-| `children` | `ReactNode` | – |
+| `frame` (required) | `number` | the composition frame to draw |
+| `fps` (required) | `number` | frames a second |
+| `width` (required) | `number` | in px |
+| `height` (required) | `number` | in px |
+| `durationInFrames` (required) | `number` | the composition's length in frames |
+| `id` | `string` | the composition's id ("main" by default) |
+| `defaultProps` | `Record<string, unknown>` | the props the composition is rendered with |
+| `words` | `readonly TimelineWord[]` | the transcript, in composition frames, that captions and word cuts read |
+| `perception` | `Perception` | what perception saw at this frame (faces, the safe area) |
+| `input` | `InputTimeline` | a game's recorded input by frame |
+| `children` | `ReactNode` | the composition |
 
 ### `Composition`
 
@@ -99,16 +99,16 @@ Declares a composition inside the root. It draws nothing itself; a renderer find
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `component` (required) | `ComponentType<P>` | – |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `durationInFrames` (required) | `number` | – |
-| `defaultProps` | `P` | – |
+| `id` (required) | `string` | the composition's id: letters, digits and dashes (`raea render --composition` picks it) |
+| `component` (required) | `ComponentType<P>` | the React component it renders |
+| `width` (required) | `number` | in px |
+| `height` (required) | `number` | in px |
+| `fps` (required) | `number` | frames a second |
+| `durationInFrames` (required) | `number` | its length in frames |
+| `defaultProps` | `P` | the props it's rendered with (JSON-like values only) |
 | `edit` | `Edit` | a hand edit laid over the composition (docs/craft-system.md, L): written back by the app's timeline |
 
-Used in: [ui/images/image_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node.tsx), [ui/images/ui_texture_slice_flip_and_tile](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice_flip_and_tile.tsx), [ui/images/image_node_resizing](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node_resizing.tsx), [ui/images/ui_texture_atlas_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas_slice.tsx), [ui/images/ui_texture_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice.tsx), [ui/images/ui_texture_atlas](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas.tsx), [ui/layout/grid](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/grid.tsx), [ui/layout/ghost_nodes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/ghost_nodes.tsx), and 152 more.
+Used in: [ui/images/image_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node.tsx), [ui/images/ui_texture_slice_flip_and_tile](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice_flip_and_tile.tsx), [ui/images/image_node_resizing](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node_resizing.tsx), [ui/images/ui_texture_atlas_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas_slice.tsx), [ui/images/ui_texture_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice.tsx), [ui/images/ui_texture_atlas](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas.tsx), [ui/layout/grid](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/grid.tsx), [ui/layout/ghost_nodes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/ghost_nodes.tsx), and 148 more.
 
 ### `Freeze`
 
@@ -116,8 +116,8 @@ Shows its children as they are at `frame`, whatever the parent's frame.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `frame` (required) | `number` | – |
-| `children` | `ReactNode` | – |
+| `frame` (required) | `number` | the frame its children see, whatever the parent's frame |
+| `children` | `ReactNode` | what's held |
 
 ### `Img`
 
@@ -133,12 +133,12 @@ and while another box holds a press, they see no pointer; keys reach every box.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `x` (required) | `number` | – |
-| `y` (required) | `number` | – |
-| `w` (required) | `number` | – |
-| `h` (required) | `number` | – |
-| `scale` | `number` | – |
-| `children` | `ReactNode` | – |
+| `x` (required) | `number` | the box's left edge, composition px |
+| `y` (required) | `number` | its top edge, composition px |
+| `w` (required) | `number` | its width, px |
+| `h` (required) | `number` | its height, px |
+| `scale` | `number` | page px over the box's own points (1): the pointer is divided by it |
+| `children` | `ReactNode` | the game or panel that sees the pointer as its own |
 
 ### `Loop`
 
@@ -146,13 +146,13 @@ Repeats its children every `durationInFrames` frames, `times` times (forever by 
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `durationInFrames` (required) | `number` | – |
-| `times` | `number` | – |
-| `name` | `string` | – |
-| `layout` | `SequenceLayout` | – |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
+| `durationInFrames` (required) | `number` | the length of one loop, in frames |
+| `times` | `number` | how many times it plays (forever by default) |
+| `name` | `string` | its label in the timeline and the render manifest |
+| `layout` | `SequenceLayout` | "absolute-fill" (default) or "none", as a Sequence's |
+| `style` | `CSSProperties` | the wrapping box's style |
+| `className` | `string` | the wrapping box's classes |
+| `children` | `ReactNode` | what loops |
 
 ### `Mix`
 
@@ -167,17 +167,14 @@ The master: every sound in the composition brought to `lufs` integrated loudness
 
 ### `Nudge`
 
-Places its child: an element gets the move in front of its own transform and the fade times its own opacity; a
-component, whose box it can't reach, is placed inside a full-frame layer.
+Moves its child by (x, y): an element gets the move in front of its own transform; a component, whose box it
+can't reach, moves inside a full-frame layer.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
 | `x` | `number` | how far to move it, in the composition's pixels |
-| `y` | `number` | – |
-| `scale` | `number` | how much bigger (2) or smaller (0.5), about its centre |
-| `rotate` | `number` | a turn, in degrees, about its centre |
-| `opacity` | `number` | 0 (gone) to 1 (as it was), times its own opacity |
-| `children` | `ReactNode` | – |
+| `y` | `number` | how far to move it down, in the composition's pixels |
+| `children` | `ReactNode` | the part it places: an element, or a component, which moves inside a full-frame layer |
 
 ### `Overlay`
 
@@ -185,8 +182,8 @@ Its children only in a render asked for the overlay `name`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
-| `children` | `ReactNode` | – |
+| `name` (required) | `string` | the overlay's name, as the render asks for it |
+| `children` | `ReactNode` | what the overlay draws |
 
 ### `Region`
 
@@ -194,11 +191,11 @@ A box at the band its name stands for, clear of the face perception found at thi
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `name` | `RegionName` | – |
-| `margin` | `number` | – |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
+| `name` | `RegionName` | the band: "auto" (default) takes the larger of top and bottom; top and bottom stay clear of the face; center is the middle third; full is the safe area |
+| `margin` | `number` | the gap kept from the face and the sides, as a share of the width (0.06) |
+| `style` | `CSSProperties` | merged under the box's own placement |
+| `className` | `string` | Tailwind or CSS classes |
+| `children` | `ReactNode` | what goes in the band; `useRegion()` reads its box |
 
 ### `Sequence`
 
@@ -206,17 +203,15 @@ Shifts time by `from` and shows its children only for `durationInFrames` frames.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `from` | `number` | – |
-| `durationInFrames` | `number` | – |
-| `name` | `string` | – |
-| `layout` | `SequenceLayout` | – |
-| `width` | `number` | – |
-| `height` | `number` | – |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
-
-Used in: [manual: hello](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/hello.tsx).
+| `from` | `number` | the parent frame its frame 0 falls on (0) |
+| `durationInFrames` | `number` | how many frames it shows its children (forever by default) |
+| `name` | `string` | its label in the timeline and the render manifest (`data-sequence`) |
+| `layout` | `SequenceLayout` | "absolute-fill" (default) wraps the children in a full-size box; "none" adds no box |
+| `width` | `number` | the width its children see, px (the parent's by default) |
+| `height` | `number` | the height its children see, px (the parent's by default) |
+| `style` | `CSSProperties` | the wrapping box's style |
+| `className` | `string` | the wrapping box's classes |
+| `children` | `ReactNode` | what plays in it, at its own local time |
 
 ### `Series`
 
@@ -224,7 +219,7 @@ Plays its Series.Sequence children back to back, each shifted by its own offset.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | the Series.Sequence slots, played back to back |
 
 ### `SongPlot`
 
@@ -233,10 +228,10 @@ it, hits, the feature lanes, and the pacing (cuts per bar). `raea song FILE --pl
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `map` (required) | `SongMap` | – |
-| `width` | `number` | – |
-| `height` | `number` | – |
-| `title` | `string` | – |
+| `map` (required) | `SongMap` | the song's map, from \`raea song\` |
+| `width` | `number` | in px |
+| `height` | `number` | in px |
+| `title` | `string` | the heading (the song's name, tempo, metre and length by default) |
 
 ### `Stagger`
 
@@ -266,7 +261,7 @@ The frame being rendered, counted from the start of the nearest enclosing Sequen
 function useCurrentFrame(): number
 ```
 
-Used in: [ui/scroll_and_overflow/overflow_transform](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/overflow_transform.tsx), [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/ui_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/ui_material.tsx), [ui/styling/gradients](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/styling/gradients.tsx), [ui/text/text_debug](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/text/text_debug.tsx), [ui/text/text](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/text/text.tsx), [ui/text/font_atlas_debug](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/text/font_atlas_debug.tsx), [3d/fog_volumes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog_volumes.tsx), and 46 more.
+Used in: [ui/scroll_and_overflow/overflow_transform](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/scroll_and_overflow/overflow_transform.tsx), [ui/render_ui_to_texture](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/render_ui_to_texture.tsx), [ui/ui_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/ui_material.tsx), [ui/styling/gradients](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/styling/gradients.tsx), [ui/text/text_debug](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/text/text_debug.tsx), [ui/text/text](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/text/text.tsx), [ui/text/font_atlas_debug](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/text/font_atlas_debug.tsx), [3d/fog_volumes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/3d/fog_volumes.tsx), and 43 more.
 
 ### `useGameEvents`
 
@@ -289,7 +284,7 @@ in order. Frames count from the nearest enclosing Sequence, so a game starts whe
 function useGameState<S>(initial: S, step: Step<S>): S
 ```
 
-Used in: [shader/shader_prepass](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/shader/shader_prepass.tsx), [shader/sprite_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/shader/sprite_material.tsx), [manual: squash](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/squash.tsx).
+Used in: [shader/shader_prepass](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/shader/shader_prepass.tsx), [shader/sprite_material](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/shader/sprite_material.tsx).
 
 ### `useInput`
 
@@ -328,8 +323,6 @@ The settings of the composition being rendered (a Sequence's width and height wi
 ```ts
 function useVideoConfig(): VideoConfig
 ```
-
-Used in: [manual: title](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/title.tsx), [manual: turntable](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/turntable.tsx).
 
 ### `useWords`
 
@@ -448,8 +441,6 @@ range (`extend`, the default, carries on; `clamp` holds the end value; `identity
 ```ts
 function interpolate(x: number, input: readonly number[], output: readonly number[], options?: InterpolateOptions): number
 ```
-
-Used in: [manual: turntable](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/turntable.tsx), [manual: hello](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/hello.tsx).
 
 ### `isGeneratedAsset`
 
@@ -570,7 +561,7 @@ Names the root component the renderer starts from, and records its compositions.
 function registerRoot(given: ReactElement<unknown, string | JSXElementConstructor<any>> | ComponentType): void
 ```
 
-Used in: [ui/images/image_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node.tsx), [ui/images/ui_texture_slice_flip_and_tile](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice_flip_and_tile.tsx), [ui/images/image_node_resizing](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node_resizing.tsx), [ui/images/ui_texture_atlas_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas_slice.tsx), [ui/images/ui_texture_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice.tsx), [ui/images/ui_texture_atlas](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas.tsx), [ui/layout/grid](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/grid.tsx), [ui/layout/ghost_nodes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/ghost_nodes.tsx), and 152 more.
+Used in: [ui/images/image_node](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node.tsx), [ui/images/ui_texture_slice_flip_and_tile](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice_flip_and_tile.tsx), [ui/images/image_node_resizing](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/image_node_resizing.tsx), [ui/images/ui_texture_atlas_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas_slice.tsx), [ui/images/ui_texture_slice](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_slice.tsx), [ui/images/ui_texture_atlas](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/images/ui_texture_atlas.tsx), [ui/layout/grid](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/grid.tsx), [ui/layout/ghost_nodes](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/bench/bevy-parity/ui/layout/ghost_nodes.tsx), and 148 more.
 
 ### `replayDecider`
 
@@ -672,8 +663,6 @@ stretches it to end at that frame. `measureSpring` says how long one takes to se
 ```ts
 function spring(opts: SpringOptions): number
 ```
-
-Used in: [manual: title](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/title.tsx).
 
 ### `stagger`
 
@@ -803,8 +792,6 @@ The easing curves, each a function of progress 0..1: `linear`, `quad`, `cubic`, 
 `back`, `elastic`, `bounce` and `bezier(x1, y1, x2, y2)`, eased in as they are; `Easing.out(f)` and `Easing.inOut(f)`
 turn one round. Pass one as `interpolate`'s `easing`.
 
-Used in: [manual: turntable](https://github.com/shinyobjectz/raea/blob/main/docs/manual/examples/turntable.tsx).
-
 ### `FEED_KEY`
 
 The prefix of the keys the app hands every panel for what it knows: `feed:transcript` (the conversation's last lines,
@@ -857,11 +844,11 @@ type Actions = Action<C, E> | readonly Action<C, E>[]
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `states` (required) | `{ name: N; parent: N \| null; depth: number; kind: "leaf" \| "compound" \| "final"; initia…` | – |
-| `edges` (required) | `Edge<N>[]` | – |
+| `id` (required) | `string` | the machine's id |
+| `states` (required) | `{ name: N; parent: N \| null; depth: number; kind: "leaf" \| "compound" \| "final"; initia…` | every state with its parent, depth, kind and whether it's an initial state |
+| `edges` (required) | `Edge<N>[]` | every transition |
 | `reachable` (required) | `N[]` | states some sequence of transitions reaches from the initial state (guards assumed satisfiable) |
-| `unreachable` (required) | `N[]` | – |
+| `unreachable` (required) | `N[]` | states no sequence of transitions reaches |
 | `deadEnds` (required) | `N[]` | non-final leaves with no transition out (their own or an enclosing state's): once entered, never left |
 
 ### `AnimateOwnProps`
@@ -874,12 +861,12 @@ type Actions = Action<C, E> | readonly Action<C, E>[]
 | `at` | `number` | local frame the entrance starts (0) |
 | `exitAt` | `number` | local frame the exit starts |
 | `timeline` | `Plan` | a timeline's plan and this element's part in it: the part's move, at its start (plus `at`) |
-| `part` | `string` | – |
+| `part` | `string` | the part in \`timeline\` whose move this element plays |
 | `mount` | `"during" \| "always"` | "always" (default): in the tree, and its layout, the whole time (invisible before an entrance that fades in); "during": only from the entrance's start until the exit ends (it takes its space when it arrives) |
 | `as` | `string` | the element: "div" by default |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
+| `style` | `CSSProperties` | inline style |
+| `className` | `string` | Tailwind or CSS classes |
+| `children` | `ReactNode` | what moves |
 
 ### `AnimateProps`
 
@@ -889,42 +876,48 @@ type AnimateProps = AnimateOwnProps & { [attr: string]: unknown }
 
 ### `Animation`
 
-raea_core_animate::spec::Animation
+One element's declared animation.
+
+Rust: `raea_core_animate::spec::Animation`.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `origin` (required) | `number` | – |
-| `freeze` (required) | `number \| null` | – |
-| `fps` (required) | `number` | – |
-| `tracks` (required) | `(AnimTrack)[]` | – |
-| `show_from` (required) | `number \| null` | – |
-| `show_until` (required) | `number \| null` | – |
+| `origin` (required) | `number` | the composition frame the element's local frame 0 falls on (where its Sequence starts) |
+| `freeze` (required) | `number \| null` | a local frame to hold at whatever the composition's frame (inside a Freeze) |
+| `fps` (required) | `number` | the frames per second its frames count; springs measure their settle time with it (0: the clock's) |
+| `tracks` (required) | `(AnimTrack)[]` | the element's keyframed properties, one track each |
+| `show_from` (required) | `number \| null` | the local frame it's shown from, when it shows only for a window (mount="during"); before it, display none |
+| `show_until` (required) | `number \| null` | the local frame it's hidden from again |
 
 ### `AnimKey`
 
-raea_core_animate::spec::AnimKey
+One key: a value at a local frame, and the curve from it to the next key.
+
+Rust: `raea_core_animate::spec::AnimKey`.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `at` (required) | `number` | – |
-| `value` (required) | `number` | – |
-| `color` (required) | `string` | – |
-| `ease` (required) | `string` | – |
+| `at` (required) | `number` | the local frame it's at |
+| `value` (required) | `number` | a number property's value there |
+| `color` (required) | `string` | a colour property's value (CSS text); empty for numbers |
+| `ease` (required) | `string` | the curve to the next key (easing::Easing::parse); empty is linear |
 
 ### `AnimTrack`
 
-raea_core_animate::spec::AnimTrack
+Keyframes on one property.
+
+Rust: `raea_core_animate::spec::AnimTrack`.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `prop` (required) | `string` | – |
-| `keys` (required) | `(AnimKey)[]` | – |
-| `unit` (required) | `string` | – |
-| `repeat` (required) | `string` | – |
-| `digits` (required) | `number` | – |
-| `prefix` (required) | `string` | – |
-| `suffix` (required) | `string` | – |
-| `separator` (required) | `string` | – |
+| `prop` (required) | `string` | the property it keys: opacity, x, y, z, scale, rotate, width, height, blur, clip, a colour, `text`, or another number |
+| `keys` (required) | `(AnimKey)[]` | its keyframes in frame order |
+| `unit` (required) | `string` | a length's unit: "px" (when empty) or "%" |
+| `repeat` (required) | `string` | past the last key: "" or "hold", "loop", "pingpong" (for ever), or "loop:N" / "pingpong:N" |
+| `digits` (required) | `number` | decimals a `text` number is written with |
+| `prefix` (required) | `string` | written before and after a `text` number (a counter's "$" and " pts") |
+| `suffix` (required) | `string` | written after a `text` number |
+| `separator` (required) | `string` | between a `text` number's thousands ("," writes 12,345); empty: none |
 
 ### `AnyMachine`
 
@@ -948,13 +941,13 @@ A choice point as a decider sees it: which machine, where, and the candidates wh
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `machine` (required) | `string` | – |
+| `machine` (required) | `string` | the machine's id |
 | `state` (required) | `string` | the state whose `choose` list this is, and the active leaf |
-| `leaf` (required) | `string` | – |
+| `leaf` (required) | `string` | the active leaf state |
 | `n` (required) | `number` | the machine's step |
 | `candidates` (required) | `{ edge: number; to: string; description?: string }[]` | the candidates whose guards hold, in their order (each an edge of machine.edges) |
-| `ctx` (required) | `C` | – |
-| `env` (required) | `E` | – |
+| `ctx` (required) | `C` | the context the machine drives |
+| `env` (required) | `E` | whatever the step was given as env |
 
 ### `ClockProps`
 
@@ -999,8 +992,8 @@ is asked outside the step and their answer replayed (`replayDecider`). Determini
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
-| `decide` (required) | `(point: ChoicePoint<unknown, unknown>) => Decision` | – |
+| `name` (required) | `string` | its name in the trace's `by` column |
+| `decide` (required) | `(point: ChoicePoint<unknown, unknown>) => Decision` | picks a candidate at a choice point, synchronously |
 
 ### `Decision`
 
@@ -1009,8 +1002,8 @@ whatever supports the choice (a bot's score, a model's probabilities), recorded 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `edge` (required) | `number \| null` | – |
-| `evidence` | `unknown` | – |
+| `edge` (required) | `number \| null` | the edge picked, one of the candidates' `edge`; null waits this step |
+| `evidence` | `unknown` | what supports the choice (a bot's score, a model's probabilities), recorded with the transition |
 
 ### `EasingFn`
 
@@ -1022,14 +1015,14 @@ type EasingFn = (p: number) => number
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `index` (required) | `number` | – |
-| `from` (required) | `N` | – |
-| `to` (required) | `N` | – |
-| `kind` (required) | `"always" \| "after" \| "on" \| "done" \| "choose"` | – |
+| `index` (required) | `number` | its place in `machine.edges` |
+| `from` (required) | `N` | the state it leaves |
+| `to` (required) | `N` | the state it enters |
+| `kind` (required) | `"always" \| "after" \| "on" \| "done" \| "choose"` | what fires it: a guard polled each step (always), a delay (after), an event (on), the substate finishing (done) or a decider (choose) |
 | `event` | `string` | the event an `on` edge waits for |
 | `after` (required) | `number` | steps in `from` before it may fire |
-| `guarded` (required) | `boolean` | – |
-| `description` | `string` | – |
+| `guarded` (required) | `boolean` | whether it has a guard (`when`) |
+| `description` | `string` | what the transition means, from its config |
 
 ### `Edit`
 
@@ -1038,7 +1031,7 @@ a split, a cut word or a moved span is a change to this list; the length becomes
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `segments` | `readonly (readonly [number, number])[]` | – |
+| `segments` | `readonly (readonly [number, number])[]` | the composition's own frame ranges, [from, to), played one after another |
 
 ### `ExtrapolateMode`
 
@@ -1074,9 +1067,9 @@ The props of [`Freeze`](#freeze), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `kind` (required) | `AssetKind` | – |
-| `prompt` (required) | `string` | – |
-| `seconds` (required) | `number` | – |
+| `kind` (required) | `AssetKind` | which generator makes it: lyria (music), sao (sound effects) or tokensynth (an instrument's note) |
+| `prompt` (required) | `string` | what to make, in words |
+| `seconds` (required) | `number` | how long it is |
 | `id` (required) | `string` | a stable hash of kind, prompt and seconds |
 | `src` (required) | `string` | "asset:<kind>/<id>" |
 | `options` | `Record<string, unknown>` | the generator's own settings (a TokenSynth note's midi, velocity, seed and device) |
@@ -1091,8 +1084,8 @@ type GridFrom = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "cen
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `kind` (required) | `"sequence" \| "parallel"` | – |
-| `steps` (required) | `Step[]` | – |
+| `kind` (required) | `"sequence" \| "parallel"` | sequence: one after another; parallel: together |
+| `steps` (required) | `Step[]` | its steps, in order |
 | `gap` (required) | `number` | frames between steps of a sequence (negative overlaps) |
 
 ### `Guard`
@@ -1119,9 +1112,9 @@ type InputTimeline = Record<number, Partial<FrameInput> | undefined>
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `easing` | `EasingFn \| EasingFn[]` | – |
-| `extrapolateLeft` | `ExtrapolateMode` | – |
-| `extrapolateRight` | `ExtrapolateMode` | – |
+| `easing` | `EasingFn \| EasingFn[]` | the curve between keyframes: one for all, or one a segment |
+| `extrapolateLeft` | `ExtrapolateMode` | below the first keyframe: extend the line (default), clamp to it, identity (the input itself) or wrap |
+| `extrapolateRight` | `ExtrapolateMode` | past the last keyframe: extend (default), clamp, identity or wrap |
 
 ### `Keys`
 
@@ -1140,8 +1133,8 @@ The props of [`Loop`](#loop), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `key` (required) | `K` | – |
+| `id` (required) | `string` | the machine's name in traces and reports |
+| `key` (required) | `K` | the context's field holding its snapshot ("sm") |
 | `states` (required) | `readonly N[]` | every state, in definition order (outer before inner) |
 | `edges` (required) | `readonly Edge<N>[]` | every transition, in the order they're checked within a state |
 | `start` (required) | `() => Snapshot<N>` | a snapshot before the first step: the first step enters the initial states (running their entry actions) |
@@ -1159,8 +1152,8 @@ The props of [`Loop`](#loop), tabled there.
 | Field | Type | What it is |
 | --- | --- | --- |
 | `id` (required) | `string` | the machine's name in traces and reports |
-| `initial` (required) | `NoInfer<N>` | – |
-| `states` (required) | `{ [S in N]?: StateConfig<C, E, N> }` | – |
+| `initial` (required) | `NoInfer<N>` | the state it starts in |
+| `states` (required) | `{ [S in N]?: StateConfig<C, E, N> }` | its states by name, each a StateConfig (substates nest inside) |
 | `key` | `K` | the context's field holding the snapshot ("sm") |
 | `strict` | `boolean` | refuse unreachable states and non-final dead ends when the machine is built (true) |
 
@@ -1168,22 +1161,22 @@ The props of [`Loop`](#loop), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `src` (required) | `string` | – |
-| `startFrom` | `number` | – |
-| `endAt` | `number` | – |
-| `trimBefore` | `number` | – |
-| `trimAfter` | `number` | – |
+| `src` (required) | `string` | the file: staticFile("clip.mp4"), or a generated asset |
+| `startFrom` | `number` | the media's own frame it starts playing from (0); the same as trimBefore |
+| `endAt` | `number` | the media's frame it stops before (exclusive): it holds the last frame, or loops; the same as trimAfter |
+| `trimBefore` | `number` | frames of the media cut off its start (the newer name for startFrom) |
+| `trimAfter` | `number` | the media's frame it's cut at (the newer name for endAt) |
 | `volume` | `VolumeProp` | linear gain, 1 being unity (0.5 is about -6 dB, 1.78 about +5 dB), or a function of the media's own frame |
 | `gainDb` | `VolumeProp` | ours: the gain in decibels (or a function of the media's own frame returning it); wins over volume |
 | `fadeIn` | `number` | ours: seconds to ramp the sound in from silence at its start (applied by the renderer at the audio's rate) |
 | `fadeOut` | `number` | ours: seconds to ramp the sound out to silence at its end |
-| `playbackRate` | `number` | – |
-| `muted` | `boolean` | – |
-| `loop` | `boolean` | – |
+| `playbackRate` | `number` | how fast it plays (1): 2 is double speed |
+| `muted` | `boolean` | play no sound |
+| `loop` | `boolean` | start again from `startFrom` when it reaches `endAt` |
 | `bus` | `string` | the bus it plays into: a named channel of the edit's Tone graph (music, sfx, voice, ambience, ui), so it takes that bus's volume, effects and ducking (raea/tone `buses`) |
-| `name` | `string` | – |
-| `className` | `string` | – |
-| `style` | `CSSProperties` | – |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+| `className` | `string` | Tailwind or CSS classes |
+| `style` | `CSSProperties` | inline style |
 
 ### `MixProps`
 
@@ -1195,7 +1188,7 @@ Tracks by property, in frames from the move's own start.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `tracks` (required) | `Record<string, TrackSpec \| TrackSpec[]>` | – |
+| `tracks` (required) | `Record<string, TrackSpec \| TrackSpec[]>` | keyframes by property, in frames from the move's start |
 | `frames` (required) | `number` | how long it runs (its last key) |
 
 ### `MoveLike`
@@ -1221,9 +1214,9 @@ panel's state.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `about` (required) | `string` | – |
-| `args` | `Record<string, string>` | – |
-| `run` (required) | `(state: S, args: A) => S` | – |
+| `about` (required) | `string` | what the action does, for the agent |
+| `args` | `Record<string, string>` | its arguments by name, a few words each |
+| `run` (required) | `(state: S, args: A) => S` | the panel's state after it |
 
 ### `PanelActions`
 
@@ -1237,8 +1230,8 @@ What perception saw at this frame: the largest face, and the platform's safe are
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `face` | `Rect` | – |
-| `safe` | `{ top?: number; bottom?: number }` | – |
+| `face` | `Rect` | the largest face's box, when there's one |
+| `safe` | `{ top?: number; bottom?: number }` | px the platform's UI covers at the top and bottom |
 
 ### `Plan`
 
@@ -1246,8 +1239,8 @@ A timeline's plan: each part's start frame and move, and the whole length.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `parts` (required) | `Record<string, { at: number; move: Move }>` | – |
-| `frames` (required) | `number` | – |
+| `parts` (required) | `Record<string, { at: number; move: Move }>` | each part's start frame and move, by its name |
+| `frames` (required) | `number` | the whole timeline's length in frames |
 
 ### `Playtest`
 
@@ -1271,21 +1264,21 @@ whatever it plays is an input timeline `raea render --input` turns back into the
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `face` | `Rect` | – |
-| `parts` (required) | `ProofPart[]` | – |
+| `width` (required) | `number` | the composition's width, px |
+| `height` (required) | `number` | the composition's height, px |
+| `face` | `Rect` | the face's box, when perception found one |
+| `parts` (required) | `ProofPart[]` | the measured boxes of the parts to check |
 
 ### `ProofPart`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
+| `name` (required) | `string` | the part's name, in the faults |
 | `band` | `[number, number]` | the band the part must fit in, [top, bottom] in px |
-| `x` (required) | `number` | – |
-| `y` (required) | `number` | – |
-| `w` (required) | `number` | – |
-| `h` (required) | `number` | – |
+| `x` (required) | `number` | the left edge, px |
+| `y` (required) | `number` | the top edge, px |
+| `w` (required) | `number` | width, px |
+| `h` (required) | `number` | height, px |
 
 ### `RaeaCSSProperties`
 
@@ -1303,10 +1296,10 @@ A box in composition px.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `x` (required) | `number` | – |
-| `y` (required) | `number` | – |
-| `w` (required) | `number` | – |
-| `h` (required) | `number` | – |
+| `x` (required) | `number` | the left edge, px |
+| `y` (required) | `number` | the top edge, px |
+| `w` (required) | `number` | width, px |
+| `h` (required) | `number` | height, px |
 
 ### `RegionBox`
 
@@ -1314,11 +1307,11 @@ The band a Region occupies, in composition px.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `RegionName` | – |
-| `x` (required) | `number` | – |
-| `y` (required) | `number` | – |
-| `w` (required) | `number` | – |
-| `h` (required) | `number` | – |
+| `name` (required) | `RegionName` | the band it took: top, bottom, center or full ("auto" resolves to top or bottom) |
+| `x` (required) | `number` | the left edge, px |
+| `y` (required) | `number` | the top edge, px |
+| `w` (required) | `number` | width, px |
+| `h` (required) | `number` | height, px |
 
 ### `RegionName`
 
@@ -1334,13 +1327,13 @@ The props of [`Region`](#region), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `component` (required) | `ComponentType<any>` | – |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `durationInFrames` (required) | `number` | – |
-| `defaultProps` (required) | `Record<string, unknown>` | – |
+| `id` (required) | `string` | the composition's id: letters, digits and dashes (`raea render --composition` picks it) |
+| `component` (required) | `ComponentType<any>` | the React component it renders |
+| `width` (required) | `number` | in px |
+| `height` (required) | `number` | in px |
+| `fps` (required) | `number` | frames a second |
+| `durationInFrames` (required) | `number` | its length in frames |
+| `defaultProps` (required) | `Record<string, unknown>` | the props it's rendered with (JSON-like values only) |
 
 ### `SequenceLayout`
 
@@ -1356,14 +1349,14 @@ The props of [`Sequence`](#sequence), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `offset` | `number` | – |
-| `height` | `number` | – |
-| `style` | `CSSProperties` | – |
-| `children` | `ReactNode` | – |
-| `className` | `string` | – |
-| `name` | `string` | – |
-| `width` | `number` | – |
-| `durationInFrames` | `number` | – |
+| `offset` | `number` | frames from the previous slot's end to this one's start (0); negative overlaps |
+| `height` | `number` | the height its children see, px (the parent's by default) |
+| `style` | `CSSProperties` | the wrapping box's style |
+| `children` | `ReactNode` | what plays in it, at its own local time |
+| `className` | `string` | the wrapping box's classes |
+| `name` | `string` | its label in the timeline and the render manifest (`data-sequence`) |
+| `width` | `number` | the width its children see, px (the parent's by default) |
+| `durationInFrames` | `number` | how many frames it shows its children (forever by default) |
 
 ### `Snapshot`
 
@@ -1374,20 +1367,20 @@ guard); `hist` is each history state's last substate.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `path` (required) | `N[]` | – |
-| `at` (required) | `number[]` | – |
-| `n` (required) | `number` | – |
-| `e` (required) | `number` | – |
-| `by` | `string` | – |
-| `hist` | `{ [S in N]?: N }` | – |
+| `path` (required) | `N[]` | the active states, outermost first ([] before the first step) |
+| `at` (required) | `number[]` | the step each state in `path` was entered on |
+| `n` (required) | `number` | the machine's steps so far, from 0 |
+| `e` (required) | `number` | the edge the last transition took, an index into `machine.edges` |
+| `by` | `string` | the decider that chose the last transition (absent: a guard did) |
+| `hist` | `{ [S in N]?: N }` | each history state's last substate |
 
 ### `Song`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `map` (required) | `SongMap` | – |
-| `fps` (required) | `number` | – |
-| `offset` (required) | `number` | – |
+| `map` (required) | `SongMap` | the song's map, from \`raea song\` |
+| `fps` (required) | `number` | the composition's frame rate, that frames are counted in |
+| `offset` (required) | `number` | seconds into the song frame 0 falls on (0) |
 | `frame` (required) | `(seconds: number) => number` | the frame a song time falls on |
 | `seconds` (required) | `(frame: number) => number` | the song's seconds at a frame |
 | `at` (required) | `(frame: number) => SongMoment` | where the song is at a frame |
@@ -1400,32 +1393,32 @@ guard); `hist` is each history state's last substate.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `time` (required) | `number` | – |
-| `beat` (required) | `number` | – |
-| `beats` (required) | `number` | – |
-| `energy` (required) | `number` | – |
-| `cuts` (required) | `number` | – |
+| `time` (required) | `number` | seconds from the song's start where the bar begins (its downbeat) |
+| `beat` (required) | `number` | the index of its first beat |
+| `beats` (required) | `number` | how many beats it holds |
+| `energy` (required) | `number` | its mean energy, 0..1 |
+| `cuts` (required) | `number` | suggested cuts in this bar: 0.25, 0.5, 1, 2 or 4 |
 
 ### `SongEvent`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `kind` (required) | `SongEventKind` | – |
+| `kind` (required) | `SongEventKind` | what the event is: build, drop, stop, hit, dip or break |
 | `time` (required) | `number` | seconds from the song's start: a beat (drop, a downbeat) or the grid's nearest beat or half beat (hit) |
 | `end` | `number` | spans (build, stop, dip, break) end here |
-| `beat` (required) | `number` | – |
-| `bar` (required) | `number` | – |
-| `beats` | `number` | – |
+| `beat` (required) | `number` | the index of the beat it starts on, in `SongMap.beats` |
+| `bar` (required) | `number` | the index of the bar it starts in |
+| `beats` | `number` | a span: how many beats it lasts |
 | `strength` (required) | `number` | 0..1 |
 | `into` | `number \| null` | a build or stop: the drop it leads into, seconds |
 | `hits` | `SongHit[]` | a stop: its sparse hits |
 | `rise` | `number` | a drop: the energy of the bar after minus the bar before (negative when the band cuts after one big hit) |
 | `holds` | `boolean` | a drop: the bar after stays up (false: one hit, then the band cuts out) |
-| `afterStop` | `boolean` | – |
-| `afterBuild` | `boolean` | – |
+| `afterStop` | `boolean` | a drop: it comes straight out of a stop |
+| `afterBuild` | `boolean` | a drop: it lands at the end of a build (within two bars of it) |
 | `gapBefore` | `boolean` | a drop: a breath of near-silence just before it |
 | `at` | `number` | a hit: the onset's own time; how far over the groove it stands |
-| `over` | `number` | – |
+| `over` | `number` | a hit: how far over the groove it stands |
 
 ### `SongEventKind`
 
@@ -1437,12 +1430,12 @@ type SongEventKind = "build" | "drop" | "stop" | "hit" | "dip" | "break"
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `loudness` (required) | `number[]` | – |
-| `onsets` (required) | `number[]` | – |
-| `brightness` (required) | `number[]` | – |
-| `low` (required) | `number[]` | – |
-| `high` (required) | `number[]` | – |
-| `energy` (required) | `number[]` | – |
+| `loudness` (required) | `number[]` | loudness (RMS) a beat, 0..1 over the song |
+| `onsets` (required) | `number[]` | onset strength (spectral flux) a beat, 0..1: how much is struck |
+| `brightness` (required) | `number[]` | brightness (spectral centroid) a beat, 0..1 |
+| `low` (required) | `number[]` | the low end (kick and bass, under 150 Hz) a beat, 0..1 |
+| `high` (required) | `number[]` | the high band (over 3 kHz) a beat, 0..1 |
+| `energy` (required) | `number[]` | the combined energy a beat, 0..1: loudness, low end, onsets and highs together |
 
 ### `SongHit`
 
@@ -1450,9 +1443,9 @@ A hit inside a stop: `time` on the beat grid (a beat or half beat), `at` where t
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `time` (required) | `number` | – |
-| `at` (required) | `number` | – |
-| `strength` (required) | `number` | – |
+| `time` (required) | `number` | seconds from the song's start, snapped to the beat grid (a beat or half beat) |
+| `at` (required) | `number` | seconds from the song's start where the onset itself is |
+| `strength` (required) | `number` | how hard the hit is, 0..1 |
 
 ### `SongLevel`
 
@@ -1464,19 +1457,19 @@ type SongLevel = "intro" | "low" | "mid" | "high" | "outro"
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `version` (required) | `number` | – |
-| `duration` (required) | `number` | – |
-| `tempo` (required) | `number \| null` | – |
-| `beatsPerBar` (required) | `number` | – |
-| `beats` (required) | `number[]` | – |
-| `downbeats` (required) | `number[]` | – |
+| `version` (required) | `number` | the map format's version (1) |
+| `duration` (required) | `number` | the song's length in seconds |
+| `tempo` (required) | `number \| null` | beats per minute, or null when no beat was found |
+| `beatsPerBar` (required) | `number` | beats in a bar (4 for 4/4) |
+| `beats` (required) | `number[]` | every beat's time in seconds, ascending |
+| `downbeats` (required) | `number[]` | every bar's first beat, in seconds |
 | `features` (required) | `SongFeatures` | one value a beat, 0..1 over the song |
-| `bars` (required) | `SongBar[]` | – |
-| `sections` (required) | `SongSection[]` | – |
-| `events` (required) | `SongEvent[]` | – |
-| `sectionsFrom` | `"markers" \| "novelty"` | – |
-| `boundaries` | `{ time: number; beat: number; bar: number; strength: number }[]` | – |
-| `source` | `string \| null` | – |
+| `bars` (required) | `SongBar[]` | the bars in order, each with its energy and suggested cut rate |
+| `sections` (required) | `SongSection[]` | the song's sections in order (intro, verse, chorus and so on) |
+| `events` (required) | `SongEvent[]` | builds, drops, stops, hits, dips and breaks, in time order |
+| `sectionsFrom` | `"markers" \| "novelty"` | where the sections came from: the song file's markers, or novelty in the music itself |
+| `boundaries` | `{ time: number; beat: number; bar: number; strength: number }[]` | the candidate section boundaries novelty found, each with its strength 0..1 |
+| `source` | `string \| null` | the song file's name |
 
 ### `SongMoment`
 
@@ -1484,30 +1477,30 @@ Where a moment of the song is. Seconds are the song's; infinities when there's n
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `time` (required) | `number` | – |
+| `time` (required) | `number` | the moment, seconds from the song's start |
 | `beat` (required) | `number` | the beat at or before `time` (-1 before the first) |
 | `bar` (required) | `number` | the bar at or before `time` (-1 before the first beat) |
 | `beatInBar` (required) | `number` | 0-based position in the bar |
 | `phase` (required) | `number` | 0..1 through the beat, and through the bar |
-| `barPhase` (required) | `number` | – |
+| `barPhase` (required) | `number` | 0..1 through the bar |
 | `energy` (required) | `number` | the features at `time`, interpolated between beats |
-| `loudness` (required) | `number` | – |
-| `onsets` (required) | `number` | – |
-| `brightness` (required) | `number` | – |
-| `low` (required) | `number` | – |
-| `section` (required) | `SongSection \| null` | – |
-| `sectionIndex` (required) | `number` | – |
+| `loudness` (required) | `number` | loudness at `time`, 0..1 |
+| `onsets` (required) | `number` | onset strength at `time`, 0..1 |
+| `brightness` (required) | `number` | brightness at `time`, 0..1 |
+| `low` (required) | `number` | the low end at `time`, 0..1 |
+| `section` (required) | `SongSection \| null` | the section `time` is in (null before the first) |
+| `sectionIndex` (required) | `number` | that section's index in `SongMap.sections` (-1 for none) |
 | `sectionProgress` (required) | `number` | 0..1 through the section |
 | `cutsPerBar` (required) | `number` | the bar's suggested cut rate (cuts per bar) |
 | `drop` (required) | `SongEvent \| null` | the last drop at or before `time`, the next after it |
-| `nextDrop` (required) | `SongEvent \| null` | – |
-| `sinceDrop` (required) | `number` | – |
-| `untilDrop` (required) | `number` | – |
+| `nextDrop` (required) | `SongEvent \| null` | the next drop after `time` |
+| `sinceDrop` (required) | `number` | seconds since the last drop (Infinity when there's none) |
+| `untilDrop` (required) | `number` | seconds until the next drop (Infinity when there's none) |
 | `build` (required) | `SongEvent \| null` | the build `time` is in, and 0..1 through it |
-| `inBuild` (required) | `boolean` | – |
-| `buildProgress` (required) | `number` | – |
+| `inBuild` (required) | `boolean` | whether `time` is inside a build |
+| `buildProgress` (required) | `number` | 0..1 through that build |
 | `stop` (required) | `SongEvent \| null` | the stop `time` is in |
-| `inStop` (required) | `boolean` | – |
+| `inStop` (required) | `boolean` | whether `time` is inside a stop |
 | `dip` (required) | `SongEvent \| null` | the dip or break `time` is in |
 | `next` (required) | `SongEvent \| null` | the next event of any kind after `time` |
 
@@ -1526,37 +1519,37 @@ The props of [`SongPlot`](#songplot), tabled there.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
-| `level` (required) | `SongLevel` | – |
-| `time` (required) | `number` | – |
-| `end` (required) | `number` | – |
-| `beat` (required) | `number` | – |
-| `bar` (required) | `number` | – |
-| `energy` (required) | `number` | – |
+| `name` (required) | `string` | the section's marker name when the song file has markers, else its level |
+| `level` (required) | `SongLevel` | how high the section sits in the song: intro, low, mid, high or outro |
+| `time` (required) | `number` | seconds from the song's start where the section begins |
+| `end` (required) | `number` | seconds from the song's start where it ends |
+| `beat` (required) | `number` | the index of its first beat |
+| `bar` (required) | `number` | the index of its first bar |
+| `energy` (required) | `number` | its mean energy, 0..1 |
 | `cuts` (required) | `number` | suggested cuts per bar: 0.25, 0.5, 1, 2 or 4 |
 
 ### `SpringConfig`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `mass` | `number` | – |
-| `damping` | `number` | – |
-| `stiffness` | `number` | – |
-| `overshootClamping` | `boolean` | – |
+| `mass` | `number` | how heavy the spring's weight is (1): heavier is slower and swings further |
+| `damping` | `number` | how fast the swing dies (10): lower bounces more |
+| `stiffness` | `number` | how hard the spring pulls (100): stiffer is quicker |
+| `overshootClamping` | `boolean` | stop at `to` the first time it gets there, with no overshoot (false) |
 
 ### `SpringOptions`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `frame` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `from` | `number` | – |
-| `to` | `number` | – |
-| `config` | `SpringConfig` | – |
-| `durationInFrames` | `number` | – |
-| `durationRestThreshold` | `number` | – |
-| `delay` | `number` | – |
-| `reverse` | `boolean` | – |
+| `frame` (required) | `number` | the frame to sample, usually useCurrentFrame() |
+| `fps` (required) | `number` | frames a second, from useVideoConfig() |
+| `from` | `number` | the value it starts at (0) |
+| `to` | `number` | the value it settles at (1) |
+| `config` | `SpringConfig` | the spring: mass, damping, stiffness, overshootClamping |
+| `durationInFrames` | `number` | stretch or squeeze the spring to settle in this many frames |
+| `durationRestThreshold` | `number` | how close to `to`, as a share of the travel, counts as settled when timing it (0.005) |
+| `delay` | `number` | frames before it starts (0) |
+| `reverse` | `boolean` | play it backwards: from `to` back to `from` |
 
 ### `StaggerProps`
 
@@ -1565,16 +1558,16 @@ The props of [`SongPlot`](#songplot), tabled there.
 | `each` (required) | `number` | frames between one child's entrance and the next |
 | `grid` | `{ cols: number; rows?: number; from?: GridFrom }` | spread by grid distance instead of order |
 | `exitEach` | `number` | the exit staggered too, `exitEach` frames apart (0: all together) |
-| `style` | `CSSProperties` | – |
+| `style` | `CSSProperties` | inline style |
 | `animate` | `Record<string, TrackSpec \| TrackSpec[] \| Keys> \| Move` | free tracks by property, in local frames: `{ backgroundColor: track({ 0: "#fff", 20: "#000" }) }` |
 | `as` | `string` | the element: "div" by default |
 | `exit` | `MoveLike` | the exit, played at `exitAt` (an entrance reversed: `exit="rise"` sinks back out) |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | what moves |
 | `enter` | `MoveLike` | the entrance: a move's name, a move, or several together |
 | `at` | `number` | local frame the entrance starts (0) |
 | `exitAt` | `number` | local frame the exit starts |
 | `mount` | `"during" \| "always"` | "always" (default): in the tree, and its layout, the whole time (invisible before an entrance that fades in); "during": only from the entrance's start until the exit ends (it takes its space when it arrives) |
-| `className` | `string` | – |
+| `className` | `string` | Tailwind or CSS classes |
 
 ### `StateConfig`
 
@@ -1592,7 +1585,7 @@ The props of [`SongPlot`](#songplot), tabled there.
 | `history` | `"shallow" \| "deep"` | re-entering this compound state resumes the substate it left ("shallow"), or that substate's own (deep) |
 | `onDone` | `Transitions<C, E, N>` | a compound state's transition taken when its active substate is final |
 | `type` | `"final"` | a final state: no transitions out (a dead enemy, the game won, the work shipped) |
-| `description` | `string` | – |
+| `description` | `string` | what the state means, for reports and a decider |
 
 ### `StateName`
 
@@ -1624,7 +1617,7 @@ What a step may be given besides the context and env.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `text` (required) | `string` | – |
+| `text` (required) | `string` | the word as spoken |
 | `from` (required) | `number` | first frame of the word |
 | `to` (required) | `number` | frame after the word ends (exclusive) |
 
@@ -1634,14 +1627,14 @@ One property's keyframes: values by frame, the curve between each pair (one for 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `keys` (required) | `[number, V][]` | – |
-| `ease` (required) | `Curve \| Curve[]` | – |
-| `unit` | `"px" \| "%"` | – |
-| `repeat` | `"hold" \| "loop" \| "pingpong" \| `${"loop" \| "pingpong"}:${number}`` | – |
-| `digits` | `number` | – |
+| `keys` (required) | `[number, V][]` | [frame, value] pairs in frame order, frames from the move's start |
+| `ease` (required) | `Curve \| Curve[]` | the curve between keys: one for all, or one a segment |
+| `unit` | `"px" \| "%"` | a length's unit: px (the default) or % |
+| `repeat` | `"hold" \| "loop" \| "pingpong" \| `${"loop" \| "pingpong"}:${number}`` | past the last key: hold (the default), loop or pingpong, for ever or N times ("loop:3") |
+| `digits` | `number` | decimals a `text` counter writes |
 | `prefix` | `string` | a `text` counter's text before and after the number, and between its thousands ("," writes 12,345) |
-| `suffix` | `string` | – |
-| `separator` | `string` | – |
+| `suffix` | `string` | written after a `text` counter's number (" pts") |
+| `separator` | `string` | between a `text` counter's thousands ("," writes 12,345) |
 
 ### `TransitionConfig`
 
@@ -1659,14 +1652,14 @@ null for the first step's entry into the initial states.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `machine` (required) | `string` | – |
-| `step` (required) | `number` | – |
-| `from` (required) | `string \| null` | – |
-| `to` (required) | `string` | – |
-| `edge` (required) | `number` | – |
-| `kind` (required) | `Edge["kind"] \| "start"` | – |
+| `machine` (required) | `string` | the machine's id |
+| `step` (required) | `number` | the machine's step it happened on |
+| `from` (required) | `string \| null` | the leaf it left (null for the first entry) |
+| `to` (required) | `string` | the leaf it entered |
+| `edge` (required) | `number` | the edge it took, an index into `machine.edges` |
+| `kind` (required) | `Edge["kind"] \| "start"` | what kind of edge: always, after, on, choose, done (an onDone), or start for the first entry |
 | `by` (required) | `string` | "guard" for a trigger, "start" for the first entry, else the decider's name |
-| `evidence` | `unknown` | – |
+| `evidence` | `unknown` | the decider's evidence for the choice |
 
 ### `Transitions`
 
@@ -1686,12 +1679,12 @@ type Transitions = | NoInfer<N> | TransitionConfig<C, E, N> | readonly (NoInfer<
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `id` (required) | `string` | – |
-| `width` (required) | `number` | – |
-| `height` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `durationInFrames` (required) | `number` | – |
-| `defaultProps` (required) | `Record<string, unknown>` | – |
+| `id` (required) | `string` | the composition's id ("main" by default) |
+| `width` (required) | `number` | in px |
+| `height` (required) | `number` | in px |
+| `fps` (required) | `number` | frames a second |
+| `durationInFrames` (required) | `number` | its length in frames |
+| `defaultProps` (required) | `Record<string, unknown>` | the props the composition is rendered with |
 
 ### `VideoProps`
 
@@ -1709,8 +1702,8 @@ A machine's state in some context, for a trace (`Playtest.machines`).
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `machine` (required) | `AnyMachine` | – |
-| `snapshot` (required) | `Snapshot` | – |
+| `machine` (required) | `AnyMachine` | the machine |
+| `snapshot` (required) | `Snapshot` | its runtime state in that context |
 
 ### `WordOptions`
 

@@ -43,7 +43,7 @@ function pointerRay(pointer: { x: number; y: number; }, camera: PickCamera, size
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
+| `name` (required) | `string` | the pickable it hit |
 | `distance` (required) | `number` | metres from the camera (from its near plane's point, for an orthographic one) along the ray |
 | `point` (required) | `Vec3` | where the ray first meets it, in world space |
 
@@ -61,10 +61,10 @@ The camera as a scene sets it: a PerspectiveCamera's props (fov in degrees, vert
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `position` | `Vec3` | – |
-| `lookAt` | `Vec3` | – |
+| `position` | `Vec3` | where it stands, metres (x, y, z) |
+| `lookAt` | `Vec3` | the point it faces |
 | `fov` | `number` | vertical field of view in degrees (50 by default); ignored when `height` is set |
 | `height` | `number` | an orthographic camera's view height in metres |
-| `up` | `Vec3` | – |
+| `up` | `Vec3` | which way is up for it (+Y) |
 
 <!-- generated:end -->

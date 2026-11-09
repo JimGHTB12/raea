@@ -23,11 +23,17 @@ export interface ThreeShaderMaterialProps {
   /** "display": its colour is what three's canvas shows (a ShaderMaterial's); "linear": scene light, tone-mapped as
    * the rest of the frame is (a node material's) */
   output?: "display" | "linear";
+  /** blended over what's behind it, as three's \`transparent\` */
   transparent?: boolean;
+  /** how it blends: normal, additive (add), multiply or none */
   blending?: "normal" | "additive" | "add" | "multiply" | "none";
+  /** which faces draw: front, back or double */
   side?: "front" | "back" | "double";
+  /** it writes the depth buffer */
   depthWrite?: boolean;
+  /** it's hidden behind what's nearer */
   depthTest?: boolean;
+  /** pixels less opaque than this are dropped */
   alphaTest?: number;
   /** three's clock this frame: [seconds, delta, frame] */
   time?: [number, number, number];

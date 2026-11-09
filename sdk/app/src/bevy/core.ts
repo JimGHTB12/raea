@@ -63,10 +63,15 @@ export { with_ as with };
  *  states to the App; once every plugin is built, each one's `finish` runs, then each one's `cleanup`, as App::run
  *  does. Unique by `name` unless `isUnique` is false (Bevy panics on a unique plugin added twice; this throws). */
 export interface Plugin {
+  /** the plugin's name: two unique plugins of one name can't both be added */
   name: string;
+  /** adds the plugin's systems, resources and other plugins to the app */
   build(app: BevyApp): void;
+  /** called once every plugin is built, for setup that needs the others */
   finish?(app: BevyApp): void;
+  /** called after every plugin's finish */
   cleanup?(app: BevyApp): void;
+  /** whether adding it twice is an error (true) */
   isUnique?: boolean;
 }
 
@@ -82,25 +87,30 @@ export type PluginRef = string | { readonly plugin: string } | Plugin | PluginGr
  *  leaves one out, and the App adds the rest in order. */
 export class PluginGroup {
   private readonly members: { key: string; plugin: string | Plugin; on: boolean }[];
-  constructor(readonly name: string, plugins: (string | { readonly plugin: string } | Plugin)[]) {
+  /** A group named `name` of these plugins, in the order the App adds them. */
+  constructor(/** the group's name */ readonly name: string, plugins: (string | { readonly plugin: string } | Plugin)[]) {
     this.members = plugins.map((p) => {
       const plugin = rustName(p) ?? (p as Plugin);
       return { key: typeof plugin === "string" ? plugin : plugin.name, plugin, on: true };
     });
   }
+  /** Replaces the member of `p`'s name with `p`. */
   set(p: Plugin): PluginGroup {
     const m = this.member(p.name);
     m.plugin = p;
     return this;
   }
+  /** Leaves the member of this name out. */
   disable(name: string): PluginGroup {
     this.member(name).on = false;
     return this;
   }
+  /** Puts a disabled member back. */
   enable(name: string): PluginGroup {
     this.member(name).on = true;
     return this;
   }
+  /** The plugins to add, in order, without the disabled ones. */
   build(): (string | Plugin)[] {
     return this.members.filter((m) => m.on).map((m) => m.plugin);
   }

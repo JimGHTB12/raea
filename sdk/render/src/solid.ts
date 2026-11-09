@@ -7,14 +7,19 @@ import { native } from "@raea/app/native";
 export type Vec3 = [number, number, number];
 
 export interface Bounds {
+  /** the low corner */
   min: Vec3;
+  /** the high corner */
   max: Vec3;
 }
 
 /** A cross-section of a solid at a height: its area, how many contours, and the contours themselves. */
 export interface Section {
+  /** the section's area, m² */
   area: number;
+  /** how many outlines it has */
   contours: number;
+  /** the outlines, each a list of [x, y] points in the section's plane */
   polygons: [number, number][][];
 }
 
@@ -27,10 +32,12 @@ function finite(owner: string, ns: unknown[]): number[] {
 
 /** A handle to a native solid. Free it when done with many (or let the run end). */
 export class Solid {
+  /** the native solid's handle */
   readonly id: number;
   /** the expression that rebuilds this solid (what a mesh row draws) */
   readonly expr: string;
 
+  /** A handle to native solid `id`, which `expr` rebuilds; the shape functions make these, rarely you. */
   constructor(id: number, expr: string) {
     this.id = id;
     this.expr = expr;
@@ -226,9 +233,13 @@ function section(fn: string, polygons: Polygons | undefined, args: number[] = []
 /** A 2D shape (Manifold's CrossSection), held by value: its contours (counter-clockwise solid, clockwise holes),
  * area and bounds. Offset, combine and move it, then extrude or revolve it into a Solid. */
 export class CrossSection {
+  /** its contours, each a list of [x, y] points: counter-clockwise solid, clockwise holes */
   readonly polygons: Polygons;
+  /** its area, m² */
   readonly area: number;
+  /** how many contours it has */
   readonly contours: number;
+  /** its bounding box's low and high corners */
   readonly bounds: { min: [number, number]; max: [number, number] };
 
   private constructor(a: SectionAnswer) {

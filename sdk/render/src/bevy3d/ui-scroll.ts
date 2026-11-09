@@ -5,7 +5,12 @@ import { checkVal, type Overflow, type UiRect, type Val } from "./ui-val";
 
 /** bevy_ui's IgnoreScroll: the axes on which a node keeps its place while its parent scrolls (BVec2).
  *  @bevy bevy_ui::IgnoreScroll */
-export interface IgnoreScroll { x: boolean; y: boolean }
+export interface IgnoreScroll {
+  /** it keeps its place while the parent scrolls across */
+  x: boolean;
+  /** it keeps its place while the parent scrolls down */
+  y: boolean;
+}
 
 export interface ScrollProps { overflow?: Overflow; padding?: UiRect; scrollbar_width?: number; scroll_position?: [number, number]; ignore_scroll?: IgnoreScroll }
 

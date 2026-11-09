@@ -25,6 +25,7 @@ export interface SeedlingProps {
   volume?: number;
   /** playback speed (default 1); may change frame to frame */
   speed?: number;
+  /** start again from the beginning when it ends */
   loop?: boolean;
   /** a serial chain of effects on this player */
   fx?: SeedlingFx[];

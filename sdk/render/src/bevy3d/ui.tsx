@@ -232,9 +232,14 @@ export function Node({ children, fixed, ...p }: NodeProps) {
   return boxOf(n.css, n.back, children, fixed ? "fixed" : ui === null, undefined, { ...n.attrs, ...handlersOf("Node", p) });
 }
 
+export interface GhostNodeProps {
+  /** what's laid out as the parent's children */
+  children?: ReactNode;
+}
+
 /** bevy_ui's GhostNode: no box of its own, its children laid out as its parent's (CSS display: contents), each one a
  *  root when it is at the top. @bevy bevy_ui::experimental::GhostNode */
-export function GhostNode({ children }: { children?: ReactNode }) {
+export function GhostNode({ children }: GhostNodeProps) {
   return useContext(InUi) === null ? <>{children}</> : <div style={{ display: "contents" }}>{children}</div>;
 }
 
@@ -282,9 +287,11 @@ function variationsCss(who: string, v: Record<string, number> | undefined): stri
 export interface TextRunProps {
   /** Underline and Strikethrough: a line under or through the run, as thick as the font says */
   underline?: boolean;
+  /** a line through the run */
   strikethrough?: boolean;
   /** UnderlineColor and StrikethroughColor: the lines' colours (the text's colour by default) */
   underline_color?: Color;
+  /** the strikethrough's colour (the text's by default) */
   strikethrough_color?: Color;
   /** TextBackgroundColor: a box behind the run, line by line */
   text_background_color?: Color;
@@ -411,8 +418,13 @@ export function Text({ children, font, font_size, weight, style, font_width, col
   return boxOf({ ...css, ...BREAK[linebreak ?? "WordBoundary"] }, n.back, own, ui === null, <style>{t.face}</style>, { ...n.attrs, "data-raea-bevy-text": "" });
 }
 
+export interface TextSpanProps extends TextStyleProps, TextRunProps {
+  /** the run's text */
+  children?: ReactNode;
+}
+
 /** A run of a <Text> in a style of its own (Bevy's defaults, not its Text's, where left out). @bevy bevy_text::text::TextSpan */
-export function TextSpan({ children, underline, strikethrough, underline_color, strikethrough_color, text_background_color, ...p }: TextStyleProps & TextRunProps & { children?: ReactNode }) {
+export function TextSpan({ children, underline, strikethrough, underline_color, strikethrough_color, text_background_color, ...p }: TextSpanProps) {
   const back = useContext(InUi)?.back;
   // bevy_text leaves out a span whose size is 0 or less (TextPipeline: "Nothing will be displayed"), its Text's other
   // runs laid out without it
@@ -453,38 +465,4 @@ export function Text2d({ transform, justify, anchor = [0, 0], children, bounds, 
       </div>
     </div>
   );
-}
-
-
-/** bevy_ui's UiScale: every UI length inside times `value` (2 draws a 16 px node 32 px), as CSS's zoom: laid out
- *  and its text shaped at that size, in physical px, as Bevy lays out (a 3 px padding at 1.25 is 4 px, not 3 drawn 1.25
- *  times as big). Text2d and the 2D and 3D parts aren't UI, so they stay as they are.
- * @bevy bevy_ui::UiScale */
-export function UiScale({ value, children }: { value: number; children?: ReactNode }) {
-  if (!(Number.isFinite(value) && value > 0)) throw new RangeError(`UiScale: value is above 0, got ${value}`);
-  return (
-    <div style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", zoom: value }}>
-      <UiScaleCx.Provider value={value}>{children}</UiScaleCx.Provider>
-    </div>
-  );
-}
-
-/** The UI camera's viewport (bevy_camera's Viewport on the Camera2d the UI draws through): its roots lay out in this
- *  region of the window, `physical_position` from its top left and `physical_size` big (px, at a scale factor of 1),
- *  and are clipped to it. @bevy bevy_camera::Viewport */
-export function Viewport({ physical_position, physical_size, children }: { physical_position: [number, number]; physical_size: [number, number]; children?: ReactNode }) {
-  const ok = (v: unknown, min: number) => Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && n >= min);
-  if (!ok(physical_position, 0) || !ok(physical_size, 1)) throw new RangeError(`Viewport: physical_position is [x, y] >= 0 and physical_size [w, h] >= 1 in whole px, got ${JSON.stringify({ physical_position, physical_size })}`);
-  const [[left, top], [width, height]] = [physical_position, physical_size];
-  return <div style={{ position: "absolute", left, top, width, height, overflow: "hidden" }}>{children}</div>;
-}
-
-/** The roots inside drawn by their own Camera2d (bevy_ui's UiTargetCamera): a layer over the whole window, stacked by
- *  the camera's `order` as Bevy draws its cameras, lowest first. Cameras on one window share its main texture, which
- *  only the first of them clears (bevy_render's ViewTarget, its first call), so the window's clear is the layered
- *  <Canvas3D clearColor>'s and a later camera's own clear colour shows nowhere. Roots outside any are the default
- *  camera's (the highest order). @bevy bevy_ui::UiTargetCamera */
-export function UiTargetCamera({ order = 0, children }: { order?: number; children?: ReactNode }) {
-  if (!Number.isInteger(order)) throw new RangeError(`UiTargetCamera: order is a whole number, got ${order}`);
-  return <div style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", zIndex: order, isolation: "isolate" }}>{children}</div>;
 }

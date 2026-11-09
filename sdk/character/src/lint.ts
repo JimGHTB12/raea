@@ -23,12 +23,17 @@ const STAGES: Stage[] = ["clip", "blend", "plant", "elbows", "gaze"];
 export interface Finding {
   /** first and peak frames */
   frame: number;
+  /** the frame it's worst on */
   peak: number;
+  /** how many frames it lasts */
   frames: number;
+  /** the joint it's on */
   joint: string;
+  /** what's wrong: too fast (speed), a jolt (jerk) or a joint bent past its limit (buckle) */
   kind: "speed" | "jerk" | "buckle";
   /** the peak's value (degrees a frame, a frame², or degrees past the clip's knee) and what the library allows */
   value: number;
+  /** what the library allows */
   limit: number;
   /** the first stage that shows it */
   stage: Stage;
@@ -37,7 +42,9 @@ export interface Finding {
 }
 
 export interface Lint {
+  /** what's wrong, each with its frames, joint and cause */
   findings: Finding[];
+  /** how many frames were checked */
   frames: number;
 }
 

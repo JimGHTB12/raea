@@ -53,12 +53,18 @@ export function meshLayers(owner: string, id: string, children: ReactNode, mesh:
   return { children: out, surface, part };
 }
 
+export interface TextureViewProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, "src"> {
+  /** the id a system lists the Image under in the App's PageTextures */
+  texture: number;
+}
+
 /** A Bevy texture in an element (B3 H7): `texture` is the id a system lists an Image under in the App's PageTextures (a
  * camera's target, a video's frame), drawn at the element's box GPU to GPU. The other props are the <img>'s, its style
  * placing and sizing it.
  *
  *   <TextureView texture={7} style={{ position: "absolute", left: 100, top: 50, width: 200, height: 150 }} />
  */
-export function TextureView({ texture, ...img }: { texture: number } & Omit<ImgHTMLAttributes<HTMLImageElement>, "src">) {
+/** the GPU texture's number */
+export function TextureView({ texture, ...img }: TextureViewProps) {
   return <img data-raea-texture={texture} alt="" {...img} />;
 }

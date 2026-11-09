@@ -122,7 +122,9 @@ export function display_value(kind: NumberKind, v: number): string {
 
 /** formats a number input's value for display (or for editing). @bevy bevy_feathers::controls::UnitsFormat */
 export interface UnitsFormat {
+  /** the format's name */
   id: string;
+  /** the value as text: for display, or for editing when \`editing\` is true */
   format(value: NumberInputValue, editing: boolean): string;
 }
 

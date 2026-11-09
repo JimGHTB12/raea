@@ -15,7 +15,7 @@ frame you're looking at.
 import { Gizmo, Overlay, overlays } from "raea/gizmos"
 ```
 
-`raea/gizmos` exports 2 components, 1 function, 2 types. Bevy's counterpart: `bevy_gizmos`. Source: [sdk/raea/src/gizmos.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/gizmos.ts).
+`raea/gizmos` exports 2 components, 1 function, 3 types. Bevy's counterpart: `bevy_gizmos`. Source: [sdk/raea/src/gizmos.ts](https://github.com/shinyobjectz/raea/blob/main/sdk/raea/src/gizmos.ts).
 
 ## Components
 
@@ -36,8 +36,8 @@ Its children only in a render asked for the overlay `name`.
 
 | Prop | Type | What it does |
 | --- | --- | --- |
-| `name` (required) | `string` | – |
-| `children` | `ReactNode` | – |
+| `name` (required) | `string` | the overlay's name, as the render asks for it |
+| `children` | `ReactNode` | what the overlay draws |
 
 ## Functions
 
@@ -68,9 +68,13 @@ type GizmoColor = string | [number, number, number, number] | { red: number; gre
 | `color` | `GizmoColor \| GizmoColor[]` | one colour for every point, or one per point of `lines` (two per segment) then `strip`: "#rrggbb", Bevy's LinearRgba (above 1 for HDR, as bevy_gizmos takes it) or Srgba, or linear [r, g, b, a] |
 | `width` | `number` | line width in pixels (Bevy's default 2) |
 | `depthBias` | `number` | -1 always in front of geometry, 0 depth-tested as it is (Bevy's GizmoLineConfig and depth_bias) |
-| `position` | `Vec3` | – |
-| `rotation` | `Vec3` | – |
-| `scale` | `Vec3 \| number` | – |
-| `name` | `string` | – |
+| `position` | `Vec3` | where it stands, metres (x, y, z) |
+| `rotation` | `Vec3` | its rotation, Euler angles in radians (x, y, z) |
+| `scale` | `Vec3 \| number` | its scale: one number, or x, y and z |
+| `name` | `string` | the entity's name, for picking, the inspector and world.* |
+
+### `OverlayProps`
+
+The props of [`Overlay`](#overlay), tabled there.
 
 <!-- generated:end -->

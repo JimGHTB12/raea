@@ -31,22 +31,54 @@ export function Canvas3D(props: Canvas3DProps) {
 }
 
 // Geometries. Each knows its Manifold expression; the defaults are unit sizes.
-export interface BoxProps { args?: [number, number, number] }
+export interface BoxProps {
+  /** width, height and depth in metres ([1, 1, 1]) */
+  args?: [number, number, number];
+}
 
 /** Bevy's Cuboid: half its size along each axis ([0.5, 0.5, 0.5], a 1 m cube, as Bevy's default). */
-export interface CuboidProps { half_size?: [number, number, number] }
+export interface CuboidProps {
+  /** half its size along x, y and z, metres ([0.5, 0.5, 0.5]) */
+  half_size?: [number, number, number];
+}
 
 /** `args`, or Bevy's Sphere field: radius (0.5 by Bevy's default). Its mesh is Bevy's Sphere::mesh(): an icosphere of 5
  *  subdivisions, or `ico` of them (Bevy's `.ico(n)`, 0 to 80), or a UV sphere of `uv` = [sectors, stacks] (`.uv(s, t)`). */
-export interface SphereProps { args?: [number]; radius?: number; ico?: number; uv?: [number, number] }
+export interface SphereProps {
+  /** [radius], as three.js's args */
+  args?: [number];
+  /** metres (0.5) */
+  radius?: number;
+  /** an icosphere of this many subdivisions (5 by default; 0 to 80) */
+  ico?: number;
+  /** a UV sphere instead: [sectors, stacks] */
+  uv?: [number, number];
+}
 
-export interface PlaneProps { args?: [number, number] }
+export interface PlaneProps {
+  /** width and height in metres ([1, 1]) */
+  args?: [number, number];
+}
 
 /** `args`, or Bevy's Cylinder fields: radius and half_height (0.5 each by Bevy's default). */
-export interface CylinderProps { args?: [number, number, number]; radius?: number; half_height?: number }
+export interface CylinderProps {
+  /** [radius top, radius bottom, height], as three.js's args */
+  args?: [number, number, number];
+  /** metres (0.5) */
+  radius?: number;
+  /** half its height, metres (0.5) */
+  half_height?: number;
+}
 
 /** `args`, or Bevy's Torus fields: major_radius (0.75) and minor_radius (0.25), the tube's. */
-export interface TorusProps { args?: [number, number]; major_radius?: number; minor_radius?: number }
+export interface TorusProps {
+  /** [major radius, minor radius] */
+  args?: [number, number];
+  /** from the centre to the middle of the tube, metres (0.75) */
+  major_radius?: number;
+  /** the tube's radius, metres (0.25) */
+  minor_radius?: number;
+}
 
 const list = (ns: number[]) => ns.map((n) => String(n)).join(", ");
 
@@ -102,7 +134,7 @@ function geometry<P extends { args?: number[] }>(name: string, defaults: number[
 export const Box = /* @__PURE__ */ geometry<BoxProps>("Box", [1, 1, 1], (a) => `box(${list(a)})`);
 
 /** Bevy's Cuboid: `<Cuboid half_size={[1, 0.5, 1]} />` is a Box of args [2, 1, 2]. */
-const CuboidShape = /* @__PURE__ */ geometry<CuboidProps & { args?: [number, number, number] }>("Box", [1, 1, 1], (a) => `box(${list(a)})`, { keys: ["half_size"], args: (p) => (p.half_size ?? [0.5, 0.5, 0.5]).map((h) => 2 * h) }, "Cuboid");
+const CuboidShape = /* @__PURE__ */ geometry<CuboidProps & Pick<BoxProps, "args">>("Box", [1, 1, 1], (a) => `box(${list(a)})`, { keys: ["half_size"], args: (p) => (p.half_size ?? [0.5, 0.5, 0.5]).map((h) => 2 * h) }, "Cuboid");
 
 /** Bevy's Cuboid::from_size: the fields for a cuboid of that whole size, `<Cuboid {...Cuboid.fromSize(size)} />`. */
 function fromSize(size: [number, number, number]): Required<CuboidProps> {
@@ -135,7 +167,12 @@ export const Plane = /* @__PURE__ */ geometry<PlaneProps>("Plane", [1, 1], (a) =
 /** Bevy's Plane3d: a flat rectangle facing `normal` (Bevy's default +Y, a floor), `half_size` its half extent along
  *  its two axes ([0.5, 0.5]), laid out as Bevy's PlaneMeshBuilder does: facing +Z it is a Plane of args
  *  [2 x half_size]. The normal is along an axis; a tilted plane is a rotated Mesh3d. */
-export interface Plane3dProps { normal?: Vec3; half_size?: [number, number] }
+export interface Plane3dProps {
+  /** the way it faces, along an axis (+Y by default, a floor) */
+  normal?: Vec3;
+  /** half its extent along its two axes, metres ([0.5, 0.5]) */
+  half_size?: [number, number];
+}
 
 // Bevy turns the +Y plane (half_size x along x, y along -z) to its normal by the shortest arc; along an axis that
 // leaves its two sizes on these axes. Facing z it is the old Plane exactly; facing x or y a Box with no depth.
@@ -178,18 +215,37 @@ export const Cylinder = /* @__PURE__ */ geometry<CylinderProps>("Cylinder", [1, 
 
 /** Bevy's ConicalFrustum: a cylinder whose ends differ, radius_top and radius_bottom (Bevy's 0.25 and 0.5) and its
  *  height (0.5), standing up: a tapered Cylinder of args [radius_top, radius_bottom, height]. */
-export interface ConicalFrustumProps { radius_top?: number; radius_bottom?: number; height?: number; args?: [number, number, number] }
+export interface ConicalFrustumProps {
+  /** the top end's radius, metres (0.25) */
+  radius_top?: number;
+  /** the bottom end's radius, metres (0.5) */
+  radius_bottom?: number;
+  /** metres (0.5) */
+  height?: number;
+  /** [radius_top, radius_bottom, height] */
+  args?: [number, number, number];
+}
 
 export const ConicalFrustum = /* @__PURE__ */ geometry<ConicalFrustumProps>("Cylinder", [0.25, 0.5, 0.5], (a) => `rotate(cone(${list([a[1], a[0], a[2]])}), -90, 0, 0)`, { keys: ["radius_top", "radius_bottom", "height"], args: (p) => [p.radius_top ?? 0.25, p.radius_bottom ?? 0.5, p.height ?? 0.5] }, "ConicalFrustum");
 
 export const Torus = /* @__PURE__ */ geometry<TorusProps>("Torus", [1, 0.4], (a) => `torus(${list(a)})`, { keys: ["major_radius", "minor_radius"], args: (p) => [p.major_radius ?? 0.75, p.minor_radius ?? 0.25] });
 
-export interface ConeProps { args?: [number, number]; radius?: number; height?: number }
+export interface ConeProps {
+  /** [radius, height] */
+  args?: [number, number];
+  /** the base's radius, metres (0.5) */
+  radius?: number;
+  /** metres (1) */
+  height?: number;
+}
 
 /** A cone: [radius, height], its point up (along y). */
 export const Cone = /* @__PURE__ */ geometry<ConeProps>("Cone", [0.5, 1], (a) => `rotate(cone(${list([a[0], 0, a[1]])}), -90, 0, 0)`, { keys: ["radius", "height"], args: (p) => [p.radius ?? 0.5, p.height ?? 1] });
 
-export interface CapsuleProps { args?: [number, number] }
+export interface CapsuleProps {
+  /** [radius, length of the straight part] ([0.5, 1]) */
+  args?: [number, number];
+}
 
 /** A capsule (Bevy's Capsule3d, three.js's CapsuleGeometry): [radius, length of the straight part], standing up
  * (along y); its whole height is length + 2 x radius. A character's stand-in, a pill, a collider's look.
@@ -197,7 +253,14 @@ export interface CapsuleProps { args?: [number, number] }
 export const Capsule = /* @__PURE__ */ geometry<CapsuleProps>("Capsule", [0.5, 1], (a) => `hull(move(sphere(${a[0]}), 0, ${a[1] / 2}, 0), move(sphere(${a[0]}), 0, ${-a[1] / 2}, 0))`);
 
 /** Bevy's Capsule3d: radius and half_length, the straight part's half (0.5 each by Bevy's default), standing up. */
-export interface Capsule3dProps { radius?: number; half_length?: number; args?: [number, number] }
+export interface Capsule3dProps {
+  /** metres (0.5) */
+  radius?: number;
+  /** half the straight part's length, metres (0.5) */
+  half_length?: number;
+  /** [radius, length of the straight part] */
+  args?: [number, number];
+}
 
 export const Capsule3d = /* @__PURE__ */ geometry<Capsule3dProps>("Capsule", [0.5, 1], (a) => `hull(move(sphere(${a[0]}), 0, ${a[1] / 2}, 0), move(sphere(${a[0]}), 0, ${-a[1] / 2}, 0))`, { keys: ["radius", "half_length"], args: (p) => [p.radius ?? 0.5, 2 * (p.half_length ?? 0.5)] }, "Capsule3d");
 
@@ -270,12 +333,15 @@ export function BufferMesh(props: BufferMeshProps) {
 export interface Text3DProps {
   /** the words, extruded */
   children?: string;
+  /** the words, when they aren't its child (no quotes or backslashes) */
   text?: string;
   /** letter height in scene units (default 0.5) */
   size?: number;
   /** extrusion depth (default 0.2) */
   depth?: number;
+  /** a family (Inter by default, or another of raea's bundled faces) */
   font?: string;
+  /** 100..900 (800 by default) */
   weight?: number;
 }
 

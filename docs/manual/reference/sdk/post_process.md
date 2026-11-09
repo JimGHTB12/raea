@@ -53,7 +53,7 @@ Takes [`BloomProps`](3d.md#bloomprops)'s props.
 
 A compute over the frame, in the 3D beside the camera; several run in the order written, before the cameras draw.
 
-Bevy: `raea_sys_compute::Computes`.
+Rust: `raea_sys_compute::Computes`.
 
 Takes [`ComputeProps`](3d.md#computeprops)'s props.
 
@@ -79,7 +79,7 @@ Takes [`FisheyeProps`](3d.md#fisheyeprops)'s props.
 A full-screen pass over the scene camera's frame, beside the camera; several run in the order written. With a
 frame <Look> they run on its cells, before the look's composite.
 
-Bevy: `raea_sys_framepass::FramePasses`.
+Rust: `raea_sys_framepass::FramePasses`.
 
 Takes [`FramePassProps`](3d.md#framepassprops)'s props.
 
@@ -125,8 +125,6 @@ Takes [`MotionBlurProps`](3d.md#motionblurprops)'s props.
 
 Ink lines where the scene's depth steps or its surfaces turn, drawn before bloom and tone mapping; under a <Look>
 a cell wide (Return of the Obra Dinn's line). Put it inside the Canvas3D.
-
-Bevy: `bevy_ui::Outline`.
 
 Takes [`OutlineProps`](3d.md#outlineprops)'s props.
 
@@ -182,8 +180,8 @@ A compute shader (raea-sys-compute). Its source has one `@compute` entry point a
 | `mode` | `"bokeh" \| "gaussian"` | "bokeh" (round, as a real lens; the default) or "gaussian" (soft, cheaper) |
 | `maxBlur` | `number` | the largest blur, in pixels of the frame (64 by default) |
 | `focal_distance` | `number` | Bevy's fields, as Bevy's DepthOfField component on a Camera3d (inside it), Bevy's defaults: the distance in focus (10; the camera's `focus`), the f-number (1), the largest blur in pixels (64), "Bokeh" or "Gaussian" |
-| `aperture_f_stops` | `number` | – |
-| `max_circle_of_confusion_diameter` | `number` | – |
+| `aperture_f_stops` | `number` | the f-number (1): lower is a shallower focus |
+| `max_circle_of_confusion_diameter` | `number` | the largest blur, in px (64) |
 
 ### `FisheyeProps`
 
@@ -223,9 +221,9 @@ A shader over the whole frame. Its source defines
 | `temperature` | `number` | warmer (+) or cooler (-): a shift of the CIE x chromaticity, about -0.3 to 0.3 |
 | `tint` | `number` | magenta (+) or green (-) |
 | `saturation` | `number` | the whole frame's saturation after tone mapping (1 keeps it) |
-| `shadows` | `GradeSection` | – |
-| `midtones` | `GradeSection` | – |
-| `highlights` | `GradeSection` | – |
+| `shadows` | `GradeSection` | the grade on the shadows: saturation, contrast, gamma, gain, lift |
+| `midtones` | `GradeSection` | the grade on the midtones |
+| `highlights` | `GradeSection` | the grade on the highlights |
 | `vignette` | `number \| { intensity?: number; radius?: number; smoothness?: number; color?: string }` | the corners darkened: 0 none, 1 black; or {intensity, radius (0.75), smoothness (5), color} |
 | `aberration` | `number` | a lens's colour fringes at edges, as a fraction of the frame (0.005 subtle, 0.02 strong) |
 | `skip` | `string[]` | composition passes (a part's `pass`) the grade leaves as drawn: no fringes or vignette on them, and on an untonemapped camera (a paint Look's) no colour grading either |
@@ -253,7 +251,7 @@ A shader over the whole frame. Its source defines
 | Field | Type | What it is |
 | --- | --- | --- |
 | `k1` | `number` | Brown-Conrady: r' = r (1 + k1 r^2 + k2 r^4), r a share of the half-diagonal. Above 0 barrel, below 0 pincushion |
-| `k2` | `number` | – |
+| `k2` | `number` | the r^4 term of the distortion |
 | `zoom` | `number` | by default just enough for a barrel's corners to stay inside the picture (1 for pincushion) |
 | `edges` | `"clamp" \| "black"` | what shows where the lens looks past the picture: its edge pixels ("clamp", the default) or "black" |
 | `animate` | `Animate3d` | declared animation of its numbers (strength, fov, k1, k2, zoom) |
@@ -266,7 +264,7 @@ A shader over the whole frame. Its source defines
 | --- | --- | --- |
 | `shutterAngle` | `number` | the fraction of a frame the shutter is open (0.5 by default, a 180-degree shutter); above 1 smears further |
 | `samples` | `number` | samples each way per pixel (4 by default) |
-| `animate` | `Animate3d` | – |
+| `animate` | `Animate3d` | declared animation of its numbers |
 
 ### `OutlineProps`
 

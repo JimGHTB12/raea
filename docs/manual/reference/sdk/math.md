@@ -139,31 +139,31 @@ type ExtrapolateMode = "extend" | "clamp" | "identity" | "wrap"
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `easing` | `EasingFn \| EasingFn[]` | – |
-| `extrapolateLeft` | `ExtrapolateMode` | – |
-| `extrapolateRight` | `ExtrapolateMode` | – |
+| `easing` | `EasingFn \| EasingFn[]` | the curve between keyframes: one for all, or one a segment |
+| `extrapolateLeft` | `ExtrapolateMode` | below the first keyframe: extend the line (default), clamp to it, identity (the input itself) or wrap |
+| `extrapolateRight` | `ExtrapolateMode` | past the last keyframe: extend (default), clamp, identity or wrap |
 
 ### `SpringConfig`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `mass` | `number` | – |
-| `damping` | `number` | – |
-| `stiffness` | `number` | – |
-| `overshootClamping` | `boolean` | – |
+| `mass` | `number` | how heavy the spring's weight is (1): heavier is slower and swings further |
+| `damping` | `number` | how fast the swing dies (10): lower bounces more |
+| `stiffness` | `number` | how hard the spring pulls (100): stiffer is quicker |
+| `overshootClamping` | `boolean` | stop at `to` the first time it gets there, with no overshoot (false) |
 
 ### `SpringOptions`
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `frame` (required) | `number` | – |
-| `fps` (required) | `number` | – |
-| `from` | `number` | – |
-| `to` | `number` | – |
-| `config` | `SpringConfig` | – |
-| `durationInFrames` | `number` | – |
-| `durationRestThreshold` | `number` | – |
-| `delay` | `number` | – |
-| `reverse` | `boolean` | – |
+| `frame` (required) | `number` | the frame to sample, usually useCurrentFrame() |
+| `fps` (required) | `number` | frames a second, from useVideoConfig() |
+| `from` | `number` | the value it starts at (0) |
+| `to` | `number` | the value it settles at (1) |
+| `config` | `SpringConfig` | the spring: mass, damping, stiffness, overshootClamping |
+| `durationInFrames` | `number` | stretch or squeeze the spring to settle in this many frames |
+| `durationRestThreshold` | `number` | how close to `to`, as a share of the travel, counts as settled when timing it (0.005) |
+| `delay` | `number` | frames before it starts (0) |
+| `reverse` | `boolean` | play it backwards: from `to` back to `from` |
 
 <!-- generated:end -->

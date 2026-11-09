@@ -41,19 +41,24 @@ export interface VolumeCommon {
   threshold?: number;
   /** how much noise tears the painted surface's edge (0.08), and the tears' size in metres (0.6) */
   erode?: number;
+  /** the tears' size in metres (0.6) */
   erodeSize?: number;
   /** how much light a unit of it stops (its shadow on itself; 1.2) */
   absorb?: number;
   /** the wind, m/s ([0, 0, 0]); how fast the volume takes it up, a second (1.2 smoke, 0.6 otherwise); the height
    * it's full from, metres, weaker below (0: full everywhere) */
   wind?: Vec3;
+  /** how fast the volume takes up the wind, a second (1.2 smoke, 0.6 otherwise) */
   windPull?: number;
+  /** the height the wind is full from, metres; weaker below (0: full everywhere) */
   windHeight?: number;
   /** velocity the still air takes away a second (0.4) */
   drag?: number;
   /** curl kept curling (6); a drifting turbulent force, m/s² (0), and its size in metres (2) */
   vorticity?: number;
+  /** a drifting turbulent force, m/s² (0) */
   turbulence?: number;
+  /** the turbulence's size in metres (2) */
   turbulenceSize?: number;
   /** samples along each ray (96) */
   steps?: number;
@@ -100,15 +105,20 @@ function volumeNode(owner: string, p: VolumeCommon, position: Vec3, size: Vec3, 
 export interface VolumeSource {
   /** where (metres from the box's foot), and where it has moved to by `until` if it moves */
   at: Vec3;
+  /** where a moving source has got to by `until` */
   to?: Vec3;
   /** when it puts out, seconds ([0, Infinity]) */
   from?: number;
+  /** when it stops putting out, seconds (Infinity) */
   until?: number;
   /** its radius (0.5 m); the density and heat it puts out a second at its centre (4 and 4); the velocity it pushes out
    * with, m/s ([0, 0, 0]) */
   radius?: number;
+  /** the density it puts out a second at its centre (4) */
   rate?: number;
+  /** the heat it puts out a second at its centre (4) */
   heat?: number;
+  /** the velocity it pushes out with, m/s ([0, 0, 0]) */
   speed?: Vec3;
 }
 
@@ -120,16 +130,21 @@ export interface VolumeProps extends VolumeCommon {
   /** where density and heat come in over time, and the puffs of density it starts with ([x, y, z, radius] in metres
    * from the foot) */
   sources?: VolumeSource[];
+  /** density it starts with: [x, y, z, radius] in metres from the foot */
   puffs?: [number, number, number, number][];
   /** heat's lift (4) and the density's weight (0.4), m/s² a unit; the heat lost a second (0.8) and the density lost a
    * second (0.02), fractions */
   buoyancy?: number;
+  /** the density's weight, m/s² a unit (0.4) */
   weight?: number;
+  /** the heat lost a second, a fraction (0.8) */
   cooling?: number;
+  /** the density lost a second, a fraction (0.02) */
   dissipation?: number;
   /** fire where it's hot: three colours [red, orange, yellow] (paint's by default), or false for none; and the heat
    * (a fraction of the hottest source's) each colour starts at ([0.35, 0.6, 0.85]) */
   fire?: [string, string, string] | false;
+  /** the heat (a fraction of the hottest source's) each fire colour starts at ([0.35, 0.6, 0.85]) */
   fireAt?: [number, number, number];
 }
 

@@ -56,9 +56,13 @@ export interface GizmoProps {
   width?: number;
   /** -1 always in front of geometry, 0 depth-tested as it is (Bevy's GizmoLineConfig and depth_bias) */
   depthBias?: number;
+  /** where it stands, metres (x, y, z) */
   position?: Vec3;
+  /** its rotation, Euler angles in radians (x, y, z) */
   rotation?: Vec3;
+  /** its scale: one number, or x, y and z */
   scale?: Vec3 | number;
+  /** the entity's name, for picking, the inspector and world.* */
   name?: string;
 }
 
@@ -110,11 +114,17 @@ export interface ShaderMeshProps {
   textures?: Record<string, string | Record<string, unknown>>;
   /** shader defs: each NAME a WESL condition for `@if(NAME)`, and a whole number also `constants::NAME` */
   defs?: ShaderDefs;
+  /** how it blends: opaque, blend, add or premultiplied */
   alpha?: "opaque" | "blend" | "add" | "premultiplied";
+  /** draw the back faces too */
   doubleSided?: boolean;
+  /** the entity's name, for picking, the inspector and world.* */
   name?: string;
+  /** where it stands, metres (x, y, z) */
   position?: Vec3;
+  /** its rotation, Euler angles in radians (x, y, z) */
   rotation?: Vec3;
+  /** its scale: one number, or x, y and z */
   scale?: Vec3 | number;
 }
 
@@ -146,8 +156,15 @@ export function ShaderMesh({ shape, wesl, wgsl, uniforms = {}, textures = {}, de
   );
 }
 
+export interface BevyResourceProps {
+  /** the resource's Rust type path, as the TypeRegistry names it */
+  type: string;
+  /** its value as Bevy reflects it (JSON) */
+  value: unknown;
+}
+
 /** A Bevy resource (a plugin's settings: gravity), applied through the TypeRegistry. Inside the Canvas3D. */
-export function BevyResource(props: { type: string; value: unknown }) {
+export function BevyResource(props: BevyResourceProps) {
   if (typeof props.type !== "string" || !props.type.includes("::")) throw new TypeError(`BevyResource: type is a full type path, got ${JSON.stringify(props.type)}`);
   return node3d("BevyResource", { type: props.type, value: props.value ?? null });
 }

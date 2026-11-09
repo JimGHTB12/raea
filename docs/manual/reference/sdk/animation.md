@@ -315,12 +315,12 @@ The named moves by name, as `enter="rise"` finds them.
 | `at` | `number` | local frame the entrance starts (0) |
 | `exitAt` | `number` | local frame the exit starts |
 | `timeline` | `Plan` | a timeline's plan and this element's part in it: the part's move, at its start (plus `at`) |
-| `part` | `string` | – |
+| `part` | `string` | the part in \`timeline\` whose move this element plays |
 | `mount` | `"during" \| "always"` | "always" (default): in the tree, and its layout, the whole time (invisible before an entrance that fades in); "during": only from the entrance's start until the exit ends (it takes its space when it arrives) |
 | `as` | `string` | the element: "div" by default |
-| `style` | `CSSProperties` | – |
-| `className` | `string` | – |
-| `children` | `ReactNode` | – |
+| `style` | `CSSProperties` | inline style |
+| `className` | `string` | Tailwind or CSS classes |
+| `children` | `ReactNode` | what moves |
 
 ### `AnimateProps`
 
@@ -330,16 +330,18 @@ type AnimateProps = AnimateOwnProps & { [attr: string]: unknown }
 
 ### `Animation`
 
-raea_core_animate::spec::Animation
+One element's declared animation.
+
+Rust: `raea_core_animate::spec::Animation`.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `origin` (required) | `number` | – |
-| `freeze` (required) | `number \| null` | – |
-| `fps` (required) | `number` | – |
-| `tracks` (required) | `(AnimTrack)[]` | – |
-| `show_from` (required) | `number \| null` | – |
-| `show_until` (required) | `number \| null` | – |
+| `origin` (required) | `number` | the composition frame the element's local frame 0 falls on (where its Sequence starts) |
+| `freeze` (required) | `number \| null` | a local frame to hold at whatever the composition's frame (inside a Freeze) |
+| `fps` (required) | `number` | the frames per second its frames count; springs measure their settle time with it (0: the clock's) |
+| `tracks` (required) | `(AnimTrack)[]` | the element's keyframed properties, one track each |
+| `show_from` (required) | `number \| null` | the local frame it's shown from, when it shows only for a window (mount="during"); before it, display none |
+| `show_until` (required) | `number \| null` | the local frame it's hidden from again |
 
 ### `AnimGraphNode`
 
@@ -351,29 +353,33 @@ type AnimGraphNode = | { clip: string | number; time?: number; weight?: number; 
 
 ### `AnimKey`
 
-raea_core_animate::spec::AnimKey
+One key: a value at a local frame, and the curve from it to the next key.
+
+Rust: `raea_core_animate::spec::AnimKey`.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `at` (required) | `number` | – |
-| `value` (required) | `number` | – |
-| `color` (required) | `string` | – |
-| `ease` (required) | `string` | – |
+| `at` (required) | `number` | the local frame it's at |
+| `value` (required) | `number` | a number property's value there |
+| `color` (required) | `string` | a colour property's value (CSS text); empty for numbers |
+| `ease` (required) | `string` | the curve to the next key (easing::Easing::parse); empty is linear |
 
 ### `AnimTrack`
 
-raea_core_animate::spec::AnimTrack
+Keyframes on one property.
+
+Rust: `raea_core_animate::spec::AnimTrack`.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `prop` (required) | `string` | – |
-| `keys` (required) | `(AnimKey)[]` | – |
-| `unit` (required) | `string` | – |
-| `repeat` (required) | `string` | – |
-| `digits` (required) | `number` | – |
-| `prefix` (required) | `string` | – |
-| `suffix` (required) | `string` | – |
-| `separator` (required) | `string` | – |
+| `prop` (required) | `string` | the property it keys: opacity, x, y, z, scale, rotate, width, height, blur, clip, a colour, `text`, or another number |
+| `keys` (required) | `(AnimKey)[]` | its keyframes in frame order |
+| `unit` (required) | `string` | a length's unit: "px" (when empty) or "%" |
+| `repeat` (required) | `string` | past the last key: "" or "hold", "loop", "pingpong" (for ever), or "loop:N" / "pingpong:N" |
+| `digits` (required) | `number` | decimals a `text` number is written with |
+| `prefix` (required) | `string` | written before and after a `text` number (a counter's "$" and " pts") |
+| `suffix` (required) | `string` | written after a `text` number |
+| `separator` (required) | `string` | between a `text` number's thousands ("," writes 12,345); empty: none |
 
 ### `Curve`
 
@@ -400,8 +406,8 @@ type GridFrom = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "cen
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `kind` (required) | `"sequence" \| "parallel"` | – |
-| `steps` (required) | `Step[]` | – |
+| `kind` (required) | `"sequence" \| "parallel"` | sequence: one after another; parallel: together |
+| `steps` (required) | `Step[]` | its steps, in order |
 | `gap` (required) | `number` | frames between steps of a sequence (negative overlaps) |
 
 ### `Keys`
@@ -419,7 +425,7 @@ Tracks by property, in frames from the move's own start.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `tracks` (required) | `Record<string, TrackSpec \| TrackSpec[]>` | – |
+| `tracks` (required) | `Record<string, TrackSpec \| TrackSpec[]>` | keyframes by property, in frames from the move's start |
 | `frames` (required) | `number` | how long it runs (its last key) |
 
 ### `MoveLike`
@@ -440,8 +446,8 @@ A timeline's plan: each part's start frame and move, and the whole length.
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `parts` (required) | `Record<string, { at: number; move: Move }>` | – |
-| `frames` (required) | `number` | – |
+| `parts` (required) | `Record<string, { at: number; move: Move }>` | each part's start frame and move, by its name |
+| `frames` (required) | `number` | the whole timeline's length in frames |
 
 ### `StaggerProps`
 
@@ -450,16 +456,16 @@ A timeline's plan: each part's start frame and move, and the whole length.
 | `each` (required) | `number` | frames between one child's entrance and the next |
 | `grid` | `{ cols: number; rows?: number; from?: GridFrom }` | spread by grid distance instead of order |
 | `exitEach` | `number` | the exit staggered too, `exitEach` frames apart (0: all together) |
-| `style` | `CSSProperties` | – |
+| `style` | `CSSProperties` | inline style |
 | `animate` | `Record<string, TrackSpec \| TrackSpec[] \| Keys> \| Move` | free tracks by property, in local frames: `{ backgroundColor: track({ 0: "#fff", 20: "#000" }) }` |
 | `as` | `string` | the element: "div" by default |
 | `exit` | `MoveLike` | the exit, played at `exitAt` (an entrance reversed: `exit="rise"` sinks back out) |
-| `children` | `ReactNode` | – |
+| `children` | `ReactNode` | what moves |
 | `enter` | `MoveLike` | the entrance: a move's name, a move, or several together |
 | `at` | `number` | local frame the entrance starts (0) |
 | `exitAt` | `number` | local frame the exit starts |
 | `mount` | `"during" \| "always"` | "always" (default): in the tree, and its layout, the whole time (invisible before an entrance that fades in); "during": only from the entrance's start until the exit ends (it takes its space when it arrives) |
-| `className` | `string` | – |
+| `className` | `string` | Tailwind or CSS classes |
 
 ### `Step`
 
@@ -475,13 +481,13 @@ One property's keyframes: values by frame, the curve between each pair (one for 
 
 | Field | Type | What it is |
 | --- | --- | --- |
-| `keys` (required) | `[number, V][]` | – |
-| `ease` (required) | `Curve \| Curve[]` | – |
-| `unit` | `"px" \| "%"` | – |
-| `repeat` | `"hold" \| "loop" \| "pingpong" \| `${"loop" \| "pingpong"}:${number}`` | – |
-| `digits` | `number` | – |
+| `keys` (required) | `[number, V][]` | [frame, value] pairs in frame order, frames from the move's start |
+| `ease` (required) | `Curve \| Curve[]` | the curve between keys: one for all, or one a segment |
+| `unit` | `"px" \| "%"` | a length's unit: px (the default) or % |
+| `repeat` | `"hold" \| "loop" \| "pingpong" \| `${"loop" \| "pingpong"}:${number}`` | past the last key: hold (the default), loop or pingpong, for ever or N times ("loop:3") |
+| `digits` | `number` | decimals a `text` counter writes |
 | `prefix` | `string` | a `text` counter's text before and after the number, and between its thousands ("," writes 12,345) |
-| `suffix` | `string` | – |
-| `separator` | `string` | – |
+| `suffix` | `string` | written after a `text` counter's number (" pts") |
+| `separator` | `string` | between a `text` counter's thousands ("," writes 12,345) |
 
 <!-- generated:end -->

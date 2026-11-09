@@ -28,10 +28,13 @@ function made(expr: string): Solid {
 
 /** A signed distance field (negative inside), as the text raea-core-sdf reads. Y is up; sizes are metres. */
 export class Field {
+  /** the field as the text raea-core-sdf reads */
   readonly text: string;
+  /** A field from its text, as raea-core-sdf reads it. */
   constructor(text: string) {
     this.text = text;
   }
+  /** The field moved by (x, y, z) metres. */
   move(x: number, y: number, z: number): Field {
     return new Field(`move(${this.text}, ${nums("move", [x, y, z])})`);
   }
@@ -39,6 +42,7 @@ export class Field {
   rotate(x: number, y: number, z: number): Field {
     return new Field(`rotate(${this.text}, ${nums("rotate", [x, y, z])})`);
   }
+  /** The field scaled by `s` about its origin. */
   scale(s: number): Field {
     return new Field(`scale(${this.text}, ${num("scale", s)})`);
   }
@@ -118,6 +122,7 @@ export interface TreeOptions {
   trunk?: number;
   /** the crown's width over its height (0.9) */
   width?: number;
+  /** the crown's shape: dome (an oak), sphere, cone (a pine), column (a cypress), umbrella or vase */
   crown?: "dome" | "sphere" | "cone" | "column" | "umbrella" | "vase";
   /** attraction points: more is a denser, twiggier crown (1200) */
   points?: number;
@@ -133,7 +138,9 @@ export interface TreeOptions {
   leaves?: number;
   /** a leaf's length (0.09) */
   leaf?: number;
+  /** sides of each branch's tube (7; 3 to 24) */
   sides?: number;
+  /** which randomness it uses: the same seed gives the same result */
   seed?: number;
 }
 

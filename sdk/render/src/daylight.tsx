@@ -74,6 +74,7 @@ export function readSky(src: string, rotation = 0): SkyRead {
 
 /** The day outside, in physical units, for one set. */
 export interface Day {
+  /** the sky panorama's file */
   sky: string;
   /** the panorama's turn that puts its sun where the day's is (radians, as <Environment rotation>) */
   rotation: number;
@@ -81,18 +82,22 @@ export interface Day {
   sunDir: Vec3;
   /** the sun's lux on a surface facing it, its colour temperature */
   sunLux: number;
+  /** the sun's colour temperature, kelvin */
   sunK: number;
   /** the sun's and the sky's lux on level ground outside */
   sunGround: number;
+  /** the sky's lux on level ground outside */
   skyGround: number;
   /** the sky's mean luminance (cd/m²) and colour temperature */
   skyNits: number;
+  /** the sky's colour temperature, kelvin */
   skyK: number;
   /** cd/m² per unit of the panorama */
   scale: number;
   /** the sun's elevation (degrees) the light was made for, and the panorama's own (a different height shows in its
    * shadows' length outside, never in the room's light) */
   elevation: number;
+  /** the panorama's own sun elevation, degrees (null for an overcast one) */
   skyElevation: number | null;
 }
 
@@ -131,11 +136,20 @@ export function bounce(day: Day, indoor = 0.02): { nits: number; kelvin: number 
   return { nits: (indoor * all) / Math.PI, kelvin: 1e6 / mired };
 }
 
+export interface DaylightProps {
+  /** the day outside, from `daylight` */
+  day: Day;
+  /** the room's daylight factor, the share of the outside light its bounce gives as an even fill (0.02) */
+  indoor?: number;
+  /** the sun's shadow softness (0.6): true, or a number, as a DirectionalLight's */
+  softShadow?: boolean | number;
+}
+
 /** The day's sun and sky: the sun as a shadowed directional light at its lux and colour, the panorama as the sky seen
  * through the windows at its true brightness (it lights nothing: an Environment is not shadowed, and would light the
  * room as if it had no walls), the room's bounce (`indoor`, its daylight factor, 2% by default) as an even fill; the
  * windows' own light comes from <WindowLight>. */
-export function Daylight({ day, indoor = 0.02, softShadow = 0.6 }: { day: Day; indoor?: number; softShadow?: boolean | number }) {
+export function Daylight({ day, indoor = 0.02, softShadow = 0.6 }: DaylightProps) {
   const at: Vec3 = [day.sunDir[0] * 30, day.sunDir[1] * 30, day.sunDir[2] * 30];
   const b = bounce(day, indoor);
   return (
@@ -166,8 +180,23 @@ export function windowLight(day: Day, room: Room, o: Opening, { transmit = 0.75,
   };
 }
 
+export interface WindowLightProps {
+  /** the day outside */
+  day: Day;
+  /** the room the window is in */
+  room: Room;
+  /** the window: one of the room's openings */
+  opening: Opening;
+  /** the share of light the glass lets through (0.75) */
+  transmit?: number;
+  /** the ground's reflectance outside (0.2) */
+  ground?: number;
+  /** the light's name (window-WALL-AT by default) */
+  name?: string;
+}
+
 /** A window's light as a lamp (windowLight), wide and soft, shadowed. */
-export function WindowLight({ day, room, opening, transmit, ground, name }: { day: Day; room: Room; opening: Opening; transmit?: number; ground?: number; name?: string }) {
+export function WindowLight({ day, room, opening, transmit, ground, name }: WindowLightProps) {
   const w = windowLight(day, room, opening, { transmit, ground });
   return <SpotLight name={name ?? `window-${opening.wall}-${opening.at.toFixed(2)}`} position={w.position} target={w.target} lumens={w.lumens} color={w.color} angle={Math.PI / 2} penumbra={1} castShadow />;
 }

@@ -46,6 +46,7 @@ export interface Canvas3DProps {
    * it in linear light, as Bevy's do over its ClearColor (a Bevy 2D scene's rgb(43, 44, 47)), not over the page in sRGB.
    * The 3D then lies under the whole page, as Bevy's camera output lies under all its UI (a GlobalZIndex(-1) too). */
   clearColor?: string;
+  /** the 3D scene: cameras, lights and parts */
   children?: ReactNode;
   [prop: string]: unknown;
 }

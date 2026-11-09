@@ -124,6 +124,7 @@ const MID = f(0.8), MID_INV = f(1.25), PI = f(Math.PI);
 /** Bevy's Okhsla: Oklab's hue (degrees), a saturation relative to the sRGB gamut, and a lightness with a toe, each
  *  0..1. @bevy bevy_color::Okhsla */
 export class Okhsla {
+  /** Hue in degrees, saturation, lightness and alpha 0 to 1, in Okhsl. */
   constructor(public hue: number, public saturation: number, public lightness: number, public alpha = 1) {}
   /** From Oklab (bevy_color oklab_to_okhsl). */
   static from_oklaba(lab: Oklaba): Okhsla {
@@ -168,12 +169,15 @@ export class Okhsla {
     }
     return new Oklaba(L, mul(C, a_), mul(C, b_), alpha);
   }
+  /** The same colour as a LinearRgba. */
   to_linear(): LinearRgba {
     return this.to_oklaba().to_linear();
   }
+  /** The same colour as an Srgba. */
   to_srgba(): Srgba {
     return this.to_oklaba().to_srgba();
   }
+  /** The same colour with this alpha. */
   with_alpha(alpha: number): Okhsla {
     return new Okhsla(this.hue, this.saturation, this.lightness, alpha);
   }
