@@ -146,8 +146,16 @@ pub fn column(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, name: &s
 pub fn exact(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, name: &str, vals: &[f64]) {
     row.insert(name.into(), V::N(vals[0]));
     if !vals.iter().all(|v| (*v - vals[0]).abs() < 1e-9) {
-        p.keys.insert((id.to_string(), name.to_string()), vals.iter().enumerate().map(|(f, v)| (f as i64, *v, "linear".to_string())).collect());
+        p.keys.insert((id.to_string(), name.to_string()), linear_keys(vals));
     }
+}
+
+/// One value a frame as linear keys: a key only where the value differs from a neighbour's, as linear between the rest
+/// gives the same value on every frame; a still late in a long scene (its frames before held as copies of one) keyed
+/// thousands of frames per column (#77).
+pub fn linear_keys(vals: &[f64]) -> Vec<(i64, f64, String)> {
+    let keep = |f: usize| f == 0 || f + 1 == vals.len() || vals[f] != vals[f - 1] || vals[f] != vals[f + 1];
+    vals.iter().enumerate().filter(|(f, _)| keep(*f)).map(|(f, v)| (f as i64, *v, "linear".to_string())).collect()
 }
 
 /// A model's look as raea-render's look column has it: 0 solid, 1 pixel, 2 site.

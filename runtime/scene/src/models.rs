@@ -234,7 +234,7 @@ pub(crate) fn fogs_rows(tr: &Tracks, p: &mut Program) {
         if colors.iter().any(|c| *c != colors[0]) {
             let c: Vec<[f64; 3]> = colors.iter().map(|c| rgb(c)).collect();
             for (k, name) in ["col_r", "col_g", "col_b"].iter().enumerate() {
-                p.keys.insert((id.clone(), name.to_string()), c.iter().enumerate().map(|(f, v)| (f as i64, v[k], "linear".to_string())).collect());
+                p.keys.insert((id.clone(), name.to_string()), raea_runtime_look::linear_keys(&c.iter().map(|v| v[k]).collect::<Vec<_>>()));
                 row.insert(name.to_string(), V::N(c[0][k]));
             }
         }

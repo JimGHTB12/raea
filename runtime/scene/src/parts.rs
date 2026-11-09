@@ -154,7 +154,7 @@ pub(crate) fn meshes_rows(tr: &Tracks, names: &[String], p: &mut Program) {
             for (k, name) in ["col_r", "col_g", "col_b"].iter().enumerate() {
                 let vals: Vec<f64> = c.iter().map(|v| v[k]).collect();
                 // exact, as the hex's byte over 255 (the engine reads either into the same f32: #26)
-                p.keys.insert((id.clone(), name.to_string()), vals.iter().enumerate().map(|(f, v)| (f as i64, *v, "linear".to_string())).collect());
+                p.keys.insert((id.clone(), name.to_string()), raea_runtime_look::linear_keys(&vals));
                 row.insert(name.to_string(), V::N(vals[0]));
             }
         }
