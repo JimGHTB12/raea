@@ -231,6 +231,7 @@ impl Engine {
         self.pipe.flush(&mut self.app);
         self.app.update();
         self.capture_aov(f);
+        raea_sys_frame::layer::record(self.app.world_mut(), f);
     }
 
     /// With MotionBlur, the frame before the clock's drawn first (its readback ignored): Bevy takes each mesh's,

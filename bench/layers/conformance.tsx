@@ -16,6 +16,12 @@ const Shot = () => {
     <AbsoluteFill style={{ background: "#16202e" }}>
       <Camera3d transform={Transform.fromXyz(0, 0, 6).lookingAt([0, 0, 0])} />
       <DirectionalLight illuminance={9000} transform={Transform.fromXyz(2, 4, 6).lookingAt([0, 0, 0])} />
+      {/* in front of the moving cube's lower right, and written before it: a pass that draws in order, not by depth,
+          puts the cube over it */}
+      <Mesh3d transform={Transform.fromXyz(-0.1, -0.2, 1.4)}>
+        <Cuboid half_size={[0.35, 0.35, 0.35]} />
+        <StandardMaterial base_color="#3fa7ff" />
+      </Mesh3d>
       <Mesh3d transform={Transform.fromXyz(-0.6 + f * 0.01, 0.3, 0).withRotation(Quat.fromEuler("XYZ", 0.4, f * 0.02, 0))}>
         <Cuboid half_size={[0.7, 0.7, 0.7]} />
         <StandardMaterial base_color="#2fbf71" />

@@ -7,8 +7,9 @@ use blitz_dom::{BaseDocument, LocalName, NodeId};
 
 use crate::{Layer, key_of};
 
-/// The page as layer keys: each pixel's (row-major, `w` x `h`; None where no layer shows) by its index in `layers`,
-/// and the layers shown or laid out this frame, in document order. `scale`: page px to frame px.
+/// The page as layer keys: each pixel's (row-major, `w` x `h`) index in `layers` plus one (0 where something in no
+/// layer is drawn, file::NONE where nothing is), and the layers shown or laid out this frame, in document order.
+/// `scale`: page px to frame px.
 pub fn page_ids(doc: &mut BaseDocument, scale: f64, w: u32, h: u32) -> (Vec<u16>, Vec<Layer>) {
     let mut ids: HashMap<NodeId, u16> = HashMap::new();
     let mut layers: Vec<Layer> = Vec::new();
@@ -32,20 +33,12 @@ pub fn page_ids(doc: &mut BaseDocument, scale: f64, w: u32, h: u32) -> (Vec<u16>
             };
             let name = match kind {
                 "text" => node.text_content().trim().chars().take(40).collect(),
-                _ => tag,
+                // what a person would call it: its label, its first class, its tag (a use's root is named after its
+                // component by the recorder)
+                _ => attr("aria-label").or_else(|| attr("class").and_then(|c| c.split_whitespace().next())).map_or(tag, str::to_string),
             };
-            let (loc, rest) = key.split_once('|').map_or((key.as_str(), None), |(l, r)| (l, Some(r)));
-            let (loc, index) = loc.split_once('#').map_or((loc, None), |(l, i)| (l, Some(i.to_string())));
-            layers.push(Layer {
-                kind,
-                name,
-                parent: at.checked_sub(1).map(|p| layers[p as usize].key.clone()),
-                loc: loc.to_string(),
-                uses: rest.map(|r| r.split('|').map(str::to_string).collect()).unwrap_or_default(),
-                index,
-                src,
-                key,
-            });
+            let parent = at.checked_sub(1).map(|p| layers[p as usize].key.clone());
+            layers.push(Layer::of(key, kind, name, parent, src));
             at = layers.len() as u16;
         }
         if at > 0 {

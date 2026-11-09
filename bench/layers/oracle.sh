@@ -23,7 +23,7 @@ B1=$(at conformance.tsx Badge 1); B2=$(at conformance.tsx Badge 2); LI=$(at conf
 # not the AbsoluteFill: its background over 3D is the 3D's clear (raea-runtime-export program.rs), behind every layer
 # and none of them, so hiding it changes nothing and the layer pass gives no layer there
 KEYS=(
-  "$(at conformance.tsx Mesh3d 1)" "$(at conformance.tsx Mesh3d 2)"
+  "$(at conformance.tsx Mesh3d 1)" "$(at conformance.tsx Mesh3d 2)" "$(at conformance.tsx Mesh3d 3)"
   "$(at badge.tsx div 1)|$B1" "$(at badge.tsx span 1)|$B1" "$(at badge.tsx div 1)|$B2" "$(at badge.tsx span 1)|$B2"
   "$(at conformance.tsx div 1)" "$(at conformance.tsx h1 1)" "$(at conformance.tsx Img 1)" "$(at conformance.tsx div 2)"
   "$(at conformance.tsx ul 1)" "$LI#one" "$LI#two" "$LI#three"

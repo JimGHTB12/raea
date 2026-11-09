@@ -31,12 +31,12 @@ impl<'a> IdScene<'a> {
         IdScene { ctx, resources: Resources::new(), ids }
     }
 
-    /// Each pixel's layer index, row-major.
+    /// Each pixel's layer index, row-major (NONE where nothing was drawn).
     pub(crate) fn finish(mut self) -> Vec<u16> {
         self.ctx.flush();
         let mut px = Pixmap::new(self.ctx.width(), self.ctx.height());
         self.ctx.render(&mut px, &mut self.resources);
-        px.data().iter().map(|p| if p.a == 0 { 0 } else { p.r as u16 | (p.g as u16) << 8 }).collect()
+        px.data().iter().map(|p| if p.a == 0 { crate::file::NONE } else { p.r as u16 | (p.g as u16) << 8 }).collect()
     }
 
     /// Ready to draw for the node being painted, at `transform`: false when its brush draws nothing.

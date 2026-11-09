@@ -54,7 +54,7 @@ pub fn render(args: &[String]) -> R<String> {
         (_, Some(at)) => Some(at.split(',').map(|f| f.trim().parse::<i64>().map_err(|_| "--at takes frame numbers".to_string())).collect::<R<_>>()?),
         _ => None,
     };
-    let layers = raea_sys_layers::start(args.iter().any(|a| a == "--layers"), &out, &tsx);
+    let layers = raea_sys_layers::start(args.iter().any(|a| a == "--layers") || std::env::var_os("RAEA_LAYERS").is_some_and(|v| v == "1"), &out, &tsx);
     *MANIFEST.lock().unwrap() = flag(args, "--manifest").map(PathBuf::from).or(layers);
     TEN_BIT.store(args.iter().any(|a| a == "--10bit"), std::sync::atomic::Ordering::Relaxed);
     AOV.store(args.iter().any(|a| a == "--aov"), std::sync::atomic::Ordering::Relaxed);

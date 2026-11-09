@@ -5,12 +5,15 @@
 //! 4y+2)); `Recorder` keeps them with the table of layers and writes NAME.layers (file.rs).
 
 mod file;
+mod names;
+mod raster;
 #[cfg(feature = "page")]
 mod page;
 #[cfg(feature = "page")]
 mod scene;
 
 pub use file::Recorder;
+pub use raster::{Tri, raster};
 #[cfg(feature = "page")]
 pub use page::page_ids;
 
@@ -51,6 +54,16 @@ pub struct Layer {
     pub src: Option<String>,
 }
 
+impl Layer {
+    /// A layer from its key (key_of's "loc[#index][|use|use…]"), split back into its stamp, place and uses.
+    pub fn of(key: String, kind: &'static str, name: String, parent: Option<String>, src: Option<String>) -> Layer {
+        let (loc, rest) = key.split_once('|').map_or((key.as_str(), None), |(l, r)| (l, Some(r)));
+        let (loc, index) = loc.split_once('#').map_or((loc, None), |(l, i)| (l, Some(i.to_string())));
+        let (loc, uses) = (loc.to_string(), rest.map(|r| r.split('|').map(str::to_string).collect()).unwrap_or_default());
+        Layer { key, kind, name, parent, loc, uses, index, src }
+    }
+}
+
 thread_local! {
     /// `raea render --layers`: the render's recorder (one render per thread)
     static ON: RefCell<Option<Recorder>> = const { RefCell::new(None) };
@@ -62,7 +75,8 @@ pub fn start(on: bool, out: &std::path::Path, tsx: &std::path::Path) -> Option<P
     let path = on.then(|| path_for(out, tsx));
     // a folder of frames is no video: its name stands for it
     let video = out.file_name().unwrap_or_default().to_string_lossy().into_owned();
-    ON.with(|r| *r.borrow_mut() = path.clone().map(|p| Recorder::new(p, video)));
+    let src = tsx.parent().map(PathBuf::from).unwrap_or_default();
+    ON.with(|r| *r.borrow_mut() = path.clone().map(|p| Recorder::new(p, video).named_from(src)));
     path.map(|p| p.with_extension("render.json"))
 }
 
@@ -100,3 +114,10 @@ pub fn path_for(out: &std::path::Path, tsx: &std::path::Path) -> PathBuf {
 
 #[cfg(test)]
 mod tests;
+
+/// RAEA_LAYERS_MUTANT (bench/layers/mutants.sh): the pass broken on purpose, so the oracle is seen to catch it.
+/// `swap` the first two layers' keys, `shift` the 3D 2 px right, `occlusion` the 3D's farthest triangle wins over its
+/// nearest, `under` the 3D drawn over the page.
+pub(crate) fn mutant(name: &str) -> bool {
+    std::env::var("RAEA_LAYERS_MUTANT").is_ok_and(|m| m == name)
+}
