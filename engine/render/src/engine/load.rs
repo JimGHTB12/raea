@@ -13,9 +13,8 @@ impl Engine {
         if (prog.width, prog.height) != self.size() {
             return Err("the edit's size changed: make a new Engine".into());
         }
-        if plugins::active(self.app.world()) {
-            self.replay = Some((prog.clone(), inserted.to_vec()));
-        }
+        // kept (and the frames before a frame stepped through: catch_up) only when the rows need steps (#77)
+        self.replay = (plugins::active(self.app.world()) && plugins::steps(inserted)).then(|| (prog.clone(), inserted.to_vec()));
         let world = self.app.world_mut();
         let g = world.resource::<Gen>().0;
         world.insert_resource(Gen(if g == 255 { 1 } else { g + 1 }));

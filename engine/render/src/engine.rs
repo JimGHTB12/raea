@@ -276,9 +276,10 @@ impl Engine {
     }
 
     /// The registered Bevy plugins' frame clock: the frames before f stepped through (one update each, their readbacks
-    /// dropped), from a new App made from the load when f is before the last frame stepped. Nothing without plugins.
+    /// dropped), from a new App made from the load when f is before the last frame stepped. Nothing without plugins, or
+    /// when the load's rows give them nothing to step (plugins::steps: a frame-pure edit's still draws only its frame).
     fn catch_up(&mut self, f: i64) -> Result<(), String> {
-        if !plugins::active(self.app.world()) {
+        if !plugins::active(self.app.world()) || self.replay.is_none() {
             return Ok(());
         }
         if f < self.app.world().resource::<plugins::PluginClock>().stepped {

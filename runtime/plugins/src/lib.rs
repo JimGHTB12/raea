@@ -205,6 +205,23 @@ pub fn active(world: &World) -> bool {
     world.contains_resource::<PluginClock>()
 }
 
+/// Whether an edit's rows give a plugin anything to carry from frame to frame: a driven mesh, a kind not known to be
+/// frame-pure (a compute's buffers), or a component or resource row of a type from outside Bevy's own
+/// scene and render crates and raea's (a plugin's: a rigid body, a particle effect; Bevy's animation, time or states).
+/// Keyed rows land on their frame however it's reached, so without one a frame is the same however it was reached,
+/// and a still at frame F needn't draw the F frames before it: a film's --at 2448 drew all of them, 217 s (#77).
+pub fn steps(inserted: &[Tup]) -> bool {
+    const PURE: &[&str] = &["camera", "light", "mesh", "model", "panel", "image", "audio", "master", "media", "text", "glyph", "decal", "fogvolume", "plate", "screenpage", "shape2d", "splat", "meshseq", "surface_shader", "entity"];
+    const BEVY: &[&str] = &["bevy_camera", "bevy_ecs", "bevy_light", "bevy_mesh", "bevy_pbr", "bevy_post_process", "bevy_core_pipeline", "bevy_anti_alias", "bevy_render", "bevy_transform", "bevy_color", "bevy_image", "bevy_sprite", "bevy_text", "bevy_ui", "bevy_solari", "bevy_window"];
+    // a short name could be anyone's: it steps
+    let pure_type = |ty: &str| ["material:", "own:", "three:", "raea_"].iter().any(|p| ty.starts_with(p)) || (ty.contains("::") && BEVY.contains(&ty.split("::").next().unwrap_or("")));
+    inserted.iter().any(|t| match t.kind.as_str() {
+        "component" | "resource" => !s(&t.vals, "type").is_some_and(|ty| pure_type(&ty)),
+        "mesh" => t.vals.get("driven").is_some_and(V::truthy),
+        k => !PURE.contains(&k),
+    })
+}
+
 /// Before an update: Time advances one frame when this update draws the frame after the last stepped, else not at all.
 pub fn arm(world: &mut World) {
     let f = world.resource::<Clock>().0;

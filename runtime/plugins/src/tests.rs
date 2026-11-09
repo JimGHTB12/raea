@@ -131,3 +131,17 @@ fn a_material_row_sets_only_its_fields() {
     let err = insert_reflect(w, e, "material:bevy_pbr::pbr_material::StandardMaterial", &json!({"no_such": 1.0})).unwrap_err();
     assert!(err.contains("no field no_such"), "{err}");
 }
+
+#[test]
+fn only_rows_a_plugin_carries_from_frame_to_frame_need_the_frames_before_a_still_stepped() {
+    let row = |kind: &str, vals: &[(&str, V)]| Tup { kind: kind.into(), id: "r".into(), vals: vals.iter().map(|(k, v)| (k.to_string(), v.clone())).collect() };
+    let ty = |t: &str| row("component", &[("type", V::S(t.into()))]);
+    // a film's rows: parts, lights, a camera and Bevy's own components (#77)
+    let film = vec![row("camera", &[]), row("light", &[]), row("mesh", &[]), row("model", &[]), row("panel", &[]), row("entity", &[]), ty("bevy_light::NotShadowCaster"), ty("bevy_post_process::bloom::settings::Bloom"), ty("material:bevy_pbr::pbr_material::StandardMaterial"), ty("three:uniforms")];
+    assert!(!steps(&film));
+    for more in [ty("avian3d::dynamics::rigid_body::RigidBody"), ty("bevy_hanabi::ParticleEffect"), ty("bevy_animation::AnimationPlayer"), ty("RigidBody"), row("mesh", &[("driven", V::N(1.0))]), row("compute", &[])] {
+        let mut rows = film.clone();
+        rows.push(more.clone());
+        assert!(steps(&rows), "{more:?} needs its frames stepped");
+    }
+}
