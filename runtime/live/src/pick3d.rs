@@ -105,4 +105,18 @@ impl Live {
     pub fn props_before(&mut self, props: Value) {
         self.send("raea-props", props);
     }
+
+    /// Where parts (by key) and world points are on the page now, in page px: `{"parts": [[x, y, w, h] | null],
+    /// "points": [[x, y] | null]}`, null for a part not drawn or a point behind the camera. A selection's box and a
+    /// note's pin follow what they are on (raea-sys-frame pick.rs locate).
+    pub fn locate(&mut self, keys: &[String], points: &[[f32; 3]]) -> Value {
+        let (w, h) = (self.w.max(1) as f64, self.h.max(1) as f64);
+        let Some(e) = self.scene.as_mut() else { return json!({"parts": vec![Value::Null; keys.len()], "points": vec![Value::Null; points.len()]}) };
+        let pts: Vec<Vec3> = points.iter().map(|p| Vec3::from(*p)).collect();
+        let (rects, placed) = raea_sys_frame::pick::locate(e.world_mut(), keys, &pts);
+        json!({
+            "parts": rects.iter().map(|r| r.map(|r| json!([r[0] as f64 * w, r[1] as f64 * h, r[2] as f64 * w, r[3] as f64 * h]))).collect::<Vec<_>>(),
+            "points": placed.iter().map(|p| p.map(|p| json!([p[0] as f64 * w, p[1] as f64 * h]))).collect::<Vec<_>>(),
+        })
+    }
 }

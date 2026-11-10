@@ -81,6 +81,40 @@ pub fn part_at(world: &mut World, nx: f32, ny: f32) -> Option<PartHit> {
     })
 }
 
+/// Where things are on the frame now (docs/preview.feature PV4d, PV5a): each key's part as its box (x, y, w, h in
+/// 0..1; the boxes of its meshes' bounds, so it follows the part as it moves; None when it isn't drawn), and each
+/// world point as its place on the frame with whether it is in front of the camera.
+pub fn locate(world: &mut World, keys: &[String], points: &[Vec3]) -> (Vec<Option<[f32; 4]>>, Vec<Option<[f32; 2]>>) {
+    let mut cams = world.query_filtered::<(&Camera, &GlobalTransform), With<Camera3d>>();
+    let Some((cam, at)) = cams.iter(world).filter(|(c, _)| c.is_active).min_by_key(|(c, _)| c.order) else { return (vec![None; keys.len()], vec![None; points.len()]) };
+    let clip_from_world = cam.clip_from_view() * Mat4::from(at.affine().inverse());
+    let on_frame = |p: Vec3| {
+        let c = clip_from_world * p.extend(1.0);
+        (c.w > 1e-5).then(|| Vec2::new((c.x / c.w + 1.0) * 0.5, (1.0 - c.y / c.w) * 0.5))
+    };
+    let placed: Vec<Option<[f32; 2]>> = points.iter().map(|p| on_frame(*p).map(|s| s.to_array())).collect();
+    let mut boxes: Vec<Option<(Vec2, Vec2)>> = vec![None; keys.len()];
+    let mut meshes = world.query_filtered::<(Entity, &GlobalTransform, &bevy::camera::primitives::Aabb, Option<&InheritedVisibility>), With<Mesh3d>>();
+    for (e, place, aabb, shown) in meshes.iter(world) {
+        if shown.is_some_and(|s| !s.get()) {
+            continue;
+        }
+        let Some(k) = world.get::<LayerKey>(root_of(world, e)).and_then(|k| keys.iter().position(|x| *x == k.0)) else { continue };
+        let (c, h) = (Vec3::from(aabb.center), Vec3::from(aabb.half_extents));
+        for i in 0..8 {
+            let corner = c + h * Vec3::new(if i & 1 == 0 { -1.0 } else { 1.0 }, if i & 2 == 0 { -1.0 } else { 1.0 }, if i & 4 == 0 { -1.0 } else { 1.0 });
+            if let Some(s) = on_frame(place.transform_point(corner)) {
+                boxes[k] = Some(boxes[k].map_or((s, s), |(lo, hi)| (lo.min(s), hi.max(s))));
+            }
+        }
+    }
+    let rects = boxes.into_iter().map(|b| b.map(|(lo, hi)| {
+        let (lo, hi) = (lo.clamp(Vec2::ZERO, Vec2::ONE), hi.clamp(Vec2::ZERO, Vec2::ONE));
+        [lo.x, lo.y, hi.x - lo.x, hi.y - lo.y]
+    })).collect();
+    (rects, placed)
+}
+
 /// The part a mesh belongs to: the nearest entity up from it (itself first) with a LayerKey, else the mesh itself.
 fn root_of(world: &World, e: Entity) -> Entity {
     let mut at = e;

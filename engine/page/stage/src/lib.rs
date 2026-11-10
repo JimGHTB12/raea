@@ -19,6 +19,9 @@
 //!                              the 3D drawn from that orbit (radians, metres) until free: false puts the
 //!                              composition's camera back (PV1c); with neither, only answers. Answers the view as it
 //!                              is now ({yaw, pitch, distance, target, radius?, free}), null with no 3D
+//!   stage.locate {keys, points}  where those parts (by key) and world points are on the stage now, px:
+//!                              {parts: [[x, y, w, h] | null], points: [[x, y] | null]} (a selection's box and a
+//!                              note's pin follow what they are on)
 //!   stage.props {props}        the composition's props set over its defaults as it plays (PV4b): the frame it is on is
 //!                              drawn again with them; nothing is reopened or written
 //!   stage.inspect {id}         that element as it is now (its owner, kind, box, props, text), or null once it's gone
@@ -62,6 +65,8 @@ enum Cmd {
     Pick(f64, f64, Answer),
     /// a free camera over the 3D (Some(None): the composition's own again; None: only asked), answered with the view
     View(Option<Option<(f32, f32, f32, [f32; 3])>>, Answer),
+    /// where parts and world points are on the stage now
+    Locate(Vec<String>, Vec<[f32; 3]>, Answer),
     /// props over the composition's defaults, from now
     Props(Value, Answer),
     /// an element as it is now, by id
@@ -124,6 +129,9 @@ impl Stage {
     }
 }
 
+mod calls;
+use calls::calls;
+
 pub struct StagePlugin;
 
 impl Plugin for StagePlugin {
@@ -145,102 +153,6 @@ impl Plugin for StagePlugin {
             r.add_systems(Render, copy.in_set(RenderSystems::PrepareResources));
         }
     }
-}
-
-fn settle(answer: raea_runtime_js::calls::Answer, r: Result<Value, String>) {
-    match r {
-        Ok(v) => answer.ok(v),
-        Err(e) => answer.err(e),
-    }
-}
-
-/// The page's host calls (the module's list).
-fn calls(mut calls: ResMut<HostCalls>) {
-    let num = |a: &Value, k: &str| a.get(k).and_then(Value::as_f64);
-    let send = |w: &mut World, c: Cmd| w.resource::<Stage>().send(c).map(|_| Value::Null);
-    calls
-        .on("stage.show", move |w, a, answer| {
-            if !raea_gpu_device::enabled() {
-                return answer.err("the stage needs the shared device (RAEA_SHARED_DEVICE=0 turned it off)");
-            }
-            // a feed item names its game as the app's host does (host/make.ts resolve): ~/ is the home
-            let src = a.get("src").and_then(Value::as_str).map(|s| match (s.strip_prefix("~/"), std::env::var_os("HOME")) {
-                (Some(rest), Some(home)) => PathBuf::from(home).join(rest),
-                _ => PathBuf::from(s),
-            });
-            let size = (num(&a, "w").unwrap_or(1280.0).round().max(1.0) as u32, num(&a, "h").unwrap_or(720.0).round().max(1.0) as u32);
-            settle(answer, send(w, Cmd::Show(src, size)));
-        })
-        .on("stage.play", move |w, a, answer| settle(answer, send(w, Cmd::Play(a.get("on").and_then(Value::as_bool).unwrap_or(true)))))
-        .on("stage.step", move |w, a, answer| settle(answer, send(w, Cmd::Step(num(&a, "n").unwrap_or(1.0).max(0.0) as i64))))
-        .on("stage.seek", move |w, a, answer| settle(answer, send(w, Cmd::Seek(num(&a, "frame").unwrap_or(0.0).max(0.0).round() as i64))))
-        .on("stage.key", move |w, a, answer| {
-            let key = a.get("key").and_then(Value::as_str).unwrap_or_default().to_string();
-            settle(answer, send(w, Cmd::Key(key, a.get("down").and_then(Value::as_bool).unwrap_or(true))));
-        })
-        .on("stage.pointer", move |w, a, answer| {
-            settle(answer, send(w, Cmd::Pointer(num(&a, "x").unwrap_or(0.0), num(&a, "y").unwrap_or(0.0), a.get("down").and_then(Value::as_bool).unwrap_or(false))));
-        })
-        .on("stage.pick", move |w, a, answer| {
-            let (x, y) = (num(&a, "x").unwrap_or(0.0), num(&a, "y").unwrap_or(0.0));
-            let tx = w.resource::<Stage>().tx.lock().unwrap().clone();
-            match tx {
-                Some(tx) => {
-                    let _ = tx.send(Cmd::Pick(x, y, answer));
-                }
-                None => answer.ok(Value::Null),
-            }
-        })
-        .on("stage.view", move |w, a, answer| {
-            let f = |k: &str| a.get(k).and_then(Value::as_f64).map(|v| v as f32);
-            let target = a.get("target").and_then(Value::as_array).map(|t| t.iter().filter_map(Value::as_f64).map(|v| v as f32).collect::<Vec<_>>()).filter(|t| t.len() == 3);
-            let set = match (a.get("free").and_then(Value::as_bool), f("yaw"), f("pitch"), f("distance")) {
-                (Some(false), ..) => Some(None),
-                (_, Some(yaw), Some(pitch), Some(distance)) => Some(Some((yaw, pitch, distance, target.map_or([0.0; 3], |t| [t[0], t[1], t[2]])))),
-                _ => None,
-            };
-            let tx = w.resource::<Stage>().tx.lock().unwrap().clone();
-            match tx {
-                Some(tx) => {
-                    let _ = tx.send(Cmd::View(set, answer));
-                }
-                None => answer.ok(Value::Null),
-            }
-        })
-        .on("stage.props", move |w, a, answer| {
-            let tx = w.resource::<Stage>().tx.lock().unwrap().clone();
-            match tx {
-                Some(tx) => {
-                    let _ = tx.send(Cmd::Props(a.get("props").cloned().unwrap_or(Value::Null), answer));
-                }
-                None => answer.err("the stage shows nothing"),
-            }
-        })
-        .on("stage.inspect", move |w, a, answer| {
-            let id = a.get("id").and_then(Value::as_u64).unwrap_or(0);
-            let tx = w.resource::<Stage>().tx.lock().unwrap().clone();
-            match tx {
-                Some(tx) => {
-                    let _ = tx.send(Cmd::Inspect(id, answer));
-                }
-                None => answer.ok(Value::Null),
-            }
-        })
-        .on("stage.tweak", move |w, a, answer| {
-            let s = |c: &Value, k: &str| c.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
-            let changes: Vec<Change> = a.get("changes").and_then(Value::as_array).into_iter().flatten().map(|c| Change { owner: s(c, "owner"), kind: s(c, "kind"), prop: s(c, "prop"), value: c.get("value").cloned().unwrap_or_default() }).collect();
-            let tx = w.resource::<Stage>().tx.lock().unwrap().clone();
-            match tx {
-                Some(tx) => {
-                    let _ = tx.send(Cmd::Tweak(changes, answer));
-                }
-                None => answer.err("the stage shows nothing to change"),
-            }
-        })
-        .on("stage.status", |w, _a, answer| {
-            let s = w.resource::<Stage>().status.lock().unwrap().clone();
-            answer.ok(json!({"showing": s.showing, "frame": s.frame, "playing": s.playing, "fps": s.fps, "painted": s.painted, "size": [s.size.0, s.size.1], "error": s.error}));
-        });
 }
 
 /// Bevy's image the painted texture's size (made again when it changes: its GpuImage follows).
@@ -374,6 +286,22 @@ fn run(rx: Receiver<Cmd>, status: Arc<Mutex<Status>>, slot: Arc<Mutex<Painted>>)
             // a point of the stage is the page's (a game that lays out at its own size is scaled to the stage)
             Some(Cmd::Pick(x, y, answer)) => match live.as_mut() {
                 Some(l) => answer.ok(l.pick(x * l.w as f64 / stage.0.max(1) as f64, y * l.h as f64 / stage.1.max(1) as f64).map(|e| on_stage(e, l, stage)).unwrap_or(Value::Null)),
+                None => answer.ok(Value::Null),
+            },
+            Some(Cmd::Locate(keys, points, answer)) => match live.as_mut() {
+                Some(l) => {
+                    // page px to the stage's
+                    let (sx, sy) = (stage.0 as f64 / l.w.max(1) as f64, stage.1 as f64 / l.h.max(1) as f64);
+                    let mut v = l.locate(&keys, &points);
+                    for list in ["parts", "points"] {
+                        for r in v[list].as_array_mut().into_iter().flatten() {
+                            for (i, n) in r.as_array_mut().into_iter().flatten().enumerate() {
+                                *n = json!(n.as_f64().unwrap_or(0.0) * if i % 2 == 0 { sx } else { sy });
+                            }
+                        }
+                    }
+                    answer.ok(v);
+                }
                 None => answer.ok(Value::Null),
             },
             Some(Cmd::Props(props, answer)) => match live.as_mut() {
