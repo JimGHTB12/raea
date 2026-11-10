@@ -51,11 +51,12 @@ impl Engine {
             // Hot reload (Bevy's file_watcher, in the bevy-all build) only when asked, RAEA_BEVY_WATCH=1: a render or a
             // baked play reloading an asset mid-run would draw frames that a render alone doesn't
             .set(bevy::asset::AssetPlugin { unapproved_path_mode: bevy::asset::UnapprovedPathMode::Allow, meta_check: bevy::asset::AssetMetaCheck::Never, watch_for_changes_override: Some(std::env::var_os("RAEA_BEVY_WATCH").is_some()), ..default() })
-            // pipelines compile on the task pool, all at once (lightspeed F5: a 3D game's first launch compiled
-            // them one by one, 4.5 s), and wait_pipelines holds each frame until every one it needs is made, so a
-            // frame still never misses a mesh whose shader was compiling: the first tagged readback of a frame is
-            // the frame. RAEA_BEVY_SYNC_PIPELINES=1 compiles them one at a time on the render thread, as before
-            .set(bevy::render::RenderPlugin { synchronous_pipeline_compilation: std::env::var_os("RAEA_BEVY_SYNC_PIPELINES").is_some(), render_creation: render_creation(), ..default() });
+            // pipelines compile on the render thread as a frame queues them, as Bevy always compiles them on macOS. On
+            // its task pool (Windows and Linux only) wait_pipelines held the first frame for pipelines the pool left
+            // unstarted, its threads idle: 3-43 s stalls on Windows, and opens that never finished (`raea play`'s hang
+            // in v0.1.0's Windows live play; 32 of 32 opened in under 0.7 s compiled here, cuda-box 11-09).
+            // RAEA_BEVY_ASYNC_PIPELINES=1 compiles them on the task pool (lightspeed F5, measured when macOS had it)
+            .set(bevy::render::RenderPlugin { synchronous_pipeline_compilation: std::env::var_os("RAEA_BEVY_ASYNC_PIPELINES").is_none(), render_creation: render_creation(), ..default() });
         // no render thread: a frame is drawn by the update that asks for it (wasm32 has no pipelined rendering to turn off)
         #[cfg(not(target_arch = "wasm32"))]
         let group = group.disable::<bevy::render::pipelined_rendering::PipelinedRenderingPlugin>();

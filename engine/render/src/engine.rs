@@ -171,9 +171,9 @@ pub fn phys_footprint() -> Option<u64> {
     None
 }
 
-/// Before a frame renders, every pipeline that's compiling is waited for (they compile in parallel on the task pool),
-/// so the frame draws everything it has, as synchronous compilation did. A pipeline whose shader hasn't loaded yet is
-/// retried by Bevy as before; only those being compiled are waited on.
+/// Before a frame renders, every pipeline compiling on the task pool (RAEA_BEVY_ASYNC_PIPELINES=1, engine/open.rs) is
+/// waited for, so the frame draws everything it has, as synchronous compilation does. A pipeline whose shader hasn't
+/// loaded yet is retried by Bevy as before; only those being compiled are waited on.
 fn wait_pipelines(mut cache: ResMut<bevy::render::render_resource::PipelineCache>) {
     use bevy::render::render_resource::CachedPipelineState;
     // a browser compiles them asynchronously, on its own event loop: a live frame there draws what's made
