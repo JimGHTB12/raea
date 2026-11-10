@@ -71,9 +71,7 @@ pub(crate) fn bevy_over_3d(world: &mut World, page: &mut raea_runtime_page::Bevy
     let mats = page.set_ui_materials(e.world_mut())?;
     // one draw a frame, as the fed render draws it (drawn again, a frame's auto exposure and temporal passes move on)
     e.draw(cx.now);
-    if let Some(err) = e.take_error() {
-        eprintln!("raea: frame {}: the 3D: {err}", cx.now);
-    }
+    raea_sys_frame::gpu::said(e.world_mut(), cx.now)?;
     let px = if mats { page.read_ui_materials(e.world()).and_then(|_| page.frame())? } else { px };
     let three = e.read_target()?;
     let (tw, th) = e.size();
@@ -185,9 +183,7 @@ pub(crate) fn bevy_fed_gpu(world: &mut World, page: &mut raea_runtime_page::Bevy
         }
         let mats = page.set_ui_materials(e.world_mut())?;
         e.draw(cx.now);
-        if let Some(err) = e.take_error() {
-            eprintln!("raea: frame {}: the 3D: {err}", cx.now);
-        }
+        raea_sys_frame::gpu::said(e.world_mut(), cx.now)?;
         if mats {
             page.place_ui_materials(e.world());
             page.draw();
