@@ -502,6 +502,35 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
       And `raea stage review sound` posts the mix with its cues marked on a waveform under the strip
       And every post an agent makes ends with what it did not watch in motion and did not hear
 
+    @needs:DR2,DR4
+    Scenario: DR28. Text on screen is timed by when it can be read, and text that can't be read is broken
+      # Shane, 11-10, verbatim: "also q coupel notes we need to maintain too. we need to automatically measure reading
+      # time of text on screen and note how long its actually visible including chekcign if its visible in OCR. if
+      # text exists and is visible and has no ocr its broken."
+      # Restated as asks (DR5's form): (1) every run of text gets the time it needs to be read, measured with no one
+      # asking; (2) how long it is actually visible, which is not how long it is in the tree; (3) whether OCR reads
+      # it while it is visible; (4) text that is there and visible but that OCR doesn't read is an error; (5) these
+      # are kept: they run on every render, every round. Not asked: a new reading speed (craft/floor.md's 0.3 s a
+      # word, a second at least, stays the check's value), a change to any piece's text, or a check of spelling.
+      Given a render (every render has its manifest and findings, DR2 and DR3), of 2D or 3D text (Text, either medium)
+      Then each Text is given three times, in seconds: `on` (the frames it is in the world: today's "held"), `visible`
+        (the frames it is in the frame, at an opacity, size and contrast against what is behind it that can be
+        read, and covered by no other layer past a share, DR2's Covers) and `read` (the frames on which OCR reads its
+        words in its box: Apple Vision's text recognition on the Mac, systems/vision text_lines)
+      And `need` is its reading time: 0.3 s a word and at least a second, as raea check's reading rule has it, with
+        its exception kept (a caption the voice says as it shows needs no time of its own)
+      And "reading" is measured against `visible`, not `on`: a word faded in over half its time, or behind a part
+        for some of it, has less time to be read than it is up, and the finding says which frames were lost and why
+      And text that is visible on a frame and that OCR doesn't read there is broken: an error naming the Text, its
+        Source and the frames; a run OCR reads on less than half its visible frames is a warn (OCR drops a word for a
+        frame or two, as textread's GAP allows)
+      And it is a named raea check (DR4) run on every render with no flag, so it holds every round (DR7)
+      And its cheats fail it: the reading time met by holding the text at an opacity no one can read; the text the
+        colour of what's behind it; the text behind a part for most of its time; the text visible only on a frame
+        here and there
+      # Open: off the Mac, the portable OCR (systems/perceive ocr_portable) fetches its models into ~/.cache/raea;
+      # that download is asked for once, with its size, before DR28 runs on Linux or Windows.
+
   # =====================================================================================================================
   Rule: Part 9. Into the skill, proven, then used
 
@@ -544,6 +573,7 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
       And Part 2 (DR5 to DR9) second: it changes how every later piece of this plan is itself reviewed
       And DR17 and DR20's still-against-sequence check early, as they are small and each would have stopped a
         failure of the film on its own
+      And DR28 straight after DR4: Shane asked for it on 11-10 as a check to keep, and it reads only Part 1
       And Parts 3 to 8 after, in their order; Part 9 as each part lands (its lines into the skill with it), the
         evals and the short piece last
 
