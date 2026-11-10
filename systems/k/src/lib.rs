@@ -282,4 +282,23 @@ mod tests {
         let got = gpu.run(&c, &[&words], frames * frames).unwrap().0.remove(0);
         assert_eq!(got, want);
     }
+
+    /// nv12.k packs four bytes with shl, the top one into the sign bit: the WGSL shifts as u32 (a signed shift there
+    /// striped bright video on a Windows on ARM GPU, #82), and every byte value packs as the interpreter packs it.
+    #[test]
+    fn shl_into_the_sign_bit_is_unsigned() {
+        let k = raea_core_k::parse("b:and[word[F;i];255]\nw:or[or[b;shl[b;8]];or[shl[b;16];shl[b;24]]]").unwrap();
+        let src = wgsl_tex(&k, &["F"], &[], &HashMap::new(), &["w"]).unwrap();
+        assert!(src.contains("bitcast<i32>(u32(k_b) << (u32((24)) & 31u))"), "{src}");
+        if !Gpu::available() {
+            return;
+        }
+        let gpu = Gpu::new().unwrap();
+        let words: Vec<u32> = (0..256).collect();
+        let cpu = raea_core_k::Cpu { buffers: [("F", &words[..])].into(), scalars: HashMap::new() };
+        let want = cpu.run(&k, 256, &["w"]).unwrap().remove(0);
+        assert_eq!(want[182], 0xb6b6_b6b6);
+        let c = gpu.compile(&k, &["F"], &HashMap::new(), &["w"]).unwrap();
+        assert_eq!(gpu.run(&c, &[&words], 256).unwrap().0.remove(0), want);
+    }
 }

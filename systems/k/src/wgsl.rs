@@ -74,7 +74,10 @@ impl Gen<'_> {
                     "xor" => format!("({} ^ {})", self.e(&a[0])?, self.e(&a[1])?),
                     "or" => format!("({} | {})", self.e(&a[0])?, self.e(&a[1])?),
                     "and" => format!("({} & {})", self.e(&a[0])?, self.e(&a[1])?),
-                    "shl" => format!("({} << (u32({}) & 31u))", self.e(&a[0])?, self.e(&a[1])?),
+                    // shifted as u32: a byte shifted into the sign bit (an NV12 word's top byte >= 128) is an
+                    // overflow some drivers' compilers treat as undefined; on a Windows on ARM GPU it striped every
+                    // bright 4 pixels of a video (#82). Same bits as the interpreter's wrapping_shl.
+                    "shl" => format!("bitcast<i32>(u32({}) << (u32({}) & 31u))", self.e(&a[0])?, self.e(&a[1])?),
                     "shr" => format!("({} >> (u32({}) & 31u))", self.e(&a[0])?, self.e(&a[1])?),
                     "clamp" => format!("clamp({}, {}, {})", self.e(&a[0])?, self.e(&a[1])?, self.e(&a[2])?),
                     "sel" => {
