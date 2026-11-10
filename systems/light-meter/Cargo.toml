@@ -8,6 +8,8 @@ description = "The light on a 3D shot's subject in lux, metered from the scene's
 
 [dependencies]
 raea-core-scene = { path = "../../core/scene" }
+# what it finds, as raea's one Finding (docs/direction.feature DR3)
+raea-core-facts = { path = "../../core/facts" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
 serde_json = "1"
 image = { version = "0.25", default-features = false, features = ["png", "hdr"] }

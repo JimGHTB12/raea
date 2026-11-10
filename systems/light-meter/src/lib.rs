@@ -14,6 +14,8 @@
 
 
 pub mod exposure;
+mod found;
+pub use found::{cut_findings, report};
 use std::collections::HashMap;
 use std::f32::consts::{PI, TAU};
 use std::sync::{Arc, Mutex, OnceLock};

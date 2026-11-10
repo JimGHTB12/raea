@@ -120,18 +120,10 @@ fn light(args: &[String]) -> Result<String, String> {
     let cuts = raea_sys_light_meter::cuts(&shots);
     if json_out {
         let shots: Vec<Value> = shots.iter().map(|(c, m)| json!({"composition": c, "frames": m.iter().map(|(f, v)| json!({"frame": f, "meter": v})).collect::<Vec<_>>()})).collect();
-        return Ok(serde_json::to_string_pretty(&json!({"shots": shots, "cuts": cuts})).unwrap_or_default());
+        return Ok(serde_json::to_string_pretty(&json!({"shots": shots, "cuts": cuts, "findings": raea_sys_light_meter::cut_findings(&cuts)})).unwrap_or_default());
     }
-    let mut t = Vec::new();
-    for (c, m) in &shots {
-        for (f, v) in m {
-            t.push(raea_sys_light_meter::say(if c.is_empty() { "the composition" } else { c }, *f, v));
-        }
-    }
-    for c in &cuts {
-        t.push(format!("cut {}", c["says"].as_str().unwrap_or("")));
-    }
-    Ok(t.join("\n"))
+    // each shot's meter, each cut, and the cuts' jumps and drifts as Findings (DR3), counted last
+    Ok(raea_sys_light_meter::report(&shots, &cuts))
 }
 
 /// `--frame N`, 0 when it isn't given (scene lint and render --review).

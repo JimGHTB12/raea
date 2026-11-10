@@ -103,6 +103,14 @@ impl Exposure {
     }
 }
 
+/// What a render's pictures were found to be (of_pngs's `found`) as its Findings (docs/direction.feature DR3), said
+/// with the rest of the render's, so its count and its manifest have them.
+pub fn said(v: &Value) -> Vec<raea_core_facts::Finding> {
+    let fs: Vec<raea_core_facts::Finding> = v["found"].as_array().into_iter().flatten().filter_map(|f| raea_core_facts::Finding::of_value(f, "raea render")).collect();
+    raea_core_facts::finding::said(&fs);
+    fs
+}
+
 /// The exposure of PNG files, each read and measured, and all of them pooled (as one frame of all their pixels):
 /// `{"frames": [{file, exposure}], "exposure": pooled, "found": [{check, level, says}]}`.
 pub fn of_pngs(files: &[std::path::PathBuf]) -> Result<(Exposure, Value), String> {

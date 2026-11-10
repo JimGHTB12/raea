@@ -139,6 +139,7 @@ fn with_exposure(said: String, out: &Path, manifest: Option<&Path>) -> String {
     }
     match raea_sys_light_meter::exposure::of_pngs(&pngs) {
         Ok((e, v)) => {
+            let fs = raea_sys_light_meter::exposure::said(&v); // counted with the render's other findings (DR3)
             if let Some(m) = manifest {
                 if let Ok(mut doc) = std::fs::read_to_string(m).map_err(|e| e.to_string()).and_then(|t| serde_json::from_str::<serde_json::Value>(&t).map_err(|e| e.to_string())) {
                     if let Some(o) = doc.as_object_mut() {
@@ -148,8 +149,8 @@ fn with_exposure(said: String, out: &Path, manifest: Option<&Path>) -> String {
                 }
             }
             let mut msg = format!("{said}\nEXPOSURE  {}", e.line());
-            for f in v["found"].as_array().into_iter().flatten() {
-                msg.push_str(&format!("\n  {}: {}", f["level"].as_str().unwrap_or(""), f["says"].as_str().unwrap_or("")));
+            for f in &fs {
+                msg.push_str(&format!("\n  {}", f.line()));
             }
             msg
         }
