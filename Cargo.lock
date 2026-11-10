@@ -13641,6 +13641,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "image",
+ "raea-core-facts",
  "raea-io-home",
  "raea-runtime-bundle",
  "serde_json",

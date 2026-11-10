@@ -18,6 +18,7 @@ pub use agent::BY;
 
 use std::path::{Path, PathBuf};
 
+use raea_core_facts::{Finding, Level, finding};
 use raea_runtime_bundle::flag;
 use serde_json::{Value, json};
 
@@ -125,6 +126,31 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     finish(args, &dir, scores, raw, defects, photo, cost, "clef", !gating, json!({"calibrated": cal.is_some()}))
 }
 
+/// The defects a judge saw, as raea's one Finding (docs/direction.feature DR3): a blocking one an error and a detail a
+/// warn, each a level lower from a judge that only advises. A judge sees pictures, not parts: a finding names its
+/// sheet in its words and is about no entity.
+pub fn findings(defects: &[Value], by: &str, advice: bool) -> Vec<Finding> {
+    let found = defects.iter().filter(|d| d["present"] == true).map(|d| {
+        let blocking = d["level"] == "blocking";
+        let level = match (blocking, advice) {
+            (true, false) => Level::Error,
+            (true, true) | (false, false) => Level::Warn,
+            (false, true) => Level::Note,
+        };
+        let sheet = d["sheet"].as_str().unwrap_or("");
+        let check = format!("judge.{}", if by == "clef" { d["defect"].as_str().unwrap_or("defect") } else { sheet });
+        let mut f = Finding::new(&check, level, format!("{sheet} sheet: {}", d["asked"].as_str().unwrap_or("")), &format!("raea judge ({by})"));
+        if let Some(p) = d["p"].as_f64() {
+            f = f.measure("p", p, "", Some(0.5));
+        }
+        match d["fix"].as_str() {
+            Some(x) if !x.is_empty() => f.fix(x),
+            _ => f,
+        }
+    });
+    finding::ranked(found.collect())
+}
+
 /// The verdict decided in code, written (DIR/judge.json for clef, DIR/judge.BY.json for an agent; every round in the
 /// log), and said. `advice` marks a judge not yet trusted to gate (clef before calibration).
 #[allow(clippy::too_many_arguments)]
@@ -133,8 +159,9 @@ fn finish(args: &[String], dir: &Path, scores: serde_json::Map<String, Value>, r
     let vals: Vec<f64> = scores.values().filter_map(Value::as_f64).collect();
     let mean = if vals.is_empty() { 0.0 } else { (vals.iter().sum::<f64>() / vals.len() as f64 * 100.0).round() / 100.0 };
     let model = if by == "clef" { "@cf/cloudflare/clef-omni".to_string() } else { format!("{by} cli") };
+    let found = findings(&defects, by, advice);
     let mut verdict = json!({"dir": dir.display().to_string(), "by": by, "scores": scores, "raw": raw, "mean": mean, "defects": defects, "photo": photo,
-        "pass": pass, "why": why, "gating": !advice, "cost": cost, "model": model});
+        "pass": pass, "why": why, "gating": !advice, "cost": cost, "model": model, "findings": found, "count": finding::count(&found)});
     if let (Some(v), Some(e)) = (verdict.as_object_mut(), extra.as_object()) {
         v.extend(e.clone());
     }
@@ -155,15 +182,13 @@ fn finish(args: &[String], dir: &Path, scores: serde_json::Map<String, Value>, r
     let who = if by == "clef" { String::new() } else { format!("({by}) ") };
     let mut t = vec![format!("{}  {who}{}{}", if pass { "PASS" } else { "NOT YET" }, if advice { "(advice: the judge isn't calibrated against your eye yet) " } else { "" }, why.join("; "))];
     t.push(format!("scores: {}", scores.iter().map(|(k, v)| format!("{k} {v}")).collect::<Vec<_>>().join(", ")));
-    for d in verdict["defects"].as_array().into_iter().flatten().filter(|d| d["present"] == true) {
-        if by == "clef" {
-            t.push(format!("  {:<8} {} (p {}, {} sheet): {}", d["level"].as_str().unwrap_or(""), d["defect"].as_str().unwrap_or(""), d["p"], d["sheet"].as_str().unwrap_or(""), d["asked"].as_str().unwrap_or("")));
-        } else {
-            t.push(format!("  {:<8} {} tile: {} (fix: {})", d["level"].as_str().unwrap_or(""), d["sheet"].as_str().unwrap_or(""), d["asked"].as_str().unwrap_or(""), d["fix"].as_str().unwrap_or("")));
-        }
+    for f in &found {
+        let p = f.measure.as_ref().map(|m| format!(" (p {})", m.value)).unwrap_or_default();
+        t.push(format!("  {}{p}", f.line()));
     }
     let p = &verdict["progress"];
     t.push(format!("round {}: {} passes in a row{}{}; ${cost:.4}", p["rounds"], p["passesInARow"], if p["done"] == true { ", done" } else { "" }, if p["stall"] == true { ", stalled: change the approach for the part, not the dose" } else { "" }));
+    t.push(format!("raea judge: {}", finding::count(&found)));
     Ok(t.join("\n"))
 }
 

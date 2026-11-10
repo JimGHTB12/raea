@@ -69,4 +69,9 @@ fn an_agent_verdict_is_read_from_the_end_of_its_thinking() {
     let (pass, why) = crate::rubric::pass(&scores, &defects);
     assert!(!pass && why[0].starts_with("blocking"));
     assert!(crate::agent::last_verdict("no json here").is_none());
+    // what it saw, as Findings (DR3): a gating judge's blocking defect is an error, an advising one's a warn
+    let f = &crate::findings(&defects, "kimi", false)[0];
+    assert_eq!((f.check.as_str(), f.level, f.fix.as_deref(), f.by.as_str()), ("judge.iso", raea_core_facts::Level::Error, Some("model legs"), "raea judge (kimi)"));
+    assert!(f.says.starts_with("iso sheet: "), "{}", f.says);
+    assert_eq!(crate::findings(&defects, "kimi", true)[0].level, raea_core_facts::Level::Warn);
 }
