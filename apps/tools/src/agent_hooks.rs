@@ -27,15 +27,19 @@ fn hooks(agent: &str) -> R<[Hook; 2]> {
     })
 }
 
+/// The folder an environment variable names, else the one given.
+fn named_dir(var: &str, or: PathBuf) -> PathBuf {
+    std::env::var_os(var).filter(|v| !v.is_empty()).map_or(or, PathBuf::from)
+}
+
 /// Where the harness keeps its hooks.
 fn file(agent: &str) -> R<PathBuf> {
     let home = user_home()?;
-    let env = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty()).map(PathBuf::from);
     Ok(match agent {
         "claude" => home.join(".claude/settings.json"),
-        "codex" => env("CODEX_HOME").unwrap_or_else(|| home.join(".codex")).join("hooks.json"),
+        "codex" => named_dir("CODEX_HOME", home.join(".codex")).join("hooks.json"),
         "gemini" => home.join(".gemini/settings.json"),
-        _ => env("KIMI_CODE_HOME").unwrap_or_else(|| home.join(".kimi-code")).join("config.toml"),
+        _ => named_dir("KIMI_CODE_HOME", home.join(".kimi-code")).join("config.toml"),
     })
 }
 

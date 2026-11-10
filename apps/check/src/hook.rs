@@ -62,17 +62,27 @@ pub fn opened_media(cmd: &str) -> Vec<String> {
     for seg in cmd.split(['\n', ';', '|', '&']) {
         let w = words(seg);
         let mut it = w.iter().skip_while(|t| t.contains('=') && !t.starts_with('-') || ["command", "exec", "nohup", "env"].contains(&t.as_str()));
-        let Some(tool) = it.next().map(|t| t.rsplit('/').next().unwrap_or(t).to_string()) else { continue };
-        if !["open", "xdg-open", "qlmanage"].contains(&tool.as_str()) {
+        let Some(tool) = it.next() else { continue };
+        if !["open", "xdg-open", "qlmanage"].contains(&tool.rsplit_once('/').map_or(tool.as_str(), |(_, name)| name)) {
             continue;
         }
-        let rest: Vec<&String> = it.collect();
-        let app = rest.windows(2).find(|p| p[0] == "-a" || p[0] == "-b").map(|p| p[1].to_lowercase());
-        if app.is_some_and(|a| a.contains("raea")) || rest.iter().any(|t| *t == "-R") {
-            continue;
+        // the files it names, apart from the app an -a or -b names; one naming raea, or Finder's -R, opens nothing here
+        let (mut files, mut app, mut ours) = (Vec::new(), false, false);
+        for t in it {
+            if app {
+                ours |= t.to_lowercase().contains("raea");
+                app = false;
+            } else if t == "-a" || t == "-b" {
+                app = true;
+            } else if t == "-R" {
+                ours = true;
+            } else if !t.starts_with('-') && !t.contains("://") && t.rsplit_once('.').is_some_and(|(_, e)| MEDIA.contains(&e.to_lowercase().as_str())) {
+                files.push(t.clone());
+            }
         }
-        let args = rest.iter().enumerate().filter(|(i, t)| !t.starts_with('-') && !(*i > 0 && ["-a", "-b"].contains(&rest[i - 1].as_str())));
-        found.extend(args.map(|(_, t)| t.to_string()).filter(|t| !t.contains("://") && t.rsplit_once('.').is_some_and(|(_, e)| MEDIA.contains(&e.to_lowercase().as_str()))));
+        if !ours {
+            found.extend(files);
+        }
     }
     found
 }
@@ -110,7 +120,7 @@ fn saved(v: &Value) -> Vec<String> {
         return vec![p.to_string()];
     }
     let patch = i["command"].as_str().or(i["input"].as_str()).unwrap_or("");
-    patch.lines().filter_map(|l| l.strip_prefix("*** Add File: ").or(l.strip_prefix("*** Update File: "))).map(|p| p.trim().to_string()).collect()
+    patch.lines().filter_map(|l| ["*** Add File: ", "*** Update File: "].iter().find_map(|head| l.strip_prefix(head))).map(str::trim).map(String::from).collect()
 }
 
 /// Findings for the agent in the shape its harness reads after a tool: Gemini CLI's AfterTool context, Kimi Code's
