@@ -25,6 +25,8 @@ pub struct LiveScene {
     pub(crate) cam: BTreeMap<String, V>,
     /// frame 0 was stepped when play opened (live.rs), and nothing since
     pub warm: bool,
+    /// identity -> a panel's `src` as written when the full path last made its row (the fast path leaves it a new one)
+    pub(crate) panel_srcs: std::collections::HashMap<String, String>,
 }
 
 #[derive(Clone)]
@@ -58,7 +60,7 @@ pub(crate) fn live_dynamic(kind: &str) -> &'static [&'static str] {
         "light" => &["lux", "lumens", "x", "y", "z", "dir_x", "dir_y", "dir_z", "rot_qx", "rot_qy", "rot_qz", "rot_qw", "inner", "outer"],
         "mesh" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "col_r", "col_g", "col_b", "rough", "metal", "emissive_k", "opacity", "sh_r", "sh_g", "sh_b", "rim_k", "spec_k", "outline_w", "pass"],
         "model" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "anim_t", "mix0_t", "mix0_w", "mix1_t", "mix1_w", "mix2_t", "mix2_w", "mix3_t", "mix3_w", "morph0", "morph1", "morph2", "morph3", "morph4", "morph5", "morph6", "morph7", "morph8", "morph9", "morph10", "morph11", "morph12", "morph13", "morph14", "morph15", "morph16", "morph17", "morph18", "morph19", "morph20", "morph21", "morph22", "morph23", "morph24", "morph25", "morph26", "morph27", "morph28", "morph29", "morph30", "morph31", "morph32", "morph33", "morph34", "morph35", "morph36", "morph37", "morph38", "morph39", "morph40", "morph41", "morph42", "morph43", "morph44", "morph45", "morph46", "morph47", "morph48", "morph49", "morph50", "morph51", "morph52", "morph53", "morph54", "morph55", "morph56", "morph57", "morph58", "morph59", "morph60", "morph61", "morph62", "morph63", "g0_w", "g0_t", "g1_w", "g1_t", "g2_w", "g2_t", "g3_w", "g3_t", "g4_w", "g4_t", "g5_w", "g5_t", "g6_w", "g6_t", "g7_w", "g7_t", "g8_w", "g8_t", "g9_w", "g9_t", "g10_w", "g10_t", "g11_w", "g11_t", "g12_w", "g12_t", "g13_w", "g13_t", "g14_w", "g14_t", "g15_w", "g15_t", "look", "glitch_explode", "glitch_scramble", "glitch_jitter", "glitch_snap", "glitch_smear_x", "glitch_smear_y", "glitch_smear_z", "glitch_seed", "cloth_frame", "screen_power", "pass"],
-        "panel" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "screen_power", "screen_bright", "pass"],
+        "panel" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "screen_power", "screen_bright", "pass", "sheet_frame", "sheet_cols", "sheet_rows", "src"],
         "decal" => &["x", "y", "z", "q_x", "q_y", "q_z", "q_w", "scale_x", "scale_y", "scale_z", "visible", "col_r", "col_g", "col_b", "opacity", "rough", "metal"],
         _ => &[],
     }
@@ -127,6 +129,9 @@ impl LiveScene {
         let cam = self.camera_row(&all, f.clear, &mut p);
         let tr = Tracks::of(&all);
         rows_into_of(&all, &tr, &mut p);
+        for (key, src) in tr.panels.iter().filter_map(|(k, t)| Some((k, t[0].as_ref()?.props.get("src")?.as_str()?))) {
+            self.panel_srcs.insert(key.clone(), src.to_string());
+        }
         // each local row (this frame's tracks, numbered as rows_into numbers them) by its identity
         let mut local: std::collections::HashMap<String, &String> = std::collections::HashMap::new();
         for (li, (key, track)) in tr.lights.iter().enumerate() {
@@ -345,6 +350,7 @@ impl LiveScene {
         for (_, id) in &gone {
             self.rows.remove(id);
             self.ids.retain(|_, v| v != id);
+            self.panel_srcs.retain(|k, _| self.ids.contains_key(k));
         }
         (out, gone)
     }

@@ -10,16 +10,24 @@ pub fn visible(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, track: 
     }
 }
 
-/// A sprite sheet (`grid` [columns, rows], from the first frame): the cell `frame` shows, keyed (an <ImagePlane>'s,
-/// a <Sprite>'s)
+/// A sprite sheet (`grid` [columns, rows]): the cell `frame` shows and the grid, both keyed, so a part whose `src`
+/// changes to a sheet of another grid shows that sheet's cells (an <ImagePlane>'s, a <Sprite>'s). A frame without a
+/// grid is one cell.
 pub fn sheet(p: &mut Program, row: &mut BTreeMap<String, V>, id: &str, its: &[Item]) {
-    if let Some(Value::Array(g)) = its[0].props.get("grid") {
-        if let [c, r] = g.as_slice() {
-            row.insert("sheet_cols".into(), V::N(c.as_f64().unwrap_or(1.0)));
-            row.insert("sheet_rows".into(), V::N(r.as_f64().unwrap_or(1.0)));
-            column(p, row, id, "sheet_frame", &its.iter().map(|i| n(&i.props, "frame", 0.0).floor()).collect::<Vec<_>>());
-        }
+    let grid = |i: &Item| match i.props.get("grid") {
+        Some(Value::Array(g)) => match g.as_slice() {
+            [c, r] => Some([c.as_f64().unwrap_or(1.0), r.as_f64().unwrap_or(1.0)]),
+            _ => None,
+        },
+        _ => None,
+    };
+    if !its.iter().any(|i| grid(i).is_some()) {
+        return;
     }
+    let grids: Vec<[f64; 2]> = its.iter().map(|i| grid(i).unwrap_or([1.0, 1.0])).collect();
+    column(p, row, id, "sheet_cols", &grids.iter().map(|g| g[0]).collect::<Vec<_>>());
+    column(p, row, id, "sheet_rows", &grids.iter().map(|g| g[1]).collect::<Vec<_>>());
+    column(p, row, id, "sheet_frame", &its.iter().map(|i| n(&i.props, "frame", 0.0).floor()).collect::<Vec<_>>());
 }
 
 /// `color` keyed as col_r, col_g, col_b (`default` where a frame has none); `srgb` ([r, g, b], a Bevy Srgba's
@@ -107,4 +115,22 @@ pub fn srcs_of(its: &[Item]) -> Vec<String> {
         }
         None => src_path(s),
     }).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A sheet's grid is keyed as its cell is, so a src that changes to a sheet of another grid shows that sheet's
+    /// cells (the grid was the first frame's: 0.1.1's showreel, 11-10).
+    #[test]
+    fn a_sheets_grid_is_keyed() {
+        let plane = |grid: [u32; 2], frame: u32| Item { kind: "panel", props: std::sync::Arc::new(serde_json::json!({"grid": grid, "frame": frame}).as_object().unwrap().clone()), shape: None, material: None, world: Default::default() };
+        let (mut p, mut row) = (Program::default(), BTreeMap::new());
+        sheet(&mut p, &mut row, "plane0", &[plane([2, 1], 0), plane([1, 2], 1)]);
+        let keyed = |c: &str| p.keys.get(&("plane0".to_string(), c.to_string())).map(|k| k.iter().map(|(f, v, _)| (*f, *v)).collect::<Vec<_>>());
+        assert_eq!(keyed("sheet_cols"), Some(vec![(0, 2.0), (1, 1.0)]));
+        assert_eq!(keyed("sheet_rows"), Some(vec![(0, 1.0), (1, 2.0)]));
+        assert_eq!(keyed("sheet_frame"), Some(vec![(0, 0.0), (1, 1.0)]));
+    }
 }

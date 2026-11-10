@@ -1,41 +1,47 @@
 use super::*;
 
-/// A panel whose picture changes over the run (an ImagePlane playing frames): every picture it shows, and the one its
-/// texture holds now. Its row keys `src_k`, which of them a frame shows.
+/// A panel whose picture changes over the run (an ImagePlane playing frames, or swapping its src): a render's lists
+/// every picture it shows (`paths`; its row keys `src_k`, which one a frame shows); a live scene's has the `src` it shows
+/// and its folder (`live`), and a live frame's row sends another src when it changes (raea-runtime-scene live.rs).
 #[derive(Component)]
 pub struct Pictures {
     pub paths: Vec<PathBuf>,
     pub shown: usize,
+    pub live: Option<(String, PathBuf)>,
 }
 
-/// Each changing panel's picture for this frame: read and uploaded when `src_k` moves to another (the one it held is
-/// dropped with its handle, so a played sequence holds one picture at a time).
-pub fn sync_pictures(
-    frame: Res<FrameRows>,
-    mut mats: ResMut<Assets<StandardMaterial>>,
-    mut images: ResMut<Assets<Image>>,
-    mut q: Query<(Entity, &mut Pictures, &MeshMaterial3d<StandardMaterial>)>,
-) {
-    for (e, mut pics, mat) in &mut q {
+/// Each changing panel's picture for this frame: read and uploaded when `src_k` moves to another or a live row's `src`
+/// names another (the one it held is dropped with its handle, so a played sequence holds one picture at a time). A card
+/// whose height follows its picture (no `h`) takes the new one's shape: one cell of its sheet.
+pub fn sync_pictures(frame: Res<FrameRows>, edit: Option<Res<Edit>>, mut mats: ResMut<Assets<StandardMaterial>>, mut images: ResMut<Assets<Image>>, mut meshes: ResMut<Assets<Mesh>>, mut q: Query<(Entity, &mut Pictures, &MeshMaterial3d<StandardMaterial>, &mut Mesh3d)>) {
+    let media = edit.as_ref().map_or(&[][..], |e| &e.media[..]);
+    for (e, mut pics, mat, mut mesh) in &mut q {
         let Some(v) = frame.vals(e) else { continue };
         let k = num(&v, "src_k", pics.shown as f32).round().max(0.0) as usize;
-        if k == pics.shown {
-            continue;
-        }
-        let Some(path) = pics.paths.get(k) else { continue };
-        let src = path.to_string_lossy();
-        match super::panel_picture(&src, &[], Path::new("")) {
+        let (src, dir) = match (&pics.live, v.get("src")) {
+            (Some((shown, dir)), Some(V::S(s))) if s != shown => (s.clone(), dir.clone()),
+            (None, _) if k != pics.shown => match pics.paths.get(k) {
+                Some(p) => (p.to_string_lossy().to_string(), PathBuf::new()),
+                None => continue,
+            },
+            _ => continue,
+        };
+        match super::panel_picture(&src, media, &dir) {
             Ok(pic) => {
-                let tex = images.add(super::panel_image(pic));
+                let ((pw, ph), tex) = (pic.dimensions(), images.add(super::panel_image(pic)));
                 if let Some(mut m) = mats.get_mut(&mat.0) {
                     m.base_color_texture = Some(tex);
                 }
-                pics.shown = k;
+                if !v.contains_key("h") {
+                    let (c, r, w) = (num(&v, "sheet_cols", 1.0).max(1.0), num(&v, "sheet_rows", 1.0).max(1.0), num(&v, "w", 1.0));
+                    mesh.0 = meshes.add(Rectangle::new(w, w * (ph as f32 / r) / (pw.max(1) as f32 / c)));
+                }
             }
-            Err(err) => {
-                eprintln!("panel picture {src}: {err}");
-                pics.shown = k;
-            }
+            Err(err) => eprintln!("panel picture {src}: {err}"),
+        }
+        pics.shown = k;
+        if let Some((shown, _)) = &mut pics.live {
+            *shown = src;
         }
     }
 }

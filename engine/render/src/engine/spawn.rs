@@ -341,7 +341,7 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             let pictures = match vals.get("srcs") {
                 Some(V::S(list)) => {
                     let paths = list.lines().map(|s| if s.starts_with("data:") { Ok(PathBuf::from(s)) } else { resolve_src(inserted, s, dir) }).collect::<Result<Vec<_>, _>>()?;
-                    Some(scene3d::Pictures { paths, shown: g("src_k", 0.0).round().max(0.0) as usize })
+                    Some(scene3d::Pictures { paths, shown: g("src_k", 0.0).round().max(0.0) as usize, live: None })
                 }
                 _ => None,
             };
@@ -352,9 +352,8 @@ pub(crate) fn spawn_3d(world: &mut World, e: Entity, t: &Tup, inserted: &[Tup], 
             let pic = scene3d::panel_picture(&src, inserted, dir).map_err(|e| format!("panel {}: {e}", t.id))?;
             let (pw, ph) = pic.dimensions();
             let tex = world.resource_mut::<Assets<Image>>().add(scene3d::panel_image(pic));
-            if let Some(p) = pictures {
-                world.entity_mut(e).insert(p);
-            }
+            // a picture listed up front swaps by `src_k`; any other by a live frame's `src`
+            world.entity_mut(e).insert(pictures.unwrap_or_else(|| scene3d::Pictures { paths: Vec::new(), shown: 0, live: Some((src.clone(), dir.to_path_buf())) }));
             // a sprite sheet shows one cell: its shape is a cell's (sync_meshes picks the cell, scene3d::sheet_uv)
             let (cols, rows) = (g("sheet_cols", 1.0).max(1.0), g("sheet_rows", 1.0).max(1.0));
             let (w, h) = (g("w", 1.0), g("h", g("w", 1.0) * (ph as f32 / rows) / (pw.max(1) as f32 / cols)));

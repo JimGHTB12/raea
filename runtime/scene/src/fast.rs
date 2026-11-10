@@ -56,6 +56,8 @@ impl LiveScene {
                 if !self.rows.contains_key(id) {
                     return None;
                 }
+                // a panel showing another picture (`current` kept the last): the full path, which sends the new src
+                if it.kind == "panel" && self.panel_srcs.get(key.as_str()).map(String::as_str) != it.props.get("src").and_then(Value::as_str) { return None }
                 parts.push((i, id));
             }
         }
@@ -193,6 +195,11 @@ impl LiveScene {
                     "decal"
                 }
                 _ => {
+                    // a sprite sheet's grid and cell, as parts::sheet keys them
+                    if let Some([c, r]) = it.props.get("grid").and_then(Value::as_array).map(Vec::as_slice) {
+                        let cell = [("sheet_cols", c.as_f64().unwrap_or(1.0)), ("sheet_rows", r.as_f64().unwrap_or(1.0)), ("sheet_frame", n(&it.props, "frame", 0.0).floor())];
+                        cell.into_iter().for_each(|(k, v)| put(k, v));
+                    }
                     if it.props.contains_key("screenPower") {
                         put("screen_power", n(&it.props, "screenPower", 1.0));
                     }
