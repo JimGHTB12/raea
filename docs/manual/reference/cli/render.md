@@ -16,10 +16,17 @@ raea render piece.tsx --at 15,63,144 -o stills/          # some frames, as still
 raea render piece.tsx --alpha -o frames/                 # every frame as a transparent PNG
 raea render piece.tsx --quality master -o final.mp4      # constant quality for type and thin lines
 raea render scene.tsx --review review/                   # a 3D scene from six fixed cameras, in colour and clay
+raea render piece.tsx -o piece.wav                       # the sound alone, no frames drawn
+raea render piece.tsx -o piece.mp4 --audio piece.wav     # the video, and its sound beside it from the same pass
 ```
 
-What `-o` names decides what you get: a name ending in `.mp4` is a video, `.png` is one frame, and anything else is
-a folder of `frame-NNNNN.png`. The folder an output goes in must exist.
+What `-o` names decides what you get: a name ending in `.mp4` is a video, `.png` is one frame, `.wav` is the sound
+alone, and anything else is a folder of `frame-NNNNN.png`. The folder an output goes in must exist, except for a
+`.wav`.
+
+The sound alone is mixed and mastered as the video's is (its `<Mix>`'s loudness and ceiling), from the same cues, but
+no frame is drawn, so a long film's sound is ready long before its video; the command prints its loudness and true
+peak. `--audio` on a video render writes the very sound the video carries, before it is encoded to AAC.
 
 A composition's size, frame rate and length come from its `<Composition>` (or an `export const config`); `--w`,
 `--h`, `--fps` and `--frames` only apply to a file that states neither. A `words.json` and a `perception.json` next
@@ -33,7 +40,7 @@ and the command says so.
 ## Usage
 
 ```sh
-raea render EDIT.tsx -o OUT.mp4|OUT.png|DIR [--frame N | --at A,B] [--composition ID] [--w W] [--h H] [--fps FPS] [--frames N] [--words W.json] [--perception P.json] [--input I.json|inputs.rrl] [--manifest render.json] [--layers] [--stage WxH] [--10bit] [--aov] [--alpha] [--kbps N | --quality draft|high|master|0..1] [--clay]   (also: --lite --comps)
+raea render EDIT.tsx -o OUT.mp4|OUT.png|OUT.wav|DIR [--audio OUT.wav] [--frame N | --at A,B] [--composition ID] [--w W] [--h H] [--fps FPS] [--frames N] [--words W.json] [--perception P.json] [--input I.json|inputs.rrl] [--manifest render.json] [--layers] [--stage WxH] [--10bit] [--aov] [--alpha] [--kbps N | --quality draft|high|master|0..1] [--clay]   (also: --lite --comps)
 raea render EDIT.tsx --review DIR [--frame N]   (fixed cameras hero, front, right, top, iso, low in colour and clay: DIR/colour.png, clay.png, review.json)
 raea render PAGE.html -o OUT.mp4|OUT.png|DIR [--at A,B] [--alpha]   (an HTML composition)
 raea render --bundle NAME.comp.js -o OUT.png|DIR [--dir DIR] [--frame N]   (a bundle from raea bundle, as render_bundle draws it)
@@ -49,6 +56,7 @@ Headless: it needs nothing running and opens no window. Takes up to 1 argument b
 | `--alpha` | – | Keep the background transparent. Writes PNGs only (`-o OUT.png` or a folder): H.264 and HEVC hold no alpha, so encode the folder to ProRes 4444 afterwards if you need a video. |
 | `--aov` | – | Write each frame's motion vectors and depth beside its colour, in `DIR/motion` and `DIR/depth`, for [`raea neural`](neural.md). `-o` must name a folder. |
 | `--at` | `A,B` | Render only these frame numbers, comma-separated. |
+| `--audio` | `OUT.wav` | With a video `-o`: also write its sound to `OUT.wav`, the same mastered sound the video carries (before AAC), from the same pass. |
 | `--bundle` | `NAME.comp.js` | Render a bundle made by `raea bundle` instead of a TSX file, as `render_bundle` on the iPhone draws it. |
 | `--clay` | – | Draw every standard 3D surface in plain grey, to judge shapes, light and contact without colour. |
 | `--composition` | `ID` | Which registered `<Composition>` to render when the file holds several; the first one otherwise. |
@@ -69,7 +77,7 @@ Headless: it needs nothing running and opens no window. Takes up to 1 argument b
 | `--stage` | `WxH` | Render a responsive composition, one that lays out from `useVideoConfig()`, at this size. A fixed-size composition ignores it and says so. |
 | `--w` | `W` | Width in pixels for a file with no `<Composition>` or `config` (1080 by default). |
 | `--words` | `W.json` | A transcript for the Clock's words (captions and cuts read them), when it isn't the `words.json` beside the composition. |
-| `-o` | `OUT.mp4\|OUT.png\|DIR` | Where it goes: an `.mp4` video, one `.png`, or a folder of frames. |
+| `-o` | `OUT.mp4\|OUT.png\|OUT.wav\|DIR` | Where it goes: an `.mp4` video, one `.png`, the sound alone as a `.wav`, or a folder of frames. |
 
 <!-- generated:end -->
 

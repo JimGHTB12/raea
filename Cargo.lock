@@ -13698,6 +13698,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-app-sound"
+version = "0.1.0"
+dependencies = [
+ "raea-io-media",
+ "raea-runtime-bundle",
+ "raea-runtime-export",
+ "raea-sys-mix",
+]
+
+[[package]]
 name = "raea-app-targets"
 version = "0.1.0"
 dependencies = [
@@ -13947,6 +13957,7 @@ dependencies = [
  "raea-app-media",
  "raea-app-play",
  "raea-app-solid",
+ "raea-app-sound",
  "raea-app-targets",
  "raea-app-tools",
  "raea-app-workspace",

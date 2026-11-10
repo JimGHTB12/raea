@@ -1,0 +1,13 @@
+[package]
+name = "raea-app-sound"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A render's sound alone (`raea render EDIT.tsx -o OUT.wav`, no frames drawn) and a video's sound written beside it from the same pass (`--audio OUT.wav`)"
+
+[dependencies]
+raea-runtime-export = { path = "../../runtime/export" }
+raea-runtime-bundle = { path = "../../runtime/bundle" }
+raea-sys-mix = { path = "../../systems/mix" }
+raea-io-media = { path = "../../io/media", default-features = false }
