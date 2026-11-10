@@ -105,7 +105,7 @@ fn render_opts() -> raea_runtime_encode::RenderOpts {
 }
 
 /// What one frame of the composition is.
-pub(crate) struct Frame {
+pub struct Frame {
     /// a <Mix>: the master's loudness target and true-peak ceiling (the master row)
     mix: Option<(f64, f64)>,
     /// the page's picture as an asset (its hash; the PNG written already), None where nothing is painted: frames keep
@@ -113,7 +113,7 @@ pub(crate) struct Frame {
     /// what an iPhone lets an app keep)
     page: Option<String>,
     sounds: Vec<Sound>,
-    scene: Vec<Node3>,
+    pub scene: Vec<Node3>,
     clear: Option<String>,
     /// the page is the frame before's (nothing changed, nothing painted)
     same: bool,

@@ -56,7 +56,7 @@ pub(crate) fn scene_frames_to(js: &Path, dir: &Path, upto: i64) -> R<Option<(Vec
 /// FC1a). `wanted`, the frames a still or an `--at` list draws: when they and their neighbours (what reads a frame
 /// either side, as a shutter does) are under half of the frames, only those are stepped (frames are pure) and each
 /// frame between holds the stepped one before it, never drawn (#26: four `--at` frames of 360 stepped all 360, 64 s)
-pub(crate) fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool, wanted: &[i64]) -> R<Option<(Vec<(i64, Frame)>, u32, u32, f64)>> {
+pub fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool, wanted: &[i64]) -> R<Option<(Vec<(i64, Frame)>, u32, u32, f64)>> {
     edit_dir(dir);
     let runtime = |js: &Path| {
         let mut app = App::new();

@@ -47,7 +47,7 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     let js = std::env::temp_dir().join(format!("raea-scene-{}.js", std::process::id()));
     bundle_composition(&tsx, &js, &comp_opts(args)?, None)?;
     // and the frame after it, to see what moves
-    let got = scene_frames_to(&js, &dir, frame + 2);
+    let got = super::scene_frames(&js, &dir, frame + 2, false, &[frame, frame + 1]);
     let _ = std::fs::remove_file(&js);
     let (frames, ..) = got?.ok_or("the composition has no 3D")?;
     let k = frames.iter().position(|(f, _)| *f == frame).ok_or_else(|| format!("no frame {frame}"))?;
