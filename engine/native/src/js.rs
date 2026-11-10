@@ -279,6 +279,13 @@ fn run_here(root: &Path, cwd: &Path, entry: Entry, argv: Vec<String>, env: serde
             exit = 1;
             OUT.with(|o| o.borrow_mut().1.push_str(&format!("{e}\n")));
         }
+    } else if node {
+        // Node's process.exitCode: the status a script that ends on its own leaves (engine/cli's native.ts sets it, so a
+        // shell verb's refusal exits 1)
+        let _ = c.eval("globalThis.__raea_exit_code = () => { const n = Number(globalThis.process?.exitCode ?? 0); return Number.isInteger(n) ? n : 1; };", "exit-code");
+        if let Some(Ok(n)) = c.call("__raea_exit_code", &[]) {
+            exit = n as i32;
+        }
     }
     drop(c);
     SOURCES.with(|s| s.borrow_mut().clear());

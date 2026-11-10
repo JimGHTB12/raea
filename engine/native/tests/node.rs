@@ -79,3 +79,17 @@ process.exit(5);
     });
     assert_eq!(got, want);
 }
+
+#[test]
+fn a_script_that_sets_exit_code_exits_with_it() {
+    let d = std::env::temp_dir().join(format!("raea-node-exitcode-{}", std::process::id()));
+    std::fs::create_dir_all(&d).unwrap();
+    std::fs::write(d.join("set.ts"), "process.stderr.write(\"refused\\n\");\nprocess.exitCode = 3;\n").unwrap();
+    std::fs::write(d.join("plain.ts"), "process.stdout.write(\"ok\");\n").unwrap();
+    let set = raea_native::js::run_node(&d.join("set.ts"), &[], String::new(), Duration::from_secs(20));
+    let plain = raea_native::js::run_node(&d.join("plain.ts"), &[], String::new(), Duration::from_secs(20));
+    let _ = std::fs::remove_dir_all(&d);
+    // as Node: the status it set, and what it wrote before ending
+    assert_eq!((set.exit, set.stderr.as_str()), (3, "refused\n"));
+    assert_eq!((plain.exit, plain.stdout.as_str()), (0, "ok"));
+}
