@@ -468,6 +468,7 @@ impl Node {
                     writer.push(' ');
                     write_attr_name(&attr.name, writer);
                     writer.push_str("=\"");
+                    let value_at = writer.len();
                     // raea: an svg's attribute that names var() or a colour usvg can't read, as Chrome resolves it
                     let resolved = opts
                         .resolve_current_color
@@ -495,7 +496,17 @@ impl Node {
                         encode_quoted_attribute_to_string(&attr.value, writer);
                     }
                     if !css_paint.is_empty() && attr.name.ns == ns!() && &*attr.name.local == "style" {
-                        encode_quoted_attribute_to_string(&format!(";{css_paint}"), writer);
+                        // raea: after the element's own declarations when any are left, which start at the first
+                        // of them. A style attribute of transforms alone is empty by now, and a `;` before the
+                        // first declaration stops usvg's parser (simplecss) there: the element lost its transform
+                        // and its CSS paint, so `style="transform: rotate(30deg)"` drew unturned
+                        let own = from_first_declaration(&writer[value_at..]).to_string();
+                        writer.truncate(value_at);
+                        if !own.is_empty() {
+                            writer.push_str(&own);
+                            writer.push(';');
+                        }
+                        encode_quoted_attribute_to_string(&css_paint, writer);
                     }
                     writer.push('"');
                 }
@@ -553,6 +564,16 @@ fn without_transform_decls(style: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join(";")
+}
+
+/// raea: a style attribute from its first declaration on: without the separators, spaces and comments before it,
+/// which CSS allows there and simplecss doesn't (a comment left open runs to the end, as in CSS: nothing is left)
+fn from_first_declaration(mut style: &str) -> &str {
+    loop {
+        style = style.trim_start_matches(|c: char| c == ';' || c.is_whitespace());
+        let Some(comment) = style.strip_prefix("/*") else { return style };
+        style = comment.split_once("*/").map_or("", |(_, rest)| rest);
+    }
 }
 
 /// raea: a CSS colour (any syntax stylo parses) as sRGB `rgba()`, the form usvg reads; None when `value` isn't one.
