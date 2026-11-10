@@ -115,6 +115,10 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
     # (.raea-view-NAME.tsx) is rewritten at one path and the bundle cache's folder walk passes dot files over, so a
     # wrapper naming a new light level got the bundle naming the old one (a level since dropped: "doesn't exist").
     # A dot-named edit is now part of its bundle's key.
+    # 11-10, 0.1.0-dev.1109.33: copies are made two at a time (a folder of fifty compositions opened in Source had
+    # started thirty still renders at once and the Mac swapped), the last moment's asks first. And a 3D part asked for
+    # again by id (the game inspector re-reads what is picked on every frame) answers its own box on the frame: it
+    # answered its holder's, so the outline a click drew was gone a frame later.
     @done
     Scenario: PV3b. The store is managed in one place
       Then Settings lists the store by project and kind with sizes, and offers Clear and Rebuild; copies whose source

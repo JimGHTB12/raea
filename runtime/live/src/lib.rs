@@ -169,14 +169,27 @@ impl Live {
         // a 3D part's element holds its own props as the SDK's JSON (data-props) and its kind as data-3d: answered as
         // those, so an inspector that asks again by id shows the part's props, not the holder's
         let mut kind = kind.0.clone();
+        let mut part = None;
         if let (Some(k), Some(own)) = (props.get("data-3d").and_then(Value::as_str).map(str::to_string), props.get("data-props").and_then(Value::as_str).and_then(|t| serde_json::from_str::<serde_json::Map<String, Value>>(t).ok())) {
             kind = k;
+            part = raea_sys_frame::layer::key_from_props(&own);
             props = own;
             props.retain(|k, _| !k.starts_with("data-raea-"));
         }
         props.retain(|k, v| k != "children" && !(k.starts_with("on") && k[2..].starts_with(|c: char| c.is_ascii_uppercase())) && !v.is_null());
         let text: String = kids.map(|ks| ks.iter().filter_map(|e| w.get::<raea_runtime_react::ReactText>(e).map(|t| t.0.clone())).collect()).unwrap_or_default();
-        Some(json!({"id": id, "kind": kind, "owner": owner, "rect": rect, "props": props, "text": text}))
+        let mut e = json!({"id": id, "kind": kind, "owner": owner, "rect": rect, "props": props, "text": text});
+        // a 3D part's box is where it is drawn now, not its holder's (which has none): an inspector asking again by id
+        // as the scene moves lost the outline it had from the click
+        if let Some(key) = part {
+            let at = self.locate(std::slice::from_ref(&key), &[])["parts"][0].take();
+            if at.is_array() {
+                e["rect"] = at;
+            }
+            e["part"] = json!(true);
+            e["key"] = json!(key);
+        }
+        Some(e)
     }
 
     pub fn step(&mut self, f: i64, keys: &[String], pointer: Option<(f64, f64, bool)>) -> R<()> {
