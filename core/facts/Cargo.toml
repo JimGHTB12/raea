@@ -1,0 +1,13 @@
+[package]
+name = "raea-core-facts"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "A project as one world of facts in raea/ecs's form: its layers, text, parts, shots, clips and cues as entities with components, for any kind of piece"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# the TypeScript declarations are generated from these types, so a check's types can't drift from what raea reads
+ts-rs = "12"
