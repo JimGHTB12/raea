@@ -125,3 +125,43 @@ Feature: Reviewing a video in raea's player: comments written on the picture, ev
     Scenario: R2f. A video without layers says how to get them
       Given a raea render exported without layers
       Then Select is disabled and its tooltip says "Rendered without layers: export again with Selectable layers on"
+
+  Rule: R3. Sent edits are tasks: the agent marks each working and done, and the person sees who's on which (app and CLI)
+    # Shane 11-09: "can you also make edit comments become tasks that can be when i return to comments the agent shoudl
+    # makr complete too. not sure hwo that works but that feedbakc is helpful for the ui to see what comment the agent or
+    # an agent is working if multiple subagents and which are done"
+    # Status 11-09: built in raea-feed (src/model/tasks.ts, taskChange.ts, detail/blocks/TaskBadge.tsx, Review.tsx,
+    # Inline.tsx, host/tasks.ts; feed tool comment_task, feed_post answers) and the CLI (raea show --on). e2e smoke
+    # "sent edits are tasks" passes; vitest tasks.test.ts, host/tasks.test.ts.
+
+    Background:
+      Given an item an agent made, in raea (over ACP) or from outside it (raea show), with edit comments on it
+
+    Scenario: R3a. A sent edit is a task to do
+      When I send the edits
+      Then each sent comment shows "Sent to <agent> · to do", in the rail and in its pin's thread on the picture
+      And the agent gets each comment's id with its words and place: in its turn's prompt over ACP, in the inbox line
+        (`comments`, and `tasks` saying how to mark them) from outside raea
+
+    Scenario: R3b. The agent marks the ones it's on, naming the subagent working each
+      When the agent marks comments working: the comment_task tool over ACP, or `raea show --on ITEM --working ID
+        [--sub NAME]` from outside raea
+      Then each shows "<agent> · <subagent> is on it" with a pulse, and the rail's tally above the list says how many
+        are being worked and by whom, how many are done and how many are still to do
+      And an outside session's marks reach the open app within two seconds (the page asks the host while any of that
+        item's sent edits isn't done)
+
+    Scenario: R3c. Done stays in view, checked, until I resolve it
+      When the agent marks comments done: comment_task done, feed_post with `answers`, or `raea show --on ITEM --done ID
+        [--note LINE]` (or `raea show FILE --replaces ITEM --done ID...` with the version that settles them)
+      Then each shows "Done by <agent>" with the version that settled it, and the agent's line under its words
+      And it isn't resolved for me: Resolve is mine
+
+    Scenario: R3d. Not done sends it back
+      Given a comment the agent marked done
+      When I press Not done
+      Then it's an edit again, unsent, counted in the bar's edits to send, with no task on it
+
+    Scenario: R3e. A wrong id is refused with the ones there are
+      When the agent marks an id that isn't on the item, or a comment I haven't sent
+      Then nothing changes and the refusal names the item's comment ids, or says the person hasn't asked for it yet

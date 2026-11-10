@@ -439,6 +439,18 @@ function harness(): { name: string; pid: number } | undefined {
   return undefined;
 }
 
+/** `raea show --on ITEM --working ID` and `--done ID` (show.ts): the person's comments marked on their item by the raea
+ *  app's host (apps/app host/tasks.ts), which the window shows as who's on each and which are done. */
+function task(a: Record<string, unknown>): unknown {
+  const at = appHost();
+  if (!at) throw new Error("the raea app isn't running here: open it, then mark the comments again");
+  try {
+    return postHost(at, "/host/task", a);
+  } catch (e) {
+    throw new Error(String((e as Error).message).replace(/^raea show: /, ""));
+  }
+}
+
 /** An op of the feed host's libraries (apps/app host/library/service.ts): POST <the app's host>/host/library. */
 function library(a: Record<string, unknown>): unknown {
   const at = appHost();
@@ -462,6 +474,8 @@ const host: Host = (op, a) => {
       return show(a);
     case "harness":
       return harness();
+    case "task":
+      return task(a);
     default:
       throw new Error(`raea: this step (${op}) isn't in the native raea yet`);
   }

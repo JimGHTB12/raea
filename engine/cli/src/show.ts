@@ -14,9 +14,13 @@ raea show --question "Which look?" (--choice A --choice B ... | STILL.png STILL.
   FILE: stills (several make a storyboard), a video, a sound, a NAME.script.ts or .md, or a .tsx (an interactive
   artifact; one of the project's compositions opens in its editor). P: the project's id, title or Workspace/project;
   else the one this folder is in. Who's showing it: --as NAME [--role ROLE] [--inbox NAME], else your harness's.
+raea show --on ITEM --working ID... | --done ID... [--note LINE] [--sub NAME]
+raea show FILE... --replaces ITEM --done ID...
+  The person's edit comments are tasks they watch: mark each working as you start it and done when it's settled
+  (the version that settles them, with --replaces); --sub names a subagent when several split them.
 `;
 
-const WITH_VALUE = new Set(["--title", "--ask", "--project", "--replaces", "--as", "--role", "--inbox", "--question", "--choice"]);
+const WITH_VALUE = new Set(["--title", "--ask", "--project", "--replaces", "--as", "--role", "--inbox", "--question", "--choice", "--on", "--working", "--done", "--note", "--sub"]);
 
 /** The harness an agent runs in, named as the feed shows it, from the program that started this command (native.ts
  *  walks up its parents): any harness, not only the ones that mark their shells. */
@@ -46,11 +50,12 @@ export function parseShow(args: string[], cwd: string) {
     const i = args.lastIndexOf(name);
     return i >= 0 ? args[i + 1] : undefined;
   };
-  const choices = args.flatMap((a, i) => (a === "--choice" && args[i + 1] !== undefined ? [args[i + 1]] : []));
+  const many = (name: string) => args.flatMap((a, i) => (a === name && args[i + 1] !== undefined ? [args[i + 1]] : []));
+  const choices = many("--choice");
   const unknown = args.find((a, i) => a.startsWith("--") && !WITH_VALUE.has(a) && !WITH_VALUE.has(args[i - 1] ?? ""));
   if (unknown) throw new Error(`no ${unknown} here\n${SHOW_USAGE}`);
   const files = args.filter((a, i) => !a.startsWith("--") && !WITH_VALUE.has(args[i - 1] ?? "")).map((f) => (f.startsWith("/") ? f : `${cwd.replace(/\/$/, "")}/${f}`));
-  return { files, choices, title: one("--title"), ask: one("--ask"), project: one("--project"), replaces: one("--replaces"), question: one("--question"), as: one("--as"), role: one("--role"), inbox: one("--inbox") };
+  return { files, choices, title: one("--title"), ask: one("--ask"), project: one("--project"), replaces: one("--replaces"), question: one("--question"), as: one("--as"), role: one("--role"), inbox: one("--inbox"), on: one("--on"), working: many("--working"), done: many("--done"), note: one("--note"), sub: one("--sub") };
 }
 
 export function showVerb(ask: Ask, args: string[], cwd: string, env: Record<string, string | undefined>): string {
@@ -64,6 +69,19 @@ export function showVerb(ask: Ask, args: string[], cwd: string, env: Record<stri
     }
   };
   const by = posterOf(env, a.as, a.role, a.inbox, cwd, a.as && a.inbox ? undefined : parent());
+  // the person's edit comments as tasks (docs/review.feature R3): marked working or done on their item, or done by
+  // the version shown with --replaces
+  const mark = (item: string, comments: string[], state: "working" | "done", version?: string) =>
+    ask("task", { item, comments, state, by, sub: a.sub, note: state === "done" ? a.note : undefined, version }) as { item: string; comments: string[] };
+  const said = (m: { item: string; comments: string[] }, state: string) => `Marked ${m.comments.join(", ")} ${state} on ${m.item}: the person sees ${a.sub ? `${by.name} · ${a.sub}` : by.name} ${state === "working" ? "on them" : "finished them"}.`;
+  if (!a.files.length && !a.question && (a.working.length || a.done.length)) {
+    const item = a.on ?? a.replaces;
+    if (!item) throw new Error(`which item the comments are on: --on ITEM\n${SHOW_USAGE}`);
+    const out = [...(a.working.length ? [said(mark(item, a.working, "working"), "working")] : []), ...(a.done.length ? [said(mark(item, a.done, "done"), "done")] : [])];
+    return `${out.join("\n")}\n`;
+  }
+  if (a.working.length) throw new Error(`--working marks comments without showing anything: raea show --on ITEM --working ID\n${SHOW_USAGE}`);
+  if (a.done.length && !a.replaces) throw new Error(`--done with files settles comments on the item they replace: add --replaces ITEM\n${SHOW_USAGE}`);
   const r = ask("show", { files: a.files, title: a.title, ask: a.ask, question: a.question, choices: a.choices, project: a.project, replaces: a.replaces, cwd, by }) as
     | { opened: string[] }
     | { kind: "item" | "composition"; id: string; type: string; title: string; project: string; workspace: string; inbox: string };
@@ -71,8 +89,18 @@ export function showVerb(ask: Ask, args: string[], cwd: string, env: Record<stri
   const home = env.HOME ?? "";
   const inbox = home && r.inbox.startsWith(home) ? `~${r.inbox.slice(home.length)}` : r.inbox;
   if (r.kind === "composition") return `Opened ${r.title} in the raea app's composition editor (project ${r.project}, ${r.workspace}): the person plays it and changes it there, and their changes save into its file.\n`;
+  // the version is posted by now: a marking the host refuses is said with it, not thrown over it
+  const settle = (item: string) => {
+    try {
+      return said(mark(item, a.done, "done", r.id), "done");
+    } catch (e) {
+      return `Not marked done: ${(e as Error).message.replace(/^raea show: /, "")} (mark them with raea show --on ${item} --done ID).`;
+    }
+  };
+  const settled = a.done.length && a.replaces ? [settle(a.replaces)] : [];
   return [
     `Shown in the raea app: "${r.title}" (${r.type}, item ${r.id}, project ${r.project} in ${r.workspace}); the window is on it.`,
+    ...settled,
     `What the person sends on it (notes, edits, picks, answers, results) comes to ${inbox}, one JSON line each. Follow it (tail -n0 -F ${inbox}, or your harness's monitor) and answer each; a next version is raea show --replaces ${r.id} FILE.`,
     "",
   ].join("\n");
