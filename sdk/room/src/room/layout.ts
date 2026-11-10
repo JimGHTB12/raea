@@ -85,10 +85,23 @@ export function gap(a: Footprint, b: Footprint): number {
  * elsewhere, room behind a seated diner to walk past, and the work triangle between sink, stove and fridge. */
 export const CLEARANCE = { workAisle: 1.07, walkway: 0.91, behindSeat: 0.91, legMin: 1.22, legMax: 2.74, triangleMax: 7.92 };
 
+/** A finding in raea's one shape (core/facts' Finding, docs/direction.feature DR3): which check, how bad, the things
+ * it is about by name, what it says, the distance it turns on and what found it. A clearance that is met is a note,
+ * said so its margin shows. */
 export interface Finding {
-  level: "error" | "warning" | "ok";
-  rule: string;
+  check: string;
+  level: "error" | "warn" | "note";
+  about: { name: string; key?: string }[];
   says: string;
+  measure?: { name: string; value: number; unit: string; limit?: number };
+  fix?: string;
+  by: string;
+}
+
+/** One of raea/room's findings: `level` when `bad`, a note when not; `metres` is the distance it turns on. */
+export function roomFinding(check: string, bad: boolean, level: "error" | "warn", about: string[], says: string, metres?: number, limit?: number): Finding {
+  const measure = metres === undefined ? undefined : { name: "distance", value: Math.round(metres * 1000) / 1000, unit: "m", ...(limit === undefined ? {} : { limit }) };
+  return { check, level: bad ? level : "note", about: about.map((name) => ({ name })), says, ...(measure ? { measure } : {}), by: "raea/room" };
 }
 
 export interface Plan {
@@ -116,12 +129,12 @@ export function checkLayout(plan: Plan): Finding[] {
   for (const isl of plan.islands) {
     for (const r of runs) {
       const g = gap(isl, r);
-      if (g < 3) out.push({ level: g < c.workAisle ? "error" : "ok", rule: "work aisle", says: `${isl.name} to the ${r.name}: ${g.toFixed(2)} m (a work aisle wants ${c.workAisle})` });
+      if (g < 3) out.push(roomFinding("work-aisle", g < c.workAisle, "error", [isl.name, r.name], `${isl.name} to the ${r.name}: ${g.toFixed(2)} m (a work aisle wants ${c.workAisle})`, g, c.workAisle));
     }
     for (const wl of walls) {
       const g = gap(isl, wl);
       if (g < 2 && !runs.some((r) => gap(r, wl) < 0.01 && overlapsAlong(r, wl, isl))) {
-        out.push({ level: g < c.walkway ? "error" : "ok", rule: "walkway", says: `${isl.name} to the ${wl.name}: ${g.toFixed(2)} m (a walkway wants ${c.walkway})` });
+        out.push(roomFinding("walkway", g < c.walkway, "error", [isl.name, wl.name], `${isl.name} to the ${wl.name}: ${g.toFixed(2)} m (a walkway wants ${c.walkway})`, g, c.walkway));
       }
     }
   }
@@ -131,13 +144,13 @@ export function checkLayout(plan: Plan): Finding[] {
     if (!s.faces) continue;
     const front = behind({ ...s, faces: [-s.faces[0], -s.faces[1]] }, [...plan.islands, ...(plan.furniture ?? [])]);
     const ok = front && front.g < 0.5;
-    out.push({ level: ok ? "ok" : "error", rule: "facing", says: ok ? `${s.name} faces the ${front.o.name}` : `${s.name} faces nothing to sit at${front ? ` (the ${front.o.name} is ${front.g.toFixed(2)} m before it)` : ""}: turn it with faceToward` });
+    out.push(roomFinding("facing", !ok, "error", front ? [s.name, front.o.name] : [s.name], ok ? `${s.name} faces the ${front.o.name}` : `${s.name} faces nothing to sit at${front ? ` (the ${front.o.name} is ${front.g.toFixed(2)} m before it)` : ""}: turn it with faceToward`, front?.g, 0.5));
   }
   for (const s of plan.seats ?? []) {
     const near = s.faces ? behind(s, things) : [...walls, ...runs].map((o) => ({ o, g: gap(s, o) })).sort((a, b) => a.g - b.g)[0];
     // a bench or a chair with its back to a wall: nobody walks behind it
-    if (near && s.faces && walls.includes(near.o) && near.g < 0.15) out.push({ level: "ok", rule: "behind a seat", says: `${s.name}: its back to the ${near.o.name}` });
-    else if (near) out.push({ level: near.g < c.behindSeat ? "error" : "ok", rule: "behind a seat", says: `behind ${s.name}: ${near.g.toFixed(2)} m to the ${near.o.name} (to walk past a diner: ${c.behindSeat})` });
+    if (near && s.faces && walls.includes(near.o) && near.g < 0.15) out.push(roomFinding("behind-seat", false, "error", [s.name, near.o.name], `${s.name}: its back to the ${near.o.name}`, near.g));
+    else if (near) out.push(roomFinding("behind-seat", near.g < c.behindSeat, "error", [s.name, near.o.name], `behind ${s.name}: ${near.g.toFixed(2)} m to the ${near.o.name} (to walk past a diner: ${c.behindSeat})`, near.g, c.behindSeat));
   }
   const at = (role: string) => plan.runs.flatMap((r) => r.units.filter((u) => u.role === role).map((u) => unitCentre(r, u)))[0];
   const [sink, stove, fridge] = [at("sink"), at("stove"), at("fridge")];
@@ -145,10 +158,10 @@ export function checkLayout(plan: Plan): Finding[] {
     const leg = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[2] - b[2]);
     const legs: [string, number][] = [["sink to stove", leg(sink, stove)], ["stove to fridge", leg(stove, fridge)], ["fridge to sink", leg(fridge, sink)]];
     for (const [n, l] of legs) {
-      out.push({ level: l < c.legMin || l > c.legMax ? "warning" : "ok", rule: "work triangle", says: `${n}: ${l.toFixed(2)} m (${c.legMin}-${c.legMax})` });
+      out.push(roomFinding("work-triangle", l < c.legMin || l > c.legMax, "warn", n.split(" to "), `${n}: ${l.toFixed(2)} m (${c.legMin}-${c.legMax})`, l));
     }
     const total = legs.reduce((a, [, l]) => a + l, 0);
-    out.push({ level: total > c.triangleMax ? "error" : "ok", rule: "work triangle", says: `the triangle: ${total.toFixed(2)} m (at most ${c.triangleMax})` });
+    out.push(roomFinding("work-triangle", total > c.triangleMax, "error", ["sink", "stove", "fridge"], `the triangle: ${total.toFixed(2)} m (at most ${c.triangleMax})`, total, c.triangleMax));
   }
   return out;
 }

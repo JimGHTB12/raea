@@ -1,7 +1,7 @@
 // Things hung on the walls, and checked.
 import { Model, type Vec3, Entity } from "raea/3d";
 import { modelBounds } from "@raea/render/scene";
-import { FACE_YAW, Facing, Finding, LaidRun, Opening, Room, WallName, gap, onWall } from "./all";
+import { FACE_YAW, Facing, Finding, LaidRun, Opening, Room, WallName, gap, onWall, roomFinding } from "./all";
 import { Quat, Transform } from "raea/transform";
 
 // ---------------------------------------------------------------------------------------------------- on the walls
@@ -105,14 +105,14 @@ export function checkDecor(room: Room, hung: Hung[], { openings = [], runs = [] 
     groups.set(key, [...(groups.get(key) ?? []), h]);
   }
   for (const h of hung) {
-    if (h.off > 0.02) out.push({ level: "error", rule: "decor", says: `${h.name} floats ${h.off.toFixed(2)} m off the ${h.wall} wall` });
+    if (h.off > 0.02) out.push(roomFinding("decor-floats", true, "error", [h.name], `${h.name} floats ${h.off.toFixed(2)} m off the ${h.wall} wall`, h.off, 0.02));
     for (const o of openings.filter((o) => o.wall === h.wall)) {
-      if (cross(h.u0, h.u1, o.at - o.width / 2 - 0.05, o.at + o.width / 2 + 0.05) && cross(h.y0, h.y1, o.bottom - 0.05, o.top + 0.05)) out.push({ level: "error", rule: "decor", says: `${h.name} hangs over the ${h.wall} wall's ${o.kind}` });
+      if (cross(h.u0, h.u1, o.at - o.width / 2 - 0.05, o.at + o.width / 2 + 0.05) && cross(h.y0, h.y1, o.bottom - 0.05, o.top + 0.05)) out.push(roomFinding("decor-opening", true, "error", [h.name, `${h.wall} ${o.kind}`], `${h.name} hangs over the ${h.wall} wall's ${o.kind}`));
     }
     for (const r of runs.filter((r) => r.wall.name === h.wall)) {
       for (const l of r.units) {
         if (h.over && l.u0 >= h.over.u0 - 0.01 && l.u1 <= h.over.u1 + 0.01 && l.height <= h.over.top + 0.01) continue;
-        if (cross(h.u0, h.u1, l.u0, l.u1) && cross(h.y0, h.y1, l.bottom, l.height)) out.push({ level: "error", rule: "decor", says: `${h.name} runs into ${l.name ?? "a unit"} on the ${h.wall} wall` });
+        if (cross(h.u0, h.u1, l.u0, l.u1) && cross(h.y0, h.y1, l.bottom, l.height)) out.push(roomFinding("decor-unit", true, "error", [h.name, l.name ?? "a unit"], `${h.name} runs into ${l.name ?? "a unit"} on the ${h.wall} wall`));
       }
     }
   }
@@ -122,13 +122,14 @@ export function checkDecor(room: Room, hung: Hung[], { openings = [], runs = [] 
     const over = g[0].over;
     if (over) {
       const gap = y0 - over.top, off = (u0 + u1) / 2 - (over.u0 + over.u1) / 2;
-      if (!g[0].given) out.push({ level: gap < H.overMin || gap > H.overMax ? "warning" : "ok", rule: "decor", says: `${what}: ${gap.toFixed(2)} m over ${over.name} (${H.overMin}-${H.overMax})` });
-      else out.push({ level: "ok", rule: "decor", says: `${what}: hung ${gap.toFixed(2)} m over ${over.name} (its height given)` });
-      if (Math.abs(off) > H.offCentre) out.push({ level: "warning", rule: "decor", says: `${what}: ${off.toFixed(2)} m off ${over.name}'s centre` });
-      if (u1 - u0 > over.u1 - over.u0) out.push({ level: "warning", rule: "decor", says: `${what} is wider than ${over.name}` });
+      const names = [...g.map((h) => h.name), over.name];
+      if (!g[0].given) out.push(roomFinding("decor-height", gap < H.overMin || gap > H.overMax, "warn", names, `${what}: ${gap.toFixed(2)} m over ${over.name} (${H.overMin}-${H.overMax})`, gap));
+      else out.push(roomFinding("decor-height", false, "warn", names, `${what}: hung ${gap.toFixed(2)} m over ${over.name} (its height given)`, gap));
+      if (Math.abs(off) > H.offCentre) out.push(roomFinding("decor-centre", true, "warn", names, `${what}: ${off.toFixed(2)} m off ${over.name}'s centre`, off, H.offCentre));
+      if (u1 - u0 > over.u1 - over.u0) out.push(roomFinding("decor-width", true, "warn", names, `${what} is wider than ${over.name}`, u1 - u0, over.u1 - over.u0));
     } else if (!g[0].given) {
       const c = (y0 + y1) / 2;
-      out.push({ level: Math.abs(c - H.centre) > H.centreTol ? "warning" : "ok", rule: "decor", says: `${what}: centred ${c.toFixed(2)} m up (${H.centre - H.centreTol}-${H.centre + H.centreTol})` });
+      out.push(roomFinding("decor-height", Math.abs(c - H.centre) > H.centreTol, "warn", g.map((h) => h.name), `${what}: centred ${c.toFixed(2)} m up (${H.centre - H.centreTol}-${H.centre + H.centreTol})`, c));
     }
   }
   return out;
