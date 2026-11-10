@@ -31,30 +31,13 @@ fn read_json(p: impl AsRef<Path>) -> Result<J, String> {
 }
 
 /// A flow file: JSON as it is, or TypeScript (raea/gen's `flow()` as the default export) run with bun under the SDK's
-/// import names.
+/// import names (raea-io-gen-core tsflow.rs, which adds raea/gen to them).
 fn read_flow(p: &str) -> Result<Flow, String> {
     if ![".ts", ".mts", ".tsx"].iter().any(|e| p.ends_with(e)) {
         return Flow::parse(&read_json(p)?);
     }
     let file = std::path::absolute(p).map_err(|e| format!("{p}: {e}"))?;
-    let sdk = raea_io_home::home().join("sdk");
-    let entry = std::env::temp_dir().join(format!("raea-gen-flow-{}.ts", std::process::id()));
-    let js = "const m = await import(process.argv[2]);\nconst f = typeof m.default === \"function\" ? await m.default() : await m.default;\nconsole.log(JSON.stringify(f));\n";
-    std::fs::write(&entry, js).map_err(|e| format!("{}: {e}", entry.display()))?;
-    let out = std::process::Command::new("bun")
-        .arg("--tsconfig-override")
-        .arg(sdk.join(raea_io_home::sdk::LIST))
-        .arg(&entry)
-        .arg(&file)
-        .output();
-    let _ = std::fs::remove_file(&entry);
-    let out = out.map_err(|e| format!("{p}: a TypeScript flow runs with bun, which didn't start ({e})"))?;
-    // bun reports an override that isn't the file's own folder as an internal error; it isn't one
-    let err: String = String::from_utf8_lossy(&out.stderr).lines().filter(|l| !l.contains("directory mismatch")).collect::<Vec<_>>().join("\n");
-    if !out.status.success() {
-        return Err(format!("{p}: {}", err.trim()));
-    }
-    let v: J = serde_json::from_slice(&out.stdout).map_err(|e| format!("{p}: its default export isn't a flow ({e})"))?;
+    let v = crate::tsflow::run(&file, &raea_io_home::home().join("sdk")).map_err(|e| format!("{p}: {e}"))?;
     Flow::parse(&v)
 }
 

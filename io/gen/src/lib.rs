@@ -15,4 +15,4 @@ mod tests;
 mod tests_tripo;
 
 pub use raea_io_gen_comfy as comfy;
-pub use raea_io_gen_core::{direct, fal, fish, flow, http, made, modal, openrouter, replicate, setting, tripo, types};
+pub use raea_io_gen_core::{direct, fal, fish, flow, http, made, modal, openrouter, replicate, setting, tripo, tsflow, types};

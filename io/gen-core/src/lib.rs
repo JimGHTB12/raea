@@ -14,6 +14,7 @@ pub mod modal;
 pub mod openrouter;
 pub mod replicate;
 pub mod tripo;
+pub mod tsflow;
 pub mod types;
 
 /// A setting: the environment, then raea's settings file (raea_io_home::setting).
