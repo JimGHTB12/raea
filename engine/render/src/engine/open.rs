@@ -71,7 +71,8 @@ impl Engine {
         .init_resource::<Error>()
         .init_resource::<Gen>()
         .init_resource::<PreStep>()
-        .init_resource::<Stages>();
+        .init_resource::<Stages>()
+        .insert_resource(bevy::render::error_handler::RenderErrorHandler(raea_sys_frame::gpu::gpu_error));
         // the frame in named sets (FrameSystems), in this order
         #[cfg(feature = "native")]
         {
@@ -273,3 +274,4 @@ impl Engine {
         Ok(e)
     }
 }
+

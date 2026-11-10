@@ -12,6 +12,8 @@ use raea_core_program::ir::{Program, V};
 pub mod bevy_api;
 /// a camera row's order, clear and viewport among the cameras on its target
 pub mod camera;
+/// a GPU error as the frame's error (#66), Bevy's RenderErrorHandler in the engine
+pub mod gpu;
 /// layer keys (docs/review.feature R2)
 pub mod layer;
 /// the part under a point of the frame (docs/preview.feature PV1a)
