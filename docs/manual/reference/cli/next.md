@@ -11,7 +11,7 @@ or the person to pick from; nothing runs.
 
 ```sh
 raea next
-raea next ~/Studio/acme/projects/spring-launch
+raea next ~/Documents/raea/acme/projects/spring-launch
 ```
 
 <!-- generated:begin by tools/manual-ref/cli.ts from `raea help --json`; edit only the flag descriptions -->

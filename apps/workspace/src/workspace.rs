@@ -79,15 +79,40 @@ pub(crate) fn new_id(prefix: &str) -> String {
     format!("{prefix}_{:08x}", (t as u64 ^ (std::process::id() as u64) << 20) as u32)
 }
 
-/// Where workspaces live on this machine: `git config --global raea.root`, else ~/Studio.
+/// Where workspaces live on this machine: `git config --global raea.root`, else default_root.
 pub fn root() -> PathBuf {
     let set = config(None, &["--global", "raea.root"]).ok().filter(|s| !s.is_empty());
     let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default();
     match set {
         Some(s) if s.starts_with("~/") => home.join(&s[2..]),
         Some(s) => PathBuf::from(s),
-        None => home.join("Studio"),
+        None => default_root(&home),
     }
+}
+
+/// Where workspaces go with no raea.root set: ~/Studio where workspaces are already (the root before 11-10), else
+/// ~/Documents/raea, or ~/raea when iCloud keeps the Documents folder (a workspace's git history and footage don't
+/// belong in a synced folder). The feed's host says the same (raea-feed host/workspace.ts defaultRoot).
+pub fn default_root(home: &Path) -> PathBuf {
+    let studio = home.join("Studio");
+    if holds_workspace(&studio) {
+        studio
+    } else if home.join("Library/Mobile Documents/com~apple~CloudDocs/Documents").is_dir() {
+        home.join("raea")
+    } else {
+        home.join("Documents/raea")
+    }
+}
+
+/// Whether a folder in `dir` is a workspace (it has .raea/workspace).
+fn holds_workspace(dir: &Path) -> bool {
+    let Ok(entries) = std::fs::read_dir(dir) else { return false };
+    for e in entries.flatten() {
+        if e.path().join(".raea/workspace").exists() {
+            return true;
+        }
+    }
+    false
 }
 
 /// The include in a repo's own config that makes `git config` read a committed file. Idempotent; the path is relative
@@ -212,7 +237,7 @@ fn make_workspace(dir: &Path, name: &str, layout: &str) -> R<()> {
     if !dir.join(".git").exists() && parent.exists() {
         let top = git(parent, &["rev-parse", "--show-toplevel"]).ok().map(PathBuf::from);
         if top.is_some_and(|t| t.canonicalize().ok() == parent.canonicalize().ok()) {
-            return Err(format!("{} would be a folder of the git repo {}: set where workspaces go, `git config --global raea.root ~/Studio`", dir.display(), parent.display()));
+            return Err(format!("{} would be a folder of the git repo {}: set where workspaces go, `git config --global raea.root ~/Documents/raea`", dir.display(), parent.display()));
         }
     }
     std::fs::create_dir_all(dir.join("projects")).map_err(|e| format!("{}: {e}", dir.display()))?;
@@ -268,7 +293,7 @@ fn register(ws: &Path, dir: &Path, rel: &str, storage: &str) -> R<String> {
 
 fn show_workspace(json_out: bool) -> R<String> {
     let here = std::env::current_dir().map_err(|e| e.to_string())?;
-    let ws = up(&here, ".raea/workspace").ok_or("not in a workspace: raea workspace init NAME makes one (under `git config --global raea.root`, else ~/Studio)")?;
+    let ws = up(&here, ".raea/workspace").ok_or("not in a workspace: raea workspace init NAME makes one (under `git config --global raea.root`, else ~/Documents/raea)")?;
     let file = ws.join(".raea/workspace");
     let ps = projects(&ws);
     if json_out {
