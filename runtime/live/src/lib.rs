@@ -166,9 +166,17 @@ impl Live {
         let (_, kind, props, kids) = q.iter(w).find(|(n, ..)| n.0 == id)?;
         let mut props = props.map(|p| p.0.clone()).unwrap_or_default();
         let owner = props.remove("data-raea-owner").and_then(|v| v.as_str().map(str::to_string)).unwrap_or_default();
+        // a 3D part's element holds its own props as the SDK's JSON (data-props) and its kind as data-3d: answered as
+        // those, so an inspector that asks again by id shows the part's props, not the holder's
+        let mut kind = kind.0.clone();
+        if let (Some(k), Some(own)) = (props.get("data-3d").and_then(Value::as_str).map(str::to_string), props.get("data-props").and_then(Value::as_str).and_then(|t| serde_json::from_str::<serde_json::Map<String, Value>>(t).ok())) {
+            kind = k;
+            props = own;
+            props.retain(|k, _| !k.starts_with("data-raea-"));
+        }
         props.retain(|k, v| k != "children" && !(k.starts_with("on") && k[2..].starts_with(|c: char| c.is_ascii_uppercase())) && !v.is_null());
         let text: String = kids.map(|ks| ks.iter().filter_map(|e| w.get::<raea_runtime_react::ReactText>(e).map(|t| t.0.clone())).collect()).unwrap_or_default();
-        Some(json!({"id": id, "kind": kind.0, "owner": owner, "rect": rect, "props": props, "text": text}))
+        Some(json!({"id": id, "kind": kind, "owner": owner, "rect": rect, "props": props, "text": text}))
     }
 
     pub fn step(&mut self, f: i64, keys: &[String], pointer: Option<(f64, f64, bool)>) -> R<()> {
