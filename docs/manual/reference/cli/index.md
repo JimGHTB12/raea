@@ -64,6 +64,7 @@ What's wrong before anyone watches it.
 | [`raea check`](check.md) | Check a composition's text in a second, or an export against the floor: text, contrast, safe areas, freezes, flashing, cues and loudness. |
 | [`raea judge`](judge.md) | Judge a 3D scene's review sheets blind, by a model on a frozen rubric or a fresh agent session, with the pass decided in code. |
 | [`raea scene`](scene.md) | Find floating, sunk and clipping 3D parts, say what each part rests on, and meter a shot's light. |
+| [`raea world`](world.md) | A frame as one world: its layers, text, 3D parts, camera, shots, clips, cues and lines as entities, queried across media. |
 | [`raea solid`](solid.md) | Measure, view and export a solid: parts built from code with exact volumes, joints and parameters. |
 | [`raea next`](next.md) | The two or three most useful next steps for a project, read from its brief, compositions, renders and checks. |
 | [`raea doctor`](doctor.md) | Find what doesn't match this version of raea: old brief files, an older workspace format, an agent's stale skill. |

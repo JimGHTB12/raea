@@ -158,4 +158,13 @@ mod tests {
         assert_eq!(facts.get::<Text>(t[0].id).unwrap().extruded, 0.2);
         assert!(facts.find(&["Part"]).iter().all(|p| p.parent == Some(layers[0].id)));
     }
+
+    #[test]
+    fn what_a_part_is_comes_from_its_shape_not_what_its_author_called_it() {
+        let claims = serde_json::json!({"name": "SALE", "text": "SALE", "kind": "text3d", "depth": 0.2});
+        let mut facts = Facts::new(0, 1920, 1080, 30.0);
+        put(&mut facts, &[item("mesh", claims, Some("box(1, 1, 1)"), Mat4::IDENTITY)], None, 30.0, Path::new("/nowhere"), &mut 0);
+        assert!(facts.find(&["Text"]).is_empty(), "a box named SALE is not 3D text");
+        assert_eq!(facts.get::<Part>(facts.find(&["Part"])[0].id).unwrap().kind, "mesh");
+    }
 }

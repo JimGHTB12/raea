@@ -74,8 +74,8 @@ impl BlitzPage {
             if !node.is_text_node() {
                 continue;
             }
+            // kept untrimmed: a space in a span of its own is where a word ends in letters set one a span
             let words = node.text_content();
-            let words = words.trim();
             if words.is_empty() {
                 continue;
             }
@@ -99,6 +99,7 @@ impl BlitzPage {
             }
         }
         for (owner, words) in owned {
+            let Some(words) = run_text(&words) else { continue };
             let (Some(b), Some(node)) = (rect(owner), doc.get_node(owner)) else { continue };
             let Some(s) = node.primary_styles() else { continue };
             let c = s.clone_color().to_color_space(style::color::ColorSpace::Srgb);
@@ -112,7 +113,7 @@ impl BlitzPage {
                 TextAlignKeyword::Justify => "justify",
                 _ => "left",
             };
-            let mut t = json!({"text": words.join(" "), "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (alpha(owner) * 100.0).round() / 100.0,
+            let mut t = json!({"text": words, "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (alpha(owner) * 100.0).round() / 100.0,
                 "color": color, "size": font.font_size.computed_size().px() as f64, "weight": font.font_weight.value() as f64, "align": align});
             // its first named face and how many lines it was set on (docs/direction.feature DR1's Text)
             if let Some(f) = font.font_family.families.iter().find_map(|f| match f { style::values::computed::font::SingleFontFamily::FamilyName(n) => Some(n.name.to_string()), _ => None }) {
@@ -125,5 +126,32 @@ impl BlitzPage {
             text.push(t);
         }
         (videos, text)
+    }
+}
+
+/// A run's words from its text nodes, in order: joined by a space, as caption words set one a span are; or, when every
+/// one is a single letter (a word revealed letter by letter, its spaces spans of their own), as the letters read
+/// ("49 BC", not "4 9 B C"). None when the run is only white space.
+fn run_text(pieces: &[String]) -> Option<String> {
+    let words: Vec<&str> = pieces.iter().map(|p| p.trim()).filter(|p| !p.is_empty()).collect();
+    if words.is_empty() {
+        return None;
+    }
+    if words.iter().all(|w| w.chars().count() == 1) {
+        return Some(pieces.concat().split_whitespace().collect::<Vec<_>>().join(" "));
+    }
+    Some(words.join(" "))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::run_text;
+
+    #[test]
+    fn letters_set_one_a_span_read_as_their_words() {
+        let s = |v: &[&str]| v.iter().map(|p| p.to_string()).collect::<Vec<_>>();
+        assert_eq!(run_text(&s(&["4", "9", " ", "B", "C"])).as_deref(), Some("49 BC"));
+        assert_eq!(run_text(&s(&["won", "a", "civil war,"])).as_deref(), Some("won a civil war,"), "word spans keep a space between");
+        assert_eq!(run_text(&s(&[" ", "\n"])), None);
     }
 }

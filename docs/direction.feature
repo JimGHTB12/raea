@@ -150,11 +150,28 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
   # =====================================================================================================================
   Rule: Part 1. One world: a project read into raea/ecs, for every kind of piece (finding 8)
 
-    @needs:DR0
+    @needs:DR0 @done
     Scenario: DR1. A composition's frame as a world, with no render
+      # Status 11-10: built. `raea world` reads any composition's frames into raea-core-facts worlds, each entity's
+      # Source from the code stamps. Real reads (release binary, M5 Pro): content/rome/film.tsx frame 900 is the 3D
+      # layer (camera moving, parts measured, the caesar-bg model "not measured": raea can't read its triangles), four
+      # cues with their sources, a picture at 7% and seven runs of laid-out type ("49 BC" 34 px, "The Dictator" 72 px,
+      # the caption at the bottom); content/reel/edit.tsx at 314-318 shows the cut from shot noir-lamp (221-316) to the
+      # next at 316; examples/games/breakout.tsx frame 60 has its 34 parts and "SCORE 10" at 60 px. Layout costs 0.33 s
+      # on Rome's frame (0.39 s against 0.06 s with --no-layout) and 80 ms a frame on the reel (1.02 s against 0.21 s
+      # for ten frames). Proved by 8 tests in
+      # raea-runtime-world (a page read as shots, footage, cues and text in document order, a <style>'s CSS not read as
+      # words; 3D as one layer with its camera's velocity and measured parts; a stamp's file, line and component; a
+      # transcript's lines), 2 in raea-app-direction (one find across media; a bad query or range says what it takes)
+      # and 1 in raea-page (letters set one a span read as their words). The cheat: a part's kind comes from its
+      # shape, so a box its author named and propped as 3D text "SALE" is a mesh with no Text (scene.rs). Not seen:
+      # content/anything/edit/scene.tsx throws its own "not a song map" error before any frame; the reel's flying
+      # letters (v/build/text.tsx) are one solid a glyph, not Text3D, so they read as Parts with no Text, which is what
+      # they are. Found on the way and fixed: the render's manifest joined a word set one letter a span as "4 9 B C".
       Given the plan
         | crate              | file                           | lines | job                                                                    |
         | raea-core-facts    | core/facts/src/components.rs   | 300   | an Item, a page box, a clip, a cue as components (the names and fields below) |
+        | raea-core-facts    | core/facts/src/words.rs        | 40    | a transcript's words, as `raea check` reads them (its Word, moved here) |
         | raea-runtime-world | runtime/world/src/lib.rs       | 140   | a composition bundled and stepped to its frames, as a bake steps them (React only, nothing drawn), each frame read into a world |
         | raea-runtime-world | runtime/world/src/scene.rs     | 200   | the 3D: plates, the 3D layer with its camera and parts (measured from their triangles), 3D text, the 2D drawn over it |
         | raea-runtime-world | runtime/world/src/timeline.rs  | 330   | the page and timeline: layers in document order, shots (Sequences), clips, cues, lines (the project's words.json, <Speech>) |

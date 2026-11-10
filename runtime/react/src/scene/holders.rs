@@ -4,10 +4,7 @@ use super::*;
 
 /// The frame's 3D (each data-3d root in the page's order, its 3D children under it): what a render turns into rows.
 pub fn scene_of(world: &mut World) -> Vec<Node3> {
-    let now = SCENE3D.with(|g| {
-        g.set(g.get() + 1);
-        g.get()
-    });
+    let now = SCENE3D.with(|g| { g.set(g.get() + 1); g.get() });
     if now % 120 == 0 {
         PROPS3D.with(|c| c.borrow_mut().retain(|_, v| v.2 + 2 >= now));
         if world.contains_resource::<Kept3d>() {
@@ -24,8 +21,7 @@ pub fn scene_of(world: &mut World) -> Vec<Node3> {
 
 /// The composition's surface (`<surface id="motion">`): the element its page and its 3D hang from.
 pub fn surface(world: &mut World) -> Option<Entity> {
-    let mut q = world.query::<(Entity, &ReactKind, Option<&ReactProps>)>();
-    q.iter(world).find(|(_, k, p)| k.0 == "surface" && p.and_then(|p| p.0.get("id")).and_then(|v| v.as_str()) == Some("motion")).map(|(e, _, _)| e)
+    world.query::<(Entity, &ReactKind, Option<&ReactProps>)>().iter(world).find(|(_, k, p)| k.0 == "surface" && p.and_then(|p| p.0.get("id")).and_then(|v| v.as_str()) == Some("motion")).map(|(e, _, _)| e)
 }
 
 /// The elements holding the 3D (holders_of's), into `out` (ZeroHeap: live play's present asks each frame)
@@ -57,9 +53,7 @@ fn holders_walk(world: &mut World, out: &mut Vec<Entity>) {
         }
         path.push(e);
         if let Some(kids) = world.get::<Children>(e) {
-            for k in kids.iter().rev() {
-                stack.push((k, depth + 1));
-            }
+            stack.extend(kids.iter().rev().map(|k| (k, depth + 1)));
         }
     }
 }
