@@ -70,20 +70,3 @@ fn outside_copies_what_the_edit_imports_beyond_its_folder() {
     assert!(e.contains("lib/c.ts") && e.contains("outside raea's home"), "{e}");
     std::fs::remove_dir_all(&t).unwrap();
 }
-
-#[test]
-fn a_dot_named_edit_rewritten_gets_another_bundle() {
-    // the app's preview wrapper (.raea-view-NAME.tsx) is rewritten at one path, and the folder walk passes dot files over
-    let t = std::env::temp_dir().join(format!("raea-bundle-dot-{}", std::process::id()));
-    std::fs::create_dir_all(&t).unwrap();
-    let o = comp_opts(&[]).unwrap();
-    let (hidden, plain) = (t.join(".raea-view-body.tsx"), t.join("body.tsx"));
-    std::fs::write(&hidden, "export const a = 1\n").unwrap();
-    std::fs::write(&plain, "export const a = 1\n").unwrap();
-    let (first, other) = (bundle_cache(&hidden, &o).unwrap(), bundle_cache(&plain, &o).unwrap());
-    std::fs::write(&hidden, "export const a = 22\n").unwrap();
-    assert_ne!(bundle_cache(&hidden, &o).unwrap(), first);
-    // a file the walk sees is counted once, as before
-    assert_eq!(bundle_cache(&plain, &o).unwrap(), other);
-    std::fs::remove_dir_all(&t).unwrap();
-}

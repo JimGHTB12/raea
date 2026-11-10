@@ -453,3 +453,24 @@ pub fn bake_incremental(old: &Baked, js: &Path) -> R<(Baked, i64)> {
     }
     Ok((b, stepped))
 }
+
+// raea-runtime-bundle's cache key, tested here: that crate is at its size limit
+#[cfg(test)]
+mod bundle_key {
+    #[test]
+    fn a_dot_named_edit_rewritten_gets_another_bundle() {
+        // the app's preview wrapper (.raea-view-NAME.tsx) is rewritten at one path, and the folder walk passes dot files over
+        let t = std::env::temp_dir().join(format!("raea-bundle-dot-{}", std::process::id()));
+        std::fs::create_dir_all(&t).unwrap();
+        let o = raea_runtime_bundle::comp_opts(&[]).unwrap();
+        let (hidden, plain) = (t.join(".raea-view-body.tsx"), t.join("body.tsx"));
+        std::fs::write(&hidden, "export const a = 1\n").unwrap();
+        std::fs::write(&plain, "export const a = 1\n").unwrap();
+        let (first, other) = (raea_runtime_bundle::bundle_cache(&hidden, &o).unwrap(), raea_runtime_bundle::bundle_cache(&plain, &o).unwrap());
+        std::fs::write(&hidden, "export const a = 22\n").unwrap();
+        assert_ne!(raea_runtime_bundle::bundle_cache(&hidden, &o).unwrap(), first);
+        // a file the walk sees is counted once, as before
+        assert_eq!(raea_runtime_bundle::bundle_cache(&plain, &o).unwrap(), other);
+        std::fs::remove_dir_all(&t).unwrap();
+    }
+}

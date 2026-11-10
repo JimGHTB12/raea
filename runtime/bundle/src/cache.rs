@@ -165,11 +165,6 @@ pub fn bundle_cache(tsx: &Path, o: &CompOpts) -> Option<PathBuf> {
     let js = raea_io_home::home().join("sdk/react/js");
     let mut files = Vec::new();
     walk(tsx.parent()?, 0, &mut files);
-    // the edit itself when its name starts with a dot, which the walk passes over (the app's preview wrappers,
-    // .raea-view-NAME.tsx, are rewritten at one path: without this a rewritten one got the bundle of the last)
-    if file_is_hidden(tsx) {
-        files.extend(stat(tsx).map(|(n, t)| (tsx.to_path_buf(), n, t)));
-    }
     // what it imports from outside its folder (outside.rs): editing an example re-bundles what imports it
     for o in outside(tsx.parent()?).unwrap_or_default() {
         files.extend(stat(&o.file).map(|(n, t)| (o.file, n, t)));
@@ -182,8 +177,8 @@ pub fn bundle_cache(tsx: &Path, o: &CompOpts) -> Option<PathBuf> {
         walk(&js.join("lite"), 0, &mut files);
         files.extend(stat(&js.join("node_modules/bevy-react/src/bridge.ts")).map(|(n, t)| (js.join("node_modules/bevy-react/src/bridge.ts"), n, t)));
     }
-    // sdk/tsconfig.base.json: what the SDK's import names mean (rewrite_into)
-    for p in [js.join("tsconfig.json"), js.join("package.json"), js.join("bun.lock"), raea_io_home::home().join("sdk").join(raea_io_home::sdk::LIST)] {
+    // sdk/tsconfig.base.json: what the SDK's import names mean (rewrite_into); and the edit itself when it is a dot file, which the walk passes over (the app's preview wrapper, .raea-view-NAME.tsx, is rewritten at one path and got the bundle of the last one)
+    for p in [js.join("tsconfig.json"), js.join("package.json"), js.join("bun.lock"), raea_io_home::home().join("sdk").join(raea_io_home::sdk::LIST)].into_iter().chain(file.starts_with('.').then(|| tsx.to_path_buf())) {
         files.extend(stat(&p).map(|(n, t)| (p, n, t)));
     }
     files.extend(std::env::current_exe().ok().and_then(|p| stat(&p).map(|(n, t)| (p, n, t))));
@@ -203,10 +198,6 @@ pub fn bundle_cache(tsx: &Path, o: &CompOpts) -> Option<PathBuf> {
         eat(&t.to_le_bytes());
     }
     Some(root.join(format!("{key:016x}.js")))
-}
-
-fn file_is_hidden(p: &Path) -> bool {
-    p.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.'))
 }
 
 /// The newest `keep` files with extension `ext` in `dir` kept, by when they were last written or used.
