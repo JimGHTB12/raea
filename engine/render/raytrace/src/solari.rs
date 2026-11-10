@@ -90,9 +90,13 @@ fn traceable(src: &Mesh) -> Option<Traceable> {
     if src.primitive_topology() != PrimitiveTopology::TriangleList {
         return None;
     }
-    let ids: Vec<_> = src.attributes().map(|(a, _)| a.id).collect();
+    // a mesh whose data went to the GPU alone (RenderAssetUsages::RENDER_WORLD, as raea-sys-grass makes its blades) can't
+    // be read here: Bevy's plain accessors panic on it, so it's read with the try_ ones and left untraced. It still
+    // draws into the G-buffer, lit by Solari; it just isn't in the traced scene
+    let ids: Vec<_> = src.try_attributes().ok()?.map(|(a, _)| a.id).collect();
+    let indices = src.try_indices_option().ok()?;
     let layout = [Mesh::ATTRIBUTE_POSITION.id, Mesh::ATTRIBUTE_NORMAL.id, Mesh::ATTRIBUTE_UV_0.id, Mesh::ATTRIBUTE_TANGENT.id];
-    if ids == layout && matches!(src.indices(), Some(Indices::U32(_))) {
+    if ids == layout && matches!(indices, Some(Indices::U32(_))) {
         return Some(Traceable::Same);
     }
     let pos = src.attribute(Mesh::ATTRIBUTE_POSITION)?.clone();
@@ -103,7 +107,7 @@ fn traceable(src: &Mesh) -> Option<Traceable> {
     out.insert_attribute(Mesh::ATTRIBUTE_POSITION, pos);
     out.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normal);
     out.insert_attribute(Mesh::ATTRIBUTE_UV_0, uv);
-    let idx: Vec<u32> = match src.indices() {
+    let idx: Vec<u32> = match indices {
         Some(Indices::U32(v)) => v.clone(),
         Some(Indices::U16(v)) => v.iter().map(|&i| i as u32).collect(),
         None => (0..n as u32).collect(),
@@ -114,4 +118,31 @@ fn traceable(src: &Mesh) -> Option<Traceable> {
         None => out.generate_tangents().ok()?,
     }
     Some(Traceable::Copy(out))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bevy::asset::RenderAssetUsages;
+
+    fn quad(usage: RenderAssetUsages) -> Mesh {
+        let mut m = Mesh::new(PrimitiveTopology::TriangleList, usage);
+        m.insert_attribute(Mesh::ATTRIBUTE_POSITION, vec![[0.0f32, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]);
+        m.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0.0f32, 0.0, 1.0]; 3]);
+        m.insert_indices(Indices::U16(vec![0, 1, 2]));
+        m
+    }
+
+    #[test]
+    fn a_mesh_on_the_gpu_alone_is_left_untraced_not_a_panic() {
+        // raea-sys-grass's blades: RENDER_WORLD only, their data taken when Bevy extracts them (RR0's film panicked on them)
+        let mut grass = quad(RenderAssetUsages::RENDER_WORLD);
+        let _ = grass.take_gpu_data().expect("a fresh mesh's data can be taken");
+        assert!(traceable(&grass).is_none());
+        // a mesh still in the main world is copied into Solari's layout, its u16 indices widened
+        match traceable(&quad(RenderAssetUsages::default())) {
+            Some(Traceable::Copy(m)) => assert!(matches!(m.indices(), Some(Indices::U32(v)) if v == &vec![0, 1, 2])),
+            _ => panic!("a readable triangle mesh is traceable"),
+        }
+    }
 }
