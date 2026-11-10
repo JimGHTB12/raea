@@ -14032,6 +14032,7 @@ version = "0.1.0"
 name = "raea-core-facts"
 version = "0.1.0"
 dependencies = [
+ "raea-core-brief",
  "serde",
  "serde_json",
  "ts-rs",

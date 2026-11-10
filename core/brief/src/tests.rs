@@ -104,6 +104,20 @@ fn a_controller_says_what_is_wrong_in_a_sentence_the_agent_can_act_on() {
     assert!(bad(r#"{"title": "X"}"#).contains("needs groups"));
     assert!(bad(r#"{"groups": []}"#).contains("needs a title"));
     assert!(bad(r#"{"title": "X", "groups": [{"title": "G", "fields": [{"label": "A", "type": "toggle"}, {"label": "a", "type": "toggle"}]}]}"#).contains("two fields are called a"));
+    assert!(bad(r#"{"title": "X", "groups": [{"title": "G", "fields": [{"label": "A", "type": "rule"}]}]}"#).contains("a rule needs a check"));
+    assert!(bad(r#"{"title": "X", "groups": [{"title": "G", "fields": [{"label": "A", "type": "rule", "check": "x", "level": "p0"}]}]}"#).contains("error, warn or note"));
+}
+
+#[test]
+fn a_rule_field_is_a_check_by_name_with_values_or_a_path() {
+    let j = r#"{"title": "Rules", "groups": [{"title": "Vertical", "fields": [
+        {"label": "Captions clear the button band", "type": "rule", "check": "./checks/clear.ts", "values": {"platform": "tiktok"}, "level": "warn"},
+        {"label": "Words stay up long enough to read", "type": "rule", "check": "text-hold", "values": {"value": 1.5}}]}]}"#;
+    let c = controller::normalize(&serde_json::from_str(j).unwrap()).unwrap();
+    let controller::Kind::Rule { check, values, level } = &c.groups[0].fields[0].kind else { panic!("a rule") };
+    assert_eq!((check.as_str(), level.as_deref()), ("./checks/clear.ts", Some("warn")));
+    assert_eq!(values.as_ref().unwrap()["platform"], "tiktok");
+    assert_eq!(controller::normalize(&serde_json::to_value(&c).unwrap()).unwrap(), c, "it reads back as written");
 }
 
 #[test]

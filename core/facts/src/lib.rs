@@ -19,6 +19,10 @@ pub use rendered::*;
 // the project's record: what each render and check found, kept by render and commit (DR3)
 pub mod record;
 
+// a rule the work is held to: one of raea's checks by name with its values, or a project's TS check (DR4)
+pub mod rule;
+pub use rule::Rule;
+
 /// A JSON value as text: a string as it is, anything else as its JSON (a list key may be a number, a stamp a string).
 pub fn text_of(v: &serde_json::Value) -> String {
     match v {

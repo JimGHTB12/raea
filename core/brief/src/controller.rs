@@ -63,9 +63,19 @@ pub enum Kind {
     Servers { value: Vec<String> },
     /// skills: links to SKILL.md, read into every agent's context
     Skills { value: Vec<String> },
+    /// a rule the work is held to, its label the rule's words (docs/direction.feature DR4): `check` is one of raea's
+    /// checks by name with its `values`, or a path to the project's own check (a .ts file, from the controller's
+    /// folder); `level` is error (when unset), warn or note. `raea check` runs it.
+    Rule {
+        check: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[ts(type = "Record<string, number | string | boolean>")]
+        values: Option<Map<String, Value>>,
+        #[serde(skip_serializing_if = "Option::is_none")] level: Option<String>,
+    },
 }
 
-const TYPES: &str = "toggle, choice, number, text, list, agents, channels, workflow, servers, skills";
+const TYPES: &str = "toggle, choice, number, text, list, agents, channels, workflow, servers, skills, rule";
 
 fn slug(s: &str) -> String {
     let mut out = String::new();
@@ -144,6 +154,14 @@ pub fn normalize_field(raw: &Value, at: &str) -> Result<Field, String> {
         Some("servers") => Kind::Servers { value: strings(value, &format!("{w}: value"))? },
         Some("skills") => Kind::Skills { value: strings(value, &format!("{w}: value"))? },
         Some("workflow") => Kind::Workflow { value: steps(value, &w)?, channels: o.get("channels").map(|c| strings(Some(c), &format!("{w}: channels"))).transpose()? },
+        Some("rule") => {
+            let check = text(o, "check").ok_or_else(|| format!("{w}: a rule needs a check: one of raea's by name, or a path to a .ts check"))?;
+            let level = text(o, "level");
+            if level.as_deref().is_some_and(|l| !matches!(l, "error" | "warn" | "note")) {
+                return Err(format!("{w}: a rule's level is error, warn or note"));
+            }
+            Kind::Rule { check, values: o.get("values").and_then(Value::as_object).cloned(), level }
+        }
         _ => return Err(format!("{w}: type must be one of {TYPES}")),
     };
     Ok(Field { id, label, help: text(o, "help"), kind })

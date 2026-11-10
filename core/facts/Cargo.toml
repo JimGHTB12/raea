@@ -7,6 +7,8 @@ publish = false
 description = "A project as one world of facts in raea/ecs's form: its layers, text, parts, shots, clips and cues as entities with components, for any kind of piece"
 
 [dependencies]
+# a rule's taste form and controller field (rule.rs)
+raea-core-brief = { path = "../brief" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # the TypeScript declarations are generated from these types, so a check's types can't drift from what raea reads
