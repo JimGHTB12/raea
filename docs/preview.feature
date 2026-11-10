@@ -109,6 +109,12 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
     # every copy, the first rule, emptied it); Clear leaves no file. Checked there: 23 copies, 13.7 MB, to 6.8 MB at a
     # 7.5 MB limit; a light level kept over a 3 MB limit while its model played and gone a minute later with the
     # stills left; a changed source's copy marked stale and swept; Clear from 18 files to none. 10 tests.
+    # 11-09, 0.1.0-dev.1109.25: with the store told its disk had 500 MB free, 45 heavy models opened in seven seconds
+    # took it to 294 MB (every copy in use), and the next model opened a minute later left 39 copies in 255 MB, the
+    # oldest seven gone. The same pass found a model's preview drawn from another run's bundle: the wrapper
+    # (.raea-view-NAME.tsx) is rewritten at one path and the bundle cache's folder walk passes dot files over, so a
+    # wrapper naming a new light level got the bundle naming the old one (a level since dropped: "doesn't exist").
+    # A dot-named edit is now part of its bundle's key.
     @done
     Scenario: PV3b. The store is managed in one place
       Then Settings lists the store by project and kind with sizes, and offers Clear and Rebuild; copies whose source
