@@ -5,9 +5,22 @@ use serde_json::{Value, json};
 
 use super::{R, State, args, f, s, u};
 
+/// A solid by its expression, and its Manifold once something needs it. A boolean or a move only writes the
+/// expression: the renderer builds the mesh from that (raea-core-shape, which keeps it on disk), so a set made of cuts
+/// isn't cut a second time here on every open (a third of a launch-film set's script pass, 11-10). A query, a mesh,
+/// an export or an operation that works on the solid itself builds it then.
 pub(crate) struct Solid {
-    m: Manifold,
+    m: std::cell::OnceCell<Manifold>,
     expr: String,
+}
+
+impl Solid {
+    fn m(&self) -> R<&Manifold> {
+        if self.m.get().is_none() {
+            let _ = self.m.set(raea_core_shape::solid_or_empty(&self.expr)?);
+        }
+        Ok(self.m.get().expect("just set"))
+    }
 }
 
 fn arg_text(a: &Value) -> String {
@@ -22,7 +35,15 @@ impl State {
     fn put(&mut self, m: Manifold, expr: String) -> Value {
         self.next += 1;
         let id = self.next;
-        self.solids.insert(id, Solid { m, expr: expr.clone() });
+        self.solids.insert(id, Solid { m: std::cell::OnceCell::from(m), expr: expr.clone() });
+        json!({"id": id, "expr": expr})
+    }
+
+    /// A solid that is only its expression so far.
+    fn put_later(&mut self, expr: String) -> Value {
+        self.next += 1;
+        let id = self.next;
+        self.solids.insert(id, Solid { m: std::cell::OnceCell::new(), expr: expr.clone() });
         json!({"id": id, "expr": expr})
     }
 
@@ -112,15 +133,10 @@ pub(super) fn call(st: &mut State, name: &str, v: &Value) -> R<Value> {
             }
             let parts: Vec<&Solid> = ids.iter().map(|i| st.solid(*i)).collect::<R<_>>()?;
             let expr = format!("{fun}({})", parts.iter().map(|p| p.expr.as_str()).collect::<Vec<_>>().join(", "));
-            let ms: Vec<Manifold> = parts.iter().map(|p| p.m.clone()).collect();
-            let m = match fun {
-                "union" => ms.into_iter().reduce(|a, b| a.union(&b)).unwrap(),
-                "minus" => ms.into_iter().reduce(|a, b| a.difference(&b)).unwrap(),
-                "intersect" => ms.into_iter().reduce(|a, b| a.intersection(&b)).unwrap(),
-                "hull" => Manifold::hull_manifolds(&ms),
-                o => return Err(format!("no boolean {o}: union, minus, intersect, hull")),
-            };
-            Ok(st.put(m, expr))
+            if !matches!(fun, "union" | "minus" | "intersect" | "hull") {
+                return Err(format!("no boolean {fun}: union, minus, intersect, hull"));
+            }
+            Ok(st.put_later(expr))
         }
         "solid.move" => {
             let base = st.solid(u(v, "id")?)?;
@@ -130,44 +146,44 @@ pub(super) fn call(st: &mut State, name: &str, v: &Value) -> R<Value> {
             if a.len() < need {
                 return Err(format!("{fun} takes {need} numbers"));
             }
-            let (m, expr) = match fun {
-                "move" => (base.m.translate(manifold_rust::linalg::Vec3::new(a[0], a[1], a[2])), format!("move({}, {}, {}, {})", base.expr, a[0], a[1], a[2])),
-                "rotate" => (base.m.rotate(a[0], a[1], a[2]), format!("rotate({}, {}, {}, {})", base.expr, a[0], a[1], a[2])),
+            let expr = match fun {
+                "move" => format!("move({}, {}, {}, {})", base.expr, a[0], a[1], a[2]),
+                "rotate" => format!("rotate({}, {}, {}, {})", base.expr, a[0], a[1], a[2]),
                 "scale" => {
                     let (x, y, z) = if a.len() >= 3 { (a[0], a[1], a[2]) } else { (a[0], a[0], a[0]) };
-                    (base.m.scale(manifold_rust::linalg::Vec3::new(x, y, z)), format!("scale({}, {x}, {y}, {z})", base.expr))
+                    format!("scale({}, {x}, {y}, {z})", base.expr)
                 }
                 o => return Err(format!("no transform {o}: move, rotate, scale")),
             };
-            Ok(st.put(m, expr))
+            Ok(st.put_later(expr))
         }
         "solid.query" => {
             let sd = st.solid(u(v, "id")?)?;
             match s(v, "what")? {
-                "volume" => Ok(json!(sd.m.volume())),
+                "volume" => Ok(json!(sd.m()?.volume())),
                 "bounds" => {
-                    let b = sd.m.bounding_box();
+                    let b = sd.m()?.bounding_box();
                     Ok(json!({"min": [b.min.x, b.min.y, b.min.z], "max": [b.max.x, b.max.y, b.max.z]}))
                 }
-                "triangles" => Ok(json!(sd.m.num_tri())),
-                "empty" => Ok(json!(sd.m.is_empty())),
+                "triangles" => Ok(json!(sd.m()?.num_tri())),
+                "empty" => Ok(json!(sd.m()?.is_empty())),
                 "slice" => {
-                    let cs = sd.m.slice(f(v, "z")?);
+                    let cs = sd.m()?.slice(f(v, "z")?);
                     let polys: Vec<Vec<[f64; 2]>> = cs.to_polygons().iter().map(|p| p.iter().map(|q| [q.x, q.y]).collect()).collect();
                     Ok(json!({"area": cs.area(), "contours": cs.num_contour(), "polygons": polys}))
                 }
-                "area" => Ok(json!(sd.m.surface_area())),
-                "genus" => Ok(json!(sd.m.genus())),
+                "area" => Ok(json!(sd.m()?.surface_area())),
+                "genus" => Ok(json!(sd.m()?.genus())),
                 "min_gap" => {
                     let o = st.solid(u(v, "other")?)?;
-                    Ok(json!(sd.m.min_gap(&o.m, f(v, "z")?)))
+                    Ok(json!(sd.m()?.min_gap(o.m()?, f(v, "z")?)))
                 }
                 "ray" => {
                     let a: Vec<f64> = args(v).iter().filter_map(Value::as_f64).collect();
                     if a.len() < 6 {
                         return Err("ray takes 6 numbers: from x y z, to x y z".into());
                     }
-                    let hits = sd.m.ray_cast(manifold_rust::linalg::Vec3::new(a[0], a[1], a[2]), manifold_rust::linalg::Vec3::new(a[3], a[4], a[5]));
+                    let hits = sd.m()?.ray_cast(manifold_rust::linalg::Vec3::new(a[0], a[1], a[2]), manifold_rust::linalg::Vec3::new(a[3], a[4], a[5]));
                     Ok(json!(hits.iter().map(|h| json!({"distance": h.distance, "position": [h.position.x, h.position.y, h.position.z], "normal": [h.normal.x, h.normal.y, h.normal.z]})).collect::<Vec<_>>()))
                 }
                 o => Err(format!("no query {o}: volume, bounds, triangles, empty, slice, area, genus, min_gap, ray")),
@@ -187,34 +203,34 @@ pub(super) fn call(st: &mut State, name: &str, v: &Value) -> R<Value> {
             let (m, expr) = match fun {
                 "mirror" => {
                     need(3)?;
-                    (base.m.mirror(v3(0)), format!("mirror({}, {}, {}, {})", base.expr, a[0], a[1], a[2]))
+                    (base.m()?.mirror(v3(0)), format!("mirror({}, {}, {}, {})", base.expr, a[0], a[1], a[2]))
                 }
                 "transform" => {
                     need(12)?;
                     let mat = manifold_rust::linalg::Mat3x4::from_cols(v3(0), v3(3), v3(6), v3(9));
-                    (base.m.transform(&mat), format!("transform({}, {})", base.expr, a.iter().take(12).map(|x| x.to_string()).collect::<Vec<_>>().join(", ")))
+                    (base.m()?.transform(&mat), format!("transform({}, {})", base.expr, a.iter().take(12).map(|x| x.to_string()).collect::<Vec<_>>().join(", ")))
                 }
                 "trim" => {
                     need(4)?;
-                    (base.m.trim_by_plane(v3(0), a[3]), format!("trim({}, {}, {}, {}, {})", base.expr, a[0], a[1], a[2], a[3]))
+                    (base.m()?.trim_by_plane(v3(0), a[3]), format!("trim({}, {}, {}, {}, {})", base.expr, a[0], a[1], a[2], a[3]))
                 }
                 "refine" => {
                     need(1)?;
                     let n = a[0].max(1.0) as i32;
-                    (base.m.refine(n), format!("refine({}, {n})", base.expr))
+                    (base.m()?.refine(n), format!("refine({}, {n})", base.expr))
                 }
                 "smooth" => {
                     let (ang, sm, n) = (a.first().copied().unwrap_or(60.0), a.get(1).copied().unwrap_or(0.0), a.get(2).copied().unwrap_or(4.0).max(1.0) as i32);
-                    (base.m.smooth_out(ang, sm).refine(n), format!("smooth({}, {ang}, {sm}, {n})", base.expr))
+                    (base.m()?.smooth_out(ang, sm).refine(n), format!("smooth({}, {ang}, {sm}, {n})", base.expr))
                 }
                 "minkowski" | "minkowski_diff" => {
                     let o = other.ok_or_else(|| format!("{fun} takes another solid"))?;
-                    let m = if fun == "minkowski" { base.m.minkowski_sum(&o.m) } else { base.m.minkowski_difference(&o.m) };
+                    let m = if fun == "minkowski" { base.m()?.minkowski_sum(o.m()?) } else { base.m()?.minkowski_difference(o.m()?) };
                     (m, format!("{fun}({}, {})", base.expr, o.expr))
                 }
                 "simplify" | "refine_length" | "refine_tolerance" => {
                     need(1)?;
-                    let m = match fun { "simplify" => base.m.simplify(a[0]), "refine_length" => base.m.refine_to_length(a[0]), _ => base.m.refine_to_tolerance(a[0]) };
+                    let m = match fun { "simplify" => base.m()?.simplify(a[0]), "refine_length" => base.m()?.refine_to_length(a[0]), _ => base.m()?.refine_to_tolerance(a[0]) };
                     (m, format!("{fun}({}, {})", base.expr, a[0]))
                 }
                 o => return Err(format!("no operation {o}: mirror, transform, trim, refine, refine_length, refine_tolerance, smooth, simplify, minkowski, minkowski_diff")),
@@ -236,7 +252,7 @@ pub(super) fn call(st: &mut State, name: &str, v: &Value) -> R<Value> {
         }
         "solid.mesh" => {
             let sd = st.solid(u(v, "id")?)?;
-            let (verts, tris) = raea_core_shape::to_mesh(&sd.m);
+            let (verts, tris) = raea_core_shape::to_mesh(sd.m()?);
             Ok(json!({"verts": verts, "tris": tris}))
         }
         "solid.from_mesh" => {
@@ -281,7 +297,7 @@ pub(super) fn call(st: &mut State, name: &str, v: &Value) -> R<Value> {
             let sd = st.solid(u(v, "id")?)?;
             let path = s(v, "path")?;
             let format = v.get("format").and_then(Value::as_str).map(str::to_string).unwrap_or_else(|| if path.ends_with(".glb") { "glb".into() } else { "obj".into() });
-            Ok(json!({"bytes": raea_core_shape::export(&sd.m, path, &format)?}))
+            Ok(json!({"bytes": raea_core_shape::export(sd.m()?, path, &format)?}))
         }
         "solid.import" => {
             let path = s(v, "path")?;
@@ -293,12 +309,12 @@ pub(super) fn call(st: &mut State, name: &str, v: &Value) -> R<Value> {
         // a solid's cross-section at z, or its silhouette on the x-y plane, as a 2D cross-section
         "solid.section" => {
             let sd = st.solid(u(v, "id")?)?;
-            let cs = match v.get("z").and_then(Value::as_f64) { Some(z) => sd.m.slice(z), None => sd.m.project() };
+            let cs = match v.get("z").and_then(Value::as_f64) { Some(z) => sd.m()?.slice(z), None => sd.m()?.project() };
             Ok(section_json(&cs))
         }
         // its disconnected pieces, each a solid (written under its hash, as a mesh's solid is)
         "solid.decompose" => {
-            let parts = st.solid(u(v, "id")?)?.m.decompose();
+            let parts = st.solid(u(v, "id")?)?.m()?.decompose();
             let mut out = Vec::new();
             for m in parts {
                 let expr = bake(&m)?;
@@ -314,7 +330,7 @@ pub(super) fn call(st: &mut State, name: &str, v: &Value) -> R<Value> {
             }
             let parts: Vec<&Solid> = ids.iter().map(|i| st.solid(*i)).collect::<R<_>>()?;
             let expr = if parts.len() == 1 { parts[0].expr.clone() } else { format!("union({})", parts.iter().map(|p| p.expr.as_str()).collect::<Vec<_>>().join(", ")) };
-            let m = Manifold::compose(&parts.iter().map(|p| p.m.clone()).collect::<Vec<_>>());
+            let m = Manifold::compose(&parts.iter().map(|p| p.m().cloned()).collect::<R<Vec<_>>>()?);
             Ok(st.put(m, expr))
         }
         // the convex hull of points

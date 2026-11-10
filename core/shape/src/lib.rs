@@ -49,14 +49,22 @@ const SEGMENTS: i32 = 48;
 
 /// The solid an expression describes.
 pub fn solid(expr: &str) -> Result<Manifold, String> {
+    match solid_or_empty(expr)? {
+        m if !m.is_empty() => Ok(m),
+        _ => Err(format!("shape {expr}: empty (a boolean left nothing)")),
+    }
+}
+
+/// The solid for an expression, an empty one too: a script that holds solids by their expressions (raea-runtime-calls'
+/// `/3d` manifold) asks whether a boolean left nothing, which a mesh to draw can't be.
+pub fn solid_or_empty(expr: &str) -> Result<Manifold, String> {
     let mut p = P { t: lex(expr)?, i: 0 };
     let a = p.expr()?;
     if p.i < p.t.len() {
         return Err(format!("shape: unexpected {:?} after the shape", p.t[p.i]));
     }
     match a {
-        Arg::Shape(m) if !m.is_empty() => Ok(m),
-        Arg::Shape(_) => Err(format!("shape {expr}: empty (a boolean left nothing)")),
+        Arg::Shape(m) => Ok(m),
         _ => Err(format!("shape {expr}: not a shape")),
     }
 }
