@@ -10,7 +10,7 @@ taste and the workspace's house rules, the project's brief and look, the floor a
 runs [`raea doctor`](doctor.md)'s checks too, and prints `CONTEXT_STALE` when they find something to fix first.
 
 ```sh
-raea context ~/Studio/acme/projects/spring-launch
+raea context ~/Documents/raea/acme/projects/spring-launch
 ```
 
 <!-- generated:begin by tools/manual-ref/cli.ts from `raea help --json`; edit only the flag descriptions -->

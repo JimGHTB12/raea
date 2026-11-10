@@ -94,3 +94,19 @@ fn doctor_finds_old_briefs_and_old_skills() {
     assert!(reinstalled.get() && out.starts_with("APPLIED  1 of 2 fixed"), "{out}");
     let _ = std::fs::remove_dir_all(&d);
 }
+
+#[test]
+fn the_root_with_none_set() {
+    let home = scratch("home-root");
+    assert_eq!(default_root(&home), home.join("Documents/raea"));
+    // an empty ~/Studio isn't one; one with a workspace stays the root
+    std::fs::create_dir_all(home.join("Studio/notes")).unwrap();
+    assert_eq!(default_root(&home), home.join("Documents/raea"));
+    std::fs::create_dir_all(home.join("Studio/acme/.raea")).unwrap();
+    std::fs::write(home.join("Studio/acme/.raea/workspace"), "").unwrap();
+    assert_eq!(default_root(&home), home.join("Studio"));
+    // iCloud keeping Documents: ~/raea
+    let synced = scratch("home-icloud");
+    std::fs::create_dir_all(synced.join("Library/Mobile Documents/com~apple~CloudDocs/Documents")).unwrap();
+    assert_eq!(default_root(&synced), synced.join("raea"));
+}

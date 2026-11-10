@@ -16,7 +16,7 @@ mod workspace;
 pub use controllers::{controller, module, summary};
 pub use registry::context;
 pub use literal::{tidy, tidy_deep, ts_literal};
-pub use workspace::{project, projects, root, slug, up, workspace};
+pub use workspace::{default_root, project, projects, root, slug, up, workspace};
 
 pub type R<T> = Result<T, String>;
 
