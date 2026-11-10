@@ -153,10 +153,11 @@ pub fn sync(doc: &mut BaseDocument, nodes: &Nodes, medias: &mut Medias, out: &mu
         }
         if redraw && m.video && draw {
             let pic = match (&m.poster, m.seeked) {
-                (Some(p), false) => poster_image(p),
+                (Some(p), false) => poster_image(p).map(|(w, h, px)| (w, h, Arc::new(px))),
                 _ => None,
             }
-            .or_else(|| m.frame.as_ref().map(|(w, h, px)| (*w, *h, px.as_ref().clone())));
+            // the frame's pixels shared, not copied again (a 4K frame is 33 MB)
+            .or_else(|| m.frame.as_ref().map(|(w, h, px)| (*w, *h, px.clone())));
             if let (Some((w, h, px)), Some(n)) = (pic, nodes.by_id.get(&id)) {
                 set_image(doc, *n, w, h, px);
             }
@@ -189,10 +190,10 @@ fn poster_image(src: &str) -> Option<(u32, u32, Vec<u8>)> {
 }
 
 /// Node `n` drawn as an image: `rgba` as its raster, its layout made again for the picture's size.
-fn set_image(doc: &mut BaseDocument, n: blitz_dom::NodeId, w: u32, h: u32, rgba: Vec<u8>) {
+fn set_image(doc: &mut BaseDocument, n: blitz_dom::NodeId, w: u32, h: u32, rgba: Arc<Vec<u8>>) {
     let Some(node) = doc.get_node_mut(n) else { return };
     let Some(el) = node.element_data_mut() else { return };
-    el.special_data = SpecialElementData::Image(Box::new(ImageData::Raster(RasterImageData { width: w, height: h, data: vello::peniko::Blob::new(Arc::new(rgba)) })));
+    el.special_data = SpecialElementData::Image(Box::new(ImageData::Raster(RasterImageData { width: w, height: h, data: vello::peniko::Blob::new(rgba) })));
     node.clear_layout_cache();
     node.insert_damage(raea_sys_page::ALL_DAMAGE);
     node.mark_ancestors_dirty();

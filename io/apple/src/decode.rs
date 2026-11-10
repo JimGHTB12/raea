@@ -19,6 +19,8 @@ pub(crate) struct Decoder {
     pub(crate) surface: bool,
     /// the presentation times, read once from the compressed samples (for index_at)
     pub(crate) sample_pts: Option<Vec<f64>>,
+    /// the edit list's shift from the track's sample times to the reader's (as read_pts and vtseek have it), read once
+    pub(crate) shift: Option<f64>,
     pub(crate) watch: Watch,
     /// the file, for a seek on VideoToolbox directly
     pub(crate) path: std::path::PathBuf,
@@ -88,7 +90,13 @@ impl Drop for Decoder {
 }
 
 impl Decoder {
+    /// A fresh reader for the frame at `t`, started half a frame before it.
     pub(crate) fn restart(&mut self, t: f64) -> R<()> {
+        self.restart_from((t - 0.5 / self.info.fps).max(0.0))
+    }
+
+    /// A fresh reader whose time range starts at `start`: it decodes from the keyframe at or before it.
+    pub(crate) fn restart_from(&mut self, start: f64) -> R<()> {
         // the old reader's VideoToolbox session goes now, not whenever its last reference does (and the watch lets go
         // of it first)
         self.watch.set(None);
@@ -135,9 +143,8 @@ impl Decoder {
             };
             let reader = AVAssetReader::assetReaderWithAsset_error(&self.asset)
                 .map_err(|e| format!("AVAssetReader: {}", e.localizedDescription()))?;
-            let start = (t - 0.5 / self.info.fps).max(0.0);
             reader.setTimeRange(CMTimeRange {
-                start: CMTime::with_seconds(start, 600),
+                start: CMTime::with_seconds(start, 1_000_000),
                 duration: kCMTimePositiveInfinity,
             });
             reader.addOutput(&out);
@@ -396,11 +403,48 @@ impl Decoder {
         }
     }
 
+    /// The latest keyframe at or before `t`, in the reader's times: a cursor at `t` stepped back in decode order to a
+    /// sync sample shown by then (a GOP's steps or two, nothing decoded; an open GOP's keyframe is decoded before the
+    /// leading frames shown ahead of it, so one found first may not be due yet); None when the track has no cursor.
+    pub(crate) fn key_before(&mut self, t: f64) -> Option<f64> {
+        objc2::rc::autoreleasepool(|_| unsafe {
+            let media = AVMediaTypeVideo?;
+            #[allow(deprecated)]
+            let tracks = self.asset.tracksWithMediaType(media);
+            let track = tracks.firstObject()?;
+            let shift = *self.shift.get_or_insert_with(|| {
+                track.segments().iter().find(|s| !s.isEmpty()).map(|s| s.timeMapping()).map(|m| m.target.start.seconds() - m.source.start.seconds()).unwrap_or(0.0)
+            });
+            let cur = track.makeSampleCursorWithPresentationTimeStamp(CMTime::with_seconds(t - shift, 1_000_000))?;
+            for _ in 0..2000 {
+                let pts = cur.presentationTimeStamp().seconds() + shift;
+                if cur.currentSampleSyncInfo().sampleIsFullSync.as_bool() && pts <= t {
+                    return Some(pts);
+                }
+                if cur.stepInDecodeOrderByCount(-1) != -1 {
+                    return None;
+                }
+            }
+            None
+        })
+    }
+
     pub(crate) fn frame_at_once(&mut self, t: f64) -> R<Slot> {
         let eps = 1e-4;
         if self.since_restart >= RECYCLE_FRAMES {
-            self.restart(t)?;
-            self.cur = self.read()?;
+            // a fresh reader (it bounds VideoToolbox's memory) started at a keyframe play has reached, so it decodes
+            // nothing it won't show. Started between keyframes, it first decoded the GOP up to there: in play a hitch
+            // every 300 frames (46 ms at 1080p60, 163 ms at 4K30 with 250-frame GOPs; tests/play_timing.rs). Until a
+            // keyframe comes the old reader goes on, up to twice as long.
+            let held = self.cur.as_ref().map(|c| c.0.pts);
+            let key = held.and_then(|h| self.key_before(t + eps).filter(|&k| k > h + eps));
+            if let Some(k) = key {
+                self.restart_from(k + 1e-4)?;
+                self.cur = self.read()?;
+            } else if self.since_restart >= 2 * RECYCLE_FRAMES {
+                self.restart(t)?;
+                self.cur = self.read()?;
+            }
         }
         let usable = match (&self.cur, &self.reader) {
             (Some(c), Some(_)) => c.0.pts <= t + eps && t < c.0.pts + 2.0,

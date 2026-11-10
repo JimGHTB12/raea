@@ -153,6 +153,7 @@ fn open_decoder(path: &Path) -> R<Decoder> {
         nv12: false,
         surface: false,
         sample_pts: None,
+        shift: None,
         watch: Watch::new(),
         path: path.to_path_buf(),
         seeker: None,
