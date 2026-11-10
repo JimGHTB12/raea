@@ -190,6 +190,11 @@ pub fn normalize(raw: &Value) -> Result<Controller, String> {
     Ok(Controller { id, title, help: text(o, "help"), groups })
 }
 
+/// A controller from its module's default export as JSON (what `raea spec` prints), checked as `normalize` does.
+pub fn of_json(json: &str) -> Result<Controller, String> {
+    normalize(&serde_json::from_str(json).map_err(|e| e.to_string())?)
+}
+
 /// A value checked against its field: the same type, a choice among its options, a number within its range. The
 /// value as it's kept (a workflow's steps filled in, a list's strings trimmed).
 pub fn check_value(f: &Field, v: &Value) -> Result<Value, String> {

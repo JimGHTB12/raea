@@ -1,8 +1,8 @@
 ---
 title: "raea check"
-summary: "Check a composition's text in a second, or an export against the floor: text, contrast, safe areas, freezes, flashing, cues and loudness."
+summary: "Check a composition's text in a second, a project against every rule it holds, or an export against the floor: text, contrast, safe areas, freezes, flashing, cues and loudness."
 order: 42
-sources: ["apps/check/src/lib.rs", "apps/check/src/quick.rs"]
+sources: ["apps/check/src/lib.rs", "apps/check/src/quick.rs", "apps/direction/src/check.rs", "sdk/raea/src/check.ts"]
 ---
 
 `raea check` has two speeds. On a composition with `--quick`, it renders three stills and measures the text:
@@ -25,12 +25,46 @@ the platform's buttons, captions held too briefly and caption contrast. The tran
 word and music fighting the voice; the perception adds text over a face. A taste file adds the person's own rules,
 each an error when broken, since their rule beats the floor's default.
 
+## Every rule a project holds
+
+On a project, or a composition's file, with no `--quick`, `raea check` runs every rule that applies to each
+composition: raea's floor on its newest render, your taste's measurable lines, and the rules in the workspace's and
+the project's controllers. A rule is a controller field of type `rule`: its words, and the check that holds it,
+either one of raea's by name with its values or a `.ts` check of your own.
+
+```ts
+// controllers/rules.ts
+{ label: "Captions clear the button band", type: "rule", check: "../checks/caption.ts", values: { band: 0.8 } }
+```
+
+A check is a system over the composition's world, the same world `raea world` prints, so it reads a caption, a
+footage cut, a cue and a 3D part the same way. It says which frames it ranges over and whether it needs a render, and
+calls `found` for each thing that breaks the rule; it never prints.
+
+```ts
+// checks/caption.ts
+import { check, found, type Layer, type Text } from "raea/check";
+
+export default check({ id: "caption", text: "a caption clears the platform's button band" }, (world, _frame, values) => {
+  const band = Number(values.band ?? 0.8);
+  for (const t of world.find({ with: ["Text", "Layer"] })) {
+    if (world.component<Layer>(t, "Layer")!.medium !== "2d-type") continue;
+    const box = world.component<Text>(t, "Text")!.box; // in frame fractions: left, top, right, bottom
+    if (box && box[3] > band) found({ about: [t], says: `the caption reaches ${Math.round(box[3] * 100)}% down the frame` });
+  }
+});
+```
+
+What needs a render and has none waits, and the report says what it waits for. A render older than the composition's
+last change is still joined, with a note that what it measured may have moved.
+
 <!-- generated:begin by tools/manual-ref/cli.ts from `raea help --json`; edit only the flag descriptions -->
 
 ## Usage
 
 ```sh
 raea check EDIT.tsx --quick [--shape S] [--platform P] [--taste T] [-o check.json]   (three stills of a composition checked for text: clipped, cramped, safe areas, sizes; about a second)
+raea check [PROJECT|EDIT.tsx] [--composition ID] [--only ID] [--taste T] [--render OUT | --no-render] [--json]   (every check that applies to each composition, over its frames: raea's floor on its newest render, the person's taste, the workspace's and the project's rules (a controller's rule fields: one of raea's checks by name, or a project's .ts check); what needs a render and has none waits, and says so)
 raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, flashing, cues, loudness, blotching, a placeholder brand kit; its findings errors, warns and notes)
 ```
 
@@ -40,10 +74,15 @@ Headless: it needs nothing running and opens no window. Takes up to 1 argument b
 
 | Flag | Takes | What it does |
 | --- | --- | --- |
+| `--composition` | `ID` | Check one composition of the file or project instead of every one. |
+| `--json` | – | Print the findings as JSON (one Finding each, as the project's record keeps them) instead of lines. |
 | `--manifest` | `render.json` | The manifest `raea render --manifest` wrote for this export: where each element was on each frame, for the text, contrast and safe-area checks. |
+| `--no-render` | – | Join no render: run only the checks that need none, and list the rest as waiting. |
+| `--only` | `ID` | Run one rule's check: a check of raea's by name (`text-above`) or a project check's id (its `check({ id })`). |
 | `--perception` | `P.json` | Where the face is on each frame (the `perception.json` `raea cut` writes), to find text over a face. |
 | `--platform` | `P` | Check the safe areas against this platform's buttons and captions. |
 | `--quick` | – | Check a composition's text from three stills instead of checking an export. |
+| `--render` | `OUT` | Join this render instead of the composition's newest in the project's record. |
 | `--shape` | `S` | The delivery's aspect ratio, for its safe areas. |
 | `--taste` | `T` | The person's taste files: the rules in them that carry a `check` are applied too. |
 | `--words` | `W.json` | The transcript, to check cues against their words and the voice against the music. |

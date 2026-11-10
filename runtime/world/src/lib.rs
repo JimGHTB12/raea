@@ -28,10 +28,14 @@ type R<T> = Result<T, String>;
 /// What a read is asked for: the frames, and whether the page is laid out (without it, its text carries
 /// `needs: "render"`, as no box or size is known).
 pub struct Ask {
+    /// none: every frame of the composition (`raea check`'s checks that range over all of them)
     pub frames: Vec<i64>,
     pub layout: bool,
     /// which render's facts join the world (DR2)
     pub render: Render,
+    /// the frames it joins (None: every frame asked); `raea check` joins it only where a check needs a render, as a
+    /// text's contrast is measured on each frame it joins
+    pub join_on: Option<BTreeSet<i64>>,
 }
 
 /// One stepped frame: its 3D, its React tree, and its page as laid out.
@@ -72,7 +76,8 @@ fn stepped(js: &Path, tsx: &Path, ask: &Ask, words: Option<&Value>) -> R<Vec<Fac
     if let Some(f) = ask.frames.iter().find(|f| **f < 0 || **f >= length) {
         return Err(format!("there's no frame {f}: the composition has frames 0 to {}", length - 1));
     }
-    let wanted: BTreeSet<i64> = ask.frames.iter().copied().collect();
+    let asked: Vec<i64> = if ask.frames.is_empty() { (0..length).collect() } else { ask.frames.clone() };
+    let wanted: BTreeSet<i64> = asked.iter().copied().collect();
     // and each one's next frame, for what moves (the camera's velocity)
     let all: BTreeSet<i64> = wanted.iter().flat_map(|&f| [f, f + 1]).filter(|f| *f < length).collect();
     let mut page = page::Page::new(ask.layout, w, h, dir);
@@ -88,8 +93,7 @@ fn stepped(js: &Path, tsx: &Path, ask: &Ask, words: Option<&Value>) -> R<Vec<Fac
     }
     let lines = timeline::project_lines(words, dir, fps);
     let mut render = renders::find(&ask.render, tsx, (w, h, fps));
-    let worlds = ask
-        .frames
+    let worlds = asked
         .iter()
         .map(|&f| {
             let now = &snaps[&f];
@@ -99,7 +103,7 @@ fn stepped(js: &Path, tsx: &Path, ask: &Ask, words: Option<&Value>) -> R<Vec<Fac
             timeline::put(&mut facts, &now.tree, now.laid.as_ref(), (w, h, fps), dir, &mut order);
             timeline::put_lines(&mut facts, &lines, &now.tree, f, fps);
             // what only a render knows, or what waits for one (DR2)
-            if ask.render != Render::Off {
+            if ask.render != Render::Off && ask.join_on.as_ref().is_none_or(|on| on.contains(&f)) {
                 renders::join(&mut facts, render.as_mut(), &now.tree);
             }
             facts

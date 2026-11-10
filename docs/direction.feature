@@ -137,6 +137,8 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
         came from; raea's own checks stay in Rust and are registered under the same names
       And a controller gains one field type, `rule`: `{ text, check, level }`, the check a name (one of raea's) with
         its values or a path to a project check; a project rule is a controller with rule fields
+      # Fixed in the code (DR4): the field's words are its `label`, as every controller field's are, and its values are
+      # a field of their own: `{ label, type: "rule", check, values?, level? }`.
       And the taste file's six forms become six of raea's named checks (same names, same values), so
         `{ form: "text-above", value: 62 }` still reads and no taste file changes
       And the stages are recorded in .raea/project (`[stage] components = passed <sha>` ...), set by the stage's
@@ -327,20 +329,74 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
       # turning the camera away doesn't read as a fix.
       And `raea next` reads from it (not from a check.json's modified time, as next.rs does now)
 
-    @needs:DR1,DR3
+    @needs:DR1,DR3 @done
     Scenario: DR4. A check is a system; raea's own are written the same way
+      # Status 11-10: built. A rule is a line and the check that holds it (core/facts rule.rs): one of raea's checks by
+      # name with its values, or a project's .ts check by its path. A controller field of type `rule` ({ label, check,
+      # values?, level? }) is one; taste's six forms are six named checks with the same names and values. `raea check
+      # PROJECT|EDIT.tsx` gathers every rule that applies (raea's floor, the person's taste, the workspace's and the
+      # project's controllers), plans the frames each reads, reads those frames' worlds once (DR1, joined with the
+      # newest render: DR2), runs raea's named checks in Rust and the project's in raea's JS host (sdk/raea check.ts,
+      # imported as raea/check), and keeps the findings in the project's record (DR3). A check that needs a render and
+      # has none waits, and the report says what for. A check that throws, a rule file that can't be read and a
+      # check's output that can't be read are each a finding, never dropped. `raea check VIDEO.mp4` is the floor, as
+      # before. The manual's raea check page has the project form and a check written out.
+      # The proof, bench/direction/proof/proof.sh (release binary, M5 Pro; its media made with ffmpeg, nothing
+      # downloaded): five checks that import nothing of Bevy's, each run on a piece that holds it (0 findings each) and
+      # on a cheat that must fail it. The lyric cheat sets the line as 3D type 0.002 m deep, facing the camera so its
+      # frame reads as flat type (seen), with nothing in front: "3d type, 0.002 m deep" and "nothing is in front of the
+      # line", frames 6-54. The cut cheat cuts at 1.50 s and 2.50 s, inside "two" and "three": two errors. The mix cheat
+      # places a beep that starts after 150 ms of silence: "heard 150 ms after where it is placed". The ad cheat's
+      # caption overflows a fixed-height box to 89% down the frame, past the band from 80%. The ride cheat turns the
+      # rider with its seat but sets it 10 cm into the seat's back: "10 cm into seat-back", as the geometry has it. And
+      # a taste line (text-above 75%, passed with --taste) fails the ad cheat at 89% as the named check of its form.
+      # Twelve cases, all as expected, in 18.8 s with the four renders they need.
+      # Found and fixed on the way: a text's box was its element's even when its words were drawn past it (the caption
+      # cheat passed: engine/page's manifest now grows the box over its lines); a word a cut passes through was in
+      # neither clip's words (the cut cheat passed); a part's world box is the box around it as turned, so a rider on a
+      # turned seat read as inside its back (a Part now has its `own` box before its transform); a relative
+      # EDIT.tsx found no project (its parent is ""); the help's flag check refused --only, and read `[A | B]` as two
+      # arguments.
+      # Proved by tests in raea-app-direction (9), raea-core-facts (11: the generated TS types match the committed
+      # file), raea-runtime-world (12), raea-app-check (27), raea-core-brief (11), raea-app-workspace (7), raea-page
+      # (7), and the proof.
+      # Not seen, or left: of the proof's renders I looked at one frame each of the lyric and its cheat; the others
+      # were not watched, and the mix was not listened to (the cue's 150 ms is the onset measure). A check whose file
+      # fails as its bundle loads is a finding only after the JS host's 120 s limit. A composition's newest render is
+      # found by its file, size and rate, so two compositions of one file with the same size share one. The cue check
+      # tests placement only: what causes a cue is DR21's CausedBy. The rider check names its parts in the rule's
+      # values until DR16's Rides says it. Shane's taste files have no line with a check today, so his taste adds no
+      # rule to a run until one does.
       Given the plan
         | crate              | file                           | lines | job                                                                    |
         | raea-app-direction | apps/direction/src/systems.rs  | 300   | raea's checks registered by name with their values; a project's TS checks run beside them |
         | raea-core-facts    | core/facts/src/rule.rs         | 180   | Rule: text, check (a name and values, or a path), level; taste's Check as six of them |
-      And sdk/raea/src/check.ts (about 220 lines): `check({ id, text, needs, level }, (world, frame) => ...)`,
-        `found(...)`, and the components' types generated from core/facts (ts-rs, as core/brief's are)
-      Then `raea check [PROJECT | EDIT.tsx | VIDEO.mp4] [--stage S] [--only ID] [--json]` runs every check that
-        applies: raea's floor, the person's taste, the workspace's and the project's rules, the project's notes
+        | raea-app-direction | apps/direction/src/check.rs    | 320   | `raea check PROJECT|EDIT.tsx`: the rules that apply, the frames each reads, the worlds read once, the report and the record |
+        | raea-app-direction | apps/direction/src/ts.rs       | 140   | a project's TS checks bundled with raea/check and run on the worlds in raea's JS host |
+        | raea-core-brief    | core/brief/src/controller.rs   | 240   | the controller field type `rule`                                       |
+      # Fixed in the code (DR4): the plan had systems.rs run the project's TS checks too. The command (which rules
+      # apply, which frames to read) and the call into the JS host are files of their own, so systems.rs holds raea's
+      # named checks alone. The field type `rule` is DR8's in its plan (rule_field.rs), but `raea check` can't run a
+      # project's rules until a controller can hold one, so it is built here, in controller.rs beside the other kinds.
+      And sdk/raea/src/check.ts (about 220 lines): `check({ id, text, needs, level, frames }, (world, frame, values)
+        => ...)`, `found(...)`, and the components' types generated from core/facts (ts-rs, as core/brief's are)
+      # Fixed in the code (DR4): the system was `(world, frame)`. A rule carries values (the caption band's 0.8, the
+      # rider's part names), and a check reads them from its third argument, so one check file serves rules with
+      # different limits. The types are generated to sdk/raea/src/facts.gen.ts; a test fails when they differ.
+      Then `raea check [PROJECT|EDIT.tsx] [--composition ID] [--only ID] [--taste T] [--render OUT | --no-render]
+        [--json]` runs every check that applies: raea's floor, the person's taste, the workspace's and the project's
+        rules
+      # Fixed in the code (DR4): this line had `--stage S`, "the project's notes" and VIDEO.mp4 as a third form. Stages
+      # are DR10's and notes DR5's and DR6's: until then there is no stage for --stage to pick and no note to run, so
+      # each joins `raea check` in its own scenario (DR6 and DR10 now say so). A video has no composition to read into a
+      # world, so `raea check VIDEO.mp4` stays apps/check's floor, and a project's floor runs on its newest video render.
+      # --composition picks one of a file's compositions; --render and --no-render are DR2's, as `raea world` has them.
       And a check says whether it needs a render (`needs: "render"`); on a project or composition with no render,
         `raea check` runs the checks that need none and lists each that waits, with what it waits for (DR2's Waits)
-      And a check is told once what it ranges over (`frames: "all" | "cuts" | "lines" | [..]`) and is run there; it
-        finds entities, measures, and calls `found(...)`; it never prints
+      And a check is told once what it ranges over (`frames: "all" | "cuts" | "lines" | "once" | [..]`) and is run
+        there; it finds entities, measures, and calls `found(...)`; it never prints
+      # Fixed in the code (DR4): "once" is added, for a check of the whole piece (the floor, loudness, a still's longest
+      # hold): it runs on one world, which holds the render's resources.
       And the same check text reads for a mesh and for a caption: `world.find({ with: ["Text", "Layer"] })`
       And proved in small on 11-10 (bench/direction/proto/world.ts, plain bun, raea/ecs as it is today, no engine):
         one world holding a 2D lyric layer, a 3D rider and seat, a footage cut and a sound cue; four checks as
@@ -381,6 +437,7 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
       Then an ask's check is a system (DR4) written in the note's file or named from raea's, and `raea notes check`
         must show it failing on the work as it stands before the work may change (a check that already passes is
         refused: it isn't measuring the ask)
+      And `raea check` runs the project's notes' checks with its rules (moved here from DR4, which has no notes to run)
       And each finding carries the ask that asked for it (`by`), so two asks that use one named check are told
         apart (the prototype counted both asks' findings against each until it did)
       And where the ask can't be measured, its proof is a clip: `proof: { shot | frames, sign: true }`; it passes only
@@ -411,8 +468,10 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
     Scenario: DR8. A note's check climbs to a rule, and to taste
       Given the plan
         | crate              | file                           | lines | job                                                                    |
-        | raea-core-brief    | core/brief/src/rule_field.rs   | 90    | a controller field of type `rule` (controller.rs's Kind gains it)      |
-        | raea-app-workspace | apps/workspace/src/rules.rs    | 80    | rule fields read as checks; `raea notes keep ID --as project, workspace or taste` |
+        | raea-app-workspace | apps/workspace/src/rules.rs    | 80    | `raea notes keep ID --as project, workspace or taste`                  |
+      # Fixed in the code (DR4): the field type `rule` and reading rule fields as checks were planned here
+      # (rule_field.rs, and rules.rs's first job). `raea check` needed both to run a project's rules, so DR4 built them:
+      # Kind::Rule in core/brief controller.rs, and the rules read in apps/direction check.rs.
       Then `raea notes keep` moves a note's check to controllers/<id>.ts as a rule field (project or workspace), or
         to the person's taste as a rule; the note keeps a pointer; the check's text is not copied
       And the taste loop (docs/craft-system.md J) proposes this when a correction repeats, as it does now, and now
@@ -439,6 +498,7 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
       And each stage closes by its review (`raea stage review components` ...), which runs that stage's checks and
         makes what a person looks at (a sheet for components, clips for the rest); the person's yes, or the checks
         alone where the brief says so, records it in .raea/project
+      And `raea check --stage S` runs that stage's checks alone (moved here from DR4, which has no stages to pick)
       And `raea next` names the open stage and its first failing check, and no longer says "stills to look at first"
       And starting a later stage's work on a failing earlier one is a finding at every render, not a refusal of the
         file save: a camera can be sketched early, but nothing with a camera can be posted

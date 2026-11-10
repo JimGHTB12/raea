@@ -242,7 +242,8 @@ pub(crate) fn put(facts: &mut Facts, tree: &[El], laid: Option<&Value>, (w, h, f
 
 /// The words a take's transcript (TAKE.words.json, beside it) has between `from` and `out` seconds of the take.
 fn list_words(take: &Path, fps: f64, from: f64, out: Option<f64>) -> Vec<Word> {
-    words(&take.with_extension("words.json"), fps).into_iter().filter(|w| w.start >= from && out.is_none_or(|o| w.start < o)).collect()
+    // any word the clip holds part of: one its in or out point cuts through is in it (a check of where a cut lands reads it)
+    words(&take.with_extension("words.json"), fps).into_iter().filter(|w| w.end > from && out.is_none_or(|o| w.start < o)).collect()
 }
 
 #[cfg(test)]

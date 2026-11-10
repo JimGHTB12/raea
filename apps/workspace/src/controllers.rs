@@ -22,8 +22,7 @@ pub fn load(ws: &Path, eval: Eval) -> R<Vec<(PathBuf, Controller)>> {
 }
 
 fn read(f: &Path, eval: Eval) -> R<Controller> {
-    let raw: serde_json::Value = serde_json::from_str(&eval(f)?).map_err(|e| format!("{}: {e}", f.display()))?;
-    ctl::normalize(&raw).map_err(|e| format!("{}: {e}", f.display()))
+    ctl::of_json(&eval(f)?).map_err(|e| format!("{}: {e}", f.display()))
 }
 
 /// The module a controller is kept as.

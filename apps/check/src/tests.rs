@@ -64,8 +64,8 @@ fn taste_checks_hold_text_to_the_persons_line() {
     ]}]})).unwrap();
     let rules = taste_rules(&[taste]);
     assert_eq!(rules, vec![
-        Taste { form: "text-above".into(), value: 62.0, line: "Captions sit clear of the bottom.".into() },
-        Taste { form: "text-hold".into(), value: 2.0, line: "Text holds two seconds".into() },
+        Taste { form: "text-above", value: 62.0, line: "Captions sit clear of the bottom.".into() },
+        Taste { form: "text-hold", value: 2.0, line: "Text holds two seconds".into() },
     ]);
     let low = Run { text: "Render anything.".into(), from: 1.0, to: 4.0, box_: [800.0, 800.0, 300.0, 60.0], boxes: vec![[800.0, 800.0, 300.0, 60.0]], color: String::new(), size: 48.0 };
     let high = Run { text: "raea".into(), from: 5.0, to: 6.0, box_: [800.0, 300.0, 300.0, 60.0], boxes: vec![[800.0, 300.0, 300.0, 60.0]], color: String::new(), size: 48.0 };
@@ -73,7 +73,7 @@ fn taste_checks_hold_text_to_the_persons_line() {
     taste_text(&rules, &[low, high], 1920.0, 1080.0, &mut issues, &mut passed);
     let says: Vec<_> = issues.iter().map(|i| (i.rule, i.p, i.at)).collect();
     // the low caption breaks the placement line (860 of 1080 is 80%); the short one breaks the hold
-    assert_eq!(says, vec![("taste", 1, Some(1.0)), ("taste", 1, Some(5.0))]);
+    assert_eq!(says, vec![("text-above", 1, Some(1.0)), ("text-hold", 1, Some(5.0))], "a taste line is the named check of its form (DR4)");
 }
 
 /// `RAEA_CHECK_ARGS="film.mp4 --manifest film.render.json --taste DIR" cargo test -p raea-runtime-react --lib

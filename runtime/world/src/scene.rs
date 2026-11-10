@@ -48,10 +48,13 @@ pub(crate) fn part(it: &Item) -> Part {
     let (scale, rot, at) = it.world.to_scale_rotation_translation();
     let tris = raea_core_scene::own_tris(it).ok();
     let (mut lo, mut hi, mut n) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN), 0u32);
+    let (mut own_lo, mut own_hi) = (lo, hi);
     for (_, ts) in tris.iter().flat_map(|t| t.0.iter()) {
         for t in ts {
             n += 1;
-            for p in t.map(|p| it.world.transform_point3(p)) {
+            for &p in t {
+                (own_lo, own_hi) = (own_lo.min(p), own_hi.max(p));
+                let p = it.world.transform_point3(p);
                 (lo, hi) = (lo.min(p), hi.max(p));
             }
         }
@@ -66,6 +69,7 @@ pub(crate) fn part(it: &Item) -> Part {
         scale: f3(scale),
         min: (n > 0).then(|| f3(lo)),
         max: (n > 0).then(|| f3(hi)),
+        own: (n > 0).then(|| [f3(own_lo), f3(own_hi)]),
         triangles: tris.is_some().then_some(n),
         src: it.props.get("src").and_then(Value::as_str).map(str::to_string),
         material: material.map(|m| m.kind.to_string()),

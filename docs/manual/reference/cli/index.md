@@ -61,7 +61,7 @@ What's wrong before anyone watches it.
 
 | Verb | What it does |
 | --- | --- |
-| [`raea check`](check.md) | Check a composition's text in a second, or an export against the floor: text, contrast, safe areas, freezes, flashing, cues and loudness. |
+| [`raea check`](check.md) | Check a composition's text in a second, a project against every rule it holds, or an export against the floor: text, contrast, safe areas, freezes, flashing, cues and loudness. |
 | [`raea judge`](judge.md) | Judge a 3D scene's review sheets blind, by a model on a frozen rubric or a fresh agent session, with the pass decided in code. |
 | [`raea findings`](findings.md) | What each render and check found, read back from the project's record: fixed, new and carried since the one before. |
 | [`raea scene`](scene.md) | Find floating, sunk and clipping 3D parts, say what each part rests on, and meter a shot's light. |

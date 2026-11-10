@@ -32,7 +32,7 @@ pub fn main() -> i32 {
     match args.first().map(String::as_str) {
         // `check VIDEO.mp4 …`: the floor's measurable lines on an export, ranked P0-P3
         // (with --taste or --quick, through the engine, which evaluates the taste.ts files or renders stills: `check` here)
-        Some("check") if !args.iter().any(|a| a == "--taste" || a == "--quick") => raea_app_check::cli_with(&args[1..], Vec::new()),
+        Some("check") if !args.iter().any(|a| a == "--taste" || a == "--quick") && raea_app_direction::check::of_video(&args[1..]) => raea_app_check::cli_with(&args[1..], Vec::new()),
         // `ci …`: the gates' sound measurements and lightspeed's process measurements
         Some("ci") => raea_app_ci::cli(&args[1..]),
         _ => {

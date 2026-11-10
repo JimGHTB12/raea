@@ -153,7 +153,7 @@ fn render(args: &[String]) -> Result<Render, String> {
 fn run(args: &[String]) -> Result<String, String> {
     let edit = args.iter().find(|a| a.ends_with(".tsx")).ok_or(USAGE)?;
     let q = flag(args, "--find").as_deref().map(Find::parse).transpose()?;
-    let ask = Ask { frames: frames(args)?, layout: !args.iter().any(|a| a == "--no-layout"), render: render(args)? };
+    let ask = Ask { frames: frames(args)?, layout: !args.iter().any(|a| a == "--no-layout"), render: render(args)?, join_on: None };
     let worlds = raea_runtime_world::read(std::path::Path::new(edit), &raea_runtime_bundle::comp_opts(args)?, &ask)?;
     if args.iter().any(|a| a == "--json") {
         let one = |w: &Facts| match &q {
@@ -197,7 +197,7 @@ mod tests {
         w.put(scene, &Layer { medium: Medium::Scene3d, order: 0, opacity: 1.0, blend: None });
         let sign = w.spawn(Some(scene));
         w.put(sign, &Text { words: "OPEN".into(), font: None, size: None, box_: None, extruded: 0.2, lines: Some(1), needs: None });
-        w.put(sign, &Part { kind: "text3d".into(), name: "sign".into(), tags: vec![], at: [0.0; 3], rotation: [0.0, 0.0, 0.0, 1.0], scale: [1.0; 3], min: None, max: None, triangles: None, src: None, material: None, color: None });
+        w.put(sign, &Part { kind: "text3d".into(), name: "sign".into(), tags: vec![], at: [0.0; 3], rotation: [0.0, 0.0, 0.0, 1.0], scale: [1.0; 3], min: None, max: None, own: None, triangles: None, src: None, material: None, color: None });
         let hidden = w.spawn(None);
         w.put(hidden, &Layer { medium: Medium::Type2d, order: 3, opacity: 1.0, blend: None });
         w.put(hidden, &Text { words: "UNDER".into(), font: None, size: None, box_: None, extruded: 0.0, lines: None, needs: None });

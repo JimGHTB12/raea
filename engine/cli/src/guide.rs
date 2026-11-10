@@ -62,7 +62,7 @@ pub fn context(project: Option<&str>) -> R<String> {
     let brief_path = brief_at(project)?;
     let spec::Loaded { path: brief_path, text: brief, title, modes, more: subs, look, .. } = spec::load_brief_ts(&brief_path)?;
     let dir = brief_path.parent().unwrap_or(Path::new(".")).to_path_buf();
-    let taste_dir = std::env::var_os("RAEA_TASTE").map(PathBuf::from).or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".raea/taste")));
+    let taste_dir = raea_app_direction::check::taste_dir();
     // a cheap doctor (file reads and git config): CONTEXT_STALE when this project or the agent's skill is from another raea
     let stale = raea_app_workspace::doctor::findings(&dir, &skill::agents(), &skill::version());
     let stale = match stale.first() {

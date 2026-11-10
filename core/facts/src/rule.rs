@@ -4,7 +4,7 @@
 //! changes nothing about how it runs: it is only said, as its findings' `by`. A taste file's six forms are six of
 //! raea's named checks with the same names and values, so every taste file reads as it did.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use raea_core_brief::{controller, taste};
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,9 @@ pub struct Rule {
     pub check: String,
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub values: Map<String, Value>,
-    pub level: Level,
+    /// how bad what it finds is (None: the check's own level, else an error)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level: Option<Level>,
     /// where it was written: "raea", or "taste", "workspace" or "project" and the file
     pub by: String,
 }
@@ -30,7 +32,7 @@ pub struct Rule {
 impl Rule {
     /// One of raea's checks by `name`, held to `values`.
     pub fn named(name: &str, text: &str, values: Map<String, Value>, level: Level, by: &str) -> Rule {
-        Rule { id: name.into(), text: text.into(), check: name.into(), values, level, by: by.into() }
+        Rule { id: name.into(), text: text.into(), check: name.into(), values, level: Some(level), by: by.into() }
     }
 
     /// The project's .ts check this rule runs, when it runs one.
@@ -50,21 +52,22 @@ impl Rule {
         Rule::named(c.form(), text, values, Level::Error, &format!("taste {file}"))
     }
 
-    /// A controller's rule fields, each a rule: a path from `dir` (the controller's folder) made whole, the field's
-    /// label its words. `by`: "workspace" or "project", with the controller's file.
+    /// A controller's rule fields, each a rule: a check's path joined to `dir` (the controller's folder; its `..`
+    /// steps are the caller's to take), the field's label its words. `by`: "workspace" or "project", with the
+    /// controller's file.
     pub fn of_controller(c: &controller::Controller, dir: &Path, by: &str) -> Vec<Rule> {
         let mut out = Vec::new();
         for f in c.groups.iter().flat_map(|g| &g.fields) {
             let controller::Kind::Rule { check, values, level } = &f.kind else { continue };
             let (check, id) = match check.ends_with(".ts") {
                 true => {
-                    let path: PathBuf = dir.join(check);
+                    let path = dir.join(check);
                     let id = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
                     (path.display().to_string(), id)
                 }
                 false => (check.clone(), check.clone()),
             };
-            let level = level.as_deref().map_or(Level::Error, Level::of_word);
+            let level = level.as_deref().map(Level::of_word);
             out.push(Rule { id, text: f.label.clone(), check, values: values.clone().unwrap_or_default(), level, by: by.into() });
         }
         out
@@ -78,7 +81,7 @@ mod tests {
     #[test]
     fn a_taste_form_is_the_named_check_of_the_same_name_and_value() {
         let r = Rule::of_taste("Captions sit clear of the bottom.", taste::Check::TextAbove(62.0), "taste.ts");
-        assert_eq!((r.id.as_str(), r.check.as_str(), r.number("value"), r.level), ("text-above", "text-above", Some(62.0), Level::Error));
+        assert_eq!((r.id.as_str(), r.check.as_str(), r.number("value"), r.level), ("text-above", "text-above", Some(62.0), Some(Level::Error)));
         assert!(r.file().is_none() && r.by == "taste taste.ts");
     }
 
@@ -91,7 +94,7 @@ mod tests {
         let c = controller::normalize(&raw).unwrap();
         let rs = Rule::of_controller(&c, Path::new("/p/controllers"), "project controllers/rules.ts");
         assert_eq!(rs.len(), 2, "a toggle is no rule");
-        assert_eq!((rs[0].id.as_str(), rs[0].file(), rs[0].level), ("clear", Some(Path::new("/p/controllers/../checks/clear.ts")), Level::Warn));
-        assert_eq!((rs[1].check.as_str(), rs[1].number("value"), rs[1].level), ("loudness", Some(-14.0), Level::Error));
+        assert_eq!((rs[0].id.as_str(), rs[0].file(), rs[0].level), ("clear", Some(Path::new("/p/controllers/../checks/clear.ts")), Some(Level::Warn)));
+        assert_eq!((rs[1].check.as_str(), rs[1].number("value"), rs[1].level), ("loudness", Some(-14.0), None));
     }
 }

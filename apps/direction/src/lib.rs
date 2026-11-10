@@ -10,3 +10,8 @@ pub use rendered::rendered;
 
 // `raea findings`: the project's record read back, fixed, new and carried (DR3)
 pub mod findings;
+
+// `raea check PROJECT | EDIT.tsx`: every rule's check, raea's named ones and a project's TS ones, over the worlds (DR4)
+pub mod check;
+pub mod systems;
+pub mod ts;

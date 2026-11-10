@@ -40,16 +40,28 @@ struct Issue {
 /// `raea check …` with the person's taste, none or more (taste.ts and the kinds beside it, which the raea CLI evaluates: it owns the engine):
 /// its rules' checks hold the export to the person's own lines.
 pub fn cli_with(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> i32 {
-    match run(args, tastes) {
+    said(run(args, tastes), "REFUSED  ")
+}
+
+/// A check's report printed, and its exit code: 1 when it found an error, 2 when it couldn't check (said after
+/// `refused`). `raea check EDIT.tsx` (apps/direction) ends the same way.
+pub fn said(ran: R<(String, bool)>, refused: &str) -> i32 {
+    match ran {
         Ok((report, bad)) => {
             println!("{report}");
             i32::from(bad)
         }
         Err(e) => {
-            eprintln!("REFUSED  {e}");
+            eprintln!("{refused}{e}");
             2
         }
     }
+}
+
+/// A command's words: its arguments that are neither flags nor a flag's value (`takes`: the flags that take one).
+/// What `raea check` checks is its first; `raea workspace` and `raea project` read theirs the same way.
+pub fn words<'a>(args: &'a [String], takes: &[&str]) -> Vec<&'a str> {
+    args.iter().enumerate().filter(|(i, a)| !a.starts_with('-') && !(*i > 0 && takes.contains(&args[i - 1].as_str()))).map(|(_, a)| a.as_str()).collect()
 }
 
 fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
@@ -61,14 +73,14 @@ pub const USAGE: &str = "raea check VIDEO.mp4 [--manifest render.json] [--words 
 /// A rule from the person's taste: a form raea can measure, its value, and the taste line it stands for.
 #[derive(Clone, Debug, PartialEq)]
 struct Taste {
-    form: String,
+    form: &'static str,
     value: f64,
     line: String,
 }
 
 /// The checks among a person's taste rules (taste.ts and its kinds), each with the line it stands for.
 fn taste_rules(tastes: &[raea_core_brief::Taste]) -> Vec<Taste> {
-    tastes.iter().flat_map(|t| &t.sections).flat_map(|s| &s.rules).filter_map(|r| r.check.map(|c| Taste { form: c.form().to_string(), value: c.value(), line: r.text.clone() })).collect()
+    tastes.iter().flat_map(|t| &t.sections).flat_map(|s| &s.rules).filter_map(|r| r.check.map(|c| Taste { form: c.form(), value: c.value(), line: r.text.clone() })).collect()
 }
 
 fn taste_of<'a>(rules: &'a [Taste], form: &str) -> Option<&'a Taste> {
@@ -83,7 +95,7 @@ fn taste_text(rules: &[Taste], runs: &[Run], w: f64, h: f64, issues: &mut Vec<Is
         for t in runs {
             let [x, y, bw, bh] = t.box_;
             let q = quote(&t.text);
-            let why = match r.form.as_str() {
+            let why = match r.form {
                 "text-hold" if t.to - t.from + 0.05 < r.value => Some(format!("{q} is on for {:.1} s, under your {:.1} s", t.to - t.from, r.value)),
                 "text-above" if y + bh > h * r.value / 100.0 + 1.0 => Some(format!("{q} reaches {:.0}% down the frame, below your {:.0}%", (y + bh) / h * 100.0, r.value)),
                 "text-below" if y < h * r.value / 100.0 - 1.0 => Some(format!("{q} starts {:.0}% down the frame, above your {:.0}%", y / h * 100.0, r.value)),
@@ -95,7 +107,7 @@ fn taste_text(rules: &[Taste], runs: &[Run], w: f64, h: f64, issues: &mut Vec<Is
             };
             if let Some(why) = why {
                 broke += 1;
-                issues.push(Issue { rule: "taste", p: 1, at: Some(t.from), says: format!("{why} (\"{}\")", r.line) });
+                issues.push(Issue { rule: r.form, p: 1, at: Some(t.from), says: format!("{why} (\"{}\")", r.line) });
             }
         }
         if broke == 0 && r.form.starts_with("text-") {
@@ -108,14 +120,28 @@ fn taste_text(rules: &[Taste], runs: &[Run], w: f64, h: f64, issues: &mut Vec<Is
 const TAKES: [&str; 7] = ["--manifest", "--words", "--perception", "--shape", "--platform", "--taste", "-o"];
 
 fn run(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String, bool)> {
-    let video = args.iter().enumerate().find(|(i, a)| !a.starts_with('-') && !(*i > 0 && TAKES.contains(&args[i - 1].as_str()))).map(|(_, a)| a.clone()).ok_or(USAGE)?;
+    let (video, issues, passed, fps) = measured(args, taste_rules(&tastes))?;
+    report(&video, issues, Vec::new(), passed, flag(args, "-o"), fps)
+}
+
+/// raea's floor on a video (`args` as raea check takes them) as Findings, printed and kept nowhere: `raea check
+/// EDIT.tsx` runs it on the composition's newest render beside its other checks (apps/direction, DR4). `held`: the
+/// rules of the named checks it measures on the video itself (loudness, still-max), each its form, value and line.
+pub fn floor(args: &[String], held: &[(&'static str, f64, String)]) -> R<Vec<Finding>> {
+    let held = held.iter().map(|(form, value, line)| Taste { form: *form, value: *value, line: line.clone() }).collect();
+    let (_, issues, _, fps) = measured(args, held)?;
+    Ok(findings_of(issues, Vec::new(), fps))
+}
+
+/// The video's issues and what passed, measured, and its frame rate.
+fn measured(args: &[String], taste: Vec<Taste>) -> R<(String, Vec<Issue>, Vec<String>, f64)> {
+    let video = words(args, &TAKES).first().map(|v| v.to_string()).ok_or(USAGE)?;
     if !std::path::Path::new(&video).exists() {
         return Err(format!("no file at {video}\n{USAGE}"));
     }
     let probe = Probe::of(&video)?;
     let mut issues = Vec::new();
     let mut passed = Vec::new();
-    let taste = taste_rules(&tastes);
     let manifest: Option<Value> = match flag(args, "--manifest") {
         Some(m) => Some(serde_json::from_str(&std::fs::read_to_string(m).map_err(|e| format!("{m}: {e}"))?).map_err(|e| format!("{m}: {e}"))?),
         None => None,
@@ -144,16 +170,14 @@ fn run(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String, bool)
             face_cover(&runs, &faces, &mut issues, &mut passed);
         }
     }
-
-    report(&video, issues, Vec::new(), passed, flag(args, "-o"), fps)
+    Ok((video, issues, passed, fps))
 }
 
 /// The issues as Findings (docs/direction.feature DR3: P0 and P1 errors, P2 a warn, P3 a note; a time is its frame at
-/// `fps`), with `more` (a render's own), worst first then by time; written to -o as JSON when asked, and the report's
-/// text with the count last. True when an error is among them.
-fn report(video: &str, mut issues: Vec<Issue>, more: Vec<Finding>, passed: Vec<String>, out: Option<&str>, fps: f64) -> R<(String, bool)> {
+/// `fps`), with `more` (a render's own), worst first then by time.
+fn findings_of(mut issues: Vec<Issue>, more: Vec<Finding>, fps: f64) -> Vec<Finding> {
     issues.sort_by(|a, b| a.p.cmp(&b.p).then(a.at.unwrap_or(0.0).total_cmp(&b.at.unwrap_or(0.0))));
-    let found = finding::ranked(
+    finding::ranked(
         issues
             .iter()
             .map(|i| {
@@ -169,7 +193,13 @@ fn report(video: &str, mut issues: Vec<Issue>, more: Vec<Finding>, passed: Vec<S
             })
             .chain(more)
             .collect(),
-    );
+    )
+}
+
+/// The findings (`findings_of`), written to -o as JSON when asked, and the report's text with the count last. True
+/// when an error is among them.
+fn report(video: &str, issues: Vec<Issue>, more: Vec<Finding>, passed: Vec<String>, out: Option<&str>, fps: f64) -> R<(String, bool)> {
+    let found = findings_of(issues, more, fps);
     let bad = found.iter().any(|f| f.level == Level::Error);
     if let Some(out) = out {
         let j = json!({"file": video, "fps": fps, "findings": found, "passed": passed});

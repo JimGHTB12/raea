@@ -214,7 +214,7 @@ pub(crate) fn loudness(video: &str, taste: Option<&Taste>, issues: &mut Vec<Issu
         ok = false;
         let says = format!("{i:.1} LUFS integrated; master at {target} (±1) with <Mix lufs={{{target}}} />");
         issues.push(match taste {
-            Some(t) => Issue { rule: "taste", p: 1, at: None, says: format!("{says} (\"{}\")", t.line) },
+            Some(t) => Issue { rule: t.form, p: 1, at: None, says: format!("{says} (\"{}\")", t.line) },
             None => Issue { rule: "loudness", p: 1, at: None, says },
         });
     }
@@ -256,7 +256,7 @@ pub(crate) fn freezes(video: &str, probe: &Probe, taste: Option<&Taste>, issues:
     for &(s, d) in &stretches {
         let says = format!("nothing changes for {d:.1} s; give it a reason to hold, or cut it shorter");
         issues.push(match taste {
-            Some(t) => Issue { rule: "taste", p: 1, at: Some(s), says: format!("{says} (\"{}\")", t.line) },
+            Some(t) => Issue { rule: t.form, p: 1, at: Some(s), says: format!("{says} (\"{}\")", t.line) },
             None => Issue { rule: "frozen", p: if d >= 6.0 || d >= probe.duration * 0.5 { 1 } else { 2 }, at: Some(s), says },
         });
     }

@@ -113,7 +113,17 @@ impl BlitzPage {
                 TextAlignKeyword::Justify => "justify",
                 _ => "left",
             };
-            let mut t = json!({"text": words, "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (alpha(owner) * 100.0).round() / 100.0,
+            // words set in an element shorter or narrower than they are (a fixed height, overflow visible) are drawn
+            // past it: the text's box is where they are, so it grows to cover its lines (DR4's caption cheat)
+            let (mut w, mut h) = (b.width, b.height);
+            if let Some(l) = node.element_data().and_then(|e| e.inline_layout_data.as_ref()) {
+                let (fl, scale) = (node.final_layout(), doc.viewport().scale() as f64);
+                // the element's own size to its bounding rect's (a transform scales one into the other)
+                let (fx, fy) = (b.width / (fl.size.width as f64).max(1e-6), b.height / (fl.size.height as f64).max(1e-6));
+                w = w.max(((fl.border.left + fl.padding.left) as f64 + l.layout.width() as f64 / scale) * fx);
+                h = h.max(((fl.border.top + fl.padding.top) as f64 + l.layout.height() as f64 / scale) * fy);
+            }
+            let mut t = json!({"text": words, "box": [r(b.x), r(b.y), r(w), r(h)], "opacity": (alpha(owner) * 100.0).round() / 100.0,
                 "color": color, "size": font.font_size.computed_size().px() as f64, "weight": font.font_weight.value() as f64, "align": align});
             // its first named face and how many lines it was set on (docs/direction.feature DR1's Text)
             if let Some(f) = font.font_family.families.iter().find_map(|f| match f { style::values::computed::font::SingleFontFamily::FamilyName(n) => Some(n.name.to_string()), _ => None }) {

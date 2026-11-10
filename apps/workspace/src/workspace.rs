@@ -65,8 +65,7 @@ pub(crate) fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
 
 /// The words of a command that aren't flags or a flag's value.
 fn words(args: &[String]) -> Vec<&str> {
-    let takes = ["--layout", "--storage", "--name", "--remote"];
-    args.iter().enumerate().filter(|(i, a)| !a.starts_with("--") && !(*i > 0 && takes.contains(&args[i - 1].as_str()))).map(|(_, a)| a.as_str()).collect()
+    raea_app_check::words(args, &["--layout", "--storage", "--name", "--remote"])
 }
 
 // a name as a folder (slug), and the nearest folder holding a marker (up): the registry's, which reads controller ids

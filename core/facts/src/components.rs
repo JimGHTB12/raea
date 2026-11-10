@@ -154,6 +154,9 @@ pub struct Part {
     /// its world box, low corner then high (None: a kind raea doesn't measure, or a file it can't read)
     pub min: Option<[f64; 3]>,
     pub max: Option<[f64; 3]>,
+    /// its own box, in its own space before its transform (low corner, high corner): with at, rotation and scale,
+    /// exactly where it is, turned as it is; its world box is the box around that (None as its world box)
+    pub own: Option<[[f64; 3]; 2]>,
     pub triangles: Option<u32>,
     /// a model's file
     pub src: Option<String>,
@@ -234,9 +237,10 @@ pub struct Line {
     pub needs: Option<String>,
 }
 
-/// The components' TypeScript declarations, for a check's types (sdk/raea/src/check.ts is generated from these).
+/// The components' TypeScript declarations, for a check's types (sdk/raea/src/facts.gen.ts, which raea/check
+/// re-exports). A frame is a number in TypeScript, as it is in the world's JSON.
 pub fn declarations() -> Vec<String> {
-    let cfg = Config::default();
+    let cfg = Config::default().with_large_int("number");
     macro_rules! decls { ($($t:ty),*) => { vec![$(format!("export {}", <$t as TS>::decl(&cfg))),*] }; }
     use crate::rendered::*;
     decls!(Source, Medium, Layer, Text, Part, Camera, Shot, Word, Clip, Cue, Line, Contrast, Picture, Onset, Covered, Covers, Mix, Rendered, Waits, crate::Level, crate::About, crate::Measure, crate::Finding)
@@ -275,5 +279,17 @@ mod tests {
             assert!(d.contains(&format!("type {name} ")), "no declaration for {name}: {d}");
         }
         assert!(d.contains("\"2d-type\""), "the medium's words are the person's: {d}");
+        assert!(!d.contains("bigint"), "a frame is a number in TypeScript: {d}");
+    }
+
+    #[test]
+    fn declarations_match_the_committed_file() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../sdk/raea/src/facts.gen.ts");
+        let now = format!("// Generated from raea-core-facts (core/facts) by its `declarations`; edit the Rust, not this.\n\n{}\n", declarations().join("\n\n"));
+        if std::env::var_os("RAEA_WRITE").is_some() {
+            std::fs::write(path, &now).unwrap();
+        }
+        let committed = std::fs::read_to_string(path).unwrap_or_default();
+        assert!(committed == now, "sdk/raea/src/facts.gen.ts is out of date: RAEA_WRITE=1 cargo test -p raea-core-facts");
     }
 }

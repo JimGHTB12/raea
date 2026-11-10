@@ -13612,9 +13612,13 @@ dependencies = [
 name = "raea-app-direction"
 version = "0.1.0"
 dependencies = [
+ "raea-app-check",
+ "raea-app-registry",
+ "raea-core-brief",
  "raea-core-facts",
  "raea-io-trace",
  "raea-runtime-bundle",
+ "raea-runtime-react",
  "raea-runtime-world",
  "serde_json",
 ]
@@ -13741,6 +13745,7 @@ dependencies = [
 name = "raea-app-workspace"
 version = "0.1.0"
 dependencies = [
+ "raea-app-check",
  "raea-app-registry",
  "raea-core-brief",
  "raea-core-facts",

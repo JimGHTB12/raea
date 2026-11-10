@@ -83,20 +83,9 @@ pub fn taste_file(dir: &Path, name: &str) -> Option<(PathBuf, String)> {
     })
 }
 
-/// The .ts files `--taste` names: the file, or every .ts in the folder.
-fn taste_ts_files(args: &[String]) -> Vec<PathBuf> {
-    let Some(t) = args.iter().position(|a| a == "--taste").and_then(|i| args.get(i + 1)).map(PathBuf::from) else { return vec![] };
-    if t.extension().is_some_and(|x| x == "ts") {
-        return vec![t];
-    }
-    let mut v: Vec<PathBuf> = std::fs::read_dir(&t).into_iter().flatten().filter_map(|e| e.ok().map(|e| e.path())).filter(|f| f.extension().is_some_and(|x| x == "ts")).collect();
-    v.sort();
-    v
-}
-
 /// `--taste`'s .ts files, each checked as Taste.
 pub fn tastes_ts(args: &[String]) -> R<Vec<schema::Taste>> {
-    taste_ts_files(args).iter().map(|f| read_spec(f)).collect()
+    raea_app_direction::check::taste_files(args).iter().map(|f| read_spec(f)).collect()
 }
 
 /// `raea spec FILE.ts [--as KIND]`: the default export as JSON, checked as KIND (by default from the file's name:
