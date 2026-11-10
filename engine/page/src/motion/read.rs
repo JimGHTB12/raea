@@ -17,6 +17,23 @@ impl BlitzPage {
         self.layers();
     }
 
+    /// The page laid out and nothing drawn (`raea world`, docs/direction.feature DR1): the main world's schedules run
+    /// (styles, layout) until its fonts and images are in, the render world's never, so the GPU is given no work. What
+    /// `manifest` and `boxes` read after it is what `draw` would have laid out.
+    pub fn lay_out(&mut self) {
+        for _ in 0..LOADING_UPDATES {
+            // the time the render world sends at each drawn update (bevy_render's send_time), or bevy_time warns
+            if let Some(s) = self.app.get_sub_app(bevy::render::RenderApp).and_then(|r| r.world().get_resource::<bevy::time::TimeSender>()) {
+                let _ = s.0.try_send(std::time::Instant::now());
+            }
+            self.app.main_mut().update();
+            if !self.loading() {
+                break;
+            }
+            std::thread::yield_now();
+        }
+    }
+
     /// RAEA_PAGE_DUMP leaves this page out: a page beside the composition's (raea-render's image rows, rows2d.rs) wrote
     /// its page.html over the composition's.
     pub fn not_dumped(&mut self) {

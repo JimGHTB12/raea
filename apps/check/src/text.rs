@@ -251,30 +251,15 @@ pub(crate) fn contrast(video: &str, runs: &[Run], w: f64, h: f64, probe: &Probe,
     }
 }
 
-pub(crate) struct Word {
-    pub(crate) text: String,
-    pub(crate) start: f64,
-    /// when the word ends, in seconds (its start when the transcript doesn't say)
-    pub(crate) end: f64,
-}
+/// A transcript's word: its text, start and end in seconds (its end is its start when the transcript doesn't say).
+pub(crate) use raea_core_facts::Word;
 
-/// raea's transcript shape (an array of {text|word, start|from|start_ms, …}), or a flat array of {w, t}
-/// A transcript's words: {text, start} in seconds (or t, or start_ms), or {text, from} in frames at `fps`, as the app's
-/// words.json and `raea render --words` have them.
+/// A transcript's words (raea_core_facts::transcript_words: {text, start} in seconds, or t, start_ms, or {text, from}
+/// in frames at `fps`), as the app's words.json and `raea render --words` have them.
 pub(crate) fn transcript(path: &str, fps: f64) -> R<Vec<Word>> {
     let v: Value = serde_json::from_str(&std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?).map_err(|e| format!("{path}: {e}"))?;
-    let list = v.as_array().ok_or_else(|| format!("{path}: expected an array of words ({{text, start}} in seconds or {{text, from}} in frames)"))?;
-    Ok(list
-        .iter()
-        .filter_map(|w| {
-            let text = w.get("text").or_else(|| w.get("word")).or_else(|| w.get("w"))?.as_str()?.to_string();
-            // the time keys a transcript may use, each with what turns it into seconds
-            let secs = |keys: &[(&str, f64)]| keys.iter().find_map(|(k, to_s)| Some(w.get(*k)?.as_f64()? * to_s));
-            let start = secs(&[("start", 1.0), ("t", 1.0), ("a", 1.0), ("start_ms", 0.001), ("from", 1.0 / fps)])?;
-            let end = secs(&[("end", 1.0), ("b", 1.0), ("end_ms", 0.001), ("to", 1.0 / fps)]).unwrap_or(start);
-            Some(Word { text, start, end })
-        })
-        .collect())
+    v.as_array().ok_or_else(|| format!("{path}: expected an array of words ({{text, start}} in seconds or {{text, from}} in frames)"))?;
+    Ok(raea_core_facts::transcript_words(&v, fps))
 }
 
 pub(crate) fn norm(s: &str) -> String {

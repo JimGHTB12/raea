@@ -114,6 +114,13 @@ impl BlitzPage {
             };
             let mut t = json!({"text": words.join(" "), "box": [r(b.x), r(b.y), r(b.width), r(b.height)], "opacity": (alpha(owner) * 100.0).round() / 100.0,
                 "color": color, "size": font.font_size.computed_size().px() as f64, "weight": font.font_weight.value() as f64, "align": align});
+            // its first named face and how many lines it was set on (docs/direction.feature DR1's Text)
+            if let Some(f) = font.font_family.families.iter().find_map(|f| match f { style::values::computed::font::SingleFontFamily::FamilyName(n) => Some(n.name.to_string()), _ => None }) {
+                t["family"] = json!(f);
+            }
+            if let Some(l) = node.element_data().and_then(|e| e.inline_layout_data.as_ref()) {
+                t["lines"] = json!(l.layout.len());
+            }
             stamps(owner, &mut t);
             text.push(t);
         }

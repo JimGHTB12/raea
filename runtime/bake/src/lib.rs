@@ -191,6 +191,17 @@ fn runtime(js: &Path) -> App {
     app
 }
 
+/// Sorted frames as runs of neighbours, each to step as one range (`step_frames`): 3, 4, 5, 9 are 3..6 and 9..10.
+pub fn runs<'a>(frames: impl IntoIterator<Item = &'a i64>) -> Vec<(i64, i64)> {
+    frames.into_iter().fold(Vec::new(), |mut rs: Vec<(i64, i64)>, &f| {
+        match rs.last_mut() {
+            Some(r) if r.1 == f => r.1 = f + 1,
+            _ => rs.push((f, f + 1)),
+        }
+        rs
+    })
+}
+
 /// Frames `a..b` stepped as one range (lightspeed T3): React renders them back to back (raea-frames), with no round
 /// trip to Rust between frames, and each frame's commit is applied on its own (OneBatch), `each` reading the world
 /// after it. Stepped one event a frame, each frame waited on the JS thread and back: most of an incremental bake.

@@ -77,9 +77,11 @@ function Shifted(props: {
   style?: CSSProperties;
   className?: string;
   label?: string;
+  /** the composition frame after its last, when it ends (`raea world`'s Shot, docs/direction.feature DR1) */
+  end?: number;
   children?: ReactNode;
 }) {
-  const { owner, time, base, layout, style, className, label, children } = props;
+  const { owner, time, base, layout, style, className, label, end, children } = props;
   if (layout !== "absolute-fill" && layout !== "none") {
     throw new RangeError(`${owner}: layout must be "absolute-fill" or "none", got "${layout}"`);
   }
@@ -91,7 +93,7 @@ function Shifted(props: {
   // out the same rendered alone or after the ones before it)
   const inner =
     layout === "absolute-fill" ? (
-      <AbsoluteFill style={style} className={className} data-sequence={label} data-raea-start={time.origin}>
+      <AbsoluteFill style={style} className={className} data-sequence={label} data-raea-start={time.origin} data-raea-end={end}>
         {children}
       </AbsoluteFill>
     ) : (
@@ -150,7 +152,7 @@ export function Sequence(props: SequenceProps) {
     );
   }
   return (
-    <Shifted owner="Sequence" time={time} base={base} layout={layout} style={style} className={className} label={name}>
+    <Shifted owner="Sequence" time={time} base={base} layout={layout} style={style} className={className} label={name} end={durationInFrames === Infinity ? undefined : time.origin + durationInFrames}>
       {props.children}
     </Shifted>
   );

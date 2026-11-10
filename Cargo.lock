@@ -13593,6 +13593,7 @@ name = "raea-app-check"
 version = "0.1.0"
 dependencies = [
  "raea-core-brief",
+ "raea-core-facts",
  "serde_json",
 ]
 
@@ -13602,6 +13603,15 @@ version = "0.1.0"
 dependencies = [
  "regex",
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "raea-app-direction"
+version = "0.1.0"
+dependencies = [
+ "raea-runtime-bundle",
+ "raea-runtime-world",
  "serde_json",
 ]
 
@@ -13931,6 +13941,7 @@ dependencies = [
  "bevy",
  "raea-app-check",
  "raea-app-ci",
+ "raea-app-direction",
  "raea-app-game",
  "raea-app-judge",
  "raea-app-media",
@@ -15083,6 +15094,23 @@ dependencies = [
  "raea-sys-k",
  "serde_json",
  "wgpu",
+]
+
+[[package]]
+name = "raea-runtime-world"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "raea-core-facts",
+ "raea-core-scene",
+ "raea-runtime-bake",
+ "raea-runtime-bundle",
+ "raea-runtime-page",
+ "raea-runtime-react",
+ "raea-runtime-scene",
+ "raea-sys-layers",
+ "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]

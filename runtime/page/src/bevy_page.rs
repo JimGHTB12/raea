@@ -44,12 +44,7 @@ impl BevyPage {
         let surf = match self.surf.filter(|e| react.get::<ReactKind>(*e).is_some_and(|k| k.0 == "surface")) {
             Some(e) => e,
             None => {
-                let mut q = react.query::<(Entity, &ReactKind, Option<&ReactProps>)>();
-                let e = q
-                    .iter(react)
-                    .find(|(_, k, p)| k.0 == "surface" && p.and_then(|p| p.0.get("id")).and_then(Value::as_str) == Some("motion"))
-                    .map(|(e, _, _)| e)
-                    .ok_or("the composition's surface isn't there")?;
+                let e = raea_runtime_react::scene::surface(react).ok_or("the composition's surface isn't there")?;
                 self.surf = Some(e);
                 e
             }
@@ -201,6 +196,11 @@ impl BevyPage {
     pub fn manifest_frame(&mut self, f: i64) -> Value {
         let (videos, text) = self.page.manifest();
         serde_json::json!({"frame": f, "videos": videos, "text": text})
+    }
+
+    /// The page laid out, nothing drawn (`raea world`): what `manifest_frame` and `boxes` read after a `sync`.
+    pub fn lay_out(&mut self) {
+        self.page.lay_out();
     }
 
     /// The page drawn, nothing read back (live play): its picture is `texture`.

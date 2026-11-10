@@ -1,0 +1,12 @@
+[package]
+name = "raea-app-direction"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "How raea takes direction (docs/direction.feature): `raea world`, a composition's frame as one world of facts, queried across media"
+
+[dependencies]
+raea-runtime-world = { path = "../../runtime/world" }
+raea-runtime-bundle = { path = "../../runtime/bundle" }
+serde_json = "1"

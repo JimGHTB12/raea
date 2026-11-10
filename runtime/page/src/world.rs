@@ -191,12 +191,7 @@ pub fn world_page_sync(world: &mut World) {
         raea_runtime_react::scene::see_through(&mut p);
         holders.insert(n.0, p);
     }
-    let surf = world
-        .query::<(Entity, &ReactKind, Option<&ReactProps>)>()
-        .iter(world)
-        .find(|(_, k, p)| k.0 == "surface" && p.and_then(|p| p.0.get("id")).and_then(Value::as_str) == Some("motion"))
-        .map(|(e, _, _)| e);
-    if let Some(surf) = surf {
+    if let Some(surf) = raea_runtime_react::scene::surface(world) {
         let (mut videos, mut screens) = (Vec::new(), Vec::new());
         SCENE_SLOT.with(|c| c.set(None));
         IN_3D.with(|c| c.set(0));

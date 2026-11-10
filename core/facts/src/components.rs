@@ -100,11 +100,14 @@ pub enum Medium {
 
 /// A composited layer of the frame.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[ts(optional_fields)]
 pub struct Layer {
     pub medium: Medium,
     /// its place in the stack, 0 at the back
     pub order: u32,
     pub opacity: f64,
+    /// how it blends with what's under it (CSS mix-blend-mode), when not normally
+    pub blend: Option<String>,
 }
 
 /// A run of type, 2D or 3D. `extruded` is its depth in metres (0: flat).
@@ -120,6 +123,8 @@ pub struct Text {
     #[ts(rename = "box")]
     pub box_: Option<[f64; 4]>,
     pub extruded: f64,
+    /// how many lines it was set on (None: not laid out)
+    pub lines: Option<u32>,
     /// what it needs before `size` and `box` are known ("render"), when they aren't
     pub needs: Option<String>,
 }
@@ -144,6 +149,9 @@ pub struct Part {
     pub triangles: Option<u32>,
     /// a model's file
     pub src: Option<String>,
+    /// what its surface is (the material's kind: "standard", "paint" ...) and its base colour, when it says one
+    pub material: Option<String>,
+    pub color: Option<String>,
 }
 
 /// The frame's camera.
@@ -158,25 +166,45 @@ pub struct Camera {
     pub ortho: Option<f64>,
     pub near: f64,
     pub far: f64,
+    /// how its eye moves, metres a second, to the next frame (its move: still, a push, a pan's arc)
+    pub velocity: Option<[f64; 3]>,
 }
 
-/// A stretch between two cuts, in frames.
+/// A stretch between two cuts (a Sequence on the timeline), in composition frames: from its first to its end.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[ts(optional_fields)]
 pub struct Shot {
+    pub name: Option<String>,
     pub from: i64,
-    pub to: i64,
+    /// None: it runs to the end
+    pub to: Option<i64>,
 }
 
-/// A piece of footage on the timeline.
+/// A word and its times in seconds.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+pub struct Word {
+    pub text: String,
+    pub start: f64,
+    pub end: f64,
+}
+
+/// A piece of footage on the timeline: its file and the file's SHA-256, the source seconds it shows now and from and
+/// to, the composition frame its first frame falls on, and the words its transcript (TAKE.words.json) has in it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[ts(optional_fields)]
 pub struct Clip {
     pub source: String,
-    /// seconds into the source this frame shows
+    pub hash: Option<String>,
     pub time: Option<f64>,
+    #[serde(rename = "in")]
+    #[ts(rename = "in")]
+    pub in_: f64,
+    pub out: Option<f64>,
+    pub at: i64,
+    pub words: Vec<Word>,
 }
 
-/// A sound placed on the timeline: its source, when it starts (seconds) and its gain in dB.
+/// A sound placed on the timeline: its source, when it starts (seconds), its gain in dB and its bus.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[ts(optional_fields)]
 pub struct Cue {
@@ -186,17 +214,23 @@ pub struct Cue {
     pub bus: Option<String>,
 }
 
-/// A sung or spoken line: its words with their times in seconds.
+/// A sung or spoken line: its words, when it starts (seconds) and its words' times. A line raea says (<Speech>) has
+/// no word times until it's transcribed: `needs` says so.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[ts(optional_fields)]
 pub struct Line {
-    pub words: Vec<(String, f64, f64)>,
+    pub text: String,
+    pub from: f64,
+    pub to: Option<f64>,
+    pub words: Vec<Word>,
+    pub needs: Option<String>,
 }
 
 /// The components' TypeScript declarations, for a check's types (sdk/raea/src/check.ts is generated from these).
 pub fn declarations() -> Vec<String> {
     let cfg = Config::default();
     macro_rules! decls { ($($t:ty),*) => { vec![$(format!("export {}", <$t as TS>::decl(&cfg))),*] }; }
-    decls!(Source, Medium, Layer, Text, Part, Camera, Shot, Clip, Cue, Line)
+    decls!(Source, Medium, Layer, Text, Part, Camera, Shot, Word, Clip, Cue, Line)
 }
 
 #[cfg(test)]
@@ -207,9 +241,9 @@ mod tests {
     fn a_world_is_found_by_component_and_reads_back() {
         let mut w = Facts::new(12, 1920, 1080, 30.0);
         let layer = w.spawn(None);
-        w.put(layer, &Layer { medium: Medium::Type2d, order: 1, opacity: 1.0 });
+        w.put(layer, &Layer { medium: Medium::Type2d, order: 1, opacity: 1.0, blend: None });
         let text = w.spawn(Some(layer));
-        w.put(text, &Text { words: "OUT".into(), font: None, size: Some(96.0), box_: Some([0.6, 0.2, 0.9, 0.4]), extruded: 0.0, needs: None });
+        w.put(text, &Text { words: "OUT".into(), font: None, size: Some(96.0), box_: Some([0.6, 0.2, 0.9, 0.4]), extruded: 0.0, lines: Some(1), needs: None });
         let seat = w.spawn(None);
         let rider = w.spawn(None);
         w.relate(rider, "Rides", seat);

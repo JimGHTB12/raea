@@ -154,30 +154,40 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
     Scenario: DR1. A composition's frame as a world, with no render
       Given the plan
         | crate              | file                           | lines | job                                                                    |
-        | raea-core-facts    | core/facts/src/components.rs   | 260   | an Item, a page box, a clip, a cue as components (the names and fields below) |
-        | raea-runtime-world | runtime/world/src/read.rs      | 380   | a composition stepped to a frame (runtime/export's scene_frames) and read into a world: 3D items, the page's laid-out boxes, the timeline |
-        | raea-app-direction | apps/direction/src/world.rs    | 180   | `raea world`: the frame's world as JSON, or one query of it            |
+        | raea-core-facts    | core/facts/src/components.rs   | 300   | an Item, a page box, a clip, a cue as components (the names and fields below) |
+        | raea-runtime-world | runtime/world/src/lib.rs       | 140   | a composition bundled and stepped to its frames, as a bake steps them (React only, nothing drawn), each frame read into a world |
+        | raea-runtime-world | runtime/world/src/scene.rs     | 200   | the 3D: plates, the 3D layer with its camera and parts (measured from their triangles), 3D text, the 2D drawn over it |
+        | raea-runtime-world | runtime/world/src/timeline.rs  | 330   | the page and timeline: layers in document order, shots (Sequences), clips, cues, lines (the project's words.json, <Speech>) |
+        | raea-runtime-world | runtime/world/src/page.rs      | 60    | the page laid out with nothing drawn (BevyPage::lay_out) and read as the render's manifest reads it |
+        | raea-runtime-world | runtime/world/src/source.rs    | 90    | Source from the stamps: file, line, the component named at the nearest use, the layer key |
+        | raea-app-direction | apps/direction/src/world.rs    | 200   | `raea world`: the frame's world as text or JSON, or one query of it    |
       And three new crates hold Parts 1 and 2 (raea-cli and raea-runtime-export are at their 2,000-line limits, and
         raea-app-check is six lines under its own): core/facts, runtime/world, apps/direction
       And a project of any kind: a React video, a footage edit, a page, a game, a 3D scene, or several composited
-      When `raea world EDIT.tsx [--composition ID] [--frame N | --frames A-B] [--find JSON] [--json]` runs
+      When `raea world EDIT.tsx [--composition ID] [--frame N | --at A-B|A,B] [--find JSON] [--no-layout] [--json]` runs
       Then the frame is one world: its 3D items, timeline, clips and cues read as `raea scene lint` reads a 3D frame
         today (React stepped, no engine, no GPU)
-      And the page's text and boxes come from the page's layout, which today only a render does (the manifest's
+      And the page's text and boxes come from the page's layout, which before this only a render did (the manifest's
         "as laid out", which `raea check --quick` gets by rendering three stills): this scenario adds a layout-only
-        pass (the page laid out, nothing painted), and until it lands those entities carry `needs: "render"` (DR2)
+        pass (the render's own page synced and laid out by the main world's schedules, the render world's never run,
+        so nothing is drawn); with `--no-layout`, or where the page can't be made, its text carries `needs: "render"`
       And its entities carry these components, each field measured, none typed by the author:
         | component  | on                               | fields                                                                  |
         | Source     | everything                        | file, line, the component's name and its use chain (review.feature R2a's key) |
         | Layer      | each composited layer             | medium: "2d-type" / "2d-graphic" / "3d" / "footage" / "page"; order; opacity; blend |
         | Text       | a run of type, 2D or 3D           | words, font, size px at 1080, box in the frame, extruded (depth), lines |
         | Part       | a 3D mesh or model                | component, tags, world box, transform, triangles, materials             |
-        | Camera     | the frame's camera                | eye, look, lens or ortho height, near, far                              |
-        | Shot       | a stretch between two cuts        | from, to, its camera's move                                             |
+        | Camera     | the frame's camera                | eye, look, lens or ortho height, near, far; its velocity to the next frame (its move) |
+        | Shot       | a stretch between two cuts        | its name, from, to (a Sequence's box: <Sequence> stamps data-raea-end); the shot around it as its parent |
         | Clip       | a piece of footage on the timeline | source file and its hash, in, out, at; its words (the transcript's)     |
-        | Cue        | a sound placed on the timeline    | source, at, gain; its cause's entity when it has one                    |
-        | Line       | a sung or spoken line             | words with their times                                                  |
-      And relations are components too: ChildOf, Rides, Holds, StandsOn, HangsFrom, Masks, MaskedBy, SungAt, CausedBy
+        | Cue        | a sound placed on the timeline    | source, at, gain, bus                                                   |
+        | Line       | a sung or spoken line             | its words with their times (the project's words.json); a <Speech> line's text and start, `needs: "transcript"` for its times |
+      And relations are components too (`Facts::relate`, `{ to }`): ChildOf is every entity's parent here; Rides, Holds,
+        StandsOn and HangsFrom are set by DR16, Masks and MaskedBy by DR19, SungAt by DR19's lyric checks, CausedBy by DR21
+      # Fixed in the code (DR1): the plan gave a Shot "its camera's move" and a Cue "its cause's entity". A world is one
+      # frame, and a shot's whole move needs every frame of it: each frame's Camera carries its velocity instead, and a
+      # range read (--at A-B) is the shot's move frame by frame. A sound's cause is nothing the tree says yet; DR21
+      # gives a cue its cause, so CausedBy is its to set. A <Speech> line has no word times until it's transcribed.
       And a query spans media: "every Text whose Layer is 2d-type and that no Part masks during its Line" is one find
       And the same frame gives the same world whenever it's asked for, and a range of frames gives one a frame
 

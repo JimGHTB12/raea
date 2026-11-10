@@ -90,7 +90,7 @@ pub fn scene_frames(js: &Path, dir: &Path, upto: i64, whole: bool, wanted: &[i64
     let scenes = 'scenes: {
         if !around.is_empty() && around.len() * 2 < total as usize {
             // each run of neighbouring frames stepped as one range, the runs one after another in the one runtime
-            let runs = around.iter().fold(Vec::<(i64, i64)>::new(), |mut rs, &f| { match rs.last_mut() { Some(r) if r.1 == f => r.1 = f + 1, _ => rs.push((f, f + 1)) } rs });
+            let runs = raea_runtime_bake::runs(&around);
             let stepped: Scenes = runs.into_iter().map(|(a, b)| step(&mut app, a, b)).collect::<R<Vec<_>>>()?.into_iter().flatten().collect();
             raea_runtime_react::startup_mark(&format!("the 3D's rows: {} of {total} frames stepped (the wanted ones and their neighbours)", stepped.len()));
             if !stepped.iter().any(|s| raea_runtime_scene::carries_state(&s.1)) {
