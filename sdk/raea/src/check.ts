@@ -43,6 +43,7 @@ export type Values = Record<string, number | string | boolean>;
 /** The system: a frame's world, the frame, and the rule's values. */
 export type CheckFn = (world: World, frame: number, values: Values) => void;
 export interface Check extends CheckMeta {
+  /** its system, run on each frame it ranges over */
   run: CheckFn;
 }
 
@@ -55,11 +56,17 @@ export function check(meta: CheckMeta, run: CheckFn): Check {
  * its level and frames (its first, and the frame after its last); the number it turns on and the fix, when there
  * are. */
 export interface Found {
+  /** the entities it is about, by their ids in this frame's world */
   about?: number[];
+  /** what is wrong, in a line a person reads */
   says: string;
+  /** its level, where it isn't its rule's or its check's */
   level?: Level;
+  /** its first frame and the frame after its last (this frame alone when unset) */
   frames?: [number, number];
+  /** the number it turns on: its name, value and unit, and the limit it broke */
   measure?: Omit<Measure, "limit"> & { limit?: number };
+  /** what to change, when there is one thing to change */
   fix?: string;
 }
 
@@ -92,11 +99,17 @@ function aboutOf(world: World, id: number): About {
 
 /** A frame's facts as `raea world --json` prints them. */
 export interface Facts {
+  /** the frame, from the composition's first */
   frame: number;
+  /** the composition's width in pixels */
   width: number;
+  /** the composition's height in pixels */
   height: number;
+  /** the composition's frames a second */
   fps: number;
+  /** each entity: its id, its parent's, and its components by name */
   entities: { id: number; parent?: number | null; components: Record<string, unknown> }[];
+  /** what is the frame's or the piece's, not an entity's (Rendered, Picture, Mix, Waits) */
   resources?: Record<string, unknown>;
 }
 
@@ -131,10 +144,15 @@ export function declared(checks: Check[]): CheckMeta[] {
 /** Which check runs on which frames with which values, as raea check plans it from a rule: the rule's level (none:
  * the check's own) and where the rule was written. */
 export interface Planned {
+  /** the check, by its place in the list run */
   check: number;
+  /** the frames it runs on */
   frames: number[];
+  /** the rule's values, which the check's system is given */
   values: Values;
+  /** the rule's level, which its findings take where they don't say their own */
   level?: Level | null;
+  /** where the rule was written, which its findings carry */
   by?: string;
 }
 

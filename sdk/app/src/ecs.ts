@@ -274,6 +274,7 @@ export class World {
   /** whether the tables are the engine's (native) or TypeScript's */
   readonly native: boolean;
 
+  /** A world on `store`: the engine's tables when it has them, else TypeScript's (createWorld picks for you). */
   constructor(store?: Store) {
     this.native = store ? store instanceof NativeStore : hasNative();
     this.store = store ?? (this.native ? NativeStore.create() : new JsStore());
@@ -292,6 +293,7 @@ export class World {
   get(id: number): Row {
     return this.store.get(id);
   }
+  /** An entity taken out of the world, with its children. */
   despawn(id: number): void {
     this.store.despawn(id);
   }
@@ -303,6 +305,7 @@ export class World {
   column(kind: string, col: string): (number | null)[] {
     return this.store.column(kind, col);
   }
+  /** How many entities of `kind` there are. */
   count(kind: string): number {
     return this.store.count(kind);
   }
@@ -340,9 +343,11 @@ export class World {
   setParent(id: number, parent: number | null): void {
     this.store.setParent(id, parent);
   }
+  /** An entity's parent (null when it has none). */
   parent(id: number): number | null {
     return this.store.parent(id);
   }
+  /** An entity's children's ids. */
   children(id: number): number[] {
     return this.store.children(id);
   }
