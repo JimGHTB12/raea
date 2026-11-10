@@ -2,7 +2,7 @@
 //! What agents used ffmpeg and ffprobe for, on raea-media (the platform's decoders and encoders, Symphonia's audio):
 //!
 //!   raea media probe FILE                                   duration, size, fps, codec, audio (JSON)
-//!   raea media still FILE --at S -o OUT.png|.jpg            the frame showing at S
+//!   raea media still FILE --at S [--width W] -o OUT.png|.jpg   the frame showing at S (an image: itself), W px wide at most
 //!   raea media sheet FILE... [--n 12] [--width 240] -o OUT  a contact sheet (n frames of one file, or each file's middle)
 //!   raea media audio FILE [--rate 16000] [--mono] [--from S --to S] -o OUT.wav|-   (- is f32le on stdout)
 //!   raea media loudness FILE [--from S --to S]              integrated LUFS, mean and peak dB, true peak
@@ -116,7 +116,7 @@ fn run(verb: &str, pos: &[String], fl: &BTreeMap<String, String>) -> R<Option<Va
         "probe" => probe(&file()?).map(Some),
         "still" => {
             let at = num(fl, "at")?.unwrap_or(0.0);
-            still(&file()?, at, &out()?).map(Some)
+            still(&file()?, at, &out()?, fl.get("width").and_then(|n| n.parse().ok())).map(Some)
         }
         "sheet" => {
             let files: Vec<PathBuf> = pos.iter().map(PathBuf::from).collect();

@@ -25,11 +25,16 @@ pub(crate) fn frame(path: &Path, t: f64) -> R<image::RgbaImage> {
     to_image(d.frame_at(t)?)
 }
 
-pub fn still(path: &Path, at: f64, out: &Path) -> R<Value> {
+/// `width`: the still made that wide (its height in proportion) when the picture is wider; never made bigger.
+pub fn still(path: &Path, at: f64, out: &Path, width: Option<u32>) -> R<Value> {
     let img = if IMAGE_EXTS.contains(&ext(path).as_str()) {
         image::open(path).map_err(|e| format!("{}: {e}", path.display()))?.to_rgba8()
     } else {
         frame(path, at)?
+    };
+    let img = match width.filter(|w| *w > 0 && *w < img.width()) {
+        Some(w) => image::imageops::resize(&img, w, ((img.height() as f64 * w as f64 / img.width() as f64).round() as u32).max(1), image::imageops::FilterType::CatmullRom),
+        None => img,
     };
     save(&img, out)?;
     Ok(json!({"wrote": out, "at": at, "width": img.width(), "height": img.height()}))

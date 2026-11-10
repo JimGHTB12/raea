@@ -15,6 +15,7 @@ use raea_runtime_react::{ReactOutbox, ReactPlugin};
 mod open;
 mod sound;
 mod pointer;
+mod pick3d;
 pub use sound::warm_audio;
 mod draw;
 

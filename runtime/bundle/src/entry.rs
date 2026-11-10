@@ -106,7 +106,10 @@ function Root() {{
   useEffect(() => addEventListener("raea-frames", (v: any) => {{ setTo(v.to); setF(v.from); }}), []);
   // the composition, made again only when what Root passes it changes (by default never, RAEA_STILL_TREE=0 each frame; its parts re-render
   // when what they read changes, the frame through the Clock's context)
-  const body = useMemo(() => <Catch><C {{...cfg.defaultProps}} />{{(() => {{ const T = (globalThis as any).__raeaToneOut; return T ? <T /> : null; }})()}}</Catch>, {still} ? [] : [f, size, to]);
+  // props set from outside while it plays (raea-props: a preview's controls, docs/preview.feature PV4b), over its defaults
+  const [over, setOver] = useState<any>(null);
+  useEffect(() => addEventListener("raea-props", (v: any) => setOver(v)), []);
+  const body = useMemo(() => <Catch><C {{...cfg.defaultProps}} {{...over}} />{{(() => {{ const T = (globalThis as any).__raeaToneOut; return T ? <T /> : null; }})()}}</Catch>, {still} ? [over] : [f, size, to, over]);
   // the frame's Math.random and Date (motion/pure.ts): reseeded as the frame starts rendering, so every component
   // under it draws the same numbers each time this frame is drawn
   if (f >= 0) pureFrame(f, cfg.fps);
@@ -162,7 +165,7 @@ let f = -1;
 let size: {{ w: number; h: number }} | null = null;
 const conf = JSON.stringify({{ width: cfg.width, height: cfg.height, fps: cfg.fps, frames: cfg.durationInFrames }});
 // the composition's element and the Tone graph's output, made once (each frame made them again: lightspeed Z3)
-const COMP = <C {{...cfg.defaultProps}} />;
+let COMP = <C {{...cfg.defaultProps}} />;
 let toneEl: any = null;
 function toneOut() {{
   const T = (globalThis as any).__raeaToneOut;
@@ -197,6 +200,8 @@ function draw() {{
   }}
 }}
 addEventListener("raea-size", (v: any) => {{ size = v; if (f >= 0) draw(); }});
+// props set from outside while it plays (a preview's controls, docs/preview.feature PV4b), over its defaults
+addEventListener("raea-props", (v: any) => {{ COMP = <C {{...cfg.defaultProps}} {{...v}} />; if (f >= 0) draw(); }});
 // a range of frames, rendered back to back, each its own commit (a bake: lightspeed T3); between frames the effects'
 // state changes render, as between two raea-frame events
 addEventListener("raea-frames", async (v: any) => {{

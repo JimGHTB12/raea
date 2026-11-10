@@ -219,6 +219,8 @@ impl Engine {
         image.texture_descriptor.view_formats = &[TextureFormat::Rgba8Unorm];
         let target = app.world_mut().resource_mut::<Assets<Image>>().add(image);
         app.insert_resource(TagRowTarget(target.clone())).init_resource::<ViewBox>().add_systems(PostUpdate, tag_row_view.before(bevy::camera::CameraUpdateSystems));
+        // a free camera over the scene (docs/preview.feature PV1c): off until a preview asks for one
+        app.init_resource::<raea_sys_frame::view::FreeView>().add_systems(PostUpdate, raea_sys_frame::view::apply.before(bevy::transform::TransformSystems::Propagate));
         // without native nothing ever comes back (frames are read back only to be encoded or analysed)
         let nv12 = !STILLS_RGBA.load(std::sync::atomic::Ordering::Relaxed) && std::env::var("RAEA_READBACK").map(|v| v != "rgba").unwrap_or(true);
         // stills through the GPU composite: its RGBA words and the tag word, unpadded

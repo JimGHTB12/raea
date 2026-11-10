@@ -1,0 +1,108 @@
+//! Pointing at the 3D played live (docs/preview.feature PV1): the part under a point of the page, the page's element
+//! and the 3D's part answered as one pick, and a free camera over the scene.
+
+use super::*;
+use raea_sys_frame::view::{FreeView, Orbit};
+
+impl Live {
+    /// The 3D part under the point (`x`, `y` in page px) as the frame was last drawn (raea-sys-frame pick.rs): its
+    /// key, name, box in page px, the point hit in the world and its distance. None with no 3D or over none of it.
+    pub fn part_at(&mut self, x: f64, y: f64) -> Option<Value> {
+        let (w, h) = (self.w.max(1) as f64, self.h.max(1) as f64);
+        let hit = raea_sys_frame::pick::part_at(self.scene.as_mut()?.world_mut(), (x / w) as f32, (y / h) as f32)?;
+        let r = hit.rect;
+        // the part's JSX as React has it now: the 3D element whose own props (data-props, the SDK's JSON) carry the
+        // same stamp, answered as an element is, with those props as its props and its 3D kind as its kind
+        let node = hit.key.as_deref().and_then(|key| {
+            let loc = key.split(['#', '|']).next().unwrap_or(key);
+            let w = self.app.world_mut();
+            let mut q = w.query::<(&raea_runtime_react::ReactNode, &raea_runtime_react::ReactProps)>();
+            q.iter(w).find_map(|(n, p)| {
+                let own = p.0.get("data-props")?.as_str().filter(|t| t.contains(loc))?;
+                let own: serde_json::Map<String, Value> = serde_json::from_str(own).ok()?;
+                (raea_sys_frame::layer::key_from_props(&own).as_deref() == Some(key)).then(|| (n.0, p.0.get("data-3d").cloned().unwrap_or_default(), own))
+            })
+        });
+        let mut out = match node {
+            Some((id, kind, mut own)) => {
+                let mut e = self.element(id).unwrap_or_else(|| json!({"owner": "", "text": ""}));
+                own.retain(|k, v| k != "children" && !k.starts_with("data-raea-") && !v.is_null());
+                e["props"] = Value::Object(own);
+                e["kind"] = kind;
+                e
+            }
+            None => json!({"owner": "", "props": {}, "text": "", "kind": "mesh"}),
+        };
+        out["entity"] = json!(hit.entity.to_bits());
+        for (k, v) in [("part", json!(true)), ("key", json!(hit.key)), ("name", json!(hit.name)), ("rect", json!([r[0] as f64 * w, r[1] as f64 * h, r[2] as f64 * w, r[3] as f64 * h])), ("point", json!(hit.point.to_array())), ("distance", json!(hit.distance))] {
+            out[k] = v;
+        }
+        Some(out)
+    }
+
+    /// What's under the point, the page and the 3D as one picture: the page's element when it is in front of the 3D
+    /// (with the part behind it as `under`), else the 3D's part (the page there is the 3D's holder, which shows it
+    /// through), else the element.
+    pub fn pick(&mut self, x: f64, y: f64) -> Option<Value> {
+        let hit = self.page.hit(x as f32, y as f32);
+        let part = self.part_at(x, y);
+        let through = match hit {
+            None => true,
+            Some(id) => {
+                let world = self.app.world();
+                id == raea_runtime_react::ROOT_ID || self.holders.iter().any(|&e| world.get::<raea_runtime_react::ReactNode>(e).is_some_and(|n| n.0 == id))
+            }
+        };
+        match (part, through) {
+            (Some(p), true) => Some(p),
+            (p, _) => {
+                let mut e = self.element(hit?)?;
+                if let Some(k) = e["props"].as_object().and_then(raea_sys_frame::layer::key_from_props) {
+                    e["key"] = json!(k);
+                }
+                if let Some(p) = p {
+                    e["under"] = p;
+                }
+                Some(e)
+            }
+        }
+    }
+
+    /// The scene drawn from an orbit (yaw and pitch in radians, distance in metres, about `target`) until None puts
+    /// the composition's camera back. False with no 3D.
+    pub fn set_view(&mut self, orbit: Option<(f32, f32, f32, [f32; 3])>) -> bool {
+        let Some(e) = self.scene.as_mut() else { return false };
+        let Some(mut v) = e.world_mut().get_resource_mut::<FreeView>() else { return false };
+        v.orbit = orbit.map(|(yaw, pitch, distance, t)| Orbit { yaw, pitch, distance, target: Vec3::from(t) });
+        self.dirty = true;
+        true
+    }
+
+    /// The scene's camera as an orbit about the middle of what's drawn, and the scene's radius: where a free camera
+    /// starts from. None with no 3D or no camera.
+    pub fn view(&mut self) -> Option<Value> {
+        let world = self.scene.as_mut()?.world_mut();
+        if let Some(o) = world.get_resource::<FreeView>().and_then(|v| v.orbit) {
+            return Some(json!({"yaw": o.yaw, "pitch": o.pitch, "distance": o.distance, "target": o.target.to_array(), "free": true}));
+        }
+        let (mid, radius) = raea_sys_frame::view::bounds(world).unwrap_or((Vec3::ZERO, 1.0));
+        let mut cams = world.query_filtered::<(&Camera, &GlobalTransform), With<Camera3d>>();
+        let (_, at) = cams.iter(world).filter(|(c, _)| c.is_active).min_by_key(|(c, _)| c.order)?;
+        let o = raea_sys_frame::view::orbit_of(at, mid);
+        Some(json!({"yaw": o.yaw, "pitch": o.pitch, "distance": o.distance, "target": o.target.to_array(), "radius": radius, "free": false}))
+    }
+
+    /// The composition's props set over its defaults while it plays (the entry's raea-props): the frame it is on is
+    /// rendered again with them, so the next draw shows them. A game's state is kept; its props only change.
+    pub fn set_props(&mut self, props: Value) -> R<()> {
+        self.send("raea-props", props);
+        // the frame stepped again: its commit with the new props lands in the page as any frame's does
+        let f = self.frame;
+        self.step_world(f, &[], None, 0.0)
+    }
+
+    /// `set_props` before any frame is stepped: sent, and drawn with the first frame.
+    pub fn props_before(&mut self, props: Value) {
+        self.send("raea-props", props);
+    }
+}

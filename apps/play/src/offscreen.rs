@@ -48,10 +48,32 @@ pub(crate) fn offscreen(mut run: Run, json: Option<String>, flat_out: bool, snap
     // (bench/timelines/check.sh compares these with renders)
     let seeks: Vec<(i64, String)> = std::env::args().collect::<Vec<_>>().windows(3).filter(|w| w[0] == "--seek").filter_map(|w| Some((w[1].parse().ok()?, w[2].clone()))).collect();
     if !seeks.is_empty() {
+        // --view YAW,PITCH,DISTANCE[,X,Y,Z]: the 3D drawn from that orbit (radians, metres, about X,Y,Z) instead of
+        // the composition's camera; --pick X,Y (repeatable): what's under that point of each seeked frame (page px),
+        // the page and its 3D as one picture, a line of JSON each (docs/preview.feature PV1)
+        let args: Vec<String> = std::env::args().collect();
+        let nums = |flag: &str| -> Vec<Vec<f64>> { args.windows(2).filter(|w| w[0] == flag).map(|w| w[1].split(',').filter_map(|v| v.trim().parse().ok()).collect()).collect() };
+        let view = nums("--view").into_iter().find(|v| v.len() == 3 || v.len() == 6);
+        let picks: Vec<(f64, f64)> = nums("--pick").into_iter().filter(|p| p.len() == 2).map(|p| (p[0], p[1])).collect();
+        let mut said = Vec::new();
         for (f, out) in &seeks {
             live.step(*f, &[], None)?;
+            if let Some(v) = &view {
+                // the scene's engine opens at the first draw
+                live.snapshot()?;
+                let t = if v.len() == 6 { [v[3] as f32, v[4] as f32, v[5] as f32] } else { [0.0; 3] };
+                if !live.set_view(Some((v[0] as f32, v[1] as f32, v[2] as f32, t))) {
+                    return Err("--view: this composition has no 3D to look around".into());
+                }
+            }
             live.save_snapshot(std::path::Path::new(out))?;
             eprintln!("seek to {f} -> {out}");
+            for (x, y) in &picks {
+                said.push(serde_json::json!({"frame": f, "x": x, "y": y, "pick": live.pick(*x, *y)}).to_string());
+            }
+        }
+        if !said.is_empty() {
+            return Ok(said.join("\n"));
         }
         return Ok(format!("SEEKED  {} frames", seeks.len()));
     }

@@ -7,10 +7,20 @@
 //!   stage.show {src, w, h}     the composition at `src` (a .tsx), laid out at w x h; src null: nothing
 //!   stage.play {on}            play or pause
 //!   stage.step {n}             paused: n frames on, the keys held as they are
+//!   stage.seek {frame}         to that frame, playing or not (a composition's editor, docs/editing.feature E4a: a
+//!                              composition is its frame, so the frame is drawn as it is; a game's input isn't replayed)
 //!   stage.key {key, down}      a key (DOM name) pressed or let go on the stage
 //!   stage.pointer {x, y, down} the pointer in the stage's pixels
 //!   stage.status               what it shows, its frame, whether it plays, frames painted, its size, the last error
-//!   stage.pick {x, y}          the element under that point of the stage (live.rs element_at), or null
+//!   stage.pick {x, y}          what's under that point of the stage, the page and its 3D as one picture
+//!                              (docs/preview.feature PV1a): a 3D part ({part: true, key, name, rect, point,
+//!                              distance}) or an element ({id, kind, owner, key, rect, props, text, under?}), or null
+//!   stage.view {yaw, pitch, distance, target} | {free: false}
+//!                              the 3D drawn from that orbit (radians, metres) until free: false puts the
+//!                              composition's camera back (PV1c); with neither, only answers. Answers the view as it
+//!                              is now ({yaw, pitch, distance, target, radius?, free}), null with no 3D
+//!   stage.props {props}        the composition's props set over its defaults as it plays (PV4b): the frame it is on is
+//!                              drawn again with them; nothing is reopened or written
 //!   stage.inspect {id}         that element as it is now (its owner, kind, box, props, text), or null once it's gone
 //!   stage.tweak {changes}      [{owner, kind, prop, value}]: the props written into the composition as its next
 //!                              version (raea-sys-tweak), which the stage then shows at the same frame, its input replayed
@@ -45,10 +55,15 @@ enum Cmd {
     Show(Option<PathBuf>, (u32, u32)),
     Play(bool),
     Step(i64),
+    Seek(i64),
     Key(String, bool),
     Pointer(f64, f64, bool),
     /// the element under a point of the stage, answered from the thread
     Pick(f64, f64, Answer),
+    /// a free camera over the 3D (Some(None): the composition's own again; None: only asked), answered with the view
+    View(Option<Option<(f32, f32, f32, [f32; 3])>>, Answer),
+    /// props over the composition's defaults, from now
+    Props(Value, Answer),
     /// an element as it is now, by id
     Inspect(u64, Answer),
     /// props written into the next version, which then plays from the same frame
@@ -115,6 +130,12 @@ impl Plugin for StagePlugin {
     fn build(&self, app: &mut App) {
         let image = app.world_mut().resource_mut::<Assets<Image>>().add(Image::new_target_texture(1, 1, TextureFormat::Rgba8UnormSrgb, None));
         let stage = Stage { image, slot: Default::default(), status: Default::default(), tx: Default::default() };
+        // what the stage opens is stamped with its place in the code (engine/bundle stamp.rs), so a pick's part or
+        // element has its key (docs/preview.feature PV1b); RAEA_SOURCE_STAMPS=0 in the environment keeps them off
+        if std::env::var_os("RAEA_SOURCE_STAMPS").is_none() {
+            // SAFETY: the app is being built on its main thread; the stage's thread starts at the first show
+            unsafe { std::env::set_var("RAEA_SOURCE_STAMPS", "1") };
+        }
         app.insert_resource(stage)
             .init_resource::<HostCalls>()
             .add_plugins(ExtractResourcePlugin::<Stage>::default())
@@ -152,6 +173,7 @@ fn calls(mut calls: ResMut<HostCalls>) {
         })
         .on("stage.play", move |w, a, answer| settle(answer, send(w, Cmd::Play(a.get("on").and_then(Value::as_bool).unwrap_or(true)))))
         .on("stage.step", move |w, a, answer| settle(answer, send(w, Cmd::Step(num(&a, "n").unwrap_or(1.0).max(0.0) as i64))))
+        .on("stage.seek", move |w, a, answer| settle(answer, send(w, Cmd::Seek(num(&a, "frame").unwrap_or(0.0).max(0.0).round() as i64))))
         .on("stage.key", move |w, a, answer| {
             let key = a.get("key").and_then(Value::as_str).unwrap_or_default().to_string();
             settle(answer, send(w, Cmd::Key(key, a.get("down").and_then(Value::as_bool).unwrap_or(true))));
@@ -167,6 +189,31 @@ fn calls(mut calls: ResMut<HostCalls>) {
                     let _ = tx.send(Cmd::Pick(x, y, answer));
                 }
                 None => answer.ok(Value::Null),
+            }
+        })
+        .on("stage.view", move |w, a, answer| {
+            let f = |k: &str| a.get(k).and_then(Value::as_f64).map(|v| v as f32);
+            let target = a.get("target").and_then(Value::as_array).map(|t| t.iter().filter_map(Value::as_f64).map(|v| v as f32).collect::<Vec<_>>()).filter(|t| t.len() == 3);
+            let set = match (a.get("free").and_then(Value::as_bool), f("yaw"), f("pitch"), f("distance")) {
+                (Some(false), ..) => Some(None),
+                (_, Some(yaw), Some(pitch), Some(distance)) => Some(Some((yaw, pitch, distance, target.map_or([0.0; 3], |t| [t[0], t[1], t[2]])))),
+                _ => None,
+            };
+            let tx = w.resource::<Stage>().tx.lock().unwrap().clone();
+            match tx {
+                Some(tx) => {
+                    let _ = tx.send(Cmd::View(set, answer));
+                }
+                None => answer.ok(Value::Null),
+            }
+        })
+        .on("stage.props", move |w, a, answer| {
+            let tx = w.resource::<Stage>().tx.lock().unwrap().clone();
+            match tx {
+                Some(tx) => {
+                    let _ = tx.send(Cmd::Props(a.get("props").cloned().unwrap_or(Value::Null), answer));
+                }
+                None => answer.err("the stage shows nothing"),
             }
         })
         .on("stage.inspect", move |w, a, answer| {
@@ -309,6 +356,15 @@ fn run(rx: Receiver<Cmd>, status: Arc<Mutex<Status>>, slot: Arc<Mutex<Painted>>)
             }
             Some(Cmd::Step(n)) if !playing => steps += n,
             Some(Cmd::Step(_)) => {}
+            // the frame before it stands as the last one drawn, and the loop steps to it: one step paused, the clock
+            // from there playing
+            Some(Cmd::Seek(n)) => {
+                frame = n - 1;
+                (base, since) = (n, Instant::now());
+                steps = if playing { 0 } else { 1 };
+                // the input log is a frame each, with nothing held on the frames jumped over
+                log.resize(n.max(0) as usize, (Vec::new(), None));
+            }
             Some(Cmd::Key(k, down)) => {
                 keys.retain(|x| x != &k);
                 if down {
@@ -317,7 +373,31 @@ fn run(rx: Receiver<Cmd>, status: Arc<Mutex<Status>>, slot: Arc<Mutex<Painted>>)
             }
             // a point of the stage is the page's (a game that lays out at its own size is scaled to the stage)
             Some(Cmd::Pick(x, y, answer)) => match live.as_mut() {
-                Some(l) => answer.ok(l.element_at(x * l.w as f64 / stage.0.max(1) as f64, y * l.h as f64 / stage.1.max(1) as f64).map(|e| on_stage(e, l, stage)).unwrap_or(Value::Null)),
+                Some(l) => answer.ok(l.pick(x * l.w as f64 / stage.0.max(1) as f64, y * l.h as f64 / stage.1.max(1) as f64).map(|e| on_stage(e, l, stage)).unwrap_or(Value::Null)),
+                None => answer.ok(Value::Null),
+            },
+            Some(Cmd::Props(props, answer)) => match live.as_mut() {
+                Some(l) if frame >= 0 => match l.set_props(props) {
+                    Ok(()) => {
+                        answer.ok(json!({"frame": frame}));
+                        repaint = true;
+                    }
+                    Err(e) => answer.err(e),
+                },
+                // before its first frame: they are there when it is stepped
+                Some(l) => {
+                    l.props_before(props);
+                    answer.ok(json!({"frame": frame}));
+                }
+                None => answer.err("the stage shows nothing"),
+            },
+            Some(Cmd::View(set, answer)) => match live.as_mut() {
+                Some(l) => {
+                    if let Some(orbit) = set {
+                        repaint = l.set_view(orbit);
+                    }
+                    answer.ok(l.view().unwrap_or(Value::Null));
+                }
                 None => answer.ok(Value::Null),
             },
             Some(Cmd::Inspect(id, answer)) => match live.as_mut() {
@@ -420,6 +500,9 @@ fn on_stage(mut e: Value, l: &raea_runtime_live::Live, size: (u32, u32)) -> Valu
     let (sx, sy) = (size.0 as f64 / l.w.max(1) as f64, size.1 as f64 / l.h.max(1) as f64);
     if let Some(r) = e["rect"].as_array().map(|r| r.iter().filter_map(Value::as_f64).collect::<Vec<_>>()).filter(|r| r.len() == 4) {
         e["stage"] = json!([r[0] * sx, r[1] * sy, r[2] * sx, r[3] * sy]);
+    }
+    if e.get("under").is_some_and(Value::is_object) {
+        e["under"] = on_stage(e["under"].take(), l, size);
     }
     e
 }

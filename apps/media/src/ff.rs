@@ -170,7 +170,7 @@ pub(crate) fn ffmpeg(args: &[String]) -> R<()> {
         if vf.is_some() {
             return Err(format!("-vf on a still isn't read here: take the still (raea media still), then crop or scale it in an edit; {VERBS_HINT}"));
         }
-        still(&path, from.unwrap_or(0.0), Path::new(&out))?;
+        still(&path, from.unwrap_or(0.0), Path::new(&out), None)?;
         return Ok(());
     }
     // video: concat, trim, scale

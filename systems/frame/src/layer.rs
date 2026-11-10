@@ -56,7 +56,7 @@ pub fn record(world: &mut World, f: i64) {
 }
 
 /// A mesh's vertices in the world: posed by its joints' matrices (a skin's, in place of its transform) or `place`.
-fn posed(mesh: &Mesh, pos: &[[f32; 3]], joints: Option<&[Mat4]>, place: Mat4) -> Vec<Vec3> {
+pub(crate) fn posed(mesh: &Mesh, pos: &[[f32; 3]], joints: Option<&[Mat4]>, place: Mat4) -> Vec<Vec3> {
     use bevy::mesh::VertexAttributeValues as A;
     let joints = joints.filter(|_| !raea_sys_layers::mutant("bind"));
     let skin = joints.zip(mesh.try_attribute_option(Mesh::ATTRIBUTE_JOINT_INDEX).ok().flatten()).zip(mesh.try_attribute_option(Mesh::ATTRIBUTE_JOINT_WEIGHT).ok().flatten());

@@ -14,6 +14,10 @@ pub mod bevy_api;
 pub mod camera;
 /// layer keys (docs/review.feature R2)
 pub mod layer;
+/// the part under a point of the frame (docs/preview.feature PV1a)
+pub mod pick;
+/// a free camera over the scene (docs/preview.feature PV1c)
+pub mod view;
 /// pipelined updates: the render world drawing the last frame while the main world runs this one
 pub mod pipe;
 // the edit's rows as entities, each column a component of its own, found by kind and id
