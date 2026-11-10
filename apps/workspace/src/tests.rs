@@ -61,8 +61,23 @@ fn next_walks_a_project_from_brief_to_show() {
     assert_eq!(next::steps(&d, &shaped, 0)[0], "polish out/piece.mp4: clipped: text clipped at 2 s (`raea guide polish`)");
     keep("raea check", &video, None, &[Finding::new("reading", Level::Note, "minor", "raea check")], vec![], "20261110-160003").unwrap();
     assert!(next::steps(&d, &shaped, 0)[0].starts_with("show out/piece.mp4"));
-    // stills alone: the video next
+    // stills (or a review) since the video don't replace it
     keep("raea render", &piece, Some(&d.join("out")), &[], vec![], "20261110-160004").unwrap();
+    assert!(next::steps(&d, &shaped, 0)[0].starts_with("show out/piece.mp4"), "{:?}", next::steps(&d, &shaped, 0));
+    // the composition changed after the videos were made (their entries made old), before the stills: the video again
+    for id in ["20261110-160000-piece", "20261110-160001-piece"] {
+        let rec = d.join(format!(".raea/record/{id}.json"));
+        let mut v: serde_json::Value = serde_json::from_slice(&std::fs::read(&rec).unwrap()).unwrap();
+        v["at"] = 1.into();
+        std::fs::write(&rec, v.to_string()).unwrap();
+    }
+    let changed = std::time::UNIX_EPOCH + std::time::Duration::from_secs(100);
+    std::fs::File::options().write(true).open(&piece).unwrap().set_modified(changed).unwrap();
+    assert_eq!(next::steps(&d, &shaped, 0)[0], "render the video again: piece.tsx changed after 20261110-160001-piece made out/piece.mp4");
+    // no video at all: the video next
+    for id in ["20261110-160000-piece", "20261110-160001-piece"] {
+        std::fs::remove_file(d.join(format!(".raea/record/{id}.json"))).unwrap();
+    }
     assert_eq!(next::steps(&d, &shaped, 0)[0], "render the video: `raea render piece.tsx -o out/piece.mp4`");
     let _ = std::fs::remove_dir_all(&d);
 }

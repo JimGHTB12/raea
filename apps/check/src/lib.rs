@@ -178,12 +178,12 @@ fn report(video: &str, mut issues: Vec<Issue>, more: Vec<Finding>, passed: Vec<S
     let mut s = format!("raea check {video}\n");
     // kept in its project's record beside its renders (DR3), what `raea findings` and `raea next` read
     let kept = raea_core_facts::record::keep("raea check", std::path::Path::new(video), out.map(std::path::Path::new), &found, vec![], &raea_io_trace::utc(std::time::SystemTime::now()).1);
-    let kept = kept.map(|e| format!("kept in the project's record as {}", e.id));
+    let kept = kept.map(|e| format!("raea check: kept in the project's record as {} (raea findings reads it)", e.id));
     for line in found.iter().map(Finding::line).chain(passed.iter().map(|p| format!("ok {p}"))).chain(kept) {
         s.push_str(&line);
         s.push('\n');
     }
-    Ok((s + &finding::count(&found), bad))
+    Ok((s + &format!("raea check: {}", finding::count(&found)), bad))
 }
 
 struct Probe {

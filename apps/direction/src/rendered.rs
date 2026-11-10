@@ -50,8 +50,9 @@ pub fn rendered(args: &[String]) -> i32 {
             let _ = std::fs::write(&m, v.to_string());
         }
     }
-    let file = args.get(1).filter(|a| !a.starts_with('-')).map(PathBuf::from);
-    let out = raea_runtime_bundle::flag(args, "-o").map(PathBuf::from);
+    // a render that is part of another (a review's tiles, a quick check's stills) leaves the entry to that one
+    let file = args.get(1).filter(|a| !a.starts_with('-') && std::env::var("RAEA_RECORD").as_deref() != Ok("off")).map(PathBuf::from);
+    let out = raea_runtime_bundle::flag(args, "-o").or_else(|| raea_runtime_bundle::flag(args, "--review")).map(PathBuf::from);
     if let Some(e) = file.and_then(|f| record::keep("raea render", &f, out.as_deref(), &found, excused, &raea_io_trace::utc(SystemTime::now()).1)) {
         println!("raea render: kept in the project's record as {} (raea findings reads it)", e.id);
     }

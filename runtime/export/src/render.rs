@@ -89,8 +89,10 @@ pub fn render(args: &[String]) -> R<String> {
     if let Some(c) = &cache {
         // with --manifest, the manifest kept beside the export comes back too
         let kept_manifest = manifest.as_ref().map(|m| (m, c.with_extension("manifest")));
-        if let (Ok(said), true, true) = (std::fs::read_to_string(c.with_extension("said")), c.exists(), kept_manifest.as_ref().is_none_or(|(_, k)| k.exists())) {
+        // and what it found when it was drawn (one kept before findings were is drawn again, so its checks run)
+        if let (Ok(said), true, true, true) = (std::fs::read_to_string(c.with_extension("said")), c.exists(), kept_manifest.as_ref().is_none_or(|(_, k)| k.exists()), c.with_extension("findings").exists()) {
             if std::fs::copy(c, &out).is_ok() && kept_manifest.as_ref().is_none_or(|(m, k)| std::fs::copy(k, m).is_ok()) {
+                raea_core_facts::finding::replay(&c.with_extension("findings"));
                 let _ = std::fs::File::options().append(true).open(c).and_then(|f| f.set_modified(std::time::SystemTime::now()));
                 let _ = std::fs::remove_file(&js);
                 return Ok(with_exposure(format!("{} (the same export as before: from the export cache)", said.replace("{OUT}", &out.display().to_string())), &out, manifest.as_deref()));
@@ -103,7 +105,7 @@ pub fn render(args: &[String]) -> R<String> {
         if c.parent().is_some_and(|d| std::fs::create_dir_all(d).is_ok()) {
             let tmp = c.with_extension(format!("{}.tmp", std::process::id()));
             let manifest_kept = manifest.as_ref().is_none_or(|m| std::fs::copy(m, c.with_extension("manifest")).is_ok());
-            if manifest_kept && std::fs::copy(&out, &tmp).is_ok() && std::fs::rename(&tmp, c).is_ok() && std::fs::write(c.with_extension("said"), s.replace(&out.display().to_string(), "{OUT}")).is_ok() {
+            if manifest_kept && std::fs::copy(&out, &tmp).is_ok() && std::fs::rename(&tmp, c).is_ok() && std::fs::write(c.with_extension("said"), s.replace(&out.display().to_string(), "{OUT}")).is_ok() && raea_core_facts::finding::keep_to(&c.with_extension("findings")) {
                 if let Some(d) = c.parent() {
                     prune_cache(d, "mp4", 16);
                     // this export is an output: later keys leave it out of the edit's folder

@@ -33,6 +33,9 @@ pub struct Entry {
     /// what it wrote, relative to the project when it's in it
     #[serde(default)]
     pub out: Option<String>,
+    /// what it is set against others of: "video", "sound", "still", "frames", "review" or "check" (kind())
+    #[serde(default)]
+    pub kind: String,
     /// the project's commit, "+" after it when the file it's of has changes not committed (None: no git repository)
     #[serde(default)]
     pub commit: Option<String>,
@@ -72,6 +75,22 @@ fn commit(project: &Path, of: &str) -> Option<String> {
     Some(if changed { format!("{head}+") } else { head })
 }
 
+/// What a run wrote, as what its entries are set against: a check, a review (a folder holding review.json), a video, a
+/// sound, a still or a folder of frames. A review's tiles against the video before it would read as fixed.
+pub fn kind(by: &str, out: Option<&Path>) -> String {
+    let ext = out.and_then(Path::extension).map(|x| x.to_string_lossy().to_lowercase()).unwrap_or_default();
+    let k = match ext.as_str() {
+        _ if by == "raea check" => "check",
+        _ if out.is_none() => "run",
+        _ if out.is_some_and(|o| o.join("review.json").is_file()) => "review",
+        "mp4" | "mov" | "webm" | "mkv" => "video",
+        "wav" => "sound",
+        "png" | "jpg" | "jpeg" => "still",
+        _ => "frames",
+    };
+    k.into()
+}
+
 /// What `by` found of `file` (writing `out`) kept in its project's record, named by `stamp` (UTC, 20261110-161530)
 /// and the file's name: the entry, or None outside a project.
 pub fn keep(by: &str, file: &Path, out: Option<&Path>, findings: &[Finding], despite: Vec<Despite>, stamp: &str) -> Option<Entry> {
@@ -83,7 +102,7 @@ pub fn keep(by: &str, file: &Path, out: Option<&Path>, findings: &[Finding], des
     let of = rel(&project, file);
     let base = format!("{stamp}-{}", file.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default());
     let id = (1..100).map(|n| if n == 1 { base.clone() } else { format!("{base}-{n}") }).find(|id| !dir.join(format!("{id}.json")).exists())?;
-    let entry = Entry { id: id.clone(), at, by: by.into(), commit: commit(&project, &of), of, out: out.map(|o| rel(&project, o)), findings: findings.to_vec(), despite };
+    let entry = Entry { id: id.clone(), at, by: by.into(), commit: commit(&project, &of), of, out: out.map(|o| rel(&project, o)), kind: kind(by, out), findings: findings.to_vec(), despite };
     std::fs::write(dir.join(format!("{id}.json")), serde_json::to_vec_pretty(&entry).ok()?).ok()?;
     // the oldest past KEEP go (the names sort by time)
     let mut names: Vec<PathBuf> = std::fs::read_dir(&dir).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "json")).collect();
@@ -108,20 +127,29 @@ pub fn same(f: &Finding) -> String {
     if about.is_empty() { format!("{} {}", f.check, f.says) } else { format!("{} {}", f.check, about.join(", ")) }
 }
 
-/// Between two entries of one thing: what was fixed (found before, not now), what is new and what is carried.
+/// Between two entries of one thing: what was fixed (found before, not now), what is new, what is carried, and what
+/// was renamed (before, now): gone under one name and new under another with the same check, frames and measure.
 pub struct Changes<'a> {
     pub fixed: Vec<&'a Finding>,
     pub new: Vec<&'a Finding>,
     pub carried: Vec<&'a Finding>,
+    pub renamed: Vec<(&'a Finding, &'a Finding)>,
 }
 
 pub fn changes<'a>(before: &'a [Finding], now: &'a [Finding]) -> Changes<'a> {
     let has = |fs: &[Finding], f: &Finding| fs.iter().any(|g| same(g) == same(f));
-    Changes {
-        fixed: before.iter().filter(|f| !has(now, f)).collect(),
-        new: now.iter().filter(|f| !has(before, f)).collect(),
-        carried: now.iter().filter(|f| has(before, f)).collect(),
-    }
+    let mut fixed: Vec<&Finding> = before.iter().filter(|f| !has(now, f)).collect();
+    let mut renamed = Vec::new();
+    // a part renamed is no fix: the same finding, measured the same on the same frames, under a new name
+    let new = now.iter().filter(|f| !has(before, f)).filter(|n| match fixed.iter().position(|g| g.check == n.check && g.frames == n.frames && g.measure.is_some() && g.measure == n.measure) {
+        Some(at) => {
+            renamed.push((fixed.remove(at), *n));
+            false
+        }
+        None => true,
+    });
+    let new = new.collect();
+    Changes { fixed, new, carried: now.iter().filter(|f| has(before, f)).collect(), renamed }
 }
 
 #[cfg(test)]
@@ -142,6 +170,11 @@ mod tests {
         // the same clip on other frames is the same finding
         let b = keep("raea render", &root.join("edit.tsx"), None, &[clips.frames(12, 22)], vec![], "20261110-160000").unwrap();
         assert_eq!((a.id.as_str(), b.id.as_str(), a.of.as_str(), a.out.as_deref()), ("20261110-160000-edit", "20261110-160000-edit-2", "edit.tsx", Some("out/edit.mp4")));
+        // what each run wrote is the kind it's set against: the video, frames, a review's folder, a check
+        std::fs::create_dir_all(root.join("review")).unwrap();
+        std::fs::write(root.join("review/review.json"), "{}").unwrap();
+        let k = |by: &str, o: &str| kind(by, Some(&root.join(o)));
+        assert_eq!((a.kind.as_str(), b.kind.as_str(), k("raea render", "review"), k("raea render", "frames/"), k("raea check", "out/edit.mp4")), ("video", "run", "review".into(), "frames".into(), "check".into()));
         let all = read(&root);
         assert_eq!(all.len(), 2);
         let ch = changes(&all[0].findings, &all[1].findings);
@@ -149,6 +182,12 @@ mod tests {
         assert_eq!(ch.fixed[0].check, "tilted");
         // outside a project, nothing is kept
         assert!(keep("raea render", &std::env::temp_dir().join("loose.tsx"), None, &[], vec![], "x").is_none());
+        // a video copied from the export cache says what was found when it was drawn (finding::keep_to, replay)
+        crate::finding::said(std::slice::from_ref(&tilt));
+        assert!(crate::finding::keep_to(&root.join("cached.findings")));
+        let _ = crate::finding::taken();
+        crate::finding::replay(&root.join("cached.findings"));
+        assert_eq!(crate::finding::taken(), vec![tilt]);
         let _ = std::fs::remove_dir_all(&root);
     }
 }

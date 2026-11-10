@@ -22,7 +22,8 @@ pub fn quick(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String,
     std::fs::create_dir_all(&tmp).map_err(|e| format!("{}: {e}", tmp.display()))?;
     let manifest = tmp.join("render.json");
     let me = std::env::current_exe().map_err(|e| e.to_string())?;
-    let out = std::process::Command::new(me).arg("render").arg(file).args(["--at", &at, "-o"]).arg(format!("{}/", tmp.display())).arg("--manifest").arg(&manifest).output().map_err(|e| e.to_string())?;
+    // the stills are part of this check, which keeps the one entry in the project's record (DR3)
+    let out = std::process::Command::new(me).arg("render").arg(file).args(["--at", &at, "-o"]).arg(format!("{}/", tmp.display())).arg("--manifest").arg(&manifest).env("RAEA_RECORD", "off").output().map_err(|e| e.to_string())?;
     // rendered when its manifest was written: a render whose stills clip exits 1 (DR3), and those findings are read here
     let result = if manifest.is_file() {
         on_manifest(file, &manifest, args, tastes)
@@ -36,7 +37,7 @@ pub fn quick(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String,
             }
         }
         let f = raea_core_facts::Finding::new("render", raea_core_facts::Level::Error, why.join("\n"), "raea check --quick");
-        Ok((format!("raea check {file}: it doesn't render\n{}\n{}", f.line(), raea_core_facts::finding::count(&[f])), true))
+        Ok((format!("raea check {file}: it doesn't render\n{}\nraea check: {}", f.line(), raea_core_facts::finding::count(&[f])), true))
     };
     let _ = std::fs::remove_dir_all(&tmp);
     result

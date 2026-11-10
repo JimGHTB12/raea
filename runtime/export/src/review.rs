@@ -40,7 +40,8 @@ pub fn review(args: &[String], dir_out: &Path) -> R<String> {
             let out = dir_out.join(format!("{view}-{mode}.png"));
             let mut cmd = std::process::Command::new(&exe);
             cmd.arg("render").arg(&tsx).args(&rest).args(["--frame", &frame.to_string(), "-o"]).arg(&out);
-            cmd.env_remove("RAEA_CAMERA").env_remove("RAEA_CLAY");
+            // a tile is part of this render: the review keeps the one entry in the project's record (DR3)
+            cmd.env_remove("RAEA_CAMERA").env_remove("RAEA_CLAY").env("RAEA_RECORD", "off");
             if let Some((e, t, f)) = cam {
                 cmd.env("RAEA_CAMERA", format!("{},{},{},{},{},{},{}", e[0], e[1], e[2], t[0], t[1], t[2], f));
             }
@@ -55,9 +56,12 @@ pub fn review(args: &[String], dir_out: &Path) -> R<String> {
         }
         let colour = dir_out.join(format!("{view}-colour.png"));
         let (_, ev) = raea_sys_light_meter::exposure::of_pngs(std::slice::from_ref(&colour))?;
-        for f in ev["found"].as_array().into_iter().flatten() {
-            said.push(json!({"check": "exposure", "level": f["level"], "says": format!("{view} tile: {}", f["says"].as_str().unwrap_or("").trim_start_matches("the frame: "))}));
-        }
+        // what a tile's exposure found, counted with the render's findings (DR3)
+        let tile: Vec<raea_core_facts::Finding> = ev["found"].as_array().into_iter().flatten().filter_map(|f| {
+            raea_core_facts::Finding::of_value(&json!({"check": "exposure", "level": f["level"], "says": format!("{view} tile: {}", f["says"].as_str().unwrap_or("").trim_start_matches("the frame: "))}), "raea render")
+        }).collect();
+        raea_core_facts::finding::said(&tile);
+        said.extend(tile);
         tiles.push(json!({"view": view, "colour": format!("{view}-colour.png"), "clay": format!("{view}-clay.png"), "exposure": ev["exposure"],
             "camera": cam.map(|(e, t, f)| json!({"eye": e, "target": t, "fov": f}))}));
     }
@@ -83,7 +87,7 @@ pub fn review(args: &[String], dir_out: &Path) -> R<String> {
     std::fs::write(dir_out.join("review.json"), serde_json::to_string_pretty(&doc).unwrap_or_default()).map_err(|e| e.to_string())?;
     let mut msg = format!("APPLIED  review of frame {frame}: {} and {} (hero, front, right, top, iso, low), cameras and exposure in {}", dir_out.join("colour.png").display(), dir_out.join("clay.png").display(), dir_out.join("review.json").display());
     for f in &said {
-        msg.push_str(&format!("\n  {}: {}", f["level"].as_str().unwrap_or(""), f["says"].as_str().unwrap_or("")));
+        msg.push_str(&format!("\n{}", f.line()));
     }
     Ok(msg)
 }

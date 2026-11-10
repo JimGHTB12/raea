@@ -37,8 +37,10 @@ pub fn clip_findings(found: &[Value], by: &str) -> Vec<Finding> {
         .iter()
         .map(|v| {
             let at = |k: &str| v[k].as_i64().unwrap_or(0);
-            // the check's "to" is the last frame it clips on; a finding's span ends one past it
-            let mut f = Finding::new("clips", Level::Error, v["says"].as_str().unwrap_or_default(), by).frames(at("from"), at("to") + 1);
+            // the check's "to" is the last frame it clips on; a finding's span ends one past it. One no frame shows is a
+            // note: in the scene, not in the picture
+            let level = if v["seen"] == false { Level::Note } else { Level::Error };
+            let mut f = Finding::new("clips", level, v["says"].as_str().unwrap_or_default(), by).frames(at("from"), at("to") + 1);
             for k in ["part", "into"] {
                 if let Some(name) = v[k].as_str() {
                     f = f.about(name, None);
@@ -81,5 +83,9 @@ mod tests {
         let f = &clip_findings(&found, "raea render")[0];
         // frames 40 to 52, the last included
         assert_eq!(f.line(), "error clips  frames 40-52  rider, seat: rider passes 40 mm into seat (fix: move it +0.050 m along y)");
+        // one no frame shows (the camera turned away) is still said, as a note about the same parts
+        let away = vec![json!({"from": 0, "to": 29, "part": "rider", "into": "seat", "seen": false, "says": "rider passes 40 mm into seat, where no frame shows it"})];
+        let n = &clip_findings(&away, "raea render")[0];
+        assert_eq!((n.level, raea_core_facts::record::same(n) == raea_core_facts::record::same(f)), (Level::Note, true));
     }
 }

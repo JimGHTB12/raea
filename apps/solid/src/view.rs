@@ -87,7 +87,8 @@ pub(crate) fn view(file: &Path, set: &Map<String, Value>, info: &Value, out: &Pa
     let tsx = file.with_file_name(format!(".{}.view.tsx", file.file_stem().and_then(|s| s.to_str()).unwrap_or("solid")));
     std::fs::write(&tsx, scene(file, set, lo, hi)).map_err(|e| format!("{}: {e}", tsx.display()))?;
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let run = std::process::Command::new(exe).arg("render").arg(&tsx).arg("--review").arg(out).current_dir(tsx.parent().unwrap_or(Path::new("."))).output().map_err(|e| e.to_string())?;
+    // a scene made for this look and deleted after it: nothing for the project's record (DR3)
+    let run = std::process::Command::new(exe).arg("render").arg(&tsx).arg("--review").arg(out).current_dir(tsx.parent().unwrap_or(Path::new("."))).env("RAEA_RECORD", "off").output().map_err(|e| e.to_string())?;
     let said = format!("{}{}", String::from_utf8_lossy(&run.stdout), String::from_utf8_lossy(&run.stderr));
     if !run.status.success() || !out.join("colour.png").is_file() {
         // the scene is left for a look: what failed is in it or in the file

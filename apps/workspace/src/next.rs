@@ -35,17 +35,23 @@ fn first_error(e: &Entry) -> Option<String> {
 }
 
 /// The step after a composition's latest render in the project's record (docs/direction.feature DR3): its errors,
-/// then its video's check (a `raea check` of what it wrote, kept after it) and what that found.
-fn after_render(c: &Path, record: &[Entry], i: usize) -> String {
+/// then its video (the newest render of it that wrote one: stills or a review since don't replace it, and one made
+/// before the composition's last change, at `changed` seconds, is stale), then the video's check (a `raea check` of
+/// it, kept after it) and what that found.
+fn after_render(c: &Path, record: &[Entry], i: usize, changed: u64) -> String {
     let e = &record[i];
     if let Some(err) = first_error(e) {
         return format!("fix {}: {err} (its render {} found it; `raea findings {}` lists them all)", name(c), e.id, name(c));
     }
-    let Some(out) = e.out.as_deref().filter(|o| o.ends_with(".mp4")) else {
+    let video = record[..=i].iter().rposition(|k| k.by == "raea render" && k.of == e.of && k.out.as_deref().is_some_and(|o| o.ends_with(".mp4")));
+    let Some((v, out)) = video.and_then(|v| Some((v, record[v].out.as_deref()?))) else {
         return format!("render the video: `raea render {} -o out/{}`", name(c), name(&c.with_extension("mp4")));
     };
+    if record[v].at < changed {
+        return format!("render the video again: {} changed after {} made {out}", name(c), record[v].id);
+    }
     let check = out.replace(".mp4", ".check.json");
-    match record[i + 1..].iter().rev().find(|k| k.by == "raea check" && k.of == out) {
+    match record[v + 1..].iter().rev().find(|k| k.by == "raea check" && k.of == out) {
         None => format!("check {out}: `raea check {out} -o {check}` (add --manifest when the render wrote one)"),
         Some(k) => match first_error(k) {
             Some(err) => format!("polish {out}: {err} (`raea guide polish`)"),
@@ -84,7 +90,7 @@ pub fn steps(dir: &Path, brief: &Brief, stale: usize) -> Vec<String> {
         Some(c) => match kept.iter().rposition(|e| e.by == "raea render" && e.of == record::rel(&project, c)) {
             None => out.push(format!("render {}: stills to look at first (`raea render {} --at 0,45,89 -o frames/`), then the video into out/", name(c), name(c))),
             Some(i) if secs(c) > kept[i].at => out.push(format!("render again: {} changed after its render {}", name(c), kept[i].id)),
-            Some(i) => out.push(after_render(c, &kept, i)),
+            Some(i) => out.push(after_render(c, &kept, i, secs(c))),
         },
     }
     out.truncate(3);

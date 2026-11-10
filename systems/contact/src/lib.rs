@@ -277,6 +277,8 @@ pub fn check(all: &[Vec<Item>], frames: &[i64], w: u32, h: u32, fps: f64) -> Vec
     // neither part moves (the camera may still have)
     let mut last: HashMap<(usize, usize), (Mat4, Mat4, Option<Hit>)> = HashMap::new();
     let mut found: HashMap<(usize, usize), Vec<(usize, Hit)>> = HashMap::new();
+    // overlaps no frame shows (off frame, behind something): first and last frame, and the first frame's hit
+    let mut hidden: HashMap<(usize, usize), (usize, usize, Hit)> = HashMap::new();
     for k in 0..frames.len() {
         let mut boxes: Vec<(usize, Vec3, Vec3)> = Vec::new();
         for (i, (_, tr)) in parts.iter().enumerate() {
@@ -329,11 +331,16 @@ pub fn check(all: &[Vec<Item>], frames: &[i64], w: u32, h: u32, fps: f64) -> Vec
                     let skip = 3.0 * (sa.cell * scale_of(&wa)).max(sb.cell * scale_of(&wb));
                     if shows(&all[k], &hit.seam, occ.get_or_insert_with(|| occluders(k)), skip, w as f32, h as f32) {
                         found.entry((i, j)).or_default().push((k, hit));
+                    } else {
+                        hidden.entry((i, j)).or_insert((k, k, hit)).1 = k;
                     }
                 }
             }
         }
     }
+    // unseen on every frame: still said, so a clip turned away from reads as hidden, not fixed (DR3, DR9's cheats)
+    let mut unseen: Vec<_> = hidden.into_iter().filter(|(p, _)| !found.contains_key(p)).collect();
+    unseen.sort_by_key(|(p, (k, _, _))| (*k, *p));
     let mut spans: Vec<((usize, usize), Vec<(usize, Hit)>)> = found.into_iter().collect();
     spans.sort_by_key(|(p, g)| (g[0].0, *p));
     let clock = |f: i64| {
@@ -341,6 +348,22 @@ pub fn check(all: &[Vec<Item>], frames: &[i64], w: u32, h: u32, fps: f64) -> Vec
         format!("{}:{:04.1}", (s / 60.0) as i64, s % 60.0)
     };
     let mut out = Vec::new();
+    // one overlap said, over frames f0 to f1 (`seen`: its seam on screen, else said as standing in the scene unseen)
+    let mut say = |i: usize, j: usize, k: usize, hit: &Hit, f0: i64, f1: i64, seen: bool| {
+        let (pa, pb, sa, sb) = (parts[i].1[k].as_ref().unwrap(), parts[j].1[k].as_ref().unwrap(), solids[i].as_ref().unwrap(), solids[j].as_ref().unwrap());
+        let (la, lb) = (label(pa, &sa[hit.pieces.0].name), label(pb, &sb[hit.pieces.1].name));
+        let (small, big) = if hit.small_first { (la, lb) } else { (lb, la) };
+        // out the shortest way: the smallest move along a world axis (not down) that leaves no piece in the other's
+        let (axis, step) = clear_move(&sa[..], &placed[i][k].world, &sb[..], &placed[j][k].world, hit.small_first);
+        let axis_name = ["x", "y", "z"][axis];
+        let when = if f0 == f1 { clock(f0) } else { format!("{}–{}", clock(f0), clock(f1)) };
+        let shows = if seen { "and the seam shows" } else { "where no frame shows it (off frame or behind something), so it stands in the scene unseen" };
+        let says = format!(
+            "{when} {small} passes {:.2} m into {big} ({:.0}% of it inside), {shows}: move {small} {step:+.2} along world {axis_name} (or move {big}), or give it allowOverlap if it's meant to",
+            hit.depth, hit.share * 100.0
+        );
+        out.push(json!({"from": f0, "to": f1, "part": small, "into": big, "depth": (hit.depth * 1000.0).round() / 1000.0, "share": (hit.share * 1000.0).round() / 1000.0, "move": {"axis": axis_name, "by": (step * 1000.0).round() / 1000.0}, "seen": seen, "says": says}));
+    };
     for ((i, j), got) in spans {
         // a stretch is rendered frames in a row
         let mut runs: Vec<Vec<&(usize, Hit)>> = Vec::new();
@@ -352,24 +375,11 @@ pub fn check(all: &[Vec<Item>], frames: &[i64], w: u32, h: u32, fps: f64) -> Vec
         }
         for run in runs {
             let &&(k, ref hit) = run.iter().max_by(|x, y| x.1.depth.total_cmp(&y.1.depth)).unwrap();
-            let (pa, pb) = (parts[i].1[k].as_ref().unwrap(), parts[j].1[k].as_ref().unwrap());
-            let (sa, sb) = (solids[i].as_ref().unwrap(), solids[j].as_ref().unwrap());
-            let (la, lb) = (label(pa, &sa[hit.pieces.0].name), label(pb, &sb[hit.pieces.1].name));
-            let (small, big) = if hit.small_first { (la, lb) } else { (lb, la) };
-            // out the shortest way: the smallest move along a world axis (not down) after which no piece of the one
-            // passes into any piece of the other
-            let (wa, wb) = (placed[i][k].world, placed[j][k].world);
-            let small_is_a = hit.small_first;
-            let (axis, step) = clear_move(&sa[..], &wa, &sb[..], &wb, small_is_a);
-            let axis_name = ["x", "y", "z"][axis];
-            let (f0, f1) = (frames[run.first().unwrap().0], frames[run.last().unwrap().0]);
-            let when = if f0 == f1 { clock(f0) } else { format!("{}–{}", clock(f0), clock(f1)) };
-            let says = format!(
-                "{when} {small} passes {:.2} m into {big} ({:.0}% of it inside), and the seam shows: move {small} {step:+.2} along world {axis_name} (or move {big}), or give it allowOverlap if it's meant to",
-                hit.depth, hit.share * 100.0
-            );
-            out.push(json!({"from": f0, "to": f1, "part": small, "into": big, "depth": (hit.depth * 1000.0).round() / 1000.0, "share": (hit.share * 1000.0).round() / 1000.0, "move": {"axis": axis_name, "by": (step * 1000.0).round() / 1000.0}, "says": says}));
+            say(i, j, k, hit, frames[run.first().unwrap().0], frames[run.last().unwrap().0], true);
         }
+    }
+    for ((i, j), (k0, k1, hit)) in unseen {
+        say(i, j, k0, &hit, frames[k0], frames[k1], false);
     }
     out
 }

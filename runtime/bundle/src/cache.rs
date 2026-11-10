@@ -218,6 +218,10 @@ pub fn prune_cache(dir: &Path, ext: &str, keep: usize) {
     }
     all.sort_by(|a, b| b.0.cmp(&a.0));
     for (_, p) in all.into_iter().skip(keep) {
+        // with what an export keeps beside it: its message, manifest and findings
+        for side in ["said", "manifest", "findings"] {
+            let _ = std::fs::remove_file(p.with_extension(side));
+        }
         let _ = std::fs::remove_file(p);
     }
 }

@@ -9,7 +9,7 @@ use raea_core_facts::{Finding, finding};
 use raea_runtime_bundle::flag;
 use serde_json::{Value, json};
 
-pub const USAGE: &str = "raea findings [PROJECT | EDIT.tsx] [--about NAME] [--check ID] [--open] [--since RENDER] [--json]   (what each render and raea check found, from the project's record: fixed, new and carried since the one before, or since RENDER; --open: only what stands)";
+pub const USAGE: &str = "raea findings [PROJECT|EDIT.tsx] [--about NAME] [--check ID] [--open] [--since RENDER] [--json]   (what each render and raea check found, from the project's record: fixed, new and carried since the one before, or since RENDER; --open: only what stands)";
 
 /// The oldest entry of the unbroken run up to the latest that all found `f`.
 fn carried_since(entries: &[&Entry], f: &Finding) -> String {
@@ -29,17 +29,19 @@ fn compare(entries: &[&Entry], since: Option<&str>, keep: &dyn Fn(&Finding) -> b
     let ch = record::changes(before.map_or(&none, |b| &b.findings), &now.findings);
     let list = |fs: Vec<&Finding>| fs.into_iter().filter(|f| keep(f)).cloned().collect::<Vec<Finding>>();
     let carried: Vec<Value> = list(ch.carried).into_iter().map(|f| json!({"since": carried_since(entries, &f), "finding": f})).collect();
+    let renamed: Vec<Value> = ch.renamed.into_iter().filter(|(_, n)| keep(n)).map(|(was, f)| json!({"was": was.about.iter().map(|a| &a.name).collect::<Vec<_>>(), "finding": f})).collect();
     let fixed = if open { Vec::new() } else { list(ch.fixed) };
-    Some(json!({"of": now.of, "id": now.id, "by": now.by, "commit": now.commit, "out": now.out, "against": before.map(|b| &b.id),
-        "new": list(ch.new), "carried": carried, "fixed": fixed, "despite": now.despite}))
+    Some(json!({"of": now.of, "kind": now.kind, "id": now.id, "by": now.by, "commit": now.commit, "out": now.out, "against": before.map(|b| &b.id),
+        "new": list(ch.new), "carried": carried, "renamed": renamed, "fixed": fixed, "despite": now.despite}))
 }
 
 /// One thing's lines: its entry, then what is new, carried and fixed.
 fn lines(r: &Value) -> Vec<String> {
     let read = |v: &Value| serde_json::from_value::<Finding>(v.clone()).ok();
     let mut t = vec![format!(
-        "{} ({} {}{}, against {})",
+        "{} {} ({} {}{}, against {})",
         r["of"].as_str().unwrap_or(""),
+        r["kind"].as_str().filter(|k| !k.is_empty()).unwrap_or("run"),
         r["by"].as_str().unwrap_or(""),
         r["id"].as_str().unwrap_or(""),
         r["commit"].as_str().map(|c| format!(" at {c}")).unwrap_or_default(),
@@ -51,7 +53,15 @@ fn lines(r: &Value) -> Vec<String> {
             t.push(format!("  carried  {} (since {})", f.line(), c["since"].as_str().unwrap_or("")));
         }
     }
+    for c in r["renamed"].as_array().into_iter().flatten() {
+        if let Some(f) = read(&c["finding"]) {
+            let was: Vec<&str> = c["was"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+            t.push(format!("  renamed  {} (the same, about {} before: not fixed)", f.line(), was.join(", ")));
+        }
+    }
     t.extend(r["fixed"].as_array().into_iter().flatten().filter_map(read).map(|f| format!("  fixed    {}", f.line())));
+    // what was let through, and why: the error stands in the count all the same
+    t.extend(r["despite"].as_array().into_iter().flatten().map(|d| format!("  despite  {}: {}", d["check"].as_str().unwrap_or(""), d["why"].as_str().unwrap_or(""))));
     t
 }
 
@@ -60,7 +70,7 @@ fn standing(reports: &[Value]) -> Vec<Finding> {
     let mut out = Vec::new();
     for r in reports {
         out.extend(r["new"].as_array().into_iter().flatten().filter_map(|v| serde_json::from_value(v.clone()).ok()));
-        out.extend(r["carried"].as_array().into_iter().flatten().filter_map(|c| serde_json::from_value(c["finding"].clone()).ok()));
+        out.extend(["carried", "renamed"].iter().flat_map(|k| r[*k].as_array().into_iter().flatten()).filter_map(|c| serde_json::from_value(c["finding"].clone()).ok()));
     }
     out
 }
@@ -78,11 +88,12 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     let keep = |f: &Finding| about.as_deref().is_none_or(|n| f.about.iter().any(|a| a.name == n || a.key.as_deref() == Some(n))) && check.as_deref().is_none_or(|c| f.check == c);
     let all = record::read(&project);
     let only = target.is_file().then(|| record::rel(&project, &target));
-    let mut ofs: Vec<&str> = all.iter().map(|e| e.of.as_str()).filter(|o| only.as_deref().is_none_or(|w| w == *o)).collect();
+    // each thing by what kind of output it was (a video against the video before it, a review against a review)
+    let mut ofs: Vec<(&str, &str)> = all.iter().map(|e| (e.of.as_str(), e.kind.as_str())).filter(|(o, _)| only.as_deref().is_none_or(|w| w == *o)).collect();
     ofs.sort();
     ofs.dedup();
     let open = args.iter().any(|a| a == "--open");
-    let reports: Vec<Value> = ofs.iter().filter_map(|of| compare(&all.iter().filter(|e| e.of == *of).collect::<Vec<_>>(), since.as_deref(), &keep, open)).collect();
+    let reports: Vec<Value> = ofs.iter().filter_map(|(of, kind)| compare(&all.iter().filter(|e| e.of == *of && e.kind == *kind).collect::<Vec<_>>(), since.as_deref(), &keep, open)).collect();
     let count = finding::count(&standing(&reports));
     if args.iter().any(|a| a == "--json") {
         return Ok(serde_json::to_string_pretty(&json!({"project": project, "entries": all.len(), "reports": reports, "standing": count})).unwrap_or_default());
@@ -102,7 +113,7 @@ mod tests {
     use raea_core_facts::Level;
 
     fn entry(id: &str, fs: Vec<Finding>) -> Entry {
-        Entry { id: id.into(), at: 0, by: "raea render".into(), of: "edit.tsx".into(), out: None, commit: None, findings: fs, despite: vec![] }
+        Entry { id: id.into(), at: 0, by: "raea render".into(), of: "edit.tsx".into(), out: None, kind: "video".into(), commit: None, findings: fs, despite: vec![] }
     }
 
     #[test]
@@ -122,5 +133,21 @@ mod tests {
         assert_eq!(finding::count(&standing(&[r])), "2 errors, 0 warns, 0 notes");
         let lamp = |f: &Finding| f.about.iter().any(|a| a.name == "lamp");
         assert_eq!(compare(&refs, None, &lamp, false).unwrap()["carried"].as_array().map(Vec::len), Some(0));
+    }
+
+    #[test]
+    fn a_renamed_part_or_an_error_let_through_is_never_read_as_fixed() {
+        let crate_ = Finding::new("clips", Level::Error, "crate in pillar", "raea render").about("crate", None).about("pillar", None).frames(0, 30).measure("depth", 0.241, "m", None);
+        let mut boxed = crate_.clone();
+        boxed.about[0].name = "box".into();
+        boxed.says = "box in pillar".into();
+        let mut let_through = entry("b", vec![boxed]);
+        let_through.despite = vec![record::Despite { check: "clips".into(), why: "posed through it".into() }];
+        let es = [entry("a", vec![crate_]), let_through];
+        let r = compare(&es.iter().collect::<Vec<_>>(), None, &|_: &Finding| true, false).unwrap();
+        assert_eq!((r["fixed"].as_array().map(Vec::len), r["new"].as_array().map(Vec::len), r["renamed"][0]["was"][0].as_str()), (Some(0), Some(0), Some("crate")));
+        let text = lines(&r).join("\n");
+        assert!(text.contains("  renamed  error clips  frames 0-29  box, pillar") && text.contains("  despite  clips: posed through it"), "{text}");
+        assert_eq!(finding::count(&standing(&[r])), "1 error, 0 warns, 0 notes");
     }
 }

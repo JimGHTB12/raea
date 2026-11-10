@@ -160,6 +160,21 @@ pub fn taken() -> Vec<Finding> {
     std::mem::take(&mut *SAID.lock().unwrap_or_else(|e| e.into_inner()))
 }
 
+/// The findings said so far, written to `to` (beside a video in the export cache, which is copied later instead of
+/// drawn and checked again): whether they were.
+pub fn keep_to(to: &std::path::Path) -> bool {
+    serde_json::to_vec(&*SAID.lock().unwrap_or_else(|e| e.into_inner())).is_ok_and(|b| std::fs::write(to, b).is_ok())
+}
+
+/// Findings kept by keep_to, said again as when they were found: printed, and counted at the end.
+pub fn replay(from: &std::path::Path) {
+    let fs: Vec<Finding> = std::fs::read(from).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+    for f in &fs {
+        eprintln!("raea: {}", f.line());
+    }
+    said(&fs);
+}
+
 /// Findings worst first, each level in the order found.
 pub fn ranked(mut fs: Vec<Finding>) -> Vec<Finding> {
     fs.sort_by_key(|f| f.level);
