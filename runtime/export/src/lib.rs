@@ -70,8 +70,8 @@ static MANIFEST: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None)
 /// The manifest, its folder made first (2D stills write it before their frames): boxes as drawn, findings, sounds.
 fn write_manifest(cx: &mut Ctx, (w, h, fps): (u32, u32, f64), found: Vec<raea_core_facts::Finding>, heard: impl FnOnce(&Ctx) -> Value) -> R<()> {
     let (Some(path), Some(frames)) = (MANIFEST.lock().unwrap().clone(), cx.manifest.take()) else { return Ok(()) };
-    let m = json!({"width": w, "height": h, "fps": fps, "frames": frames, "findings": raea_core_facts::finding::ranked(found), "sounds": heard(cx), "not_applied": not_applied::seen(), "layers": raea_sys_layers::finish(fps)}).to_string();
-    path.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|()| std::fs::write(&path, m)).map_err(|e| format!("{}: {e}", path.display()))
+    path.parent().map_or(Ok(()), std::fs::create_dir_all).map_err(|e| format!("{}: {e}", path.display()))?;
+    std::fs::write(&path, json!({"width": w, "height": h, "fps": fps, "frames": frames, "findings": raea_core_facts::finding::ranked(found), "sounds": heard(cx), "not_applied": not_applied::seen(), "layers": raea_sys_layers::finish(fps)}).to_string()).map_err(|e| format!("{}: {e}", path.display()))
 }
 
 /// `render --stage WxH`: a responsive composition (one that lays out from useVideoConfig) laid out at a stage's size, as
