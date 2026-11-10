@@ -132,3 +132,12 @@ fn each_fault_names_its_blender_script() {
     assert_eq!(fix_of(&r, "surface")["blender"], "repair.py");
     assert_eq!(level(&check(&holed, 10, &Want::default()).unwrap(), "surface"), "note");
 }
+
+#[test]
+fn a_fix_the_fitted_copy_makes_is_said_as_what_to_run() {
+    let says = |fix: &str| said_fix(fix).unwrap_or_default();
+    assert_eq!(says(r#"{"origin":"bottom centre"}"#), "run this check again with -o FIXED.glb, which puts its origin at the bottom centre");
+    assert!(says(r#"{"scale":0.5}"#).ends_with("scales it by 0.5") && says(r#"{"turn":90.0}"#).ends_with("turns it 90° about y"));
+    // a Blender script's fix isn't the fitted copy's
+    assert_eq!(said_fix(r#"{"blender":"repair.py"}"#), None);
+}

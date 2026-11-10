@@ -107,6 +107,11 @@ impl Finding {
         self
     }
 
+    /// One kept as JSON (in a report or the record), read back.
+    pub fn read(v: &serde_json::Value) -> Option<Finding> {
+        Finding::deserialize(v).ok()
+    }
+
     /// A finding in the JSON the older commands write (`{check, level, says}` and what it is about: `part`, `into`,
     /// `on`, `file`; scene lint, gen check, solid info): None for "ok", a pass. A `fix` that is an object says its
     /// command (`run`) or else itself as JSON.

@@ -202,27 +202,22 @@ pub fn bundle_cache(tsx: &Path, o: &CompOpts) -> Option<PathBuf> {
 
 /// The newest `keep` files with extension `ext` in `dir` kept, by when they were last written or used.
 pub fn prune_cache(dir: &Path, ext: &str, keep: usize) {
-    // a write that never finished (its process killed between the copy and the rename) goes after an hour
-    if let Ok(rd) = std::fs::read_dir(dir) {
-        for e in rd.flatten() {
-            let old = e.metadata().and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).is_some_and(|d| d.as_secs() > 3600);
-            if old && e.path().extension().is_some_and(|x| x == "tmp") {
-                let _ = std::fs::remove_file(e.path());
-            }
+    let mut all = vec![];
+    for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let (p, t) = (e.path(), e.metadata().and_then(|m| m.modified()).ok());
+        // a write that never finished (its process killed between the copy and the rename) goes after an hour
+        if p.extension().is_some_and(|x| x == "tmp") && t.and_then(|t| t.elapsed().ok()).is_some_and(|d| d.as_secs() > 3600) {
+            let _ = std::fs::remove_file(&p);
+        } else if let (Some(t), true) = (t, p.extension().is_some_and(|x| x == ext)) {
+            all.push((t, p));
         }
-    }
-    let Ok(rd) = std::fs::read_dir(dir) else { return };
-    let mut all: Vec<_> = rd.flatten().filter(|e| e.path().extension().is_some_and(|x| x == ext)).filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path()))).collect();
-    if all.len() <= keep {
-        return;
     }
     all.sort_by(|a, b| b.0.cmp(&a.0));
+    // the oldest go, with what an export keeps beside it: its message, manifest and findings
     for (_, p) in all.into_iter().skip(keep) {
-        // with what an export keeps beside it: its message, manifest and findings
-        for side in ["said", "manifest", "findings"] {
-            let _ = std::fs::remove_file(p.with_extension(side));
+        for f in ["said", "manifest", "findings"].map(|s| p.with_extension(s)).into_iter().chain([p]) {
+            let _ = std::fs::remove_file(f);
         }
-        let _ = std::fs::remove_file(p);
     }
 }
 

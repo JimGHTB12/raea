@@ -204,9 +204,7 @@ pub fn run(args: &[String]) -> R<String> {
     }
     if args[0] == "world" { std::process::exit(raea_app_direction::cli(&args[1..])); } // a frame as one world of facts (docs/direction.feature DR1)
     if args[0] == "findings" { return raea_app_direction::findings::cli(args); } // the project's record read back (DR3)
-    if args.first().map(String::as_str) == Some("traces") {
-        return traces(args);
-    }
+    if args[0] == "traces" { return traces(args); }
     if args.first().map(String::as_str) == Some("play") {
         return raea_app_play::play(args);
     }

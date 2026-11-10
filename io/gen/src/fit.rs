@@ -35,7 +35,7 @@ fn as_findings(mut r: J) -> J {
                 if let Some(cut) = f.fix.as_ref().and_then(|x| f.says.strip_suffix(&format!("; fix: {x}"))) {
                     f.says = cut.to_string();
                 }
-                f.fix = f.fix.map(|x| fitted(&x).unwrap_or(x));
+                f.fix = f.fix.map(|x| raea_core_meshcheck::said_fix(&x).unwrap_or(x));
                 if f.about.is_empty() { f.about(&file, None) } else { f }
             })
             .collect(),
@@ -48,19 +48,6 @@ fn as_findings(mut r: J) -> J {
     r["count"] = json!(finding::count(&fs));
     r["findings"] = json!(fs);
     r
-}
-
-/// A fix the fitted copy makes (meshcheck's `{"origin"}`, `{"scale"}`, `{"turn"}`), said as what to run.
-fn fitted(fix: &str) -> Option<String> {
-    let v: J = serde_json::from_str(fix).ok()?;
-    let does = if v.get("origin").is_some() {
-        "puts its origin at the bottom centre".to_string()
-    } else if let Some(s) = v["scale"].as_f64() {
-        format!("scales it by {s}")
-    } else {
-        format!("turns it {}° about y", v["turn"].as_f64()?)
-    };
-    Some(format!("run this check again with -o FIXED.glb, which {does}"))
 }
 
 /// Whether a report holds an error.
@@ -126,7 +113,7 @@ pub fn command(args: &[String]) -> Result<String, String> {
 
 /// The findings as lines, worst first, then what was measured, then their count.
 pub fn say(r: &J) -> String {
-    let mut t: Vec<String> = r["findings"].as_array().into_iter().flatten().filter_map(|f| serde_json::from_value::<Finding>(f.clone()).ok()).map(|f| f.line()).collect();
+    let mut t: Vec<String> = r["findings"].as_array().into_iter().flatten().filter_map(Finding::read).map(|f| f.line()).collect();
     let m = &r["measured"];
     // a file raea can't read has no measures: its summary says so instead of nulls
     let measured = if m["triangles"].is_null() { "not read".to_string() } else { format!("{} triangles, {} x {} x {} m", m["triangles"], m["size"][0], m["size"][1], m["size"][2]) };

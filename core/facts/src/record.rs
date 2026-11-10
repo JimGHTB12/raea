@@ -69,7 +69,10 @@ pub fn rel(project: &Path, p: &Path) -> String {
 
 /// The project's commit, with "+" when `of` differs from it.
 fn commit(project: &Path, of: &str) -> Option<String> {
-    let git = |a: &[&str]| std::process::Command::new("git").arg("-C").arg(project).args(a).output().ok().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+    let git = |a: &[&str]| {
+        let o = std::process::Command::new("git").arg("-C").arg(project).args(a).output().ok()?;
+        o.status.success().then_some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+    };
     let head = git(&["rev-parse", "--short", "HEAD"])?;
     let changed = git(&["status", "--porcelain", "--", of]).is_some_and(|s| !s.is_empty());
     Some(if changed { format!("{head}+") } else { head })

@@ -31,7 +31,7 @@ fn name(p: &Path) -> String {
 
 /// An entry's first error, as `check: says`.
 fn first_error(e: &Entry) -> Option<String> {
-    e.findings.iter().find(|f| f.level == Level::Error).map(|f| format!("{}: {}", f.check, f.says))
+    e.findings.iter().find(|f| f.level == Level::Error).map(|f| [f.check.as_str(), f.says.as_str()].join(": "))
 }
 
 /// The step after a composition's latest render in the project's record (docs/direction.feature DR3): its errors,
@@ -51,7 +51,7 @@ fn after_render(c: &Path, record: &[Entry], i: usize, changed: u64) -> String {
         return format!("render the video again: {} changed after {} made {out}", name(c), record[v].id);
     }
     let check = out.replace(".mp4", ".check.json");
-    match record[v + 1..].iter().rev().find(|k| k.by == "raea check" && k.of == out) {
+    match record[v + 1..].iter().rev().find(|k| (k.by.as_str(), k.of.as_str()) == ("raea check", out)) {
         None => format!("check {out}: `raea check {out} -o {check}` (add --manifest when the render wrote one)"),
         Some(k) => match first_error(k) {
             Some(err) => format!("polish {out}: {err} (`raea guide polish`)"),

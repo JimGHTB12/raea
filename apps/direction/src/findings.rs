@@ -37,7 +37,7 @@ fn compare(entries: &[&Entry], since: Option<&str>, keep: &dyn Fn(&Finding) -> b
 
 /// One thing's lines: its entry, then what is new, carried and fixed.
 fn lines(r: &Value) -> Vec<String> {
-    let read = |v: &Value| serde_json::from_value::<Finding>(v.clone()).ok();
+    let read = Finding::read;
     let mut t = vec![format!(
         "{} {} ({} {}{}, against {})",
         r["of"].as_str().unwrap_or(""),
@@ -61,7 +61,9 @@ fn lines(r: &Value) -> Vec<String> {
     }
     t.extend(r["fixed"].as_array().into_iter().flatten().filter_map(read).map(|f| format!("  fixed    {}", f.line())));
     // what was let through, and why: the error stands in the count all the same
-    t.extend(r["despite"].as_array().into_iter().flatten().map(|d| format!("  despite  {}: {}", d["check"].as_str().unwrap_or(""), d["why"].as_str().unwrap_or(""))));
+    for d in r["despite"].as_array().into_iter().flatten() {
+        t.push(format!("  despite  {}: {}", d["check"].as_str().unwrap_or(""), d["why"].as_str().unwrap_or("")));
+    }
     t
 }
 
@@ -69,8 +71,8 @@ fn lines(r: &Value) -> Vec<String> {
 fn standing(reports: &[Value]) -> Vec<Finding> {
     let mut out = Vec::new();
     for r in reports {
-        out.extend(r["new"].as_array().into_iter().flatten().filter_map(|v| serde_json::from_value(v.clone()).ok()));
-        out.extend(["carried", "renamed"].iter().flat_map(|k| r[*k].as_array().into_iter().flatten()).filter_map(|c| serde_json::from_value(c["finding"].clone()).ok()));
+        out.extend(r["new"].as_array().into_iter().flatten().filter_map(Finding::read));
+        out.extend(["carried", "renamed"].iter().flat_map(|k| r[*k].as_array().into_iter().flatten()).filter_map(|c| Finding::read(&c["finding"])));
     }
     out
 }
@@ -89,7 +91,7 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     let all = record::read(&project);
     let only = target.is_file().then(|| record::rel(&project, &target));
     // each thing by what kind of output it was (a video against the video before it, a review against a review)
-    let mut ofs: Vec<(&str, &str)> = all.iter().map(|e| (e.of.as_str(), e.kind.as_str())).filter(|(o, _)| only.as_deref().is_none_or(|w| w == *o)).collect();
+    let mut ofs: Vec<(&str, &str)> = all.iter().filter(|e| only.as_deref().is_none_or(|w| w == e.of)).map(|e| (&*e.of, &*e.kind)).collect();
     ofs.sort();
     ofs.dedup();
     let open = args.iter().any(|a| a == "--open");
