@@ -15264,6 +15264,7 @@ dependencies = [
  "raea-io-media",
  "raea-sys-layers",
  "serde_json",
+ "wgpu",
 ]
 
 [[package]]

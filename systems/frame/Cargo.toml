@@ -19,3 +19,7 @@ raea-core-scene = { path = "../../core/scene" }
 raea-sys-layers = { path = "../layers" }
 serde_json = "1"
 raea-io-media = { path = "../../io/media", default-features = false, optional = true }
+
+# the Vulkan device's own memory, for the shadow maps' default size (shadow.rs)
+[target.'cfg(any(windows, target_os = "linux"))'.dependencies]
+wgpu = "=30.0.1"

@@ -20,9 +20,10 @@ pub fn camera(world: &mut World, e: Entity, vals: &BTreeMap<String, V>) {
     // its order, clear and viewport among the cameras on its target (<Camera3d order clear_color viewport>)
     raea_sys_frame::camera::camera_pass(world, e, vals);
     // shadow quality (a <Shadows>): the sun's and spots' maps are 4096 texels a side unless it says otherwise (Bevy's
-    // 2048 speckles and blurs a film's shadows); point lights' cube maps half that, 1024 by default as Bevy's
+    // 2048 speckles and blurs a film's shadows; smaller on a GPU with little memory of its own, raea_sys_frame::shadow);
+    // point lights' cube maps half that, 1024 by default as Bevy's
     if !preview() {
-        let size = match vals.get("shadow_map") { Some(V::N(n)) => *n as usize, _ => 4096 };
+        let size = match vals.get("shadow_map") { Some(V::N(n)) => *n as usize, _ => raea_sys_frame::shadow::shadow_map_default(world) };
         if let Some(mut m) = world.get_resource_mut::<bevy::light::DirectionalLightShadowMap>() {
             m.size = size;
         }

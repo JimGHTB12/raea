@@ -18,6 +18,8 @@ pub mod gpu;
 pub mod layer;
 /// the part under a point of the frame (docs/preview.feature PV1a)
 pub mod pick;
+/// the shadow maps' size when a scene doesn't give one (smaller where the GPU has little memory of its own)
+pub mod shadow;
 /// a free camera over the scene (docs/preview.feature PV1c)
 pub mod view;
 /// pipelined updates: the render world drawing the last frame while the main world runs this one
