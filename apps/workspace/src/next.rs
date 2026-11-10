@@ -1,9 +1,11 @@
 //! `raea next` (docs/skills.feature SK10): the two or three useful next steps for a project, read from its files: the
-//! brief (what it still needs, from the raea CLI's brief doctor), the storyboard its modes want, its compositions, its
-//! renders in out/ and their checks (`raea check ... -o out/NAME.check.json`). A menu for the agent or the person to
-//! pick from; nothing runs.
+//! brief (what it still needs, from the raea CLI's brief doctor), the storyboard its modes want, its compositions, and
+//! from the project's record (docs/direction.feature DR3) its renders and their checks and what each found. A menu for
+//! the agent or the person to pick from; nothing runs.
 use super::*;
-use std::time::SystemTime;
+use raea_core_facts::Level;
+use raea_core_facts::record::{self, Entry};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// What the raea CLI read from the project's brief.
 pub struct Brief {
@@ -27,16 +29,29 @@ fn name(p: &Path) -> String {
     full.rsplit(['/', '\\']).next().unwrap_or_default().to_string()
 }
 
-/// The errors a check file holds (its findings, docs/direction.feature DR3), as their lines.
-fn blocking(check: &Path) -> Vec<String> {
-    let Ok(j) = std::fs::read_to_string(check).map_err(drop).and_then(|t| serde_json::from_str::<serde_json::Value>(&t).map_err(drop)) else { return vec![] };
-    let mut out = Vec::new();
-    for f in j["findings"].as_array().into_iter().flatten() {
-        if let (Some("error"), Some(check), Some(says)) = (f["level"].as_str(), f["check"].as_str(), f["says"].as_str()) {
-            out.push(format!("{check}: {says}"));
-        }
+/// An entry's first error, as `check: says`.
+fn first_error(e: &Entry) -> Option<String> {
+    e.findings.iter().find(|f| f.level == Level::Error).map(|f| format!("{}: {}", f.check, f.says))
+}
+
+/// The step after a composition's latest render in the project's record (docs/direction.feature DR3): its errors,
+/// then its video's check (a `raea check` of what it wrote, kept after it) and what that found.
+fn after_render(c: &Path, record: &[Entry], i: usize) -> String {
+    let e = &record[i];
+    if let Some(err) = first_error(e) {
+        return format!("fix {}: {err} (its render {} found it; `raea findings {}` lists them all)", name(c), e.id, name(c));
     }
-    out
+    let Some(out) = e.out.as_deref().filter(|o| o.ends_with(".mp4")) else {
+        return format!("render the video: `raea render {} -o out/{}`", name(c), name(&c.with_extension("mp4")));
+    };
+    let check = out.replace(".mp4", ".check.json");
+    match record[i + 1..].iter().rev().find(|k| k.by == "raea check" && k.of == out) {
+        None => format!("check {out}: `raea check {out} -o {check}` (add --manifest when the render wrote one)"),
+        Some(k) => match first_error(k) {
+            Some(err) => format!("polish {out}: {err} (`raea guide polish`)"),
+            None => format!("show {out}: post it to the project's feed (feed_post), or give the person its path, and read their notes"),
+        },
+    }
 }
 
 /// The steps, most useful first, at most three. `stale` is what `raea doctor` found here.
@@ -59,23 +74,18 @@ pub fn steps(dir: &Path, brief: &Brief, stale: usize) -> Vec<String> {
     if let Some(first) = loose.first() {
         out.push(format!("connect the project's files: {} thing(s) aren't connected, first {} (`raea project scan` lists them, `raea doctor --fix` fixes what it can)", loose.len(), first.line()));
     }
+    // the newest composition's renders and checks, from the project's record (DR3)
     let comps = reg.composition_files();
-    let renders = files(&dir.join("out"), ".mp4");
-    match (comps.first(), renders.first()) {
-        (None, _) => out.push("make the first item: one .tsx whose root registers a Composition (`raea guide craft` first)".into()),
-        (Some(c), None) => out.push(format!("render {}: stills to look at first (`raea render {} --at 0,45,89 -o frames/`), then the video into out/", name(c), name(c))),
-        (Some(c), Some(r)) if modified(c) > modified(r) => out.push(format!("render again: {} changed after {}", name(c), name(r))),
-        (_, Some(r)) => {
-            let check = r.with_extension("check.json");
-            if !check.is_file() || modified(&check) < modified(r) {
-                out.push(format!("check {}: `raea check out/{} -o out/{}` (add --manifest when the render wrote one)", name(r), name(r), name(&check)));
-            } else {
-                match blocking(&check).first() {
-                    Some(issue) => out.push(format!("polish {}: {issue} (`raea guide polish`)", name(r))),
-                    None => out.push(format!("show {}: post it to the project's feed (feed_post), or give the person its path, and read their notes", name(r))),
-                }
-            }
-        }
+    let project = record::up(dir, ".raea/project").unwrap_or_else(|| dir.to_path_buf());
+    let kept = record::read(&project);
+    let secs = |p: &Path| modified(p).duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    match comps.first() {
+        None => out.push("make the first item: one .tsx whose root registers a Composition (`raea guide craft` first)".into()),
+        Some(c) => match kept.iter().rposition(|e| e.by == "raea render" && e.of == record::rel(&project, c)) {
+            None => out.push(format!("render {}: stills to look at first (`raea render {} --at 0,45,89 -o frames/`), then the video into out/", name(c), name(c))),
+            Some(i) if secs(c) > kept[i].at => out.push(format!("render again: {} changed after its render {}", name(c), kept[i].id)),
+            Some(i) => out.push(after_render(c, &kept, i)),
+        },
     }
     out.truncate(3);
     out

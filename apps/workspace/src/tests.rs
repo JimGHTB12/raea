@@ -47,15 +47,23 @@ fn next_walks_a_project_from_brief_to_show() {
     assert!(s[0].starts_with("connect the project's files: 1 thing(s) aren't connected, first card.tsx:1: isn't a composition"), "{s:?}");
     std::fs::write(d.join("piece.tsx"), "import { Composition, registerRoot } from \"raea\";\nimport { Card } from \"./card\";\nregisterRoot(() => <Composition id=\"piece\" component={Card} width={1080} height={1920} fps={30} durationInFrames={90} />);\n").unwrap();
     assert!(next::steps(&d, &shaped, 0)[0].starts_with("render piece.tsx"), "{:?}", next::steps(&d, &shaped, 0));
+    // the rest is read from the project's record (DR3): what each render and check found
+    use raea_core_facts::{Finding, Level, record::keep};
+    let (piece, video) = (d.join("piece.tsx"), d.join("out/piece.mp4"));
     std::fs::create_dir_all(d.join("out")).unwrap();
-    std::thread::sleep(std::time::Duration::from_millis(20));
-    std::fs::write(d.join("out/piece.mp4"), "").unwrap();
-    assert!(next::steps(&d, &shaped, 0)[0].starts_with("check piece.mp4"));
-    std::thread::sleep(std::time::Duration::from_millis(20));
-    std::fs::write(d.join("out/piece.check.json"), r#"{"findings":[{"check":"clipped","level":"error","says":"text clipped at 2 s","by":"raea check"}]}"#).unwrap();
-    assert_eq!(next::steps(&d, &shaped, 0)[0], "polish piece.mp4: clipped: text clipped at 2 s (`raea guide polish`)");
-    std::fs::write(d.join("out/piece.check.json"), r#"{"findings":[{"check":"reading","level":"note","says":"minor","by":"raea check"}]}"#).unwrap();
-    assert!(next::steps(&d, &shaped, 0)[0].starts_with("show piece.mp4"));
+    std::fs::write(&video, "").unwrap();
+    let clips = Finding::new("clips", Level::Error, "the rider is in the seat", "raea render");
+    keep("raea render", &piece, Some(&video), &[clips], vec![], "20261110-160000").unwrap();
+    assert!(next::steps(&d, &shaped, 0)[0].starts_with("fix piece.tsx: clips: the rider is in the seat (its render 20261110-160000-piece found it"), "{:?}", next::steps(&d, &shaped, 0));
+    keep("raea render", &piece, Some(&video), &[], vec![], "20261110-160001").unwrap();
+    assert!(next::steps(&d, &shaped, 0)[0].starts_with("check out/piece.mp4: `raea check out/piece.mp4 -o out/piece.check.json`"));
+    keep("raea check", &video, None, &[Finding::new("clipped", Level::Error, "text clipped at 2 s", "raea check")], vec![], "20261110-160002").unwrap();
+    assert_eq!(next::steps(&d, &shaped, 0)[0], "polish out/piece.mp4: clipped: text clipped at 2 s (`raea guide polish`)");
+    keep("raea check", &video, None, &[Finding::new("reading", Level::Note, "minor", "raea check")], vec![], "20261110-160003").unwrap();
+    assert!(next::steps(&d, &shaped, 0)[0].starts_with("show out/piece.mp4"));
+    // stills alone: the video next
+    keep("raea render", &piece, Some(&d.join("out")), &[], vec![], "20261110-160004").unwrap();
+    assert_eq!(next::steps(&d, &shaped, 0)[0], "render the video: `raea render piece.tsx -o out/piece.mp4`");
     let _ = std::fs::remove_dir_all(&d);
 }
 

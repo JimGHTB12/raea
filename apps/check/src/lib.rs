@@ -176,7 +176,10 @@ fn report(video: &str, mut issues: Vec<Issue>, more: Vec<Finding>, passed: Vec<S
         std::fs::write(out, serde_json::to_string_pretty(&j).unwrap()).map_err(|e| format!("{out}: {e}"))?;
     }
     let mut s = format!("raea check {video}\n");
-    for line in found.iter().map(Finding::line).chain(passed.iter().map(|p| format!("ok {p}"))) {
+    // kept in its project's record beside its renders (DR3), what `raea findings` and `raea next` read
+    let kept = raea_core_facts::record::keep("raea check", std::path::Path::new(video), out.map(std::path::Path::new), &found, vec![], &raea_io_trace::utc(std::time::SystemTime::now()).1);
+    let kept = kept.map(|e| format!("kept in the project's record as {}", e.id));
+    for line in found.iter().map(Finding::line).chain(passed.iter().map(|p| format!("ok {p}"))).chain(kept) {
         s.push_str(&line);
         s.push('\n');
     }

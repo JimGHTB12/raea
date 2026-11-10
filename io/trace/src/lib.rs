@@ -62,7 +62,7 @@ fn root() -> PathBuf {
 }
 
 /// UTC as 2026-10-17T23:40:12.345Z (and the folder-safe 20261017-234012).
-fn utc(t: SystemTime) -> (String, String) {
+pub fn utc(t: SystemTime) -> (String, String) {
     let d = t.duration_since(UNIX_EPOCH).unwrap_or_default();
     let secs = d.as_secs() as i64;
     let (days, rem) = (secs.div_euclid(86400), secs.rem_euclid(86400));

@@ -35,10 +35,12 @@ to the composition are loaded on their own, as `raea play` loads them; a flag na
 A whole video made from the same inputs as an earlier one is copied from the export cache rather than drawn again,
 and the command says so.
 
-A render checks what it draws: 3D parts passing into each other (the clipping check). Each finding is said on stderr
-as it is found, written into the manifest with `--manifest`, and counted on the last line the command prints
-(`raea render: 1 error, 0 warns, 0 notes`). An error makes the render exit 1 once its output is written;
-`--despite CHECK WHY` lets that check's errors through and puts the reason in the manifest.
+A render checks what it draws: 3D parts passing into each other (the clipping check) and its pictures' exposure
+(clipping to white, crushing to black). Each finding is said as it is found, written into the manifest with
+`--manifest`, and counted on the last line the command prints (`raea render: 1 error, 0 warns, 0 notes`). An error
+makes the render exit 1 once its output is written; `--despite CHECK WHY` lets that check's errors through and puts
+the reason in the manifest. A render of a file in a raea project also keeps its findings in the project's record
+(`.raea/record/`, by render and commit), which `raea findings` and `raea next` read.
 
 <!-- generated:begin by tools/manual-ref/cli.ts from `raea help --json`; edit only the flag descriptions -->
 

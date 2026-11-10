@@ -12,3 +12,5 @@ raea-core-brief = { path = "../../core/brief" }
 serde_json = "1"
 # a project's compositions, components and controllers read from their source (docs/projects.feature PJ8)
 raea-app-registry = { path = "registry" }
+# the project's record of what renders and checks found, which raea next reads (docs/direction.feature DR3)
+raea-core-facts = { path = "../../core/facts" }

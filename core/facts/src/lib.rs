@@ -12,6 +12,9 @@ pub use words::transcript_words;
 pub mod finding;
 pub use finding::{About, Finding, Level, Measure};
 
+// the project's record: what each render and check found, kept by render and commit (DR3)
+pub mod record;
+
 /// A JSON value as text: a string as it is, anything else as its JSON (a list key may be a number, a stamp a string).
 pub fn text_of(v: &serde_json::Value) -> String {
     match v {

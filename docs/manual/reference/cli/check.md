@@ -10,6 +10,8 @@ clipped, cramped, inside the safe areas, large enough to read, and what the stil
 That takes about a second, so run it after every save. On an exported video, it measures everything the floor asks
 of a finished piece. Each finding is an error, a warn or a note (raea's one finding, as `raea scene lint` and a
 render's manifest have it), says on which frames and how to fix it, and the command exits 1 while an error stands.
+A check of a file in a raea project keeps its findings in the project's record (`.raea/record/`), beside its
+renders', which `raea findings` and `raea next` read.
 
 ```sh
 raea check piece.tsx --quick --platform tiktok

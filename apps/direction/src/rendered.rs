@@ -4,6 +4,10 @@
 //! compares pixels, not scenes, by RAEA_DESPITE="CHECK: why" (which a raea before this ignores, as it would refuse the
 //! flag). What was let through, and why, is written into the render's manifest.
 
+use std::path::PathBuf;
+use std::time::SystemTime;
+
+use raea_core_facts::record::{self, Despite};
 use raea_core_facts::{Finding, Level, finding};
 use serde_json::{Value, json};
 
@@ -28,19 +32,28 @@ fn ending(found: &[Finding], through: &[(String, String)]) -> (String, i32) {
     (line, i32::from(errors(false) > 0))
 }
 
-/// `raea render`'s exit, once its findings' count is printed; 0 for any other command.
+/// `raea render`'s exit, once its findings' count is printed; 0 for any other command. Its findings (the clipping
+/// check's, its exposure's) go into its manifest, with what was let through and why, and into its project's record.
 pub fn rendered(args: &[String]) -> i32 {
     if args.first().map(String::as_str) != Some("render") {
         return 0;
     }
     let found = finding::taken();
     let through = despite(args, std::env::var("RAEA_DESPITE").ok());
-    if let (Some(m), false) = (raea_runtime_bundle::flag(args, "--manifest"), through.is_empty()) {
-        // the reasons beside the findings they let through
+    let excused: Vec<Despite> = through.iter().map(|(c, w)| Despite { check: c.clone(), why: w.clone() }).collect();
+    if let Some(m) = raea_runtime_bundle::flag(args, "--manifest") {
         if let Some(mut v) = std::fs::read(&m).ok().and_then(|b| serde_json::from_slice::<Value>(&b).ok()) {
-            v["despite"] = Value::Array(through.iter().map(|(c, w)| json!({"check": c, "why": w})).collect());
+            v["findings"] = json!(found);
+            if !excused.is_empty() {
+                v["despite"] = json!(excused);
+            }
             let _ = std::fs::write(&m, v.to_string());
         }
+    }
+    let file = args.get(1).filter(|a| !a.starts_with('-')).map(PathBuf::from);
+    let out = raea_runtime_bundle::flag(args, "-o").map(PathBuf::from);
+    if let Some(e) = file.and_then(|f| record::keep("raea render", &f, out.as_deref(), &found, excused, &raea_io_trace::utc(SystemTime::now()).1)) {
+        println!("raea render: kept in the project's record as {} (raea findings reads it)", e.id);
     }
     let (line, code) = ending(&found, &through);
     println!("{line}");

@@ -19,11 +19,8 @@ mod read;
 pub use lint::{Fix, Level, Lint, apply};
 pub use read::{Facts, Prop};
 
-/// The nearest folder at or above `from` that holds `marker` (.raea/workspace, .raea/project).
-pub fn up(from: &Path, marker: &str) -> Option<PathBuf> {
-    let from = from.canonicalize().ok()?;
-    from.ancestors().find(|d| d.join(marker).is_file()).map(Path::to_path_buf)
-}
+/// The nearest folder at or above a path that holds a marker (.raea/workspace, .raea/project), as the record finds it.
+pub use raea_core_facts::record::up;
 
 /// A name as a folder: lowercase, dashes. A controller's id from its title is this (core/brief fills it the same way).
 pub fn slug(s: &str) -> String {

@@ -228,7 +228,10 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
       # Fixed in the code (DR3): the plan gave raea check's Issue -> Finding a file of 150 lines in apps/direction. It is
       # six lines in apps/check's report, which writes check.json, and its crate had the room; a second crate would
       # have converted raea check's output after the fact instead of raea check writing Findings.
-        | raea-app-direction | apps/direction/src/record.rs   | 220   | the project's record: findings by render and by commit, read back      |
+        | raea-core-facts    | core/facts/src/record.rs       | 220   | the project's record: findings by render and by commit, read back      |
+      # Fixed in the code (DR3): the plan put the record in apps/direction. The render, `raea check` and `raea next`
+      # all write or read it, and apps/direction brings raea-runtime-world with it; core/facts, which each already uses
+      # for Finding, holds it instead, and the registry's `up` (the nearest .raea/project) moved there with it.
         | raea-app-direction | apps/direction/src/findings.rs | 160   | `raea findings`                                                        |
       Then these write Findings and nothing else: the render's clipping check, `raea scene lint|light`, `raea check`
         (and --quick, --taste), `raea gen check`, `raea solid info --expect`, `raea project scan`, raea/room's

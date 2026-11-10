@@ -11,4 +11,6 @@ description = "`raea check`: the floor's measurable lines on an export, ranked P
 raea-core-brief = { path = "../../core/brief" }
 # a transcript's words, read as `raea world` reads them (docs/direction.feature DR1)
 raea-core-facts = { path = "../../core/facts" }
+# a check's record named by when it was (UTC, DR3)
+raea-io-trace = { path = "../../io/trace" }
 serde_json = "1"
