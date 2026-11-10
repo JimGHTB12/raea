@@ -723,8 +723,8 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
     }
 
     /// raea: the boxes `node_id` and its descendants draw, in its own space: `scrollable_overflow`'s walk (blitz-dom's
-    /// resolve_transforms), cut on each axis an element clips to that element's box grown by its
-    /// overflow-clip-margin, as its overflow clip cuts what is drawn (the root element clips nothing: `should_clip`).
+    /// resolve_transforms), cut on each axis an element clips (both, under `contain: paint`) to that element's box
+    /// grown by its overflow-clip-margin, as its clip cuts what is drawn (the root element clips nothing: `should_clip`).
     /// The overflow itself reaches through every clip, so a layer made from it is as large as content nobody sees: a
     /// filtered card around a small clipping box with a page of content in it would be drawn into a texture the size
     /// of the page. With `own_filter`, grown by the reach of the element's own filter, which draws past its boxes (a
@@ -736,8 +736,8 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
         let own = Rect::new(0.0, 0.0, size.width as f64 * self.scale, size.height as f64 * self.scale);
         let styles = node.primary_styles();
         let (clips_x, clips_y, grow) = styles.as_ref().filter(|_| self.root_element_id != Some(node_id)).map_or((false, false, 0.0), |s| {
-            let b = s.get_box();
-            (!matches!(b.overflow_x, Overflow::Visible), !matches!(b.overflow_y, Overflow::Visible), s.get_margin().overflow_clip_margin.offset.0.px() as f64 * self.scale.max(1.0))
+            let (b, paint) = (s.get_box(), contains_paint(s));
+            (paint || !matches!(b.overflow_x, Overflow::Visible), paint || !matches!(b.overflow_y, Overflow::Visible), s.get_margin().overflow_clip_margin.offset.0.px() as f64 * self.scale.max(1.0))
         });
         let filtered = |r: Rect| match styles.as_ref().filter(|_| own_filter).and_then(|s| convert_filters(&s.get_effects().filter.0)) {
             Some(f) => {
@@ -1236,10 +1236,12 @@ impl<'dom, 'a> BlitzDomPainter<'dom, 'a> {
                 // raea: a filter's input is all the element draws, what its descendants draw outside its box
                 // included, as Chrome filters it (a 0x0 wrapper's absolutely positioned children were cut off at its
                 // box, a blur's reach of them left): its boxes up to the clips in their way (`drawn_bounds`), and the
-                // same of each box its stacking context paints, where that puts it (hoisted_content_bbox's places)
+                // same of each out-of-flow box its stacking context paints past its clip, from a containing block
+                // above it (#39's `from_above`: the walk doesn't meet those), where hoisted_content_bbox places it.
+                // The stacking context's other boxes are met by the walk, under the clips they're painted under
                 if filter.is_some() {
                     effect_layer_clip = effect_layer_clip.union(self.drawn_bounds(node_id, false));
-                    for hoisted in node.stacking_context.iter().flat_map(|sc| sc.children.iter()) {
+                    for hoisted in node.stacking_context.iter().flat_map(|sc| sc.children.iter()).filter(|c| cx.from_above(c.node_id)) {
                         let Some(child) = self.dom.as_ref().get_node(hoisted.node_id) else { continue };
                         let (p, at) = (hoisted.position(node.tree(), node_id), child.final_layout().location);
                         let mut to_own = Affine::translate(((p.x + at.x) as f64 * self.scale, (p.y + at.y) as f64 * self.scale));
@@ -2492,6 +2494,14 @@ fn create_css_rect(style: &ComputedValues, layout: &Layout, scale: f64) -> CssBo
     let mut frame = CssBox::new(border_box, border, padding, outline_width, border_radii);
     frame.outline_offset = style.get_outline().outline_offset.to_f64_px() * scale;
     frame
+}
+
+/// raea: whether `contain: paint` clips an element's contents, as render_element's `contain_paint` has it (not a
+/// non-atomic inline's, nor an internal table box's other than a cell)
+fn contains_paint(styles: &style::properties::ComputedValues) -> bool {
+    let display = styles.clone_display();
+    let table_part = display.outside() == DisplayOutside::InternalTable && display.inside() != DisplayInside::TableCell;
+    styles.get_box().clone_contain().contains(Contain::PAINT) && !display.is_inline_flow() && !table_part
 }
 
 /// raea: what an overflow clip clips to: overflow-clip-margin's visual box (the padding box by default), grown by its

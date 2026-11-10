@@ -5,10 +5,11 @@
 # of a 200x100 child. page.tsx draws both, and the same box clipping its overflow (which must still cut the child)
 # and clipping x alone (which cuts its side and shows all its height), and a grayscale box around a square whose
 # own drop shadow falls outside it. Each probe is Chrome 157's pixel, within 3.
-# The layer stops at a clip in the way: clipped.tsx's 60 small filtered boxes each hold a clipping box with a child
-# that covers the frame (30 of the clipping boxes in flow, 30 painted by the filtered box's stacking context), and 30
-# layers the size of the frame are more than Vello's image atlas holds, so its 60 tiles are counted (from the
-# frame's mean: each is 60x60 of grey 92 on white). Exits 1 on a failure.
+# The layer stops at a clip in the way: clipped.tsx's 120 small filtered boxes each show 60 px of a child that
+# covers the frame, cut four ways, 30 boxes each (a clipping box inside, one the stacking context paints, the
+# filtered box's own clip over a z-indexed child, a `contain: paint` box inside). 30 layers the size of the frame
+# are more than Vello's image atlas holds, so its 120 tiles are counted (from the frame's mean: each is 60x60 of
+# grey 92 on white). Exits 1 on a failure.
 #   bench/filter-overflow/check.sh      (RAEA_BIN: the raea to run, default target/release/raea)
 cd "$(dirname "$0")/../.." || exit 2
 BIN=${RAEA_BIN:-$PWD/target/release/raea}
@@ -38,6 +39,6 @@ want 450,270 255 255 255 "its child past the box, clipped"
 want 500,300 92 92 92 "a box clipping x alone: its child below the box"
 want 580,250 255 255 255 "and its child past its side, clipped"
 tiles=$(magick "$OUT/clipped/frame-00000.png" -alpha off -colorspace gray -format "%[fx:int((1-mean)*1920*1080/(3600*(1-92/255))+0.5)]" info:)
-[ "$tiles" = 60 ] || { echo "FAIL clipped.tsx: $tiles of its 60 tiles drawn"; status=1; }
+[ "$tiles" = 120 ] || { echo "FAIL clipped.tsx: $tiles of its 120 tiles drawn"; status=1; }
 [ $status = 0 ] && echo "PASS a filter over what its element draws outside its box"
 exit $status
