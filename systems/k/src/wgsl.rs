@@ -40,8 +40,11 @@ impl Gen<'_> {
                     // K's % divides (WGSL's % is the remainder, K's !)
                     '%' => format!("({x} / {y})"),
                     '!' => format!("({x} % {y})"),
-                    '&' => format!("min({x}, {y})"),
-                    '|' => format!("max({x}, {y})"),
+                    // min, max and clamp take their bounds plus kz, a zero the compiler can't prove (read from the
+                    // shape uniform): knowing a value is a byte, the Adreno X1-85's Vulkan compiler fused clamp, shl and or
+                    // into a pack that set the top two bytes of half the NV12 luma words, striping bright video (#82)
+                    '&' => format!("min({x}, {y} + kz)"),
+                    '|' => format!("max({x}, {y} + kz)"),
                     '<' | '>' => format!("select(0, 1, {x} {op} {y})"),
                     _ => format!("select(0, 1, {x} == {y})"),
                 }
@@ -74,12 +77,11 @@ impl Gen<'_> {
                     "xor" => format!("({} ^ {})", self.e(&a[0])?, self.e(&a[1])?),
                     "or" => format!("({} | {})", self.e(&a[0])?, self.e(&a[1])?),
                     "and" => format!("({} & {})", self.e(&a[0])?, self.e(&a[1])?),
-                    // shifted as u32: a byte shifted into the sign bit (an NV12 word's top byte >= 128) is an
-                    // overflow some drivers' compilers treat as undefined; on a Windows on ARM GPU it striped every
-                    // bright 4 pixels of a video (#82). Same bits as the interpreter's wrapping_shl.
+                    // shifted as u32: a byte shifted into the sign bit (an NV12 word's top byte >= 128) overflows an i32
+                    // shift, which WGSL leaves to the compiler. Same bits as the interpreter's wrapping_shl.
                     "shl" => format!("bitcast<i32>(u32({}) << (u32({}) & 31u))", self.e(&a[0])?, self.e(&a[1])?),
                     "shr" => format!("({} >> (u32({}) & 31u))", self.e(&a[0])?, self.e(&a[1])?),
-                    "clamp" => format!("clamp({}, {}, {})", self.e(&a[0])?, self.e(&a[1])?, self.e(&a[2])?),
+                    "clamp" => format!("clamp({}, {} + kz, {} + kz)", self.e(&a[0])?, self.e(&a[1])?, self.e(&a[2])?),
                     "sel" => {
                         let (c, x, y) = (self.e(&a[0])?, self.e(&a[1])?, self.e(&a[2])?);
                         format!("select({y}, {x}, {c} != 0)")
@@ -103,7 +105,7 @@ impl Gen<'_> {
                         self.pre.push(format!(
                             "var s_{id}: i32 = {init};\n  for (var kl_{k}: i32 = 0; kl_{k} < {n}; kl_{k} = kl_{k} + 1) {{ {} s_{id} = {}; }}",
                             inner.join(" "),
-                            if fold.is_empty() { format!("s_{id} + {body}") } else { format!("{fold}(s_{id}, {body})") }
+                            if fold.is_empty() { format!("s_{id} + {body}") } else { format!("{fold}(s_{id}, {body} + kz)") }
                         ));
                         format!("s_{id}")
                     }
@@ -175,7 +177,7 @@ pub fn wgsl_tex(k: &Kernel, buffers: &[&str], textures: &[&str], scalars: &HashM
     s.push_str("struct Shape { n: u32, stride: u32 }\n");
     s.push_str(&format!("@group(0) @binding({}) var<uniform> shape: Shape;\n", base + outputs.len()));
     s.push_str("@compute @workgroup_size(256)\nfn main(@builtin(global_invocation_id) gid: vec3<u32>) {\n");
-    s.push_str("  let ii = gid.x + gid.y * shape.stride;\n  if (ii >= shape.n) { return; }\n  let k_i: i32 = i32(ii);\n");
+    s.push_str("  let ii = gid.x + gid.y * shape.stride;\n  if (ii >= shape.n) { return; }\n  let k_i: i32 = i32(ii);\n  let kz: i32 = i32(shape.n >> 31u);\n");
     s.push_str(&body);
     for name in outputs {
         s.push_str(&format!("  o_{name}[ii] = bitcast<u32>(k_{name});\n"));

@@ -256,6 +256,18 @@ impl Gpu {
 mod tests {
     use super::*;
 
+    /// `n` xorshift words from `s`
+    fn noise(n: usize, mut s: u64) -> Vec<u32> {
+        (0..n)
+            .map(|_| {
+                s ^= s << 13;
+                s ^= s >> 7;
+                s ^= s << 17;
+                s as u32
+            })
+            .collect()
+    }
+
     /// look_ham.k (every pair of frames' Hamming distance: sum, pop, xor and word over a buffer) on the GPU equals the
     /// interpreter (skipped without a GPU).
     #[test]
@@ -265,15 +277,7 @@ mod tests {
         }
         let gpu = Gpu::new().unwrap();
         let frames = 37usize;
-        let mut s = 0x2545_f491_4f6c_dd1du64;
-        let words: Vec<u32> = (0..frames * 64)
-            .map(|_| {
-                s ^= s << 13;
-                s ^= s >> 7;
-                s ^= s << 17;
-                s as u32
-            })
-            .collect();
+        let words = noise(frames * 64, 0x2545_f491_4f6c_dd1d);
         let scalars: HashMap<&str, i32> = [("n", frames as i32)].into();
         let k = raea_core_k::parse(include_str!("../../../core/k/kernels/look_ham.k")).unwrap();
         let cpu = raea_core_k::Cpu { buffers: [("H", &words[..])].into(), scalars: scalars.clone() };
@@ -300,5 +304,38 @@ mod tests {
         assert_eq!(want[182], 0xb6b6_b6b6);
         let c = gpu.compile(&k, &["F"], &HashMap::new(), &["w"]).unwrap();
         assert_eq!(gpu.run(&c, &[&words], 256).unwrap().0.remove(0), want);
+    }
+
+    /// A byte from clamp (or min and max), shifted and or'd into a word, as nv12buf.k packs four luma bytes: the Adreno
+    /// X1-85's Vulkan compiler fused the three into a pack that wrote 0xff into the top two bytes of half the words
+    /// (#82, found by its reporter: 128,319 of 262,144 wrong) until the bounds took a zero it can't prove (kz); on
+    /// random pixels, the GPU equals the interpreter.
+    #[test]
+    fn a_clamped_byte_packs_as_the_interpreter_packs_it() {
+        let luma = |c: &str, at: &str| format!("{c}:word[F;(4*i)+{at}]\ny{c}:clamp[16+shr[(47*and[{c};255])+(157*and[shr[{c};8];255])+(16*and[shr[{c};16];255])+128;8];0;255]\nz{c}:0|255&16+shr[(47*and[{c};255])+(157*and[shr[{c};8];255])+(16*and[shr[{c};16];255])+128;8]\n");
+        let src = format!(
+            "{}{}{}{}yw:or[or[ya;shl[yb;8]];or[shl[yc;16];shl[yd;24]]]\nzw:or[or[za;shl[zb;8]];or[shl[zc;16];shl[zd;24]]]",
+            luma("a", "0"),
+            luma("b", "1"),
+            luma("c", "2"),
+            luma("d", "3")
+        );
+        let k = raea_core_k::parse(&src).unwrap();
+        let wgsl = wgsl_tex(&k, &["F"], &[], &HashMap::new(), &["yw", "zw"]).unwrap();
+        assert!(wgsl.contains("(0) + kz, (255) + kz)") && wgsl.contains("let kz: i32 = i32(shape.n >> 31u);"), "{wgsl}");
+        if !Gpu::available() {
+            return;
+        }
+        let n = 65_536usize;
+        let words = noise(4 * n, 0x9e37_79b9_7f4a_7c15);
+        let cpu = raea_core_k::Cpu { buffers: [("F", &words[..])].into(), scalars: HashMap::new() };
+        let want = cpu.run(&k, n, &["yw", "zw"]).unwrap();
+        let gpu = Gpu::new().unwrap();
+        let c = gpu.compile(&k, &["F"], &HashMap::new(), &["yw", "zw"]).unwrap();
+        let got = gpu.run(&c, &[&words], n).unwrap().0;
+        for (o, (g, w)) in ["yw", "zw"].iter().zip(got.iter().zip(&want)) {
+            let wrong = g.iter().zip(w).filter(|(a, b)| a != b).count();
+            assert_eq!(wrong, 0, "{o}: {wrong} of {n} words differ from the interpreter");
+        }
     }
 }
