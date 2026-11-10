@@ -101,6 +101,14 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
         lower levels of detail, a composition and a component a poster, each made once and found again by its source's
         path, size and time
 
+    # 11-09, the store's rules as the packaged app showed them (0.1.0-dev.1109.22 to .24, unzipped, headless): the
+    # limit is kept after every copy made, not only when Settings is open; a copy made or used in the last minute is
+    # never dropped (a light level bigger than a small limit was removed before the stage opened it); one copy that
+    # alone brings the store under goes before many small ones (strict oldest-first dropped 23 stills to reach one
+    # 7 MB level); under 2 GB free on its disk the store holds 256 MB at most, and Settings says so (halving on
+    # every copy, the first rule, emptied it); Clear leaves no file. Checked there: 23 copies, 13.7 MB, to 6.8 MB at a
+    # 7.5 MB limit; a light level kept over a 3 MB limit while its model played and gone a minute later with the
+    # stills left; a changed source's copy marked stale and swept; Clear from 18 files to none. 10 tests.
     @done
     Scenario: PV3b. The store is managed in one place
       Then Settings lists the store by project and kind with sizes, and offers Clear and Rebuild; copies whose source
