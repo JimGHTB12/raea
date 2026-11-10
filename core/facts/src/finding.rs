@@ -126,6 +126,18 @@ impl Finding {
     }
 }
 
+static SAID: std::sync::Mutex<Vec<Finding>> = std::sync::Mutex::new(Vec::new());
+
+/// Findings a command has said as it went (a render's clipping, from its own thread), kept for its count at the end.
+pub fn said(fs: &[Finding]) {
+    SAID.lock().unwrap_or_else(|e| e.into_inner()).extend(fs.iter().cloned());
+}
+
+/// Every finding said so far, taken: what the command ends by counting.
+pub fn taken() -> Vec<Finding> {
+    std::mem::take(&mut *SAID.lock().unwrap_or_else(|e| e.into_inner()))
+}
+
 /// Findings worst first, each level in the order found.
 pub fn ranked(mut fs: Vec<Finding>) -> Vec<Finding> {
     fs.sort_by_key(|f| f.level);

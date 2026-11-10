@@ -59,7 +59,7 @@ pub fn cli(args: &[String]) -> i32 {
             for line in [msg].into_iter().chain(said).filter(|m| !m.is_empty()) {
                 println!("{line}");
             }
-            0
+            raea_app_direction::rendered(args) // a render's findings counted last; 1 on an error not let through (DR3)
         }
         Err(e) => {
             raea_io_trace::event("refused", json!({"error": e}));

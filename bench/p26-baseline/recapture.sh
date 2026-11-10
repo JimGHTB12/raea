@@ -58,7 +58,7 @@ for entry in "$@"; do
     cands=$(for i in 0 1 2 3 4 5 6 7 8; do echo $((last * i / 8)); done | awk '!seen[$0]++' | paste -sd, -)
   fi
   rm -rf "$WORK/r" && mkdir -p "$WORK/r"
-  if ! (cd "$dir" && RAEA_PAGE=$PAGE "$bin" render "$src" ${copt[@]+"${copt[@]}"} --at "$cands" -o "$WORK/r/") > "$WORK/log" 2>&1; then
+  if ! (cd "$dir" && RAEA_PAGE=$PAGE RAEA_DESPITE="all: P26 compares a row's pixels; what its scene clips is in the log" "$bin" render "$src" ${copt[@]+"${copt[@]}"} --at "$cands" -o "$WORK/r/") > "$WORK/log" 2>&1; then
     echo "recapture.sh: $rel didn't render: $(grep -E 'REFUSED|error|Error|panicked' "$WORK/log" | head -1 | cut -c1-300)" >&2; exit 1
   fi
   IFS=, read -ra list <<< "$cands"

@@ -13610,6 +13610,7 @@ dependencies = [
 name = "raea-app-direction"
 version = "0.1.0"
 dependencies = [
+ "raea-core-facts",
  "raea-runtime-bundle",
  "raea-runtime-world",
  "serde_json",

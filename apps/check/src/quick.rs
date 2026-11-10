@@ -23,7 +23,8 @@ pub fn quick(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String,
     let manifest = tmp.join("render.json");
     let me = std::env::current_exe().map_err(|e| e.to_string())?;
     let out = std::process::Command::new(me).arg("render").arg(file).args(["--at", &at, "-o"]).arg(format!("{}/", tmp.display())).arg("--manifest").arg(&manifest).output().map_err(|e| e.to_string())?;
-    let result = if out.status.success() {
+    // rendered when its manifest was written: a render whose stills clip exits 1 (DR3), and those findings are read here
+    let result = if manifest.is_file() {
         on_manifest(file, &manifest, args, tastes)
     } else {
         // a render that fails is the finding: the agent sees why

@@ -58,7 +58,7 @@ for rel in $(jq -r '.composition' "$HERE/manifest.jsonl" | awk '!seen[$0]++'); d
   [ -n "$cands" ] || cands=$(for i in 0 1 2 3 4 5 6 7 8; do echo $((last * i / 8)); done | awk '!seen[$0]++' | paste -sd, -)
   rm -rf "$WORK/r" && mkdir -p "$WORK/r" "$OUT/frames/$slug"
   # each row's render log kept at $OUT/logs/<slug>.log (a frame that came out black and was redrawn says so there)
-  if ! (cd "$dir" && RAEA_PAGE=$PAGE "$bin" render "$src" ${copt[@]+"${copt[@]}"} --at "$cands" -o "$WORK/r/") > "$WORK/log" 2>&1; then
+  if ! (cd "$dir" && RAEA_PAGE=$PAGE RAEA_DESPITE="all: P26 compares a row's pixels; what its scene clips is in the log" "$bin" render "$src" ${copt[@]+"${copt[@]}"} --at "$cands" -o "$WORK/r/") > "$WORK/log" 2>&1; then
     cp "$WORK/log" "$OUT/logs/$slug.log"
     why=$(grep -E 'REFUSED|error|Error|panicked' "$WORK/log" | head -1 | cut -c1-300)
     for f in ${frames//,/ }; do

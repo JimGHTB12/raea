@@ -5,25 +5,21 @@
 use raea_core_facts::{Finding, Level};
 use serde_json::Value;
 
-fn text<'a>(v: &'a Value, k: &str) -> Option<&'a str> {
-    v.get(k).and_then(Value::as_str)
-}
-
 /// The lint's faults on `frame` as Findings: sunk, floats, air, tilted, clips, a model it can't load or that's over
 /// budget, and what it skipped (a note). A part that rests, is mounted or is the ground is no finding.
 pub fn lint_findings(found: &[Value], frame: i64, by: &str) -> Vec<Finding> {
     found
         .iter()
-        .filter(|v| text(v, "level").is_some_and(|l| l != "ok"))
+        .filter(|v| v["level"].as_str().is_some_and(|l| l != "ok"))
         .map(|v| {
-            let check = text(v, "check").unwrap_or("lint");
-            let mut f = Finding::new(check, Level::of_word(text(v, "level").unwrap_or("")), text(v, "says").unwrap_or_default(), by).frames(frame, frame + 1);
+            let check = v["check"].as_str().unwrap_or("lint");
+            let mut f = Finding::new(check, Level::of_word(v["level"].as_str().unwrap_or("")), v["says"].as_str().unwrap_or_default(), by).frames(frame, frame + 1);
             for k in ["part", "into", "on"] {
-                if let Some(name) = text(v, k) {
+                if let Some(name) = v[k].as_str() {
                     f = f.about(name, None);
                 }
             }
-            let num = |k: &str| v.get(k).and_then(Value::as_f64);
+            let num = |k: &str| v[k].as_f64();
             if let Some(g) = num("gap").filter(|_| matches!(check, "sunk" | "floats")) {
                 f = f.measure("gap", g, "m", None);
             } else if let Some(d) = num("depth") {
@@ -44,14 +40,14 @@ pub fn clip_findings(found: &[Value], by: &str) -> Vec<Finding> {
     found
         .iter()
         .map(|v| {
-            let at = |k: &str| v.get(k).and_then(Value::as_i64).unwrap_or(0);
-            let mut f = Finding::new("clips", Level::Error, text(v, "says").unwrap_or_default(), by).frames(at("from"), at("to"));
+            let at = |k: &str| v[k].as_i64().unwrap_or(0);
+            let mut f = Finding::new("clips", Level::Error, v["says"].as_str().unwrap_or_default(), by).frames(at("from"), at("to"));
             for k in ["part", "into"] {
-                if let Some(name) = text(v, k) {
+                if let Some(name) = v[k].as_str() {
                     f = f.about(name, None);
                 }
             }
-            if let Some(d) = v.get("depth").and_then(Value::as_f64) {
+            if let Some(d) = v["depth"].as_f64() {
                 f = f.measure("depth", d, "m", None);
             }
             if let (Some(axis), Some(step)) = (v.pointer("/move/axis").and_then(Value::as_str), v.pointer("/move/by").and_then(Value::as_f64)) {

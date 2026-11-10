@@ -9,4 +9,5 @@ description = "How raea takes direction (docs/direction.feature): `raea world`, 
 [dependencies]
 raea-runtime-world = { path = "../../runtime/world" }
 raea-runtime-bundle = { path = "../../runtime/bundle" }
+raea-core-facts = { path = "../../core/facts" }
 serde_json = "1"
