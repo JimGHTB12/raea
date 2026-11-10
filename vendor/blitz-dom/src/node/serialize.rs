@@ -247,7 +247,10 @@ impl Node {
         Some(format!("matrix({a} {b} {c} {d} {e} {f})"))
     }
 
-    /// The nearest svg viewport's box in this element's user space: its `viewBox`, or its size.
+    /// The nearest svg viewport's reference box in this element's user space: the `viewBox`'s size (or the viewport's)
+    /// at the origin of user space, where css-transforms-1 #transform-box puts it. A viewBox's x and y move the
+    /// content, not the box: placed at them, the box moved a 0 0 origin there, and `scale(2)` under
+    /// `viewBox="100 50 400 300"` drew its content 100 px left of and 50 px above where Chrome draws it.
     #[cfg(feature = "svg")]
     fn svg_view_box(&self) -> kurbo::Rect {
         let mut at = self.parent;
@@ -256,7 +259,7 @@ impl Node {
             let Some(el) = node.element_data() else { break };
             if el.name.ns == ns!(svg) && &*el.name.local == "svg" {
                 if let Some(vb) = el.attr(local_name!("viewBox")).and_then(|v| v.parse::<svgtypes::ViewBox>().ok()) {
-                    return kurbo::Rect::new(vb.x, vb.y, vb.x + vb.w, vb.y + vb.h);
+                    return kurbo::Rect::new(0.0, 0.0, vb.w, vb.h);
                 }
                 let outer = node.parent.and_then(|p| self.tree()[p].element_data()).is_none_or(|p| p.name.ns != ns!(svg));
                 if outer {
