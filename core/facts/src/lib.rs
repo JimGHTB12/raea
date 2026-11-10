@@ -9,6 +9,9 @@ pub use components::*;
 pub mod words;
 pub use words::transcript_words;
 
+pub mod finding;
+pub use finding::{About, Finding, Level, Measure};
+
 /// A JSON value as text: a string as it is, anything else as its JSON (a list key may be a number, a stamp a string).
 pub fn text_of(v: &serde_json::Value) -> String {
     match v {

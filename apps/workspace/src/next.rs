@@ -27,13 +27,13 @@ fn name(p: &Path) -> String {
     full.rsplit(['/', '\\']).next().unwrap_or_default().to_string()
 }
 
-/// The P0 and P1 issues a check file holds, as its lines.
+/// The errors a check file holds (its findings, docs/direction.feature DR3), as their lines.
 fn blocking(check: &Path) -> Vec<String> {
     let Ok(j) = std::fs::read_to_string(check).map_err(drop).and_then(|t| serde_json::from_str::<serde_json::Value>(&t).map_err(drop)) else { return vec![] };
     let mut out = Vec::new();
-    for i in j["issues"].as_array().into_iter().flatten() {
-        if let (Some(p @ ("P0" | "P1")), Some(says)) = (i["p"].as_str(), i["says"].as_str()) {
-            out.push(format!("{p} {says}"));
+    for f in j["findings"].as_array().into_iter().flatten() {
+        if let (Some("error"), Some(check), Some(says)) = (f["level"].as_str(), f["check"].as_str(), f["says"].as_str()) {
+            out.push(format!("{check}: {says}"));
         }
     }
     out

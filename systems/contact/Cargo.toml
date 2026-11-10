@@ -11,5 +11,7 @@ raea-core-scene = { path = "../../core/scene" }
 raea-core-shape = { path = "../../core/shape" }
 # the Blender step a model calls for (an unloadable format, triangles over budget for its distance): docs/blender.feature
 raea-core-meshcheck = { path = "../../core/meshcheck" }
+# its results as Findings (docs/direction.feature DR3)
+raea-core-facts = { path = "../../core/facts" }
 bevy = { version = "=0.20.0", default-features = false, features = ["std"] }
 serde_json = "1"

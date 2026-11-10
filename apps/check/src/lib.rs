@@ -11,7 +11,7 @@
 //! rules in their taste.ts files that carry a check (`{ text: "Captions sit clear of the bottom.", check: { form:
 //! "text-above", value: 62 } }`), each a P1 when broken, since the person's rule beats the floor's default (docs/craft-system.md, J). Exits 1 when a P0 or P1 is found.
 use serde_json::{Value, json};
-use std::collections::BTreeMap;
+use raea_core_facts::{Finding, Level, finding};
 use std::process::Command;
 
 mod sound;
@@ -56,7 +56,7 @@ fn flag<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
     args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).map(String::as_str)
 }
 
-pub const USAGE: &str = "raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, flashing, cues, loudness, blotching, a placeholder brand kit; P0-P3)";
+pub const USAGE: &str = "raea check VIDEO.mp4 [--manifest render.json] [--words W.json] [--perception P.json] [--shape 16:9|9:16|4:5|1:1] [--platform tiktok|reels|shorts] [--taste taste.ts|DIR] [-o check.json]   (an export against the floor: clipped text, contrast, safe areas, freezes, flashing, cues, loudness, blotching, a placeholder brand kit; its findings errors, warns and notes)";
 
 /// A rule from the person's taste: a form raea can measure, its value, and the taste line it stands for.
 #[derive(Clone, Debug, PartialEq)]
@@ -145,35 +145,27 @@ fn run(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String, bool)
         }
     }
 
-    report(&video, issues, passed, flag(args, "-o"))
+    report(&video, issues, Vec::new(), passed, flag(args, "-o"), fps)
 }
 
-/// The issues ranked, written to -o as JSON when asked, and the report's text; true when a P0 or P1 is among them.
-fn report(video: &str, mut issues: Vec<Issue>, passed: Vec<String>, out: Option<&str>) -> R<(String, bool)> {
+/// The issues as Findings (docs/direction.feature DR3: P0 and P1 errors, P2 a warn, P3 a note; a time is its frame at
+/// `fps`), with `more` (a render's own), worst first then by time; written to -o as JSON when asked, and the report's
+/// text with the count last. True when an error is among them.
+fn report(video: &str, mut issues: Vec<Issue>, more: Vec<Finding>, passed: Vec<String>, out: Option<&str>, fps: f64) -> R<(String, bool)> {
     issues.sort_by(|a, b| a.p.cmp(&b.p).then(a.at.unwrap_or(0.0).total_cmp(&b.at.unwrap_or(0.0))));
-    let bad = issues.iter().any(|i| i.p <= 1);
+    let at = |t: f64| (t * fps).round() as i64;
+    let found = finding::ranked(issues.iter().map(|i| Finding::new(i.rule, Level::of_rank(i.p), &i.says, "raea check")).zip(&issues).map(|(f, i)| if let Some(t) = i.at { f.frames(at(t), at(t) + 1) } else { f }).chain(more).collect());
+    let bad = found.iter().any(|f| f.level == Level::Error);
     if let Some(out) = out {
-        let j = json!({
-            "file": video,
-            "issues": issues.iter().map(|i| json!({"rule": i.rule, "p": format!("P{}", i.p), "at": i.at, "says": i.says})).collect::<Vec<_>>(),
-            "passed": passed,
-        });
+        let j = json!({"file": video, "fps": fps, "findings": found, "passed": passed});
         std::fs::write(out, serde_json::to_string_pretty(&j).unwrap()).map_err(|e| format!("{out}: {e}"))?;
     }
-    let mut by = BTreeMap::new();
-    for i in &issues {
-        *by.entry(i.p).or_insert(0) += 1;
+    let mut s = format!("raea check {video}\n");
+    for line in found.iter().map(Finding::line).chain(passed.iter().map(|p| format!("ok {p}"))) {
+        s.push_str(&line);
+        s.push('\n');
     }
-    let counts = by.iter().map(|(p, n)| format!("P{p} {n}")).collect::<Vec<_>>().join(", ");
-    let mut s = format!("raea check {}: {}\n", video, if issues.is_empty() { "nothing to fix".to_string() } else { format!("{} to fix ({counts})", issues.len()) });
-    for i in &issues {
-        let at = i.at.map(|t| format!("{t:6.2} s")).unwrap_or_else(|| "       ".into());
-        s.push_str(&format!("P{} {:<9} {at}  {}\n", i.p, i.rule, i.says));
-    }
-    for p in &passed {
-        s.push_str(&format!("ok {p}\n"));
-    }
-    Ok((s.trim_end().to_string(), bad))
+    Ok((s + &finding::count(&found), bad))
 }
 
 struct Probe {

@@ -52,9 +52,9 @@ fn next_walks_a_project_from_brief_to_show() {
     std::fs::write(d.join("out/piece.mp4"), "").unwrap();
     assert!(next::steps(&d, &shaped, 0)[0].starts_with("check piece.mp4"));
     std::thread::sleep(std::time::Duration::from_millis(20));
-    std::fs::write(d.join("out/piece.check.json"), r#"{"issues":[{"p":"P1","says":"text clipped at 2 s"}]}"#).unwrap();
-    assert_eq!(next::steps(&d, &shaped, 0)[0], "polish piece.mp4: P1 text clipped at 2 s (`raea guide polish`)");
-    std::fs::write(d.join("out/piece.check.json"), r#"{"issues":[{"p":"P3","says":"minor"}]}"#).unwrap();
+    std::fs::write(d.join("out/piece.check.json"), r#"{"findings":[{"check":"clipped","level":"error","says":"text clipped at 2 s","by":"raea check"}]}"#).unwrap();
+    assert_eq!(next::steps(&d, &shaped, 0)[0], "polish piece.mp4: clipped: text clipped at 2 s (`raea guide polish`)");
+    std::fs::write(d.join("out/piece.check.json"), r#"{"findings":[{"check":"reading","level":"note","says":"minor","by":"raea check"}]}"#).unwrap();
     assert!(next::steps(&d, &shaped, 0)[0].starts_with("show piece.mp4"));
     let _ = std::fs::remove_dir_all(&d);
 }

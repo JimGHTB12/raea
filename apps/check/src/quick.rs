@@ -34,8 +34,8 @@ pub fn quick(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String,
                 why.push(line);
             }
         }
-        let why = why.join("\n");
-        Ok((format!("raea check {file}: it doesn't render\nP0 render    {why}"), true))
+        let f = raea_core_facts::Finding::new("render", raea_core_facts::Level::Error, why.join("\n"), "raea check --quick");
+        Ok((format!("raea check {file}: it doesn't render\n{}\n{}", f.line(), raea_core_facts::finding::count(&[f])), true))
     };
     let _ = std::fs::remove_dir_all(&tmp);
     result
@@ -52,7 +52,9 @@ fn on_manifest(file: &str, manifest: &Path, args: &[String], tastes: Vec<raea_co
     let (w, h) = (m["width"].as_f64().unwrap_or(1080.0), m["height"].as_f64().unwrap_or(1920.0));
     text_rules(&runs, None, w, h, flag(args, "--shape"), flag(args, "--platform"), &mut issues, &mut passed);
     taste_text(&taste_rules(&tastes), &runs, w, h, &mut issues, &mut passed);
-    report(file, issues, passed, flag(args, "-o"))
+    // and what the render of the stills found (the 3D's clipping, DR3)
+    let more = serde_json::from_value(m["findings"].clone()).unwrap_or_default();
+    report(file, issues, more, passed, flag(args, "-o"), m["fps"].as_f64().unwrap_or(30.0))
 }
 
 #[cfg(test)]

@@ -18,7 +18,7 @@ pub(crate) fn all_items(frames: &[(i64, Frame)]) -> Vec<Vec<raea_core_scene::Ite
 
 /// raea_sys_contact::told on a render's frames: the parts that clip where the camera sees them, said on stderr
 /// (RAEA_CLIP_CHECK=0 skips it).
-pub(crate) fn told(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64) -> Vec<Value> {
+pub(crate) fn told(frames: &[(i64, Frame)], w: u32, h: u32, fps: f64) -> Vec<raea_core_facts::Finding> {
     if std::env::var("RAEA_CLIP_CHECK").as_deref() == Ok("0") || frames.iter().all(|(_, f)| f.scene.is_empty()) {
         return Vec::new();
     }
@@ -57,22 +57,21 @@ pub fn cli(args: &[String]) -> Result<String, String> {
     // and the Blender steps its models call for (a format raea can't load, triangles over budget for the distance)
     let (more, unloadable) = raea_sys_contact::assets(&items(&frames[k].1));
     found.extend(more);
-    let errors = errors + unloadable;
-    let shown: Vec<&Value> = found.iter().filter(|v| mode == "explain" || !matches!(v["level"].as_str(), Some("ok") | Some("note"))).collect();
-    let text = if args.iter().any(|a| a == "--json") {
-        serde_json::to_string_pretty(&json!({"frame": frame, "errors": errors, "found": shown})).unwrap_or_default()
-    } else {
-        let mut t: Vec<String> = shown.iter().map(|v| format!("{:<8} {}", v["level"].as_str().unwrap_or(""), v["says"].as_str().unwrap_or(""))).collect();
-        let warnings = found.iter().filter(|v| v["level"] == "warning").count();
-        t.push(format!("frame {frame}: {} parts, {errors} errors, {warnings} warnings", found.iter().filter(|v| v["check"] != "clips" && v["check"] != "tilted" && v["check"] != "skipped").count()));
-        t.join("\n")
-    };
-    // errors fail a lint, with nothing after the findings (--json stays one document)
-    if errors > 0 && mode == "lint" {
-        println!("{text}");
-        std::process::exit(1);
+    let (errors, json_out) = (errors + unloadable, args.iter().any(|a| a == "--json"));
+    let parts = found.iter().filter(|v| v["check"] != "clips" && v["check"] != "tilted" && v["check"] != "skipped").count();
+    if mode == "lint" {
+        // its faults as Findings (DR3), worst first, every one shown, the count last; errors fail it, with nothing after
+        let fs = raea_core_facts::finding::ranked(raea_sys_contact::lint_findings(&found, frame, "raea scene lint"));
+        let text = if json_out { serde_json::to_string_pretty(&json!({"frame": frame, "findings": fs})).unwrap_or_default() } else { fs.iter().map(raea_core_facts::Finding::line).chain([format!("frame {frame}: {parts} parts; {}", raea_core_facts::finding::count(&fs))]).collect::<Vec<_>>().join("\n") };
+        if errors > 0 {
+            println!("{text}");
+            std::process::exit(1);
+        }
+        return Ok(text);
     }
-    Ok(text)
+    // explain: every part's support
+    let t: Vec<String> = found.iter().map(|v| format!("{:<8} {}", v["level"].as_str().unwrap_or(""), v["says"].as_str().unwrap_or(""))).collect();
+    Ok(if json_out { serde_json::to_string_pretty(&json!({"frame": frame, "errors": errors, "found": found})).unwrap_or_default() } else { format!("{}\nframe {frame}: {parts} parts, {errors} errors", t.join("\n")) })
 }
 
 /// One composition's frames, stepped.

@@ -33,7 +33,7 @@ Headless: it needs nothing running and opens no window. Takes up to 2 arguments 
 | --- | --- | --- |
 | `--composition` | `ID` | Which composition to measure. `light` takes several, comma-separated, to compare the light across their cuts. |
 | `--frame` | `N` | The frame to measure (0 by default; `light` also takes `last`). |
-| `--json` | – | Print the findings as JSON: each part's support, gap and position. |
+| `--json` | – | Print as JSON: `lint` its findings (check, level, the parts they are about, frames, says, measure, fix), `explain` every part with its support, gap and box. |
 | `--part` | `NAME` | With `light`: the part to meter, in place of the shot's subject. |
 
 <!-- generated:end -->

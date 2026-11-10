@@ -4,7 +4,7 @@ use super::*;
 
 /// What `scene_program_checked` finds (on its own thread), for the fed render that draws that scene to write in its
 /// manifest.
-pub(crate) static FED_CLIPPING: std::sync::Mutex<Option<std::thread::JoinHandle<Vec<Value>>>> = std::sync::Mutex::new(None);
+pub(crate) static FED_CLIPPING: std::sync::Mutex<Option<std::thread::JoinHandle<Vec<raea_core_facts::Finding>>>> = std::sync::Mutex::new(None);
 
 /// RAEA_FRAME_LOG=FILE: a fed render (an .mp4 or .mov of a piece with 3D; not --frame or --at, which write none) writes
 /// one line a frame (ms, tab-separated): frame, react (the frame's commit

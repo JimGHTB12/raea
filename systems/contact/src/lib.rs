@@ -28,6 +28,9 @@ pub use lint::lint;
 mod assets;
 pub use assets::assets;
 
+mod found;
+pub use found::{clip_findings, lint_findings};
+
 mod model;
 pub use model::{bounds, facing, seat_facing};
 
@@ -395,12 +398,13 @@ fn clear_move(a: &[Solid], wa: &Mat4, b: &[Solid], wb: &Mat4, move_a: bool) -> (
     if best.1 == f32::MAX { (1, reach) } else { best }
 }
 
-/// `check`, each overlap said on stderr (what an agent driving raea reads) as it's returned for the manifest.
-pub fn told(all: &[Vec<Item>], frames: &[i64], w: u32, h: u32, fps: f64) -> Vec<Value> {
+/// `check`'s overlaps as Findings (DR3), each said on stderr (what an agent driving raea reads) as it's returned for
+/// the manifest.
+pub fn told(all: &[Vec<Item>], frames: &[i64], w: u32, h: u32, fps: f64) -> Vec<raea_core_facts::Finding> {
     let t = std::time::Instant::now();
-    let found = check(all, frames, w, h, fps);
-    for c in &found {
-        eprintln!("raea: clipping: {}", c["says"].as_str().unwrap_or_default());
+    let found = clip_findings(&check(all, frames, w, h, fps), "raea render");
+    for f in &found {
+        eprintln!("raea: {}", f.line());
     }
     if std::env::var_os("RAEA_TIMES").is_some() {
         eprintln!("raea times: the clipping check {:.0} ms", t.elapsed().as_secs_f64() * 1e3);

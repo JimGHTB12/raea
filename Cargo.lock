@@ -14797,6 +14797,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "image",
+ "raea-core-facts",
  "raea-core-program",
  "raea-core-review",
  "raea-core-scene",
@@ -15222,6 +15223,7 @@ name = "raea-sys-contact"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "raea-core-facts",
  "raea-core-meshcheck",
  "raea-core-scene",
  "raea-core-shape",

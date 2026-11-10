@@ -230,7 +230,7 @@ pub struct Line {
 pub fn declarations() -> Vec<String> {
     let cfg = Config::default();
     macro_rules! decls { ($($t:ty),*) => { vec![$(format!("export {}", <$t as TS>::decl(&cfg))),*] }; }
-    decls!(Source, Medium, Layer, Text, Part, Camera, Shot, Word, Clip, Cue, Line)
+    decls!(Source, Medium, Layer, Text, Part, Camera, Shot, Word, Clip, Cue, Line, crate::Level, crate::About, crate::Measure, crate::Finding)
 }
 
 #[cfg(test)]

@@ -222,9 +222,12 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
     Scenario: DR3. One finding, for every command
       Given the plan
         | crate              | file                           | lines | job                                                                    |
-        | raea-core-facts    | core/facts/src/finding.rs      | 160   | Finding, its JSON, its one-line text; the two old ranks mapped onto it |
+        | raea-core-facts    | core/facts/src/finding.rs      | 200   | Finding, its JSON, its one-line text; the two old ranks mapped onto it |
         | raea-sys-contact   | systems/contact/src/found.rs   | 140   | the clipping check's and the lint's results as Findings about entities |
-        | raea-app-direction | apps/direction/src/issue.rs    | 150   | raea check's Issue as Finding (rule -> check, p -> level, at -> frames) |
+        | raea-app-check     | apps/check/src/lib.rs          | 240   | raea check's Issue as Finding in its report (rule -> check, p -> level, at -> frames) |
+      # Fixed in the code (DR3): the plan gave raea check's Issue -> Finding a file of 150 lines in apps/direction. It is
+      # six lines in apps/check's report, which writes check.json, and its crate had the room; a second crate would
+      # have converted raea check's output after the fact instead of raea check writing Findings.
         | raea-app-direction | apps/direction/src/record.rs   | 220   | the project's record: findings by render and by commit, read back      |
         | raea-app-direction | apps/direction/src/findings.rs | 160   | `raea findings`                                                        |
       Then these write Findings and nothing else: the render's clipping check, `raea scene lint|light`, `raea check`

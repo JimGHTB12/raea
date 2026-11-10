@@ -26,6 +26,8 @@ raea-core-program = { path = "../../core/program" }
 raea-core-scene = { path = "../../core/scene" }
 raea-runtime-scene = { path = "../scene" }
 raea-sys-contact = { path = "../../systems/contact" }
+# a render's findings, in one shape (docs/direction.feature DR3)
+raea-core-facts = { path = "../../core/facts" }
 raea-sys-light-meter = { path = "../../systems/light-meter" }
 # --clay: every standard surface grey (its clay switch)
 raea-runtime-scene3d = { path = "../scene3d" }
