@@ -62,6 +62,8 @@ pub struct Facts {
     pub raea_names: Vec<String>,
     /// why it didn't parse (the first diagnostic), when it didn't
     pub broken: Option<String>,
+    /// it calls registerRoot (its compositions may come from a helper the scan doesn't follow)
+    pub roots: bool,
 }
 
 /// The file's facts; `tsx` for .tsx (JSX on), else plain TypeScript.
@@ -118,8 +120,9 @@ pub fn read(source: &str, tsx: bool) -> Facts {
             _ => {}
         }
     }
-    let mut v = Compositions { src: source, depth: 0, found: Vec::new(), consts: consts(&parsed.program) };
+    let mut v = Compositions { src: source, depth: 0, roots: false, found: Vec::new(), consts: consts(&parsed.program) };
     v.visit_program(&parsed.program);
+    f.roots = v.roots;
     f.registered = v.found.into_iter().map(|(at, mut r)| {
         r.line = line(at);
         r
@@ -230,6 +233,8 @@ fn number(e: &Expression, k: &HashMap<String, f64>) -> Option<f64> {
 struct Compositions<'s> {
     src: &'s str,
     depth: usize,
+    /// it calls registerRoot, whether or not a <Composition> is written inside it
+    roots: bool,
     found: Vec<(u32, Registered)>,
     consts: HashMap<String, f64>,
 }
@@ -237,6 +242,7 @@ struct Compositions<'s> {
 impl<'a> Visit<'a> for Compositions<'_> {
     fn visit_call_expression(&mut self, it: &CallExpression<'a>) {
         let root = matches!(&it.callee, Expression::Identifier(id) if id.name == "registerRoot");
+        self.roots |= root;
         self.depth += root as usize;
         walk::walk_call_expression(self, it);
         self.depth -= root as usize;

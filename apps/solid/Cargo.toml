@@ -8,6 +8,8 @@ description = "raea solid info and raea solid view: a solid file run, its parts 
 
 [dependencies]
 raea-core-solidinfo = { path = "../../core/solidinfo" }
+# what solid info finds, as raea's one Finding (docs/direction.feature DR3)
+raea-core-facts = { path = "../../core/facts" }
 serde_json = "1"
 # --set's and the CLI's flags, read as the bundler reads them
 raea-runtime-bundle = { path = "../../runtime/bundle" }

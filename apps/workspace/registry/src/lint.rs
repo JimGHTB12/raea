@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use serde_json::{Value, json};
+use raea_core_facts::{Finding, finding};
 
 use super::{File, How, Prop, Registry, is_path, resolve, stem};
 
@@ -37,12 +37,14 @@ pub struct Lint {
 }
 
 impl Lint {
-    pub fn json(&self) -> Value {
-        json!({
-            "file": self.file, "line": self.line, "rule": self.rule,
-            "level": if self.level == Level::Warn { "warn" } else { "info" },
-            "says": self.says, "fix": self.fix, "fixable": self.action.is_some(),
-        })
+    /// As raea's one Finding (docs/direction.feature DR3): about its file, keyed file:line; a warn, or a note for
+    /// what only the render knows. A fix `raea doctor --fix` applies starts by saying so.
+    pub fn finding(&self) -> Finding {
+        let level = if self.level == Level::Warn { finding::Level::Warn } else { finding::Level::Note };
+        let name = if self.file.is_empty() { "." } else { self.file.as_str() };
+        let key = (self.line > 0).then(|| format!("{name}:{}", self.line));
+        let fix = if self.action.is_some() && !self.fix.starts_with("raea doctor --fix") { format!("raea doctor --fix does it: {}", self.fix) } else { self.fix.clone() };
+        Finding::new(self.rule, level, &self.says, "raea project scan").about(name, key).fix(fix)
     }
 
     /// file:line: what (the fix)
@@ -77,8 +79,12 @@ pub(super) fn lint(reg: &Registry, files: &[File], used_by: &BTreeMap<String, BT
             out.push(warn(&f.rel, 1, "broken", format!("doesn't parse: {why}"), "fix the syntax: nothing reads a file that doesn't parse"));
             continue;
         }
+        // a registerRoot whose compositions a helper makes (`<>{shotComps(SHOTS)}</>`): registered, but not listed here
+        if f.facts.roots && f.facts.registered.is_empty() {
+            out.push(Lint { file: f.rel.clone(), line: 1, rule: "computed-root", level: Level::Info, says: "registers its root through code the scan doesn't follow (a helper that makes its <Composition>s), so its compositions aren't listed".into(), fix: "known when it renders; write each <Composition> inside registerRoot to have them listed before".into(), action: None });
+        }
         // a .tsx that is neither a composition nor reached from one
-        if f.rel.ends_with(".tsx") && !comp_files.contains(f.rel.as_str()) && !used_by.contains_key(&f.rel) && !controller_files.contains(f.rel.as_str()) {
+        if f.rel.ends_with(".tsx") && !f.facts.roots && !comp_files.contains(f.rel.as_str()) && !used_by.contains_key(&f.rel) && !controller_files.contains(f.rel.as_str()) {
             out.push(warn(&f.rel, 1, "orphan", "isn't a composition, and no composition imports it".into(), "register it (a default export or a registerRoot <Composition>), import it from a composition, or delete it"));
         }
         for (spec, line) in f.facts.imports.iter().filter(|(s, _)| is_path(s)) {

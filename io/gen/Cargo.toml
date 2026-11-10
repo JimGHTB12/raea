@@ -12,6 +12,8 @@ raea-io-gen-core = { path = "../gen-core" }
 raea-io-home = { path = "../home" }
 # a generated model measured and fitted after its step (raea gen check; fit.rs)
 raea-core-meshcheck = { path = "../../core/meshcheck" }
+# what gen check finds, as raea's one Finding (docs/direction.feature DR3)
+raea-core-facts = { path = "../../core/facts" }
 serde_json = "1"
 # image.crop, image.scale, image.stitch, run here (native.rs)
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }

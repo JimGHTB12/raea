@@ -6,6 +6,7 @@
 
 use std::path::Path;
 
+use raea_core_facts::{Finding, finding};
 use raea_core_meshcheck::{Glb, Want, check, fix};
 use serde_json::{Value as J, json};
 
@@ -20,11 +21,44 @@ pub fn want_of(v: &J) -> Want {
     Want { h: v["h"].as_f64(), dims, faces: v["faces"].as_u64().map(|f| f as usize), turn: v["turn"].as_f64().unwrap_or(0.0), seen: v["seen"].as_f64(), parts, rig: v["rig"] == true, solid: v["solid"] == true, file: None }
 }
 
+/// The report's `found` as raea's Findings (docs/direction.feature DR3), each about the model, worst first, with
+/// their count; its passes are not findings. A fix's command was in its words, and is its fix now.
+fn as_findings(mut r: J) -> J {
+    let file = r["file"].as_str().unwrap_or("model").to_string();
+    let fs = finding::ranked(
+        r["found"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|v| Finding::of_value(v, "raea gen check"))
+            .map(|mut f| {
+                if let Some(cut) = f.fix.as_ref().and_then(|x| f.says.strip_suffix(&format!("; fix: {x}"))) {
+                    f.says = cut.to_string();
+                }
+                if f.about.is_empty() { f.about(&file, None) } else { f }
+            })
+            .collect(),
+    );
+    if let Some(o) = r.as_object_mut() {
+        for k in ["found", "errors", "warnings"] {
+            o.remove(k);
+        }
+    }
+    r["count"] = json!(finding::count(&fs));
+    r["findings"] = json!(fs);
+    r
+}
+
+/// Whether a report holds an error.
+fn failed(r: &J) -> bool {
+    r["findings"].as_array().into_iter().flatten().any(|f| f["level"] == "error")
+}
+
 /// One model measured, and written fitted to `out` when given (`out` may be the model itself).
 pub fn check_file(path: &Path, want: &Want, out: Option<&Path>) -> Result<J, String> {
     let p = path.display().to_string();
     if let Some(f) = raea_core_meshcheck::blender::unloadable(&p) {
-        return Ok(json!({"file": p, "errors": 1, "warnings": 0, "found": [f]}));
+        return Ok(as_findings(json!({"file": p, "found": [f]})));
     }
     let g = Glb::read(&p)?;
     let mut r = check(&g, g.bytes.len(), &Want { file: Some(p.clone()), ..want.clone() })?;
@@ -47,7 +81,7 @@ pub fn check_file(path: &Path, want: &Want, out: Option<&Path>) -> Result<J, Str
         }
         r["wrote"] = json!(o.display().to_string());
     }
-    Ok(r)
+    Ok(as_findings(r))
 }
 
 /// `raea gen check ...`
@@ -69,23 +103,21 @@ pub fn command(args: &[String]) -> Result<String, String> {
     } else {
         say(&r)
     };
-    if r["errors"].as_u64().unwrap_or(0) > 0 {
+    if failed(&r) {
         println!("{text}");
         std::process::exit(1);
     }
     Ok(text)
 }
 
-/// The findings as lines, lint's way: warnings and errors, then one line of totals.
+/// The findings as lines, worst first, then what was measured, then their count.
 pub fn say(r: &J) -> String {
-    let mut t = Vec::new();
-    for f in r["found"].as_array().into_iter().flatten().filter(|f| f["level"] != "ok") {
-        t.push(format!("{:<8} {}", f["level"].as_str().unwrap_or(""), f["says"].as_str().unwrap_or("")));
-    }
+    let mut t: Vec<String> = r["findings"].as_array().into_iter().flatten().filter_map(|f| serde_json::from_value::<Finding>(f.clone()).ok()).map(|f| f.line()).collect();
     let m = &r["measured"];
     // a file raea can't read has no measures: its summary says so instead of nulls
     let measured = if m["triangles"].is_null() { "not read".to_string() } else { format!("{} triangles, {} x {} x {} m", m["triangles"], m["size"][0], m["size"][1], m["size"][2]) };
-    t.push(format!("{}: {measured}, {} errors, {} warnings{}", r["file"].as_str().unwrap_or("model"), r["errors"], r["warnings"], r["wrote"].as_str().map(|w| format!("; fitted copy {w}")).unwrap_or_default()));
+    t.push(format!("{}: {measured}{}", r["file"].as_str().unwrap_or("model"), r["wrote"].as_str().map(|w| format!("; fitted copy {w}")).unwrap_or_default()));
+    t.push(format!("raea gen check: {}", r["count"].as_str().unwrap_or("")));
     t.join("\n")
 }
 
@@ -105,7 +137,7 @@ pub fn after_run(flow: &Flow, result: &mut J) {
         for f in files.iter().filter(|f| f.to_ascii_lowercase().ends_with(".glb")) {
             let p = Path::new(f);
             let fitted = want.h.is_some() || want.turn != 0.0;
-            let r = check_file(p, &want, fitted.then_some(p)).unwrap_or_else(|e| json!({"file": f, "errors": 1, "found": [{"check": "read", "level": "error", "says": e}]}));
+            let r = check_file(p, &want, fitted.then_some(p)).unwrap_or_else(|e| as_findings(json!({"file": f, "found": [{"check": "read", "level": "error", "says": e}]})));
             eprintln!("raea gen: {}", say(&r).replace('\n', "\nraea gen: "));
             checks.insert(name.clone(), r);
         }

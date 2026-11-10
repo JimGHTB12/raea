@@ -13683,6 +13683,7 @@ name = "raea-app-registry"
 version = "0.1.0"
 dependencies = [
  "oxc",
+ "raea-core-facts",
  "serde_json",
 ]
 
@@ -13691,6 +13692,7 @@ name = "raea-app-solid"
 version = "0.1.0"
 dependencies = [
  "raea-app-judge",
+ "raea-core-facts",
  "raea-core-meshcheck",
  "raea-core-shape",
  "raea-core-solidinfo",
@@ -14218,6 +14220,7 @@ name = "raea-io-gen"
 version = "0.1.0"
 dependencies = [
  "image",
+ "raea-core-facts",
  "raea-core-meshcheck",
  "raea-io-gen-comfy",
  "raea-io-gen-core",

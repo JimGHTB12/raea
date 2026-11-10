@@ -16,6 +16,7 @@ fn project() -> (tempdir::Dir, PathBuf) {
     w("card.tsx", "import Glyph from \"./lib/glyph\";\nimport { gone } from \"./nope\";\nimport { far } from \"../outside\";\nexport function Card() { return <Glyph />; }\n");
     w("lib/glyph.tsx", "export default function Glyph() { return <span />; }\n");
     w("stray.tsx", "export function Stray() { return null; }\n");
+    w("shots.tsx", "import { registerRoot } from \"raea\";\nimport { shotComps, SHOTS } from \"./lib/glyph\";\nregisterRoot(() => <>{shotComps(SHOTS)}</>);\n");
     w("bare.tsx", "import { AbsoluteFill } from \"raea\";\nexport default function Bare() { return <AbsoluteFill />; }\n");
     w("bare.render.json", "{\"width\": 1080, \"height\": 1080, \"fps\": 30, \"frames\": [{}, {}, {}]}");
     w("anon.tsx", "export default () => <div />;\n");
@@ -89,6 +90,13 @@ fn what_isnt_connected_is_linted_with_its_place_and_fix() {
     assert!(bare.action.is_some());
     let anon = r.lint.iter().find(|l| l.rule == "unregistered" && l.file == "anon.tsx").unwrap();
     assert!(anon.action.is_none() && anon.fix.contains("name the default export"));
+    // a registerRoot whose compositions a helper makes is no orphan: it says the scan can't list them
+    assert!(!r.lint.iter().any(|l| l.rule == "orphan" && l.file == "shots.tsx"));
+    assert!(has("computed-root", "shots.tsx", 1));
+    // as Findings (DR3): about the file at its line, a fix --fix applies saying so, the count last
+    let home = r.lint.iter().find(|l| l.rule == "controller-home").unwrap().finding();
+    assert_eq!((home.about[0].key.as_deref(), home.fix.as_deref().map(|f| f.starts_with("raea doctor --fix does it: move it to"))), (Some("settings/look.ts:3"), Some(true)));
+    assert!(r.text().lines().last().unwrap().starts_with("raea project scan: 0 errors, "));
 }
 
 #[test]

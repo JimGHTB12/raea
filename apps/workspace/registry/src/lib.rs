@@ -263,7 +263,7 @@ impl Registry {
             })).collect::<Vec<_>>(),
             "components": self.components.iter().map(|c| json!({ "file": c.file, "usedBy": c.used_by })).collect::<Vec<_>>(),
             "controllers": self.controllers.iter().map(|c| json!({ "id": c.id, "file": c.file, "line": c.line })).collect::<Vec<_>>(),
-            "lint": self.lint.iter().map(Lint::json).collect::<Vec<_>>(),
+            "findings": self.lint.iter().map(Lint::finding).collect::<Vec<_>>(),
         })
     }
 
@@ -299,7 +299,8 @@ impl Registry {
         out.trim_end().to_string()
     }
 
-    /// What it found, for a person: a line each for the counts, then each lint as file:line, what, and the fix.
+    /// What it found, for a person: a line for the counts and one each composition, then its findings worst first,
+    /// each about its file:line with the fix, and their count last.
     pub fn text(&self) -> String {
         let mut out = format!(
             "{}: {} compositions, {} components, {} controllers",
@@ -311,9 +312,12 @@ impl Registry {
         for c in &self.compositions {
             out.push_str(&format!("\n  composition {} ({}:{}{})", c.id, c.file, c.line, if c.how == How::Default { ", its default export" } else { "" }));
         }
-        for l in &self.lint {
-            out.push_str(&format!("\n{}", l.line()));
+        let found = raea_core_facts::finding::ranked(self.lint.iter().map(Lint::finding).collect());
+        for f in &found {
+            let at = f.about.first().map(|a| a.key.clone().unwrap_or_else(|| a.name.clone())).unwrap_or_default();
+            out.push_str(&format!("\n{at}: {}", f.line()));
         }
+        out.push_str(&format!("\nraea project scan: {}", raea_core_facts::finding::count(&found)));
         out
     }
 }

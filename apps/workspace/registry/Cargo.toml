@@ -10,3 +10,5 @@ description = "A raea project's compositions, components and controllers, read f
 # the version engine/bundle parses TSX with
 oxc = { version = "=0.152.0", features = ["ast_visit"] }
 serde_json = "1"
+# what the scan finds, as raea's one Finding (docs/direction.feature DR3)
+raea-core-facts = { path = "../../../core/facts" }
