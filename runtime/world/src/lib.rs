@@ -3,16 +3,22 @@
 //! (page.rs) and its timeline's shots, clips, cues and lines (timeline.rs) become entities with components
 //! (raea-core-facts), so one query can span every medium a piece has.
 
+mod covers;
 mod page;
+mod renders;
 mod scene;
 mod source;
 mod timeline;
+
+pub use renders::Render;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use bevy::prelude::{App, MinimalPlugins};
 pub use raea_core_facts::*;
+// where a render's manifest is (every render writes one beside its output, DR2)
+pub use raea_sys_layers::manifest_for;
 use raea_runtime_bundle::{bundle_composition, CompOpts};
 use raea_core_scene::num;
 use serde_json::Value;
@@ -24,6 +30,8 @@ type R<T> = Result<T, String>;
 pub struct Ask {
     pub frames: Vec<i64>,
     pub layout: bool,
+    /// which render's facts join the world (DR2)
+    pub render: Render,
 }
 
 /// One stepped frame: its 3D, its React tree, and its page as laid out.
@@ -37,8 +45,7 @@ struct Snap {
 /// gives the same world each time: frames are pure.
 pub fn read(tsx: &Path, o: &CompOpts, ask: &Ask) -> R<Vec<Facts>> {
     let tsx = tsx.canonicalize().map_err(|e| format!("{}: {e}", tsx.display()))?;
-    let dir = tsx.parent().ok_or("the edit has no folder")?.to_path_buf();
-    let js = std::env::temp_dir().join(format!("raea-world-{}.js", std::process::id()));
+    let js =std::env::temp_dir().join(format!("raea-world-{}.js", std::process::id()));
     // every element and part stamped with its place in the code, so each entity has its Source (as the stage's
     // picks have their keys, engine/page/stage); RAEA_SOURCE_STAMPS=0 in the environment keeps them off
     if std::env::var_os("RAEA_SOURCE_STAMPS").is_none() {
@@ -46,13 +53,14 @@ pub fn read(tsx: &Path, o: &CompOpts, ask: &Ask) -> R<Vec<Facts>> {
         unsafe { std::env::set_var("RAEA_SOURCE_STAMPS", "1") };
     }
     bundle_composition(&tsx, &js, o, None)?;
-    let got = stepped(&js, &dir, ask, o.words.as_ref());
+    let got = stepped(&js, &tsx, ask, o.words.as_ref());
     let _ = std::fs::remove_file(&js);
     got
 }
 
-fn stepped(js: &Path, dir: &Path, ask: &Ask, words: Option<&Value>) -> R<Vec<Facts>> {
+fn stepped(js: &Path, tsx: &Path, ask: &Ask, words: Option<&Value>) -> R<Vec<Facts>> {
     use raea_runtime_react::scene::{edit_dir, scene_of, settle};
+    let dir = tsx.parent().ok_or("the edit has no folder")?;
     edit_dir(dir);
     let mut app = App::new();
     app.add_plugins(MinimalPlugins).add_plugins(raea_runtime_react::ReactPlugin::new(js.to_path_buf()));
@@ -79,7 +87,8 @@ fn stepped(js: &Path, dir: &Path, ask: &Ask, words: Option<&Value>) -> R<Vec<Fac
         })?;
     }
     let lines = timeline::project_lines(words, dir, fps);
-    Ok(ask
+    let mut render = renders::find(&ask.render, tsx, (w, h, fps));
+    let worlds = ask
         .frames
         .iter()
         .map(|&f| {
@@ -89,9 +98,17 @@ fn stepped(js: &Path, dir: &Path, ask: &Ask, words: Option<&Value>) -> R<Vec<Fac
             scene::put(&mut facts, &now.scene, snaps.get(&(f + 1)).map(|n| &n.scene[..]), fps, dir, &mut order);
             timeline::put(&mut facts, &now.tree, now.laid.as_ref(), (w, h, fps), dir, &mut order);
             timeline::put_lines(&mut facts, &lines, &now.tree, f, fps);
+            // what only a render knows, or what waits for one (DR2)
+            if ask.render != Render::Off {
+                renders::join(&mut facts, render.as_mut(), &now.tree);
+            }
             facts
         })
-        .collect())
+        .collect();
+    if let Some(r) = render {
+        r.keep();
+    }
+    Ok(worlds)
 }
 
 #[cfg(test)]

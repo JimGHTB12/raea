@@ -86,7 +86,13 @@ pub fn start(on: bool, out: &std::path::Path, tsx: &std::path::Path) -> Option<P
     let video = out.file_name().unwrap_or_default().to_string_lossy().into_owned();
     let src = tsx.parent().map(PathBuf::from).unwrap_or_default();
     ON.with(|r| *r.borrow_mut() = path.clone().map(|p| Recorder::new(p, video).named_from(src)));
-    path.map(|p| p.with_extension("render.json"))
+    path.map(|_| manifest_for(out, tsx))
+}
+
+/// The render.json beside an export `out` (OUT.render.json, or DIR/NAME.render.json for a folder of frames), which
+/// every render writes unless `--manifest` puts it elsewhere (docs/direction.feature DR2).
+pub fn manifest_for(out: &std::path::Path, tsx: &std::path::Path) -> PathBuf {
+    path_for(out, tsx).with_extension("render.json")
 }
 
 /// Whether this render records its layers.

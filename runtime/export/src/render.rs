@@ -60,8 +60,8 @@ pub fn render(args: &[String]) -> R<String> {
         (_, Some(at)) => Some(at.split(',').map(|f| f.trim().parse::<i64>().map_err(|_| "--at takes frame numbers".to_string())).collect::<R<_>>()?),
         _ => None,
     };
-    let layers = raea_sys_layers::start(layers_on, &out, &tsx);
-    *MANIFEST.lock().unwrap() = flag(args, "--manifest").map(PathBuf::from).or(layers);
+    raea_sys_layers::start(layers_on, &out, &tsx);
+    *MANIFEST.lock().unwrap() = Some(flag(args, "--manifest").map_or_else(|| raea_sys_layers::manifest_for(&out, &tsx), PathBuf::from));
     TEN_BIT.store(args.iter().any(|a| a == "--10bit"), std::sync::atomic::Ordering::Relaxed);
     AOV.store(args.iter().any(|a| a == "--aov"), std::sync::atomic::Ordering::Relaxed);
     if AOV.load(std::sync::atomic::Ordering::Relaxed) && !out_ext(&out).is_empty() {

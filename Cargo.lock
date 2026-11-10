@@ -13595,6 +13595,7 @@ dependencies = [
  "raea-core-brief",
  "raea-core-facts",
  "raea-io-trace",
+ "raea-sys-measure",
  "serde_json",
 ]
 
@@ -15130,6 +15131,7 @@ name = "raea-runtime-world"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "flate2",
  "raea-core-facts",
  "raea-core-scene",
  "raea-runtime-bake",
@@ -15138,6 +15140,7 @@ dependencies = [
  "raea-runtime-react",
  "raea-runtime-scene",
  "raea-sys-layers",
+ "raea-sys-measure",
  "serde_json",
  "sha2 0.10.9",
 ]
@@ -15455,6 +15458,10 @@ dependencies = [
  "resvg 0.48.1",
  "serde_json",
 ]
+
+[[package]]
+name = "raea-sys-measure"
+version = "0.1.0"
 
 [[package]]
 name = "raea-sys-mesh"

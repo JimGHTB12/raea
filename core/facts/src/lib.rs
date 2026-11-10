@@ -12,6 +12,10 @@ pub use words::transcript_words;
 pub mod finding;
 pub use finding::{About, Finding, Level, Measure};
 
+// what a render adds to a frame's world, and what waits for one (DR2)
+pub mod rendered;
+pub use rendered::*;
+
 // the project's record: what each render and check found, kept by render and commit (DR3)
 pub mod record;
 

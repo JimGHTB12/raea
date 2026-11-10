@@ -86,6 +86,7 @@ members = [
     "systems/bake",
     "systems/contact",
     "systems/light-meter",
+    "systems/measure",
     "systems/canvas",
     "systems/tweak",
     "systems/filters",

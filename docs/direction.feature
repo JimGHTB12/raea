@@ -208,15 +208,59 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
       And a query spans media: "every Text whose Layer is 2d-type and that no Part masks during its Line" is one find
       And the same frame gives the same world whenever it's asked for, and a range of frames gives one a frame
 
-    @needs:DR1
+    @needs:DR1 @done
     Scenario: DR2. What only a render knows joins the same world
+      # Status 11-10: built. Every render writes its manifest beside its output (OUT.render.json, or DIR/NAME.render.json
+      # for frames; --manifest still moves it): 54 KB and no measurable time on a 150-frame shot. `raea world` joins the
+      # composition's newest render in the project's record (the newest whose manifest has this composition's size and
+      # rate and whose output still exists), or the one `--render OUT` names; `--no-render` joins none. It adds each
+      # text's Contrast against its pixels, the frame's Picture (a resource) and each shot's (the mean of its frames; a
+      # shot's first frame is the cut into it, so its motion is left out), the Mix (integrated LUFS, true peak), each
+      # cue's Onset, and Covers from a render with --layers (NAME.layers: the share of a layer's box that layers drawn
+      # after it, neither inside nor around it, cover). raea-sys-measure measures the output with ffmpeg the first time
+      # a number is asked for and keeps it in the manifest's "measured", so asking again reads it back; raea check's
+      # contrast and loudness call it too. Rendered names the render and says stale when the composition changed after
+      # it; Waits names each component a render would add and what it waits for.
+      # Real run (release binary, M5 Pro, a scratch project: two shots, a caption a band covers from frame 30, a grey
+      # line on grey, a beep at 1 s, a silent cue at 2 s): the caption 18.1:1 and the grey line 1.2:1; the band covers
+      # 52% of the caption at frame 35 and nothing at frame 10; the dark shot's luma 0.112, the light one's 0.842; the
+      # beep heard at 1.00 s (+0 ms), the silent cue "not heard where it starts"; the mix -27.4 LUFS. Three frames read
+      # the first time, measuring, in 0.97 s; one frame read back from the manifest in 0.52-0.59 s.
+      # The cheats, each fails: --no-render adds nothing and lists what waits; a composition changed after its render
+      # says stale; a still rendered after the video is the newest render, so Mix and Onset wait for a video render,
+      # Covers for one with --layers, and a frame it didn't draw takes nothing of another frame's; --render naming the
+      # video joins it again.
+      # Found and fixed on the way: `raea render --layers` recorded masks of no layer unless RAEA_SOURCE_STAMPS=1 was
+      # set (the layer pass keys pixels by source stamps; fixed on main by the layer pass's lane, 43429e6f2); an onset
+      # read 20 ms early on an AAC encoder's pre-echo (-111 dB out of digital silence), so a rise now counts once it is
+      # within 10 dB of where the sound goes; a shot's motion counted the cut into it; --render dated the render by its
+      # manifest, which a read rewrites, instead of by its output.
+      # Proved by tests in raea-sys-measure (4), raea-runtime-world (12: renders 3, covers 1), raea-core-facts (8),
+      # raea-app-check (27), raea-app-direction (5) and raea-sys-layers (7).
+      # Not seen, or left: the test render wasn't watched or listened to; its numbers are what the measures read. What
+      # the page draws over a 3D part isn't kept (NAME.layers holds only each pixel's frontmost layer), so no part is
+      # ever covered. Plain elements are ordered by document order, not z-index. Light and movement are read from 64x64
+      # grey frames, so motion is small for small things (a 200 px box moving 15 px a frame reads 0.001). An onset is
+      # found to 10 ms. Contrast is the text against the half of its box least like it, so a caption half under a band
+      # reads as its visible half; the band is what Covers says.
+      Given the plan
+        | crate              | file                           | lines | job                                                                    |
+        | raea-sys-measure   | systems/measure/src/lib.rs     | 220   | a render's output measured (ffmpeg reads it): each frame's luminance and motion, a box's contrast against its text's colour, the mix's loudness and true peak, the onset nearest a time |
+        | raea-core-facts    | core/facts/src/rendered.rs     | 90    | what a render adds to a world: Covers, Contrast, Picture, Onset; the world's resources (Mix, the render it came from, what waits for one) |
+        | raea-runtime-world | runtime/world/src/renders.rs   | 240   | a composition's newest render found (the project's record, or --render), its manifest's frames joined to the frame's entities, its measures kept in its manifest |
+        | raea-runtime-world | runtime/world/src/covers.rs    | 160   | NAME.layers (a render with --layers) read: how much of each layer the layers drawn over it cover this frame |
       Then every render writes its manifest (today only with --manifest), beside its output
       And the manifest is entities too, added to the frame's world when a check asks for them: the layer
         masks (review.feature R2b) as `Covers { layer, share }` between layers, each text's contrast against what is
         behind it, each shot's measured motion and luminance (goal.feature Track G's columns), the mix's loudness and
         each cue's measured onset
-      And a check says whether it needs them (`needs: "render"`); `raea check` on a project with no render runs the
-        rest and lists what waits for one
+      And what a render adds says it needs one: a world with no render, or a frame the render didn't draw, has a
+        `Waits` resource naming each component it would add and what it waits for ("a render", "a video render", "a
+        render with --layers", "a render of frame N")
+      # Fixed in the code (DR2): this line said "a check says whether it needs them; `raea check` on a project with no
+      # render runs the rest and lists what waits for one". A check that declares `needs` is DR4's (`check({ id, text,
+      # needs, level }, ...)`), and before DR4 there is no set of checks for `raea check` to run "the rest" of. DR2
+      # gives the world `Waits`, the data that needs it; DR4 now holds the `raea check` half.
 
     @needs:DR1 @done
     Scenario: DR3. One finding, for every command
@@ -293,6 +337,8 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
         `found(...)`, and the components' types generated from core/facts (ts-rs, as core/brief's are)
       Then `raea check [PROJECT | EDIT.tsx | VIDEO.mp4] [--stage S] [--only ID] [--json]` runs every check that
         applies: raea's floor, the person's taste, the workspace's and the project's rules, the project's notes
+      And a check says whether it needs a render (`needs: "render"`); on a project or composition with no render,
+        `raea check` runs the checks that need none and lists each that waits, with what it waits for (DR2's Waits)
       And a check is told once what it ranges over (`frames: "all" | "cuts" | "lines" | [..]`) and is run there; it
         finds entities, measures, and calls `found(...)`; it never prints
       And the same check text reads for a mesh and for a caption: `world.find({ with: ["Text", "Layer"] })`

@@ -24,11 +24,18 @@ pub struct Facts {
     pub height: u32,
     pub fps: f64,
     pub entities: Vec<Entity>,
+    /// what belongs to the frame, not to one entity (the render's Mix, what Waits for one), by name
+    #[serde(skip_serializing_if = "BTreeMap::is_empty", default)]
+    pub resources: BTreeMap<String, Value>,
 }
 
 impl Facts {
     pub fn new(frame: i64, width: u32, height: u32, fps: f64) -> Self {
-        Facts { frame, width, height, fps, entities: Vec::new() }
+        Facts { frame, width, height, fps, entities: Vec::new(), resources: BTreeMap::new() }
+    }
+    /// A resource, by its type's name (a second replaces the first).
+    pub fn set<C: Component>(&mut self, c: &C) {
+        self.resources.insert(C::NAME.to_string(), serde_json::to_value(c).unwrap_or(Value::Null));
     }
     /// A new entity with no components yet: its id.
     pub fn spawn(&mut self, parent: Option<u32>) -> u32 {
@@ -67,8 +74,9 @@ pub trait Component: Serialize + for<'a> Deserialize<'a> {
     const NAME: &'static str;
 }
 macro_rules! component {
-    ($($t:ident),*) => { $(impl Component for $t { const NAME: &'static str = stringify!($t); })* };
+    ($($t:ident),*) => { $(impl $crate::components::Component for $t { const NAME: &'static str = stringify!($t); })* };
 }
+pub(crate) use component;
 component!(Source, Layer, Text, Part, Camera, Shot, Clip, Cue, Line);
 
 /// Where a thing was written: its file and line, the component that drew it, and the chain of uses down to it (the
@@ -230,7 +238,8 @@ pub struct Line {
 pub fn declarations() -> Vec<String> {
     let cfg = Config::default();
     macro_rules! decls { ($($t:ty),*) => { vec![$(format!("export {}", <$t as TS>::decl(&cfg))),*] }; }
-    decls!(Source, Medium, Layer, Text, Part, Camera, Shot, Word, Clip, Cue, Line, crate::Level, crate::About, crate::Measure, crate::Finding)
+    use crate::rendered::*;
+    decls!(Source, Medium, Layer, Text, Part, Camera, Shot, Word, Clip, Cue, Line, Contrast, Picture, Onset, Covered, Covers, Mix, Rendered, Waits, crate::Level, crate::About, crate::Measure, crate::Finding)
 }
 
 #[cfg(test)]

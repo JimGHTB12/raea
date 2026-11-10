@@ -1,0 +1,9 @@
+[package]
+name = "raea-sys-measure"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "What a render's output measures, read with ffmpeg: each frame's light and movement, a text's contrast against its pixels, the mix's loudness and when a sound starts in it"
+
+[dependencies]

@@ -195,20 +195,6 @@ pub(crate) fn quote(s: &str) -> String {
     format!("\u{201c}{s}\u{201d}")
 }
 
-pub(crate) fn rgb_of(css: &str) -> [f64; 3] {
-    let n: Vec<f64> = css.split(|c: char| !(c.is_ascii_digit() || c == '.')).filter(|s| !s.is_empty()).filter_map(|s| s.parse().ok()).collect();
-    [n.first().copied().unwrap_or(255.0), n.get(1).copied().unwrap_or(255.0), n.get(2).copied().unwrap_or(255.0)]
-}
-
-/// relative luminance (WCAG) of an sRGB colour 0-255
-pub(crate) fn lum([r, g, b]: [f64; 3]) -> f64 {
-    let c = |v: f64| {
-        let v = v / 255.0;
-        if v <= 0.04045 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) }
-    };
-    0.2126 * c(r) + 0.7152 * c(g) + 0.0722 * c(b)
-}
-
 /// Caption contrast: at each text's middle frame, the pixels behind it against its colour, at least 3:1. The pixels
 /// behind are the half of the box least like the text.
 pub(crate) fn contrast(video: &str, runs: &[Run], w: f64, h: f64, probe: &Probe, issues: &mut Vec<Issue>, passed: &mut Vec<String>) {
@@ -217,29 +203,13 @@ pub(crate) fn contrast(video: &str, runs: &[Run], w: f64, h: f64, probe: &Probe,
     let mut measured = 0;
     for r in runs.iter().filter(|r| r.size >= 20.0).take(80) {
         let [x, y, bw, bh] = r.box_;
-        // even sizes and offsets: the decoder's 4:2:0 frame crops to them
-        let (cx, cy, cw, ch) = ((x * sx).max(0.0) as u32 & !1, (y * sy).max(0.0) as u32 & !1, ((bw * sx) as u32).max(2) & !1, ((bh * sy) as u32).max(2) & !1);
-        if cx + cw > probe.w as u32 || cy + ch > probe.h as u32 {
+        let crop = [(x * sx).max(0.0) as u32, (y * sy).max(0.0) as u32, (bw * sx) as u32, (bh * sy) as u32];
+        if crop[0] + crop[2] > probe.w as u32 || crop[1] + crop[3] > probe.h as u32 {
             continue;
         }
         let t = (r.from + r.to) / 2.0;
-        let Ok(out) = Command::new("ffmpeg")
-            .args(["-v", "error", "-ss", &format!("{t:.3}"), "-i", video, "-frames:v", "1", "-vf", &format!("crop={cw}:{ch}:{cx}:{cy}"), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"])
-            .output()
-        else {
-            continue;
-        };
-        if out.stdout.len() < (cw * ch * 3) as usize {
-            continue;
-        }
-        let text = lum(rgb_of(&r.color));
-        let mut ls: Vec<f64> = out.stdout.chunks_exact(3).map(|p| lum([p[0] as f64, p[1] as f64, p[2] as f64])).collect();
-        ls.sort_by(|a, b| (b - text).abs().total_cmp(&(a - text).abs()));
-        let behind = &ls[..ls.len() / 2];
-        let mut sorted = behind.to_vec();
-        sorted.sort_by(f64::total_cmp);
-        let bg = sorted[sorted.len() / 2];
-        let ratio = (text.max(bg) + 0.05) / (text.min(bg) + 0.05);
+        // the same measure `raea world` joins to a text from its render (raea-sys-measure, DR2)
+        let Some(ratio) = raea_sys_measure::contrast(std::path::Path::new(video), t, crop, &r.color) else { continue };
         measured += 1;
         if ratio < 3.0 {
             low += 1;

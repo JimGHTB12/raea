@@ -13,4 +13,6 @@ raea-core-brief = { path = "../../core/brief" }
 raea-core-facts = { path = "../../core/facts" }
 # a check's record named by when it was (UTC, DR3)
 raea-io-trace = { path = "../../io/trace" }
+# caption contrast and loudness, measured as `raea world` measures a render (DR2)
+raea-sys-measure = { path = "../../systems/measure" }
 serde_json = "1"

@@ -41,7 +41,10 @@ pub fn rendered(args: &[String]) -> i32 {
     let found = finding::taken();
     let through = despite(args, std::env::var("RAEA_DESPITE").ok());
     let excused: Vec<Despite> = through.iter().map(|(c, w)| Despite { check: c.clone(), why: w.clone() }).collect();
-    if let Some(m) = raea_runtime_bundle::flag(args, "--manifest") {
+    let out = raea_runtime_bundle::flag(args, "-o").or_else(|| raea_runtime_bundle::flag(args, "--review")).map(PathBuf::from);
+    // the manifest every render writes beside its output (DR2), or where --manifest put it
+    let manifest = raea_runtime_bundle::flag(args, "--manifest").map(PathBuf::from).or_else(|| Some(raea_runtime_world::manifest_for(out.as_deref()?, std::path::Path::new(args.get(1)?))));
+    if let Some(m) = manifest {
         if let Some(mut v) = std::fs::read(&m).ok().and_then(|b| serde_json::from_slice::<Value>(&b).ok()) {
             v["findings"] = json!(found);
             if !excused.is_empty() {
@@ -52,7 +55,6 @@ pub fn rendered(args: &[String]) -> i32 {
     }
     // a render that is part of another (a review's tiles, a quick check's stills) leaves the entry to that one
     let file = args.get(1).filter(|a| !a.starts_with('-') && std::env::var("RAEA_RECORD").as_deref() != Ok("off")).map(PathBuf::from);
-    let out = raea_runtime_bundle::flag(args, "-o").or_else(|| raea_runtime_bundle::flag(args, "--review")).map(PathBuf::from);
     if let Some(e) = file.and_then(|f| record::keep("raea render", &f, out.as_deref(), &found, excused, &raea_io_trace::utc(SystemTime::now()).1)) {
         println!("raea render: kept in the project's record as {} (raea findings reads it)", e.id);
     }

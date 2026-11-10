@@ -206,10 +206,8 @@ pub(crate) fn ffmpeg_stderr(args: &[&str]) -> R<String> {
 
 /// -14 LUFS integrated (±1) and a true peak at or below -1 dBTP (the floor's mix line)
 pub(crate) fn loudness(video: &str, taste: Option<&Taste>, issues: &mut Vec<Issue>, passed: &mut Vec<String>) -> R<()> {
-    let err = ffmpeg_stderr(&["-hide_banner", "-nostats", "-i", video, "-vn", "-af", "ebur128=peak=true", "-f", "null", "-"])?;
-    let summary = err.rsplit("Summary:").next().unwrap_or("");
-    let num = |key: &str| summary.lines().find(|l| l.trim_start().starts_with(key)).and_then(|l| l.split_whitespace().nth(1)).and_then(|x| x.parse::<f64>().ok());
-    let (Some(i), peak) = (num("I:"), num("Peak:")) else { return Ok(()) };
+    // the same measure `raea world` joins to a render as its Mix (raea-sys-measure, DR2)
+    let Some((i, peak)) = raea_sys_measure::loudness(std::path::Path::new(video)) else { return Ok(()) };
     let mut ok = true;
     let target = taste.map_or(-14.0, |t| t.value);
     if (i - target).abs() > 1.0 {

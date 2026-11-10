@@ -2,11 +2,11 @@
 //! nothing drawn; the page laid out unless `--no-layout`. `--find` is one query of it, raea/ecs's find: the entities
 //! with every component `with` names, none `without` names, and each `where` field equal (`"Layer.medium": "2d-type"`).
 
-use raea_runtime_world::{Ask, Entity, Facts};
+use raea_runtime_world::{Ask, Entity, Facts, Render};
 use raea_runtime_bundle::flag;
 use serde_json::{json, Value};
 
-pub const USAGE: &str = "raea world EDIT.tsx [--composition ID] [--frame N | --at A-B|A,B] [--find JSON] [--no-layout] [--json]   (a frame as one world: its layers, text, parts, camera, shots, clips, cues and lines as entities with components, each measured; --find '{\"with\": [\"Text\", \"Layer\"], \"where\": {\"Layer.medium\": \"2d-type\"}}' is one query across media)";
+pub const USAGE: &str = "raea world EDIT.tsx [--composition ID] [--frame N | --at A-B|A,B] [--find JSON] [--no-layout] [--render OUT | --no-render] [--json]   (a frame as one world: its layers, text, parts, camera, shots, clips, cues and lines as entities with components, each measured, with what its newest render measured (contrast, light and movement, loudness, onsets, covers) or what waits for one; --find '{\"with\": [\"Text\", \"Layer\"], \"where\": {\"Layer.medium\": \"2d-type\"}}' is one query across media)";
 
 /// A query: the components an entity has, those it hasn't, and fields (Component.field.field) equal to a value.
 #[derive(Debug, Default, PartialEq)]
@@ -92,6 +92,10 @@ fn line(e: &Entity) -> String {
             "Cue" => format!("{} from {:.2}s{}", s(&c["source"]), c["at"].as_f64().unwrap_or(0.0), c["gain"].as_f64().map(|g| format!(" at {g} dB")).unwrap_or_default()),
             "Line" => format!("\"{}\" from {:.2}s{}", s(&c["text"]), c["from"].as_f64().unwrap_or(0.0), c["needs"].as_str().map(|n| format!(" (needs {n})")).unwrap_or_default()),
             "Source" => format!("{}:{}{}", s(&c["file"]), c["line"], c["component"].as_str().map(|n| format!(" <{n}>")).unwrap_or_default()),
+            "Contrast" => format!("{}:1 against its pixels", c["ratio"]),
+            "Picture" => picture(c),
+            "Onset" => c["at"].as_f64().map_or_else(|| "not heard where it starts".into(), |a| format!("heard at {a:.2}s ({:+} ms)", c["late_ms"].as_f64().unwrap_or(0.0))),
+            "Covers" => c.as_array().into_iter().flatten().map(|x| format!("#{} {:.0}%", x["layer"], x["share"].as_f64().unwrap_or(0.0) * 100.0)).collect::<Vec<_>>().join(", "),
             _ => c.get("to").map_or_else(|| c.to_string(), |t| format!("#{t}")),
         };
         out.push_str(&format!("  {name} {gist}"));
@@ -99,10 +103,57 @@ fn line(e: &Entity) -> String {
     out
 }
 
+/// A picture's light and movement as words.
+fn picture(c: &Value) -> String {
+    let moved = c["motion"].as_f64().map(|m| format!(", motion {m:.3}")).unwrap_or_default();
+    format!("luma {:.3}{moved}{}", c["luma"].as_f64().unwrap_or(0.0), c["frames"].as_u64().map(|n| format!(" over {n} frames")).unwrap_or_default())
+}
+
+/// The frame's resources as lines: the render its facts came from, its mix and picture, what waits for one.
+fn resources(w: &Facts) -> Vec<String> {
+    let r = &w.resources;
+    let mut out = Vec::new();
+    if let Some(x) = r.get("Rendered") {
+        let stale = if x["stale"] == true { " (made before the composition last changed: its measures are of that version)" } else { "" };
+        out.push(format!("  rendered: {}{}{stale}", raea_runtime_world::text_of(&x["out"]), x["record"].as_str().map(|i| format!(" ({i})")).unwrap_or_default()));
+    }
+    if let Some(m) = r.get("Mix") {
+        out.push(match m["lufs"].as_f64() {
+            Some(l) => format!("  mix: {l:.1} LUFS{}", m["peak"].as_f64().map(|p| format!(", true peak {p:.1} dBTP")).unwrap_or_default()),
+            None => "  mix: no sound".into(),
+        });
+    }
+    if let Some(p) = r.get("Picture") {
+        out.push(format!("  picture: {}", picture(p)));
+    }
+    if let Some(Value::Object(ws)) = r.get("Waits") {
+        let mut by: Vec<(String, Vec<&str>)> = Vec::new();
+        for (c, on) in ws {
+            let on = raea_runtime_world::text_of(on);
+            match by.iter_mut().find(|(o, _)| *o == on) {
+                Some((_, cs)) => cs.push(c),
+                None => by.push((on, vec![c])),
+            }
+        }
+        out.extend(by.into_iter().map(|(on, cs)| format!("  waits for {on}: {}", cs.join(", "))));
+    }
+    out
+}
+
+/// Which render's facts join: `--render OUT`, none with `--no-render`, else the newest in the project's record.
+fn render(args: &[String]) -> Result<Render, String> {
+    match (flag(args, "--render"), args.iter().any(|a| a == "--no-render")) {
+        (Some(_), true) => Err("give --render or --no-render, not both".into()),
+        (Some(o), false) => Ok(Render::From(o.into())),
+        (None, true) => Ok(Render::Off),
+        (None, false) => Ok(Render::Newest),
+    }
+}
+
 fn run(args: &[String]) -> Result<String, String> {
     let edit = args.iter().find(|a| a.ends_with(".tsx")).ok_or(USAGE)?;
     let q = flag(args, "--find").as_deref().map(Find::parse).transpose()?;
-    let ask = Ask { frames: frames(args)?, layout: !args.iter().any(|a| a == "--no-layout") };
+    let ask = Ask { frames: frames(args)?, layout: !args.iter().any(|a| a == "--no-layout"), render: render(args)? };
     let worlds = raea_runtime_world::read(std::path::Path::new(edit), &raea_runtime_bundle::comp_opts(args)?, &ask)?;
     if args.iter().any(|a| a == "--json") {
         let one = |w: &Facts| match &q {
@@ -116,6 +167,7 @@ fn run(args: &[String]) -> Result<String, String> {
     for w in &worlds {
         let shown = q.as_ref().map_or_else(|| w.entities.iter().collect(), |q| find(w, q));
         out.push(format!("frame {} ({}x{} at {} fps): {} of {} entities", w.frame, w.width, w.height, w.fps, shown.len(), w.entities.len()));
+        out.extend(resources(w));
         out.extend(shown.into_iter().map(line));
     }
     Ok(out.join("\n"))

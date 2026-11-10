@@ -35,9 +35,14 @@ to the composition are loaded on their own, as `raea play` loads them; a flag na
 A whole video made from the same inputs as an earlier one is copied from the export cache rather than drawn again,
 and the command says so.
 
+Every render writes its manifest beside its output: `OUT.render.json` (`DIR/NAME.render.json` for a folder of
+frames), or where `--manifest` says. It holds what each frame showed as laid out (each text's words, box, colour and
+size, each video's source and time), the sounds heard and what the render found. `raea check` reads it, and so does
+[`raea world`](world.md), which measures the output against it when a check asks.
+
 A render checks what it draws: 3D parts passing into each other (the clipping check) and its pictures' exposure
-(clipping to white, crushing to black). Each finding is said as it is found, written into the manifest with
-`--manifest`, and counted on the last line the command prints (`raea render: 1 error, 0 warns, 0 notes`). An error
+(clipping to white, crushing to black). Each finding is said as it is found, written into the manifest, and
+counted on the last line the command prints (`raea render: 1 error, 0 warns, 0 notes`). An error
 makes the render exit 1 once its output is written; `--despite CHECK WHY` lets that check's errors through and puts
 the reason in the manifest. A render of a file in a raea project also keeps its findings in the project's record
 (`.raea/record/`, by render and commit), which `raea findings` and `raea next` read.
@@ -78,7 +83,7 @@ Headless: it needs nothing running and opens no window. Takes up to 1 argument b
 | `--kbps` | `N` | A fixed video bitrate in kbit/s, in place of the default that follows size and frame rate. |
 | `--layers` | – | Write `NAME.layers` beside the export: which layer (a 3D part, an element, its text, an image or a video, by where its JSX is written) each pixel of each frame shows, for raea's player to select layers by clicking. The manifest (`--manifest`, or `NAME.render.json` beside it) names it. The export cache is skipped. |
 | `--lite` | – | Draw with raea's live view runtime instead of React, as a live game does. Used by the app when it opens a game. |
-| `--manifest` | `render.json` | Write a manifest of the render to this file: every frame's element boxes as drawn, the 3D's clipping and the sounds heard, which `raea check` reads. |
+| `--manifest` | `render.json` | Write the render's manifest to this file instead of beside the output: every frame's element boxes as drawn, what the render found and the sounds heard, which `raea check` and `raea world` read. |
 | `--perception` | `P.json` | The perception the composition's Clock reads (faces, boxes, one for every frame or by frame), when it isn't the `perception.json` beside it. |
 | `--quality` | `draft\|high\|master\|0..1` | Constant-quality encoding: `draft` for previews, `high` for most deliveries, `master` for type and hard edges, or a number from 0 to 1. On Windows and Linux (OpenH264) it scales the bitrate instead, and once a frame fits at OpenH264's finest quantiser (12), a higher setting writes the same file. |
 | `--review` | `DIR` | Render a 3D scene from six fixed cameras (hero, front, right, top, iso, low), in colour and in clay, to `DIR/colour.png`, `DIR/clay.png` and `DIR/review.json`. |
