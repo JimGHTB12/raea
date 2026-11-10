@@ -218,8 +218,42 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
       And a check says whether it needs them (`needs: "render"`); `raea check` on a project with no render runs the
         rest and lists what waits for one
 
-    @needs:DR1
+    @needs:DR1 @done
     Scenario: DR3. One finding, for every command
+      # Status 11-10: built. One Finding (core/facts finding.rs: its check; error, warn or note; the entities it is
+      # about; frames; says; measure; fix; by) is all these write: the render's clipping (systems/contact found.rs) and
+      # exposure (light-meter), `raea scene lint|light`, `raea check` (--quick, --taste), `raea gen check`, `raea solid
+      # info --expect`, `raea project scan`, raea/room's checkLayout and checkDecor, `raea judge`. Every render (a video,
+      # --at stills, a still, --review, a .wav) says them, writes them into its manifest and counts them on its last
+      # line; an error exits 1 unless `--despite CHECK WHY` (RAEA_DESPITE for harnesses that compare pixels). Each run of
+      # a file in a project keeps one entry in .raea/record/: what, what it wrote and its kind, the commit (+ when the
+      # file had changed), the findings, what was let through. A render that is part of another (a review's tiles, a
+      # quick check's stills, solid view's scene) keeps none. `raea findings` sets each thing's latest run against the
+      # one before of its kind and lists new, carried (since which run), renamed, fixed and let through; `raea next`
+      # steps by it: fix what the last render found, render the video, again once the composition changed, check it,
+      # polish what the check found, show it.
+      # Real runs (release binary, M5 Pro, a scratch project): a crate 0.24 m into a pillar renders "error clips frames
+      # 0-29 crate, pillar", exits 1 and is kept; `raea next` says to fix it; the render's own move (+0.397 m along x)
+      # renders 0 errors and `raea findings` lists the clip fixed (at 9969526+); `raea next` then asks for the check,
+      # and after it to show the video. `raea solid info` on a mug that misses its volume expect: one error, exit 1.
+      # `raea gen check` on knot.glb: a pivot warn whose fix is the command to run, and two notes. `raea project scan`:
+      # its count last.
+      # DR9's cheats, run for real, each fail. --despite exits 0, and the error stays standing with its reason. With
+      # stderr dropped, the last line still counts 1 error (exit 1). The same render again, copied from the export
+      # cache, says the error again. The crate renamed reads "renamed (the same, about crate before: not fixed)". The
+      # camera turned away keeps the clip as a note that it stands in the scene unseen, carried, not fixed (and `raea
+      # scene lint` still errors). Proved by tests in raea-core-facts (8), raea-app-direction (5), raea-sys-contact
+      # (13), raea-app-workspace (7), raea-app-check (27), raea-registry (6), raea-app-judge (4), raea-sys-light-meter
+      # (4), raea-io-gen (25) and raea-core-review (2).
+      # Found and fixed on the way: a bare file name kept nothing (its parent is ""); a clip's span left out its last
+      # frame; gen check's fitted fixes were JSON; a review kept 13 entries (one a tile) and was set against videos; a
+      # video copied from the export cache said nothing it had found; a review's right, top and iso cameras kept the
+      # scene camera's Transform rotation, so they faced its way and those tiles were empty.
+      # Not seen, or left: `raea judge` wasn't run on a real clip (a model call costs; its Findings are tested on
+      # fixtures). A part scaled to nothing or deleted reads as fixed (DR16's relations know what a part rests on);
+      # renamed and moved at once reads as fixed and new, though the error still stands in the count. The clipping
+      # check passes an overlap under 4% of the smaller part's diagonal (DEPTH_SHARE), so the render's own move left the
+      # crate 5.3 cm in the pillar, which the top view shows. The review's top tile has +x to the left.
       Given the plan
         | crate              | file                           | lines | job                                                                    |
         | raea-core-facts    | core/facts/src/finding.rs      | 240   | Finding, its JSON, its one-line text; the two old ranks and the older commands' JSON read as it |
@@ -242,6 +276,11 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
         errors first, whatever its output is piped through; `raea render` exits 1 on an error unless `--despite`
       And .raea/record/ keeps them by render and commit; `raea findings [--about NAME] [--check ID] [--open]
         [--since RENDER] [--json]` reads them, and says what was fixed, what is new and what is carried since
+      # Fixed in the code (DR3): set against "the one before" of any kind, a review's tiles read as fixed by the video
+      # after it, and a part renamed read as fixed. Each run is set against the one before of its kind (video, review,
+      # still, frames, sound, check); a finding gone under one name and new under another with the same check, frames
+      # and measure is "renamed"; what --despite let through is listed. A clip no frame shows is said as a note, so
+      # turning the camera away doesn't read as a fix.
       And `raea next` reads from it (not from a check.json's modified time, as next.rs does now)
 
     @needs:DR1,DR3

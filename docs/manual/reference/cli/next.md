@@ -1,7 +1,7 @@
 ---
 title: "raea next"
 summary: "The two or three most useful next steps for a project, read from its brief, compositions, renders and checks."
-order: 47
+order: 48
 sources: ["apps/workspace/src/next.rs", "core/facts/src/record.rs"]
 ---
 

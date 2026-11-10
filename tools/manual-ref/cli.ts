@@ -27,7 +27,7 @@ const verbs: Verb[] = JSON.parse(run(["help", "--json"])).verbs
 const GROUPS: [string, string, string[]][] = [
   ["Make", "Render, play and package what you wrote.", ["render", "play", "export-game", "bundle", "app", "run"]],
   ["Projects", "The workspace, its projects and what a project holds.", ["init", "workspace", "project", "controller", "spec", "part", "add", "brand", "library"]],
-  ["Check", "What's wrong before anyone watches it.", ["check", "judge", "scene", "world", "solid", "next", "doctor", "hook", "traces"]],
+  ["Check", "What's wrong before anyone watches it.", ["check", "judge", "findings", "scene", "world", "solid", "next", "doctor", "hook", "traces"]],
   ["Footage", "Takes, cuts and the camera, from your own media.", ["media", "cut", "frame", "track", "splat", "mezz", "neural"]],
   ["Sound", "Music read, foley and instruments made on this machine.", ["song", "sounds", "sao", "tokensynth", "setup-audio"]],
   ["Generate and 3D tools", "Generated media, physics bakes and Blender.", ["gen", "physics", "blender"]],
