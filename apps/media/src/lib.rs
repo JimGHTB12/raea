@@ -162,8 +162,8 @@ fn run(verb: &str, pos: &[String], fl: &BTreeMap<String, String>) -> R<Option<Va
             cuts(&file()?, th, from, to).map(|(v, _)| Some(v))
         }
         "lod" => {
-            let n = |k: &str, d: u32| fl.get(k).and_then(|v| v.parse().ok()).unwrap_or(d);
-            lod::lod(&file()?, n("level", 1), n("texture", 1024), &out()?).map(Some)
+            let level = fl.get("level").and_then(|v| v.parse().ok()).unwrap_or(1);
+            lod::lod(&file()?, level, fl.get("texture").and_then(|v| v.parse().ok()).unwrap_or(1024), &out()?).map(Some)
         }
         "proxy" => {
             let h = fl.get("height").and_then(|h| h.parse().ok()).unwrap_or(720);

@@ -1,7 +1,7 @@
 //! The media verbs' command line (`raea media|ffmpeg|ffprobe`, and raea's shell, in process): the agent's media
 //! work on raea-media (lib.rs and its files), and an HTML composition's render (html.rs).
 //!
-//!   media probe|still|sheet|audio|loudness|motion|cuts|freezes|proxy|trim|concat FILE ...   media work, native (media help)
+//!   media probe|still|sheet|audio|loudness|motion|cuts|freezes|proxy|lod|trim|concat FILE ...   media work, native (media help)
 //!   ffmpeg ARGS | ffprobe ARGS        ffmpeg and ffprobe command lines read as the media verbs (no ffmpeg involved)
 //!   render PAGE.html -o OUT.mp4|OUT.png|DIR [--at F,F] [--alpha] [--codec apple|soft|av1|ffmpeg] [--kbps K | --quality Q]
 //!   shots [--size WxH] [--root DIR]  plain HTML pages' first frames as PNGs, over white: stdin lines `PAGE\tOUT.png`,

@@ -48,7 +48,7 @@ pub(super) fn calls(mut calls: ResMut<HostCalls>) {
             }
         })
         .on("stage.view", move |w, a, answer| {
-            let f = |k: &str| a.get(k).and_then(Value::as_f64).map(|v| v as f32);
+            let f = |k: &str| num(&a, k).map(|v| v as f32);
             let target = a.get("target").and_then(Value::as_array).map(|t| t.iter().filter_map(Value::as_f64).map(|v| v as f32).collect::<Vec<_>>()).filter(|t| t.len() == 3);
             let set = match (a.get("free").and_then(Value::as_bool), f("yaw"), f("pitch"), f("distance")) {
                 (Some(false), ..) => Some(None),
