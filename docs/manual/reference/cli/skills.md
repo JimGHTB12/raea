@@ -1,7 +1,7 @@
 ---
 title: "raea skills"
 summary: "Install raea's agent skill where Claude Code, Codex, Kimi or Gemini read skills, with its MCP server and hook."
-order: 125
+order: 126
 sources: ["engine/cli/src/skill.rs"]
 ---
 
