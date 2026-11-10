@@ -29,7 +29,7 @@ raea skills install --agent kimi       # the same for Kimi Code (codex and gemin
 ## Usage
 
 ```sh
-raea hook claude   (Claude Code's PostToolUse hook: the quick check after a composition is saved)
+raea hook [claude|codex|gemini|kimi]   (every agent's tool hooks, which raea skills install adds: before a shell command, media opened in the Mac's viewer while the raea app is installed is stopped once for raea show (the same command again goes through); after a save, the quick check on a composition)
 ```
 
 Headless: it needs nothing running and opens no window. Takes up to 1 argument besides its flags.

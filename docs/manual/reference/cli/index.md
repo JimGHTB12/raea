@@ -67,7 +67,7 @@ What's wrong before anyone watches it.
 | [`raea solid`](solid.md) | Measure, view and export a solid: parts built from code with exact volumes, joints and parameters. |
 | [`raea next`](next.md) | The two or three most useful next steps for a project, read from its brief, compositions, renders and checks. |
 | [`raea doctor`](doctor.md) | Find what doesn't match this version of raea: old brief files, an older workspace format, an agent's stale skill. |
-| [`raea hook`](hook.md) | Claude Code's PostToolUse hook: the quick text check after an agent saves a composition. |
+| [`raea hook`](hook.md) | Every agent's tool hooks: media opened in the Mac's viewer goes to raea show, and the quick check after a composition is saved. |
 | [`raea traces`](traces.md) | List the sessions raea apps left, newest first, with how each ended and its glitches, or tell one in full. |
 
 ## Footage
