@@ -67,8 +67,12 @@ fn standing(reports: &[Value]) -> Vec<Finding> {
 
 /// `raea findings ...` (args from "findings").
 pub fn cli(args: &[String]) -> Result<String, String> {
+    if args.iter().any(|a| a == "--help" || a == "-h") {
+        return Ok(USAGE.into());
+    }
     let target = args.get(1).filter(|a| !a.starts_with("--")).map_or_else(|| PathBuf::from("."), PathBuf::from);
-    let from = if target.is_file() { target.parent().unwrap_or(Path::new(".")).to_path_buf() } else { target.clone() };
+    // made absolute first: a bare name's parent is "", which names no folder
+    let from = if target.is_file() { target.canonicalize().unwrap_or_else(|_| target.clone()).parent().map_or_else(|| PathBuf::from("."), Path::to_path_buf) } else { target.clone() };
     let project = record::up(&from, ".raea/project").ok_or_else(|| format!("raea findings: {} isn't in a raea project (no .raea/project at or above it), so nothing is recorded\n{USAGE}", target.display()))?;
     let (about, check, since) = (flag(args, "--about"), flag(args, "--check"), flag(args, "--since"));
     let keep = |f: &Finding| about.as_deref().is_none_or(|n| f.about.iter().any(|a| a.name == n || a.key.as_deref() == Some(n))) && check.as_deref().is_none_or(|c| f.check == c);

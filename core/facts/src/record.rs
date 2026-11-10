@@ -75,7 +75,8 @@ fn commit(project: &Path, of: &str) -> Option<String> {
 /// What `by` found of `file` (writing `out`) kept in its project's record, named by `stamp` (UTC, 20261110-161530)
 /// and the file's name: the entry, or None outside a project.
 pub fn keep(by: &str, file: &Path, out: Option<&Path>, findings: &[Finding], despite: Vec<Despite>, stamp: &str) -> Option<Entry> {
-    let project = up(file.parent().unwrap_or(Path::new(".")), ".raea/project")?;
+    // made absolute first: a bare name's parent is "", which names no folder
+    let project = up(real(file).parent()?, ".raea/project")?;
     let dir = project.join(".raea/record");
     std::fs::create_dir_all(&dir).ok()?;
     let at = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);

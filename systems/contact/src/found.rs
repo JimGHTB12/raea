@@ -37,7 +37,8 @@ pub fn clip_findings(found: &[Value], by: &str) -> Vec<Finding> {
         .iter()
         .map(|v| {
             let at = |k: &str| v[k].as_i64().unwrap_or(0);
-            let mut f = Finding::new("clips", Level::Error, v["says"].as_str().unwrap_or_default(), by).frames(at("from"), at("to"));
+            // the check's "to" is the last frame it clips on; a finding's span ends one past it
+            let mut f = Finding::new("clips", Level::Error, v["says"].as_str().unwrap_or_default(), by).frames(at("from"), at("to") + 1);
             for k in ["part", "into"] {
                 if let Some(name) = v[k].as_str() {
                     f = f.about(name, None);
@@ -78,6 +79,7 @@ mod tests {
     fn an_overlap_is_an_error_about_both_parts_over_its_frames() {
         let found = vec![json!({"from": 40, "to": 52, "part": "rider", "into": "seat", "depth": 0.04, "share": 0.2, "move": {"axis": "y", "by": 0.05}, "says": "rider passes 40 mm into seat"})];
         let f = &clip_findings(&found, "raea render")[0];
-        assert_eq!(f.line(), "error clips  frames 40-51  rider, seat: rider passes 40 mm into seat (fix: move it +0.050 m along y)");
+        // frames 40 to 52, the last included
+        assert_eq!(f.line(), "error clips  frames 40-52  rider, seat: rider passes 40 mm into seat (fix: move it +0.050 m along y)");
     }
 }

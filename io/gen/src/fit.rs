@@ -35,6 +35,7 @@ fn as_findings(mut r: J) -> J {
                 if let Some(cut) = f.fix.as_ref().and_then(|x| f.says.strip_suffix(&format!("; fix: {x}"))) {
                     f.says = cut.to_string();
                 }
+                f.fix = f.fix.map(|x| fitted(&x).unwrap_or(x));
                 if f.about.is_empty() { f.about(&file, None) } else { f }
             })
             .collect(),
@@ -47,6 +48,19 @@ fn as_findings(mut r: J) -> J {
     r["count"] = json!(finding::count(&fs));
     r["findings"] = json!(fs);
     r
+}
+
+/// A fix the fitted copy makes (meshcheck's `{"origin"}`, `{"scale"}`, `{"turn"}`), said as what to run.
+fn fitted(fix: &str) -> Option<String> {
+    let v: J = serde_json::from_str(fix).ok()?;
+    let does = if v.get("origin").is_some() {
+        "puts its origin at the bottom centre".to_string()
+    } else if let Some(s) = v["scale"].as_f64() {
+        format!("scales it by {s}")
+    } else {
+        format!("turns it {}° about y", v["turn"].as_f64()?)
+    };
+    Some(format!("run this check again with -o FIXED.glb, which {does}"))
 }
 
 /// Whether a report holds an error.
@@ -144,5 +158,21 @@ pub fn after_run(flow: &Flow, result: &mut J) {
     }
     if !checks.is_empty() {
         result["checks"] = J::Object(checks);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_fix_the_fitted_copy_makes_is_said_as_what_to_run() {
+        let r = as_findings(json!({"file": "chair.glb", "found": [
+            {"check": "pivot", "level": "warning", "says": "its origin is off; fix: {\"origin\":\"bottom centre\"}", "fix": {"origin": "bottom centre"}},
+            {"check": "facing", "level": "ok", "says": "fine"}]}));
+        let f = &r["findings"][0];
+        assert_eq!((f["says"].as_str(), f["about"][0]["name"].as_str()), (Some("its origin is off"), Some("chair.glb")));
+        assert_eq!(f["fix"].as_str(), Some("run this check again with -o FIXED.glb, which puts its origin at the bottom centre"));
+        assert_eq!((r["count"].as_str(), r.get("found").is_none()), (Some("0 errors, 1 warn, 0 notes"), true));
     }
 }
