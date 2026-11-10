@@ -55,7 +55,7 @@ fn write(path: &Path, doc: &Value, bin: &[u8]) -> R<()> {
 }
 
 fn n(v: &Value, k: &str) -> Option<usize> {
-    v.get(k).and_then(Value::as_u64).map(|x| x as usize)
+    Some(v.get(k)?.as_u64()? as usize)
 }
 
 /// An accessor's bytes in the buffer: where they start, the step between elements, how many.

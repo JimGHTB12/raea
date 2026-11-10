@@ -27,7 +27,27 @@ pub fn record(world: &mut World, f: i64) {
     let clip_from_world = cam.clip_from_view() * Mat4::from(at.affine().inverse());
     let mut layers: Vec<raea_sys_layers::Layer> = Vec::new();
     let mut tris: Vec<raea_sys_layers::Tri> = Vec::new();
+    drawn(world, |world, e, posed, corners| {
+        let clip: Vec<[f32; 4]> = posed.iter().map(|p| (clip_from_world * p.extend(1.0)).to_array()).collect();
+        let v = keyed(world, e).map_or(0, |(key, name)| match layers.iter().position(|l| l.key == key) {
+            Some(i) => i as u16 + 1,
+            None => {
+                layers.push(raea_sys_layers::Layer::of(key, "mesh", name, None, None));
+                layers.len() as u16
+            }
+        });
+        tris.extend(corners.chunks_exact(3).filter_map(|t| Some(([*clip.get(t[0])?, *clip.get(t[1])?, *clip.get(t[2])?], v))));
+    });
+    let mask = raea_sys_layers::raster((size.x, size.y), tris);
+    raea_sys_layers::with(|r| r.frame_3d(f, size.x, &mask, &layers));
+}
+
+/// Every shown triangle-list mesh as the frame draws it, handed to `each`: its entity, its vertices in the world (a
+/// skinned mesh's as its joints pose them) and its triangles' corners. What the layer pass rasters and a pick's ray
+/// is cast against (pick.rs), so both see the same geometry.
+pub(crate) fn drawn(world: &mut World, mut each: impl FnMut(&World, Entity, Vec<Vec3>, Vec<usize>)) {
     let mut parts = world.query::<(Entity, &Mesh3d, &GlobalTransform, Option<&InheritedVisibility>, Option<&bevy::mesh::skinning::SkinnedMesh>)>();
+    let world: &World = world;
     let (meshes, binds) = (world.resource::<Assets<Mesh>>(), world.resource::<Assets<bevy::mesh::skinning::SkinnedMeshInverseBindposes>>());
     for (e, m, place, shown, skin) in parts.iter(world) {
         if shown.is_some_and(|s| !s.get()) {
@@ -37,26 +57,16 @@ pub fn record(world: &mut World, f: i64) {
         let Ok(Some(bevy::mesh::VertexAttributeValues::Float32x3(pos))) = mesh.try_attribute_option(Mesh::ATTRIBUTE_POSITION) else { continue };
         let joints = skin.and_then(|s| Some((s, binds.get(&s.inverse_bindposes)?))).map(|(s, b)| s.joints.iter().zip(b.iter()).map(|(j, ib)| world.get::<GlobalTransform>(*j).map_or(Mat4::IDENTITY, |g| Mat4::from(g.affine()) * *ib)).collect::<Vec<_>>());
         let posed = posed(mesh, pos, joints.as_deref(), Mat4::from(place.affine()));
-        let clip: Vec<[f32; 4]> = posed.iter().map(|p| (clip_from_world * p.extend(1.0)).to_array()).collect();
-        let v = keyed(world, e).map_or(0, |(key, name)| match layers.iter().position(|l| l.key == key) {
-            Some(i) => i as u16 + 1,
-            None => {
-                layers.push(raea_sys_layers::Layer::of(key, "mesh", name, None, None));
-                layers.len() as u16
-            }
-        });
         let corners: Vec<usize> = match mesh.try_indices_option() {
             Ok(Some(ix)) => ix.iter().collect(),
-            _ => (0..clip.len()).collect(),
+            _ => (0..posed.len()).collect(),
         };
-        tris.extend(corners.chunks_exact(3).filter_map(|t| Some(([*clip.get(t[0])?, *clip.get(t[1])?, *clip.get(t[2])?], v))));
+        each(world, e, posed, corners);
     }
-    let mask = raea_sys_layers::raster((size.x, size.y), tris);
-    raea_sys_layers::with(|r| r.frame_3d(f, size.x, &mask, &layers));
 }
 
 /// A mesh's vertices in the world: posed by its joints' matrices (a skin's, in place of its transform) or `place`.
-pub(crate) fn posed(mesh: &Mesh, pos: &[[f32; 3]], joints: Option<&[Mat4]>, place: Mat4) -> Vec<Vec3> {
+fn posed(mesh: &Mesh, pos: &[[f32; 3]], joints: Option<&[Mat4]>, place: Mat4) -> Vec<Vec3> {
     use bevy::mesh::VertexAttributeValues as A;
     let joints = joints.filter(|_| !raea_sys_layers::mutant("bind"));
     let skin = joints.zip(mesh.try_attribute_option(Mesh::ATTRIBUTE_JOINT_INDEX).ok().flatten()).zip(mesh.try_attribute_option(Mesh::ATTRIBUTE_JOINT_WEIGHT).ok().flatten());

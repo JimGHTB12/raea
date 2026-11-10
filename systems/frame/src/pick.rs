@@ -5,7 +5,7 @@
 
 use bevy::prelude::*;
 
-use crate::layer::{LayerKey, posed};
+use crate::layer::{LayerKey, drawn};
 
 /// A part hit: its key when it or a parent is stamped, its name, where the ray met it and how far along, and the box
 /// on the frame (x, y, w, h in 0..1) of every mesh of that part.
@@ -30,19 +30,10 @@ pub fn part_at(world: &mut World, nx: f32, ny: f32) -> Option<PartHit> {
         return None;
     }
     let clip_from_world = cam.clip_from_view() * Mat4::from(at.affine().inverse());
-    let mut parts = world.query::<(Entity, &Mesh3d, &GlobalTransform, Option<&InheritedVisibility>, Option<&bevy::mesh::skinning::SkinnedMesh>)>();
-    let (meshes, binds) = (world.resource::<Assets<Mesh>>(), world.resource::<Assets<bevy::mesh::skinning::SkinnedMeshInverseBindposes>>());
     // each mesh drawn: the part it belongs to and its box on the frame, and the nearest hit among them
-    let mut drawn: Vec<(Entity, [f32; 4])> = Vec::new();
+    let mut found: Vec<(Entity, [f32; 4])> = Vec::new();
     let mut best: Option<(f32, Vec3, Entity)> = None;
-    for (e, m, place, shown, skin) in parts.iter(world) {
-        if shown.is_some_and(|s| !s.get()) {
-            continue;
-        }
-        let Some(mesh) = meshes.get(&m.0).filter(|m| m.primitive_topology() == bevy::mesh::PrimitiveTopology::TriangleList) else { continue };
-        let Ok(Some(bevy::mesh::VertexAttributeValues::Float32x3(pos))) = mesh.try_attribute_option(Mesh::ATTRIBUTE_POSITION) else { continue };
-        let joints = skin.and_then(|s| Some((s, binds.get(&s.inverse_bindposes)?))).map(|(s, b)| s.joints.iter().zip(b.iter()).map(|(j, ib)| world.get::<GlobalTransform>(*j).map_or(Mat4::IDENTITY, |g| Mat4::from(g.affine()) * *ib)).collect::<Vec<_>>());
-        let posed = posed(mesh, pos, joints.as_deref(), Mat4::from(place.affine()));
+    drawn(world, |world, e, posed, corners| {
         let root = root_of(world, e);
         let (mut lo, mut hi) = (Vec2::splat(f32::MAX), Vec2::splat(f32::MIN));
         for p in &posed {
@@ -53,12 +44,8 @@ pub fn part_at(world: &mut World, nx: f32, ny: f32) -> Option<PartHit> {
             }
         }
         if lo.x <= hi.x {
-            drawn.push((root, [lo.x, lo.y, hi.x, hi.y]));
+            found.push((root, [lo.x, lo.y, hi.x, hi.y]));
         }
-        let corners: Vec<usize> = match mesh.try_indices_option() {
-            Ok(Some(ix)) => ix.iter().collect(),
-            _ => (0..posed.len()).collect(),
-        };
         for t in corners.chunks_exact(3) {
             let (Some(p0), Some(p1), Some(p2)) = (posed.get(t[0]), posed.get(t[1]), posed.get(t[2])) else { continue };
             if let Some(d) = ray_tri(near, dir, *p0, *p1, *p2) {
@@ -67,9 +54,9 @@ pub fn part_at(world: &mut World, nx: f32, ny: f32) -> Option<PartHit> {
                 }
             }
         }
-    }
+    });
     let (distance, point, root) = best?;
-    let rect = drawn.iter().filter(|(r, _)| *r == root).fold([f32::MAX, f32::MAX, f32::MIN, f32::MIN], |a, (_, b)| [a[0].min(b[0]), a[1].min(b[1]), a[2].max(b[2]), a[3].max(b[3])]);
+    let rect = found.iter().filter(|(r, _)| *r == root).fold([f32::MAX, f32::MAX, f32::MIN, f32::MIN], |a, (_, b)| [a[0].min(b[0]), a[1].min(b[1]), a[2].max(b[2]), a[3].max(b[3])]);
     let (x0, y0, x1, y1) = (rect[0].clamp(0.0, 1.0), rect[1].clamp(0.0, 1.0), rect[2].clamp(0.0, 1.0), rect[3].clamp(0.0, 1.0));
     Some(PartHit {
         key: world.get::<LayerKey>(root).map(|k| k.0.clone()),
