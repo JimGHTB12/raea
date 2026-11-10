@@ -128,6 +128,17 @@ fn open(args: &Value) -> Result<Value, String> {
     opener::open(url).map(|()| Value::Null).map_err(|e| format!("os.open {url}: {e}"))
 }
 
+/// The clipboard's text ("" when it holds none): the system's, or the process's own when headless. A page's text
+/// field pastes from it (engine/page/host shell.rs, Blitz's shell provider).
+pub fn clipboard_text() -> Result<String, String> {
+    clipboard(None).map(|v| v.as_str().unwrap_or_default().to_string())
+}
+
+/// `text` onto the clipboard: the system's, or the process's own when headless.
+pub fn set_clipboard_text(text: String) -> Result<(), String> {
+    clipboard(Some(text)).map(|_| ())
+}
+
 /// The clipboard's text, or `text` written to it: the process's own when headless.
 fn clipboard(text: Option<String>) -> Result<Value, String> {
     static OWN: Mutex<String> = Mutex::new(String::new());

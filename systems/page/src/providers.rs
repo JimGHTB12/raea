@@ -9,6 +9,8 @@
 //!   blitz-html's while iframes are on (RAEA_PAGE_IFRAMES).
 //! - [`PageFonts`]: the font collection (B0d's: one a process, shared with bevy_text). A document given faces of its
 //!   own keeps them.
+//! - [`PageShell`]: the shell provider, which holds the clipboard a text field's Cmd+C, Cmd+X and Cmd+V use. Blitz's
+//!   default has none (a paste inserted nothing); raea-page-host inserts one on raea-io-os's clipboard.
 //!
 //! Each takes effect for the documents made after it's inserted; a document already open keeps what it was made with,
 //! as a Blitz document does.
@@ -19,6 +21,7 @@ use bevy::prelude::*;
 use blitz_dom::{DocumentConfig, FontContext, HtmlParserProvider};
 use blitz_traits::navigation::NavigationProvider;
 use blitz_traits::net::NetProvider;
+use blitz_traits::shell::ShellProvider;
 
 use crate::Page;
 
@@ -33,6 +36,10 @@ pub struct PageNavigation(pub Arc<dyn NavigationProvider>);
 /// The HTML parser a page's document parses with (setInnerHTML, an <iframe>'s document)
 #[derive(Resource, Clone)]
 pub struct PageHtmlParser(pub Arc<dyn HtmlParserProvider + Send + Sync>);
+
+/// The shell provider a page's document reaches the system through: the clipboard (a text field's copy, cut and paste)
+#[derive(Resource, Clone)]
+pub struct PageShell(pub Arc<dyn ShellProvider>);
 
 /// The font collection a page's document draws its text with, unless it's given faces of its own
 #[derive(Resource, Clone)]
@@ -60,6 +67,9 @@ pub fn config_in(world: &World, at: Page, fonts: Option<FontContext>) -> Documen
     }
     if let Some(parser) = world.get_resource::<PageHtmlParser>() {
         config.html_parser_provider = Some(parser.0.clone());
+    }
+    if let Some(shell) = world.get_resource::<PageShell>() {
+        config.shell_provider = Some(shell.0.clone());
     }
     config.font_ctx = fonts;
     if config.font_ctx.is_none()
@@ -90,13 +100,16 @@ mod tests {
         defaults(&mut app);
         let at = Page { size: UVec2::new(100, 100), scale: 1.0 };
         let config = config_in(app.world(), at, None);
-        assert!(config.net_provider.is_some() && config.navigation_provider.is_none() && config.font_ctx.is_none());
+        assert!(config.net_provider.is_some() && config.navigation_provider.is_none() && config.font_ctx.is_none() && config.shell_provider.is_none());
 
         let nav: Arc<dyn NavigationProvider> = Arc::new(Heard(Default::default()));
         app.insert_resource(PageNavigation(nav.clone()));
         app.insert_resource(PageFonts(FontContext::default()));
+        let shell: Arc<dyn ShellProvider> = Arc::new(blitz_traits::shell::DummyShellProvider);
+        app.insert_resource(PageShell(shell.clone()));
         let config = config_in(app.world(), at, None);
         assert!(Arc::ptr_eq(config.navigation_provider.as_ref().unwrap(), &nav));
+        assert!(Arc::ptr_eq(config.shell_provider.as_ref().unwrap(), &shell));
         assert!(config.font_ctx.is_some());
 
         // defaults leave a provider the App put in first

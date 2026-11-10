@@ -62,3 +62,6 @@ ignored = ["raea-io-media"]
 # T2b and T2d: the recorded net and system calls (tests/net_calls.rs)
 raea-io-net-calls = { path = "../../../io/net/calls", features = ["serve"] }
 raea-io-os = { path = "../../../io/os", features = ["recorded"] }
+# a page's field pasted into (src/shell.rs's test)
+blitz-html = "=0.3.0-beta.4"
+keyboard-types = "0.8"

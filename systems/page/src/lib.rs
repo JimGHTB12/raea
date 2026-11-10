@@ -25,7 +25,7 @@ pub use blitz_dom::not_applied; // what the page asked for and didn't get, said 
 /// Blitz's extension points as Bevy resources (S6d)
 pub mod providers;
 pub mod widgets;
-pub use providers::{PageFonts, PageHtmlParser, PageNavigation, PageNet};
+pub use providers::{PageFonts, PageHtmlParser, PageNavigation, PageNet, PageShell};
 pub use raea_sys_page_ops as ops;
 pub mod view3d;
 
