@@ -10,6 +10,7 @@ import { basename, delimiter, dirname, extname } from "node:path";
 import { brandKit } from "./brand";
 import { readSite, stylesOf } from "./scrape";
 import { wordsOf } from "./heard";
+import { HARNESSES } from "./show";
 import { raeaHandler, type Engine, type Host } from "./index";
 
 const [raea, ...args] = process.argv.slice(2);
@@ -422,6 +423,22 @@ function show(a: Record<string, unknown>): unknown {
   return shown;
 }
 
+/** The agent harness that started this command (show.ts HARNESSES), found up its parent processes: a program's own
+ *  name, or the script a runtime runs (`node .../gemini`). Nothing when no harness is up there. */
+function harness(): { name: string; pid: number } | undefined {
+  let pid = process.ppid;
+  for (let i = 0; i < 16 && pid > 1; i++) {
+    const m = /^\s*(\d+)\s+(.*)$/.exec(spawnSync("ps", ["-o", "ppid=,args=", "-p", String(pid)], { encoding: "utf8" }).stdout ?? "");
+    if (!m) return undefined;
+    for (const w of m[2].split(/\s+/).slice(0, 2).map((w) => basename(w).toLowerCase())) {
+      const hit = HARNESSES.find(([re]) => re.test(w));
+      if (hit) return { name: hit[1], pid };
+    }
+    pid = Number(m[1]);
+  }
+  return undefined;
+}
+
 /** An op of the feed host's libraries (apps/app host/library/service.ts): POST <the app's host>/host/library. */
 function library(a: Record<string, unknown>): unknown {
   const at = appHost();
@@ -443,6 +460,8 @@ const host: Host = (op, a) => {
       return library(a);
     case "show":
       return show(a);
+    case "harness":
+      return harness();
     default:
       throw new Error(`raea: this step (${op}) isn't in the native raea yet`);
   }

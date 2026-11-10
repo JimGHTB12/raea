@@ -10,5 +10,6 @@ pub mod splat;
 
 /// the MCP servers `raea skills install` offers an agent (blender, for a running Blender)
 pub mod agent_mcp;
+pub mod agent_hooks;
 /// `raea setup blender` and `raea blender run`
 pub mod blender;

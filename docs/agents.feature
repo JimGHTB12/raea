@@ -102,6 +102,7 @@ Feature: Agents in the raea app: chats run on a provider, agents are optional te
     # and recording them after making an answer."
     # Status 11-09: built. App side raea-feed 077e77f (host/show.ts, host-file.ts, raea:// links in src/App.tsx,
     # answers and results to the inbox); CLI engine/cli/src/show.ts; the skill's section 5 says it (raea-skills).
+    # A5d/A5e 11-09: apps/check/src/hook.rs (raea hook AGENT), apps/tools/src/agent_hooks.rs (each harness's config).
     Scenario: A5a. raea show from any session
       Given a session outside raea (a terminal agent) with the raea app installed
       When it runs `raea show FILE...` (stills, a video, a sound, a NAME.script.ts or .md, a .tsx) or
@@ -119,3 +120,22 @@ Feature: Agents in the raea app: chats run on a provider, agents are optional te
     Scenario: A5c. Agents show, they don't open
       Then the raea skill tells every agent to show work with `raea show` (or feed_post inside the app), never to open
         a render, a sheet or a question in Preview or a browser while the app is installed
+
+    Scenario: A5d. A hook stops the open once, and a second try goes through
+      # Shane 11-09: "yes lets do that or at least make it double confirm"
+      Given raea's hooks are installed for the agent (`raea skills install --agent A`) and the raea app is on this Mac
+      When the agent runs a shell command that opens a still, a video or a sound in the Mac's viewer or a browser
+        (`open`, `open -a Preview`, `xdg-open`, `qlmanage -p`)
+      Then `raea hook A` stops it, and the agent reads why: `raea show` with those files instead
+      And the same command run again in that session within ten minutes goes through: the agent's second yes, for when
+        the person asked for the viewer or raea show can't
+      But `open -a raea`, Finder (`open -R`), links and files the app doesn't show (a PDF) are never stopped
+
+    Scenario: A5e. Every harness, not only Claude Code
+      # Shane 11-09: "make sure all hooks and usages are acp agnostic not just claude"
+      Then `raea skills install` adds the same hooks for Claude Code (settings.json), Codex (hooks.json), Gemini CLI
+        (settings.json, BeforeTool and AfterTool) and Kimi Code (config.toml [[hooks]]), and `raea hook` answers each
+        in the shape it reads (a stop is exit 2 with the reason on stderr, which they all take)
+      And the hooks hold inside the raea app too, which runs each ACP agent with its own shell and config
+      And `raea show` names its poster from the harness that started it, found up its parent processes when the
+        harness doesn't mark its shell, so Kimi, OpenCode and the rest post as themselves with an inbox per session

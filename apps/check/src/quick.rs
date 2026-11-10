@@ -1,8 +1,8 @@
-//! `raea check EDIT.tsx --quick` and `raea hook claude` (docs/skills.feature SK10). The quick check renders three stills
-//! of a composition (a quarter in, the middle, the last frame) with their manifest, about a second, and runs the full
-//! check's text rules and the person's text taste on it: clipped and cramped text, safe areas, sizes. The hook is
-//! Claude Code's PostToolUse command (`raea skills install --agent claude` adds it): after a .tsx that registers a root
-//! is written, the quick check's findings go back to the agent; a clean check says nothing.
+//! `raea check EDIT.tsx --quick` (docs/skills.feature SK10). The quick check renders three stills of a composition (a
+//! quarter in, the middle, the last frame) with their manifest, about a second, and runs the full check's text rules
+//! and the person's text taste on it: clipped and cramped text, safe areas, sizes. Every agent's after-save hook runs
+//! it (hook.rs): after a .tsx that registers a root is saved, its findings go back to the agent; a clean check says
+//! nothing.
 use super::*;
 use std::path::Path;
 
@@ -39,28 +39,6 @@ pub fn quick(args: &[String], tastes: Vec<raea_core_brief::Taste>) -> R<(String,
     };
     let _ = std::fs::remove_dir_all(&tmp);
     result
-}
-
-/// `raea hook claude`: Claude Code's PostToolUse input on stdin; for a saved composition, the quick check's findings as
-/// the hook's additionalContext. Anything else, or a clean check, prints nothing.
-pub fn hook(args: &[String]) -> R<String> {
-    if args.first().map(String::as_str) != Some("claude") {
-        return Err("usage: raea hook claude   (Claude Code's PostToolUse hook; raea skills install --agent claude adds it)".into());
-    }
-    let mut input = String::new();
-    std::io::Read::read_to_string(&mut std::io::stdin(), &mut input).map_err(|e| e.to_string())?;
-    let v: serde_json::Value = serde_json::from_str(&input).unwrap_or_default();
-    let path = v["tool_input"]["file_path"].as_str().unwrap_or_default();
-    let composition = path.ends_with(".tsx") && std::fs::read_to_string(path).map(|t| t.contains("registerRoot")).unwrap_or(false);
-    if !composition {
-        return Ok(String::new());
-    }
-    let (report, _) = quick(&[path.to_string()], Vec::new())?;
-    if report.lines().nth(1).is_none_or(|l| l.starts_with("ok ")) {
-        return Ok(String::new());
-    }
-    let found: Vec<&str> = report.lines().filter(|l| !l.starts_with("ok ")).collect();
-    Ok(json!({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": format!("raea check --quick after this save:\n{}", found.join("\n"))}}).to_string())
 }
 
 /// `raea check --quick`'s half (docs/skills.feature SK10): the text rules and the person's text taste on the manifest

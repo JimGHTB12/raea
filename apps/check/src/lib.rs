@@ -23,6 +23,7 @@ use flash::*;
 mod text;
 use text::*;
 pub mod quick;
+pub mod hook;
 #[cfg(test)]
 mod tests;
 

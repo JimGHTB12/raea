@@ -18,10 +18,19 @@ raea show --question "Which look?" (--choice A --choice B ... | STILL.png STILL.
 
 const WITH_VALUE = new Set(["--title", "--ask", "--project", "--replaces", "--as", "--role", "--inbox", "--question", "--choice"]);
 
-/** The session's name and inbox, from its harness when it doesn't say: one inbox per session, so its answers find it. */
-export function posterOf(env: Record<string, string | undefined>, as?: string, role?: string, inbox?: string, cwd = "") {
-  const name = as?.trim() || (env.CLAUDECODE ? "Claude Code" : env.CODEX_SANDBOX || env.CODEX_HOME ? "Codex" : env.GEMINI_CLI ? "Gemini" : env.RAEA_AGENT || "An agent");
-  const session = env.CLAUDE_CODE_SESSION_ID || env.CODEX_SESSION_ID || env.RAEA_SESSION || hash(cwd);
+/** The harness an agent runs in, named as the feed shows it, from the program that started this command (native.ts
+ *  walks up its parents): any harness, not only the ones that mark their shells. */
+export const HARNESSES: [RegExp, string][] = [
+  [/^claude$/, "Claude Code"], [/^codex/, "Codex"], [/^gemini$/, "Gemini"], [/^kimi$/, "Kimi"], [/^opencode$/, "OpenCode"],
+  [/^goose$/, "Goose"], [/^cursor-agent$/, "Cursor"], [/^amp$/, "Amp"], [/^qwen$/, "Qwen Code"], [/^crush$/, "Crush"], [/^aider$/, "Aider"],
+];
+
+/** The session's name and inbox, from its harness when it doesn't say: its shell's marks, else the harness that started
+ *  this command (`parent`, any harness), one inbox per session so its answers find it. */
+export function posterOf(env: Record<string, string | undefined>, as?: string, role?: string, inbox?: string, cwd = "", parent?: { name: string; pid: number }) {
+  const marked = env.CLAUDECODE ? "Claude Code" : env.CODEX_SANDBOX || env.CODEX_HOME || env.CODEX_THREAD_ID ? "Codex" : env.GEMINI_CLI ? "Gemini" : env.OPENCODE ? "OpenCode" : undefined;
+  const name = as?.trim() || marked || parent?.name || env.RAEA_AGENT || "An agent";
+  const session = env.CLAUDE_CODE_SESSION_ID || env.CODEX_THREAD_ID || env.CODEX_SESSION_ID || env.RAEA_SESSION || (parent ? `p${parent.pid}` : hash(cwd));
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "agent";
   return { name, ...(role?.trim() ? { role: role.trim() } : {}), inbox: inbox?.trim() || `${slug}-${session.replace(/[^\w.-]/g, "").slice(0, 8)}` };
 }
@@ -47,7 +56,14 @@ export function parseShow(args: string[], cwd: string) {
 export function showVerb(ask: Ask, args: string[], cwd: string, env: Record<string, string | undefined>): string {
   if (!args.length || args[0] === "--help") return SHOW_USAGE;
   const a = parseShow(args, cwd);
-  const by = posterOf(env, a.as, a.role, a.inbox, cwd);
+  const parent = (): { name: string; pid: number } | undefined => {
+    try {
+      return ask("harness", {});
+    } catch {
+      return undefined; // a shell without the native raea: the show below says so
+    }
+  };
+  const by = posterOf(env, a.as, a.role, a.inbox, cwd, a.as && a.inbox ? undefined : parent());
   const r = ask("show", { files: a.files, title: a.title, ask: a.ask, question: a.question, choices: a.choices, project: a.project, replaces: a.replaces, cwd, by }) as
     | { opened: string[] }
     | { kind: "item" | "composition"; id: string; type: string; title: string; project: string; workspace: string; inbox: string };

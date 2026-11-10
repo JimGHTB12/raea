@@ -4,7 +4,7 @@
 //! `raea --version` the agent reads `raea skill` instead.
 use super::*;
 
-pub const USAGE: &str = "raea skill [NAME] [--reference cli|feed|files|sdk] | raea skills install --agent claude|codex|kimi|gemini [--pin MOVE]... [--no-mcp] [--no-hooks]   (the agent skill this raea ships, for its version, which raea --version prints: an agent whose copy names another version reads this; install puts raea's skills where that agent reads skills, adds the blender MCP server unless --no-mcp, makes each --pin MOVE a /MOVE of its own, and for claude adds the quick-check hook unless --no-hooks)";
+pub const USAGE: &str = "raea skill [NAME] [--reference cli|feed|files|sdk] | raea skills install --agent claude|codex|kimi|gemini [--pin MOVE]... [--no-mcp] [--no-hooks]   (the agent skill this raea ships, for its version, which raea --version prints: an agent whose copy names another version reads this; install puts raea's skills where that agent reads skills, adds the blender MCP server unless --no-mcp, makes each --pin MOVE a /MOVE of its own, and adds raea's hooks to that agent unless --no-hooks (raea hook AGENT: media opened in the Mac's viewer goes to raea show, and the quick check after a composition is saved); a skill folder that's a link is left as it is)";
 
 /// Where each agent reads a person's skills, one folder per skill holding SKILL.md. Checked by hand on 11-05:
 /// claude: ~/.claude/skills (Claude Code's docs); codex: ~/.agents/skills (developers.openai.com/codex/skills, the user
@@ -103,7 +103,7 @@ fn copy(from: &Path, to: &Path) -> R<()> {
 }
 
 /// `raea skills install --agent claude|codex|kimi|gemini`: raea's skills, stamped with this version, where that agent
-/// reads them; each replaces the copy that was there.
+/// reads them; each replaces the copy that was there, but a link (a checkout of raea-skills) is the person's to keep.
 pub fn install(args: &[String]) -> R<String> {
     if args.first().map(String::as_str) != Some("install") {
         return Err(format!("usage: {USAGE}"));
@@ -114,6 +114,7 @@ pub fn install(args: &[String]) -> R<String> {
     let mut out = String::new();
     for name in installed_names()? {
         let dst = to.join(&name);
+        if dst.is_symlink() { out += &format!("{}: a link, left as it is\n", dst.display()); continue; }
         if dst.exists() {
             std::fs::remove_dir_all(&dst).map_err(|e| format!("{}: {e}", dst.display()))?;
         }
@@ -132,11 +133,8 @@ pub fn install(args: &[String]) -> R<String> {
             out += &tools::agent_mcp::pin(&to, m, &v)?;
         }
     }
-    // Claude Code's hook: the quick check after a composition is saved (SK10); --no-hooks leaves its settings alone
-    if agent == "claude" && !args.iter().any(|a| a == "--no-hooks") {
-        let settings = target("claude")?.with_file_name("settings.json");
-        out += &format!("{}: hook `raea hook claude` {}\n", settings.display(), if tools::agent_mcp::claude_hook(&settings)? { "added" } else { "already there" });
-    }
+    // every agent's hooks (A5d, SK10), in its own config: --no-hooks leaves it alone
+    if !args.iter().any(|a| a == "--no-hooks") { out += &tools::agent_hooks::install(agent)?; }
     // the MCP servers raea offers (SK11): blender, for a running Blender; --no-mcp leaves the agent's servers alone
     if !args.iter().any(|a| a == "--no-mcp") {
         out += &tools::agent_mcp::offer(agent)?;

@@ -90,30 +90,6 @@ pub fn offer(agent: &str) -> R<String> {
     Ok(line(add_json(&p)?, &p))
 }
 
-/// A hook entry raea added (its command is `raea hook ...`).
-fn ours(hook: &Value) -> bool {
-    hook["command"].as_str().unwrap_or("").starts_with("raea hook")
-}
-
-/// Claude Code's PostToolUse hook running `raea hook claude` after a file is written, in its settings.json, unless one
-/// is there; true when it added. Its findings reach the agent as the hook's additionalContext.
-pub fn claude_hook(settings: &Path) -> R<bool> {
-    let mut doc: Value = match std::fs::read_to_string(settings) {
-        Ok(t) if !t.trim().is_empty() => serde_json::from_str(&t).map_err(|e| format!("{}: {e}", settings.display()))?,
-        _ => json!({}),
-    };
-    let post = doc.as_object_mut().ok_or("settings.json isn't an object")?.entry("hooks").or_insert_with(|| json!({})).as_object_mut().ok_or("settings.json: hooks isn't an object")?.entry("PostToolUse").or_insert_with(|| json!([]));
-    let list = post.as_array_mut().ok_or("settings.json: hooks.PostToolUse isn't a list")?;
-    if list.iter().any(|m| m["hooks"].as_array().into_iter().flatten().any(ours)) {
-        return Ok(false);
-    }
-    list.push(json!({"matcher": "Write|Edit|MultiEdit", "hooks": [{"type": "command", "command": "raea hook claude", "timeout": 60}]}));
-    let tmp = settings.with_extension("raea-tmp");
-    std::fs::write(&tmp, serde_json::to_string_pretty(&doc).unwrap_or_default() + "\n").map_err(|e| format!("{}: {e}", tmp.display()))?;
-    std::fs::rename(&tmp, settings).map_err(|e| format!("{}: {e}", settings.display()))?;
-    Ok(true)
-}
-
 /// A move's guide as a skill of its own, named for the move: its description from the guide's first paragraph.
 pub fn pin(to: &Path, mv: &str, v: &str) -> R<String> {
     let guide = raea_io_home::home().join("sdk/guides/craft/verbs").join(format!("{mv}.md"));
@@ -151,14 +127,6 @@ mod tests {
         assert!(add_toml(&t).unwrap());
         assert!(!add_toml(&t).unwrap());
         assert_eq!(std::fs::read_to_string(&t).unwrap(), "model = \"x\"\n\n[mcp_servers.blender]\ncommand = \"uvx\"\nargs = [\"mcp-for-blender\"]\n");
-        let h = d.join("claude/settings.json");
-        std::fs::create_dir_all(h.parent().unwrap()).unwrap();
-        std::fs::write(&h, r#"{"model":"x","hooks":{"PostToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"other"}]}]}}"#).unwrap();
-        assert!(claude_hook(&h).unwrap());
-        assert!(!claude_hook(&h).unwrap());
-        let v: Value = serde_json::from_str(&std::fs::read_to_string(&h).unwrap()).unwrap();
-        assert_eq!(v["hooks"]["PostToolUse"].as_array().unwrap().len(), 2);
-        assert_eq!(v["model"], "x");
         let _ = std::fs::remove_dir_all(&d);
     }
 

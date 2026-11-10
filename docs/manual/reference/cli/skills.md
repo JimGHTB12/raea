@@ -7,8 +7,9 @@ sources: ["engine/cli/src/skill.rs"]
 
 `raea skills install` copies the skill this raea ships into the folder an agent reads skills from, stamped with this
 version: `~/.claude/skills` for Claude Code, `~/.agents/skills` for Codex, Kimi Code's skills folder, and
-`~/.gemini/skills` for Gemini. It also adds the Blender MCP server to the agent, and for Claude Code the hook that
-runs the quick check after each saved composition ([`raea hook`](hook.md)).
+`~/.gemini/skills` for Gemini. It also adds the Blender MCP server to the agent, and raea's hooks to every agent
+([`raea hook`](hook.md)): media opened in the Mac's viewer goes to `raea show`, and the quick check runs after each
+saved composition. A skill folder that's a link (a checkout of raea-skills) is left as it is.
 
 The skill raea ships matches the version it ships with. An agent can hold a copy from an older or newer install;
 its front matter names the version it came with, and when that differs from `raea --version` the agent reads
