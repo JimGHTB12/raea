@@ -119,6 +119,12 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
     # started thirty still renders at once and the Mac swapped), the last moment's asks first. And a 3D part asked for
     # again by id (the game inspector re-reads what is picked on every frame) answers its own box on the frame: it
     # answered its holder's, so the outline a click drew was gone a frame later.
+    # 11-10, how long a heavy scene takes to open (a launch-film set, raea play offscreen at frame 0): a quarter of it
+    # was the boolean cuts of its solids, made again on every open. raea-core-shape keeps each expression's mesh on
+    # disk by expression and build (kept.rs; RAEA_SHAPE_CACHE=0 turns it off): 12.2 s with it off, 4.6 s kept, the
+    # frame the same bytes. What is left is the script's own pass (its solids are cut again there, through the
+    # /3d manifold calls: not kept yet) and the models' loading. A still for Source or a poster is drawn through
+    # raea play, one at a time at low priority, and not while a stage the person opened is still opening.
     @done
     Scenario: PV3b. The store is managed in one place
       Then Settings lists the store by project and kind with sizes, and offers Clear and Rebuild; copies whose source

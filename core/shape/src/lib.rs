@@ -29,6 +29,7 @@
 mod build;
 mod glyphs;
 mod grown;
+mod kept;
 mod mesh;
 mod parse;
 mod sphere;
@@ -196,7 +197,18 @@ pub fn cached(expr: &str) -> Result<std::sync::Arc<Tris>, String> {
     if let Some(t) = cache.lock().unwrap().get(expr) {
         return Ok(t.clone());
     }
-    let t = std::sync::Arc::new(tris(&solid(expr)?));
+    // made by this build before, on disk (kept.rs): read back as it was written
+    let kept = kept::place(expr);
+    let t = match kept.as_deref().and_then(kept::read) {
+        Some(t) => std::sync::Arc::new(t),
+        None => {
+            let t = std::sync::Arc::new(tris(&solid(expr)?));
+            if let Some(p) = &kept {
+                kept::write(p, &t);
+            }
+            t
+        }
+    };
     cache.lock().unwrap().insert(expr.to_string(), t.clone());
     Ok(t)
 }
@@ -204,6 +216,23 @@ pub fn cached(expr: &str) -> Result<std::sync::Arc<Tris>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_kept_mesh_reads_back_as_it_was_written() {
+        let dir = std::env::temp_dir().join(format!("raea-shape-kept-{}", std::process::id()));
+        let p = dir.join("a.tris");
+        let t = tris(&solid("minus(box(2, 2, 2), cylinder(0.5, 3))").unwrap());
+        assert!(kept::read(&p).is_none());
+        kept::write(&p, &t);
+        let back = kept::read(&p).unwrap();
+        assert_eq!(back.positions.iter().flatten().map(|x| x.to_bits()).collect::<Vec<_>>(), t.positions.iter().flatten().map(|x| x.to_bits()).collect::<Vec<_>>());
+        assert_eq!(back.normals.iter().flatten().map(|x| x.to_bits()).collect::<Vec<_>>(), t.normals.iter().flatten().map(|x| x.to_bits()).collect::<Vec<_>>());
+        // a file cut short isn't a mesh
+        let whole = std::fs::read(&p).unwrap();
+        std::fs::write(&p, &whole[..whole.len() - 5]).unwrap();
+        assert!(kept::read(&p).is_none());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn csg_volumes_are_right() {
