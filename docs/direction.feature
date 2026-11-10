@@ -222,7 +222,7 @@ Feature: Direction that holds: one world of facts, findings and rules, so a pers
     Scenario: DR3. One finding, for every command
       Given the plan
         | crate              | file                           | lines | job                                                                    |
-        | raea-core-facts    | core/facts/src/finding.rs      | 200   | Finding, its JSON, its one-line text; the two old ranks mapped onto it |
+        | raea-core-facts    | core/facts/src/finding.rs      | 240   | Finding, its JSON, its one-line text; the two old ranks and the older commands' JSON read as it |
         | raea-sys-contact   | systems/contact/src/found.rs   | 140   | the clipping check's and the lint's results as Findings about entities |
         | raea-app-check     | apps/check/src/lib.rs          | 240   | raea check's Issue as Finding in its report (rule -> check, p -> level, at -> frames) |
       # Fixed in the code (DR3): the plan gave raea check's Issue -> Finding a file of 150 lines in apps/direction. It is

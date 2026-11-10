@@ -107,6 +107,28 @@ impl Finding {
         self
     }
 
+    /// A finding in the JSON the older commands write (`{check, level, says}` and what it is about: `part`, `into`,
+    /// `on`, `file`; scene lint, gen check, solid info): None for "ok", a pass. A `fix` that is an object says its
+    /// command (`run`) or else itself as JSON.
+    pub fn of_value(v: &serde_json::Value, by: &str) -> Option<Finding> {
+        let word = v["level"].as_str().unwrap_or("");
+        if word == "ok" {
+            return None;
+        }
+        let mut f = Finding::new(v["check"].as_str().unwrap_or(by), Level::of_word(word), v["says"].as_str().unwrap_or_default(), by);
+        for k in ["part", "into", "on", "file"] {
+            if let Some(name) = v[k].as_str() {
+                f = f.about(name, None);
+            }
+        }
+        f.fix = match &v["fix"] {
+            serde_json::Value::String(s) => Some(s.clone()),
+            o if o.is_object() => Some(o["run"].as_str().map_or_else(|| o.to_string(), str::to_string)),
+            _ => None,
+        };
+        Some(f)
+    }
+
     /// One line: `error clips  frames 120-139  seat, rider: the rider is 4 cm into the seat (fix: …)`.
     pub fn line(&self) -> String {
         let mut s = format!("{:<5} {}", self.level.word(), self.check);
@@ -175,6 +197,15 @@ mod tests {
         let j = serde_json::to_value(&f).unwrap();
         assert_eq!((j["level"].as_str(), j["about"][1].get("key")), (Some("error"), None));
         assert_eq!(serde_json::from_value::<Finding>(j).unwrap(), f);
+    }
+
+    #[test]
+    fn the_older_commands_json_reads_as_findings_and_a_pass_as_none() {
+        let v = serde_json::json!({"check": "format", "level": "error", "file": "chair.fbx", "says": "raea loads glTF", "fix": {"run": "raea blender run convert.py"}});
+        let f = Finding::of_value(&v, "raea gen check").unwrap();
+        assert_eq!((f.level, f.about[0].name.as_str(), f.fix.as_deref()), (Level::Error, "chair.fbx", Some("raea blender run convert.py")));
+        assert_eq!(Finding::of_value(&serde_json::json!({"check": "expect.volume", "level": "warning", "says": "s", "fix": {"scale": 2}}), "x").unwrap().fix.as_deref(), Some("{\"scale\":2}"));
+        assert_eq!(Finding::of_value(&serde_json::json!({"check": "expect.volume", "level": "ok", "says": "within"}), "x"), None);
     }
 
     #[test]

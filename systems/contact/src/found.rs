@@ -10,17 +10,13 @@ use serde_json::Value;
 pub fn lint_findings(found: &[Value], frame: i64, by: &str) -> Vec<Finding> {
     found
         .iter()
-        .filter(|v| v["level"].as_str().is_some_and(|l| l != "ok"))
-        .map(|v| {
-            let check = v["check"].as_str().unwrap_or("lint");
-            let mut f = Finding::new(check, Level::of_word(v["level"].as_str().unwrap_or("")), v["says"].as_str().unwrap_or_default(), by).frames(frame, frame + 1);
-            for k in ["part", "into", "on"] {
-                if let Some(name) = v[k].as_str() {
-                    f = f.about(name, None);
-                }
-            }
+        .filter_map(|v| {
+            let mut f = Finding::of_value(v, by)?.frames(frame, frame + 1);
+            // the lint's fix is a move, said below
+            f.fix = None;
+            let check = f.check.clone();
             let num = |k: &str| v[k].as_f64();
-            if let Some(g) = num("gap").filter(|_| matches!(check, "sunk" | "floats")) {
+            if let Some(g) = num("gap").filter(|_| matches!(check.as_str(), "sunk" | "floats")) {
                 f = f.measure("gap", g, "m", None);
             } else if let Some(d) = num("depth") {
                 f = f.measure("depth", d, "m", None);
@@ -30,7 +26,7 @@ pub fn lint_findings(found: &[Value], frame: i64, by: &str) -> Vec<Finding> {
             if let Some((y, dy)) = v.get("fix").and_then(|x| Some((x.get("y")?.as_f64()?, x.get("dy")?.as_f64()?))) {
                 f = f.fix(format!("move it {dy:+.4} m in y, to y = {y}"));
             }
-            f
+            Some(f)
         })
         .collect()
 }
