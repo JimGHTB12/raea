@@ -35,12 +35,17 @@ to the composition are loaded on their own, as `raea play` loads them; a flag na
 A whole video made from the same inputs as an earlier one is copied from the export cache rather than drawn again,
 and the command says so.
 
+A render checks what it draws: 3D parts passing into each other (the clipping check). Each finding is said on stderr
+as it is found, written into the manifest with `--manifest`, and counted on the last line the command prints
+(`raea render: 1 error, 0 warns, 0 notes`). An error makes the render exit 1 once its output is written;
+`--despite CHECK WHY` lets that check's errors through and puts the reason in the manifest.
+
 <!-- generated:begin by tools/manual-ref/cli.ts from `raea help --json`; edit only the flag descriptions -->
 
 ## Usage
 
 ```sh
-raea render EDIT.tsx -o OUT.mp4|OUT.png|OUT.wav|DIR [--audio OUT.wav] [--frame N | --at A,B] [--composition ID] [--w W] [--h H] [--fps FPS] [--frames N] [--words W.json] [--perception P.json] [--input I.json|inputs.rrl] [--manifest render.json] [--layers] [--stage WxH] [--10bit] [--aov] [--alpha] [--kbps N | --quality draft|high|master|0..1] [--clay]   (also: --lite --comps)
+raea render EDIT.tsx -o OUT.mp4|OUT.png|OUT.wav|DIR [--audio OUT.wav] [--frame N | --at A,B] [--composition ID] [--w W] [--h H] [--fps FPS] [--frames N] [--words W.json] [--perception P.json] [--input I.json|inputs.rrl] [--manifest render.json] [--layers] [--stage WxH] [--10bit] [--aov] [--alpha] [--kbps N | --quality draft|high|master|0..1] [--clay] [--despite CHECK WHY]   (also: --lite --comps)
 raea render EDIT.tsx --review DIR [--frame N]   (fixed cameras hero, front, right, top, iso, low in colour and clay: DIR/colour.png, clay.png, review.json)
 raea render PAGE.html -o OUT.mp4|OUT.png|DIR [--at A,B] [--alpha]   (an HTML composition)
 raea render --bundle NAME.comp.js -o OUT.png|DIR [--dir DIR] [--frame N]   (a bundle from raea bundle, as render_bundle draws it)
@@ -61,6 +66,7 @@ Headless: it needs nothing running and opens no window. Takes up to 1 argument b
 | `--clay` | – | Draw every standard 3D surface in plain grey, to judge shapes, light and contact without colour. |
 | `--composition` | `ID` | Which registered `<Composition>` to render when the file holds several; the first one otherwise. |
 | `--comps` | – | Record which components drew each frame in the frame's marker. Used by bakes and the app's live view, rarely by hand. |
+| `--despite` | `CHECK WHY` | Let a check's errors through (`all` for every check), with the reason, which goes into the manifest. Without it, an error the render finds (3D parts clipping) makes it exit 1, after writing its output. A harness that renders many pieces and compares pixels sets `RAEA_DESPITE="CHECK: why"` instead. |
 | `--dir` | `DIR` | With `--bundle`: the folder its relative media paths are read from (the bundle's own folder by default). |
 | `--fps` | `FPS` | Frame rate for a file with no `<Composition>` or `config` (30 by default). |
 | `--frame` | `N` | Render this one frame. |
