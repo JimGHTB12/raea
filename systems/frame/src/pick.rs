@@ -69,7 +69,7 @@ pub fn part_at(world: &mut World, nx: f32, ny: f32) -> Option<PartHit> {
 }
 
 /// Where things are on the frame now (docs/preview.feature PV4d, PV5a): each key's part as its box (x, y, w, h in
-/// 0..1; the boxes of its meshes' bounds, so it follows the part as it moves; None when it isn't drawn), and each
+/// 0..1, around its meshes as drawn, so it follows the part as it moves; None when it isn't drawn), and each
 /// world point as its place on the frame with whether it is in front of the camera.
 pub fn locate(world: &mut World, keys: &[String], points: &[Vec3]) -> (Vec<Option<[f32; 4]>>, Vec<Option<[f32; 2]>>) {
     let mut cams = world.query_filtered::<(&Camera, &GlobalTransform), With<Camera3d>>();
@@ -81,20 +81,19 @@ pub fn locate(world: &mut World, keys: &[String], points: &[Vec3]) -> (Vec<Optio
     };
     let placed: Vec<Option<[f32; 2]>> = points.iter().map(|p| on_frame(*p).map(|s| s.to_array())).collect();
     let mut boxes: Vec<Option<(Vec2, Vec2)>> = vec![None; keys.len()];
-    let mut meshes = world.query_filtered::<(Entity, &GlobalTransform, &bevy::camera::primitives::Aabb, Option<&InheritedVisibility>), With<Mesh3d>>();
-    for (e, place, aabb, shown) in meshes.iter(world) {
-        if shown.is_some_and(|s| !s.get()) {
-            continue;
-        }
-        let Some(k) = world.get::<LayerKey>(root_of(world, e)).and_then(|k| keys.iter().position(|x| *x == k.0)) else { continue };
-        let (c, h) = (Vec3::from(aabb.center), Vec3::from(aabb.half_extents));
-        for i in 0..8 {
-            let corner = c + h * Vec3::new(if i & 1 == 0 { -1.0 } else { 1.0 }, if i & 2 == 0 { -1.0 } else { 1.0 }, if i & 4 == 0 { -1.0 } else { 1.0 });
-            if let Some(s) = on_frame(place.transform_point(corner)) {
+    // a part by its key, or one with no key (a loaded model's own mesh) by its entity ("entity:BITS", as a pick names
+    // it); its box is around its vertices where the frame draws them, so a skinned part's follows its pose
+    drawn(world, |world, e, posed, _| {
+        let root = root_of(world, e);
+        let own = world.get::<LayerKey>(root).map(|k| k.0.as_str());
+        let by_entity = format!("entity:{}", root.to_bits());
+        let Some(k) = keys.iter().position(|x| own == Some(x.as_str()) || *x == by_entity) else { return };
+        for p in &posed {
+            if let Some(s) = on_frame(*p) {
                 boxes[k] = Some(boxes[k].map_or((s, s), |(lo, hi)| (lo.min(s), hi.max(s))));
             }
         }
-    }
+    });
     let rects = boxes.into_iter().map(|b| b.map(|(lo, hi)| {
         let (lo, hi) = (lo.clamp(Vec2::ZERO, Vec2::ONE), hi.clamp(Vec2::ZERO, Vec2::ONE));
         [lo.x, lo.y, hi.x - lo.x, hi.y - lo.y]

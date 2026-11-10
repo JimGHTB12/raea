@@ -34,6 +34,8 @@ impl Live {
             None => json!({"owner": "", "props": {}, "text": "", "kind": "mesh"}),
         };
         out["entity"] = json!(hit.entity.to_bits());
+        // how a part with no key is asked for again (locate): its entity, as text (its bits don't fit a page's number)
+        out["entity_key"] = json!(format!("entity:{}", hit.entity.to_bits()));
         for (k, v) in [("part", json!(true)), ("key", json!(hit.key)), ("name", json!(hit.name)), ("rect", json!([r[0] as f64 * w, r[1] as f64 * h, r[2] as f64 * w, r[3] as f64 * h])), ("point", json!(hit.point.to_array())), ("distance", json!(hit.distance))] {
             out[k] = v;
         }
@@ -42,7 +44,9 @@ impl Live {
 
     /// What's under the point, the page and the 3D as one picture: the page's element when it is in front of the 3D
     /// (with the part behind it as `under`), else the 3D's part (the page there is the 3D's holder, which shows it
-    /// through), else the element.
+    /// through), else the element. An element that covers the frame gives way to a part under the point, and is
+    /// answered as what is `over` it: a film's sheen or grade lies over the whole picture, and with it on top no
+    /// click in a scene ever reached an object (every composition of a launch film, 11-10).
     pub fn pick(&mut self, x: f64, y: f64) -> Option<Value> {
         let hit = self.page.hit(x as f32, y as f32);
         let part = self.part_at(x, y);
@@ -60,9 +64,16 @@ impl Live {
                 if let Some(k) = e["props"].as_object().and_then(raea_sys_frame::layer::key_from_props) {
                     e["key"] = json!(k);
                 }
-                if let Some(p) = p {
-                    e["under"] = p;
+                let Some(mut p) = p else { return Some(e) };
+                let covers = e["rect"].as_array().is_some_and(|r| {
+                    let n = |i: usize| r.get(i).and_then(Value::as_f64).unwrap_or(0.0);
+                    n(2) * n(3) >= 0.7 * self.w.max(1) as f64 * self.h.max(1) as f64
+                });
+                if covers {
+                    p["over"] = e;
+                    return Some(p);
                 }
+                e["under"] = p;
                 Some(e)
             }
         }

@@ -130,6 +130,10 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
     # is drawn is measured as posed (raea-sys-frame view bounds, from the same vertices a pick's ray meets), a
     # model's box counts its morph targets, its view's near plane follows its size, and the page moves the camera
     # out to what the stage draws. Fourteen of its models list under 3D; four were opened, a part clicked on each.
+    # 11-10, pointing in a real film's compositions: a page element that covers the frame (a sheen, a grade over
+    # the picture) gives way to the 3D part under the pointer and is answered as what is over it; before, it took
+    # every click. A part with no key (a loaded model's own mesh) is named by its entity and its box follows it,
+    # around its vertices as drawn. A script's solid is its expression until something asks for the solid.
     @done
     Scenario: PV3b. The store is managed in one place
       Then Settings lists the store by project and kind with sizes, and offers Clear and Rebuild; copies whose source
