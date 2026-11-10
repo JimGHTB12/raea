@@ -72,21 +72,21 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 }
 
 // A line `width` pixels wide and even (a cartoon's): a silhouette wherever something within the width's radius is farther by the threshold (so the line lies on the nearer side, ringing the figure), a crease wherever the
-// surface within the radius on one side (right and down) turns by more than `normal`. 16 directions at three radii.
+// surface within the radius on one side (right and down) turns by more than `normal`. 16 directions at three radii, in
+// one loop: FXC, DX12's shader compiler on Windows, can't unroll two nested loops with a return inside them, and every
+// 3D scene builds this pipeline, so its error stopped every 3D render on DX12 (#66).
 fn wide(c: vec2<i32>, z: f32, n: vec3<f32>, here: vec4<f32>, ink: vec4<f32>) -> vec4<f32> {
     let r = p.width;
-    for (var k = 0; k < 16; k++) {
-        let a = f32(k) * 0.39269908;
+    for (var i = 0u; i < 48u; i++) {
+        let a = f32(i / 3u) * 0.39269908;
         let d = vec2<f32>(cos(a), sin(a));
-        for (var j = 1; j <= 3; j++) {
-            let o = c + vec2<i32>(round(d * r * f32(j) / 3.0));
-            let zo = dist(o);
-            if zo - z > p.depth * z {
-                return ink;
-            }
-            if p.normal > 0.0 && (d.x + d.y) > 0.0 && !skipped(o) && zo < 1e6 && z < 1e6 && abs(zo - z) < p.depth * z && 1.0 - dot(n, normal_at(o)) > p.normal {
-                return ink;
-            }
+        let o = c + vec2<i32>(round(d * r * f32(i % 3u + 1u) / 3.0));
+        let zo = dist(o);
+        if zo - z > p.depth * z {
+            return ink;
+        }
+        if p.normal > 0.0 && (d.x + d.y) > 0.0 && !skipped(o) && zo < 1e6 && z < 1e6 && abs(zo - z) < p.depth * z && 1.0 - dot(n, normal_at(o)) > p.normal {
+            return ink;
         }
     }
     return here;
