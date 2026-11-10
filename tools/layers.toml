@@ -59,6 +59,7 @@ raea-sys-footage = "systems"
 raea-perceive = "tools"
 raea-bridge-bench = "tools"
 raea-bevy-parity = "tools"  # Bevy's own examples with the parity probe (docs/control.feature FC0a)
+raea-rerender-ios = "tools"  # RR0's film on the iPhone (bench/rerender/ios): a static library the bench app calls
 raea-sys-parity = "systems"  # the parity probe, in raea's App and the examples'
 raea-bench-swatch = "systems"  # a Blitz widget fixture (bench/bridge/swatch) the plugin catalog declares: a leaf on vendored crates, so a runtime crate may build it in
 raea-render = "runtime"

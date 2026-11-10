@@ -37,8 +37,9 @@ pub fn set_headless() {
     HEADLESS.store(true, Ordering::Relaxed);
 }
 
+/// Also always on iOS, which builds none of the system's side (Cargo.toml).
 fn headless() -> bool {
-    HEADLESS.load(Ordering::Relaxed)
+    cfg!(target_os = "ios") || HEADLESS.load(Ordering::Relaxed)
 }
 
 /// A check step's answer for the next dialog of its kind.
@@ -125,7 +126,10 @@ fn open(args: &Value) -> Result<Value, String> {
         opened_list().lock().unwrap().push(url.to_string());
         return Ok(Value::Null);
     }
-    opener::open(url).map(|()| Value::Null).map_err(|e| format!("os.open {url}: {e}"))
+    #[cfg(not(target_os = "ios"))]
+    return opener::open(url).map(|()| Value::Null).map_err(|e| format!("os.open {url}: {e}"));
+    #[cfg(target_os = "ios")]
+    unreachable!("headless on iOS");
 }
 
 /// The clipboard's text ("" when it holds none): the system's, or the process's own when headless. A page's text
@@ -142,7 +146,6 @@ pub fn set_clipboard_text(text: String) -> Result<(), String> {
 /// The clipboard's text, or `text` written to it: the process's own when headless.
 fn clipboard(text: Option<String>) -> Result<Value, String> {
     static OWN: Mutex<String> = Mutex::new(String::new());
-    static SYSTEM: Mutex<Option<arboard::Clipboard>> = Mutex::new(None);
     if headless() {
         let mut own = OWN.lock().unwrap();
         return Ok(match text {
@@ -153,6 +156,15 @@ fn clipboard(text: Option<String>) -> Result<Value, String> {
             None => json!(*own),
         });
     }
+    #[cfg(not(target_os = "ios"))]
+    return system_clipboard(text);
+    #[cfg(target_os = "ios")]
+    unreachable!("headless on iOS");
+}
+
+#[cfg(not(target_os = "ios"))]
+fn system_clipboard(text: Option<String>) -> Result<Value, String> {
+    static SYSTEM: Mutex<Option<arboard::Clipboard>> = Mutex::new(None);
     // kept open: on X11 a clipboard's text lives as long as the process that set it holds it
     let mut sys = SYSTEM.lock().unwrap();
     if sys.is_none() {

@@ -14564,6 +14564,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "raea-rerender-ios"
+version = "0.1.0"
+dependencies = [
+ "raea-runtime-export",
+ "raea-runtime-react",
+]
+
+[[package]]
 name = "raea-rune-bevy"
 version = "0.1.0"
 dependencies = [

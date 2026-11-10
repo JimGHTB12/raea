@@ -136,6 +136,7 @@ members = [
     "bench/bridge",
     "bench/bevy-parity",
     "bench/bridge/swatch",
+    "bench/rerender/ios",
     "core/alloc",
     "runtime/bake",
     "runtime/bundle",

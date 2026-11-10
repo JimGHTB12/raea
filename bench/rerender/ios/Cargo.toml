@@ -1,0 +1,15 @@
+[package]
+name = "raea-rerender-ios"
+version = "0.1.0"
+edition = "2024"
+license = "FSL-1.1-ALv2"
+publish = false
+description = "RR0's film on the iPhone (docs/rerender.feature): a static library the bench app calls to render one bundled composition in a fresh process, as bench.sh renders each on the Mac"
+
+[lib]
+name = "raea_rerender_ios"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+raea-runtime-export = { path = "../../../runtime/export" }
+raea-runtime-react = { path = "../../../runtime/react", default-features = false }

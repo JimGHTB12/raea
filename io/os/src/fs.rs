@@ -39,10 +39,12 @@ fn described(p: &Path) -> Value {
     json!({"id": id, "name": p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(), "size": std::fs::metadata(p).map(|m| m.len()).unwrap_or(0)})
 }
 
+#[cfg(not(target_os = "ios"))]
 fn accept(args: &Value) -> Vec<String> {
     args["accept"].as_array().map(|a| a.iter().filter_map(Value::as_str).map(|e| e.trim_start_matches('.').to_string()).collect()).unwrap_or_default()
 }
 
+#[cfg(not(target_os = "ios"))]
 fn dialog(args: &Value) -> rfd::AsyncFileDialog {
     let exts = accept(args);
     let d = rfd::AsyncFileDialog::new();
@@ -58,6 +60,7 @@ pub(crate) fn call(name: &str, args: &Value, done: Done) {
     }
 }
 
+#[cfg_attr(target_os = "ios", expect(unused_variables, reason = "iOS builds no dialogs"))]
 fn pick(args: &Value, done: Done) {
     if headless() {
         return done(match scripted(|s| if let Scripted::Pick(f) = s { Some(f.clone()) } else { None }) {
@@ -65,17 +68,21 @@ fn pick(args: &Value, done: Done) {
             None => Err("fs.pick: headless, and no pick step answers it".into()),
         });
     }
-    let (multiple, d) = (args["multiple"] == json!(true), dialog(args));
-    std::thread::spawn(move || {
-        let files: Vec<PathBuf> = if multiple {
-            pollster::block_on(d.pick_files()).unwrap_or_default().iter().map(|h| h.path().to_path_buf()).collect()
-        } else {
-            pollster::block_on(d.pick_file()).map(|h| vec![h.path().to_path_buf()]).unwrap_or_default()
-        };
-        done(Ok(Value::Array(files.iter().map(|p| described(p)).collect())));
-    });
+    #[cfg(not(target_os = "ios"))]
+    {
+        let (multiple, d) = (args["multiple"] == json!(true), dialog(args));
+        std::thread::spawn(move || {
+            let files: Vec<PathBuf> = if multiple {
+                pollster::block_on(d.pick_files()).unwrap_or_default().iter().map(|h| h.path().to_path_buf()).collect()
+            } else {
+                pollster::block_on(d.pick_file()).map(|h| vec![h.path().to_path_buf()]).unwrap_or_default()
+            };
+            done(Ok(Value::Array(files.iter().map(|p| described(p)).collect())));
+        });
+    }
 }
 
+#[cfg_attr(target_os = "ios", expect(unused_variables, reason = "iOS builds no dialogs"))]
 fn save(args: &Value, done: Done) {
     if headless() {
         return done(match scripted(|s| if let Scripted::Save(f) = s { Some(f.clone()) } else { None }) {
@@ -83,10 +90,11 @@ fn save(args: &Value, done: Done) {
             None => Err("fs.save: headless, and no save step answers it".into()),
         });
     }
-    let d = dialog(args).set_file_name(args["name"].as_str().unwrap_or("untitled"));
-    std::thread::spawn(move || {
-        done(Ok(pollster::block_on(d.save_file()).map_or(Value::Null, |h| json!({"id": keep(h.path().to_path_buf())}))));
-    });
+    #[cfg(not(target_os = "ios"))]
+    {
+        let d = dialog(args).set_file_name(args["name"].as_str().unwrap_or("untitled"));
+        std::thread::spawn(move || done(Ok(pollster::block_on(d.save_file()).map_or(Value::Null, |h| json!({"id": keep(h.path().to_path_buf())})))));
+    }
 }
 
 fn read(args: &Value) -> Result<Value, String> {

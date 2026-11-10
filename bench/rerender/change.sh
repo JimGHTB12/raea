@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# RR0 (docs/rerender.feature): the "one note" case. A note changes shot 4's grade and light (film.tsx's NOIR line), and
+# RR0 (docs/rerender.feature): the "one note" case. A note changes shot 4's grade and light (shots.tsx's NOIR line), and
 # this times what it takes to have the whole film again:
 #   chunks  today's way by hand: shot 4's chunk rendered again and the six chunks joined again (ffmpeg -c copy, or
 #           raea media concat where there's no ffmpeg); needs bench.sh's chunks (KEEP=1) in OUT
 #   film    the film as one render again (what a render with no shot cache costs; before RR1 its picture isn't the film)
-# The note is made on a copy of film.tsx in OUT, never on the checkout. Writes OUT/change.json.
+# The note is made on a copy of film.tsx and shots.tsx in OUT, never on the checkout. Writes OUT/change.json.
 #   bench/rerender/change.sh OUT      (OUT: a bench.sh run's folder, made with KEEP=1; RAEA_BIN as bench.sh)
 set -u
 cd "$(dirname "$0")/../.." || exit 2
@@ -21,8 +21,9 @@ span() { echo "$1 $2" | awk '{printf "%.3f", $2 - $1}'; }
 # the note: shot 4 warmer, a little colour back, harder, under a stronger sun
 NOTE=$OUT/note
 mkdir -p "$NOTE"
-sed 's/^export const NOIR = .*/export const NOIR = { saturation: 0.25, contrast: 1.5, temperature: 0.04, sun: 45000, ambient: 250 };/' "$ROOT/bench/rerender/film.tsx" > "$NOTE/film.tsx"
-grep -q 'saturation: 0.25, contrast: 1.5' "$NOTE/film.tsx" || { echo "change: film.tsx's NOIR line wasn't found to change"; exit 1; }
+cp "$ROOT/bench/rerender/film.tsx" "$NOTE/film.tsx"
+sed 's/^export const NOIR = .*/export const NOIR = { saturation: 0.25, contrast: 1.5, temperature: 0.04, sun: 45000, ambient: 250 };/' "$ROOT/bench/rerender/shots.tsx" > "$NOTE/shots.tsx"
+grep -q 'saturation: 0.25, contrast: 1.5' "$NOTE/shots.tsx" || { echo "change: shots.tsx's NOIR line wasn't found to change"; exit 1; }
 
 status=0
 # today's way by hand: the changed chunk again, then the join again

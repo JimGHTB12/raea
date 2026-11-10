@@ -18,12 +18,45 @@ Feature: Re-render, don't stitch: one render changes anything per frame, redraws
 
   Rule: Measure first
 
+    @done
     Scenario: RR0. A heavy multi-shot film to measure, and today's numbers on Mac and Windows
+      # Status 11-10: measured. The film is made from code (shots.tsx; content/rome's sets are gone) and its frames cost
+      # 10-45 ms on the Mac, so start-ups and joins weigh more than drawing does.
+      # Mac (M5 Pro, the 08:52 raea build): six chunks 3 at a time joined with ffmpeg -c copy, 16.3 s on a quiet machine
+      # and 25.0, 25.5, 26.9 s with 5-6 other jobs running; one render 31.4 s quiet, 30.9-38.5 s loaded. Each chunk's
+      # first frame comes 1.7-1.8 s after its spawn (about 0.6 s of it the restart when a render meets its first 3D
+      # frame; frame 0's sync 0.35-1.05 s, the pipelines being made), so the six chunks spend 10.5-16.2 s starting. A
+      # steady frame: React 1.0-1.7 ms, sync 6-15 ms, GPU wait 0-43 ms, readback and encode (VideoToolbox) under 1 ms.
+      # The note by hand (change.sh): shot 4 again 3.4-6.0 s and the join 0.15-0.23 s, against the whole film again
+      # 29.4-43.5 s.
+      # Windows (cuda-box, RTX 4070, v0.1.1-rc2, bench.ps1): no ffmpeg there, so the join is raea media concat, which
+      # re-encodes. Chunked 71.0 s: renders 23.6 s and the join 47.3 s. One render 39.0 s; its first frame 6.8 s, as it
+      # bakes all 900 frames' rows first (a chunk's 2.2-2.5 s; the first run on the machine 6.5-8.3 s). A steady frame:
+      # React 12 ms (10x the Mac's: QuickJS there, JavaScriptCore here), sync 12-24 ms, GPU wait 2-24 ms; openh264 isn't
+      # the bottleneck. The note by hand: 13.3 s and a 51.4 s join, 64.7 s, more than the whole film again (38.4 s).
+      # One render holding six looks, estimated from the chunks' frame costs without their start-ups: 27.7 s on the
+      # quiet Mac and 45.8 s on Windows (both over-counted: three chunks shared the GPU).
+      # The two biggest costs: on the Mac the start-ups (six cold processes) and GPU wait; on Windows the re-encoding
+      # join (47-51 s) and a frame's CPU side (React on QuickJS and sync, 24-36 ms). RR11-RR13 read their gates
+      # against these.
+      # The iPhone row (not a gate; ios/bench.sh on an iPhone 13 Pro Max, A15, iOS 27.0.1, jitless JavaScriptCore):
+      # shots 3-5 at 134, 61 and 265 ms a frame (GPU wait 64, 22 and 184 ms; React 4-13 ms), first frame 2.5-3.2 s
+      # after the launch and 5.0 s on a fresh install, peak footprint 2.4-2.8 GB. Shots 1 and 6 and the film can't be
+      # drawn there: Bevy 0.20's atmosphere samples its Rgba32Float medium LUTs with a filtering sampler, which the A15
+      # can't filter (RR9's, in vendor/ and upstream). raea said APPLIED on those videos without their 3D (handed to
+      # DR3's lane). Shot 2 is killed by iOS (SIGKILL, no report) at its first 3D frame, with the increased-memory
+      # entitlement as well.
+      # Noise: the same binary ran 16-27 s chunked across four runs as the machine's load changed, so later gates run
+      # the old and new binaries interleaved in one sitting.
       Given the plan
         | crate | file                          | lines | job                                                                                  |
-        | -     | bench/rerender/film.tsx       | 220   | six shots of content/rome's sets, about 30 s at 1920x1080, a different look on each (grade, fog, bloom, depth of field, tonemapping) and two cameras; also each shot as its own composition, as agents render today |
+        | -     | bench/rerender/shots.tsx      | 220   | six 5 s shots on one set made from code (no media files, so it renders alike on every OS; content/rome's sets are gone), 900 frames at 1920x1080, a different look on each (grade, fog, bloom, depth of field, tonemapping, SSAO, volumetric fog, sky) and two cameras |
+        | -     | bench/rerender/film.tsx       | 40    | the film as one composition, and each shot as its own composition, as agents render today |
         | -     | bench/rerender/bench.sh       | 160   | renders it with RAEA_FRAME_LOG and RAEA_TIMES and writes run.json: wall time, and per frame the split into start-up, React/JS, Bevy CPU, wgpu submit, GPU by pass, readback and encode |
         | -     | bench/rerender/change.sh      | 80    | the "one note" case: changes shot 4's grade and lights, then times what it takes to get the whole film again |
+        | -     | bench/rerender/bench.ps1      | 160   | bench.sh and change.sh for Windows, in its own PowerShell 5.1 (no bash, jq or ffmpeg there) |
+        | raea-rerender-ios | bench/rerender/ios/src/lib.rs | 80 | the iPhone row, not a gate: one composition bundle rendered in a cold process, its start-up marks timed from the kernel's process start |
+        | -     | bench/rerender/ios/bench.sh   | 140   | bench.sh's runs on the iPhone through a small app (ios/app), one launch a render, plus the first launch after a fresh install |
       Then bench.sh runs on the Mac and on the Windows PC, and this scenario records both splits
       And it records today's two ways to get the film: six chunk renders joined with ffmpeg (what agents do), and
         what one render would cost if it could hold six looks (the chunks' frame costs without their start-ups)

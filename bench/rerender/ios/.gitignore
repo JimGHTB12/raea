@@ -1,0 +1,4 @@
+# bench.sh makes these: the shot bundles, and xcodegen's project
+app/Bundle/
+app/RerenderBench.xcodeproj/
+app/Sources/RerenderBench.entitlements

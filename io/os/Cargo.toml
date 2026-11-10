@@ -9,13 +9,17 @@ description = "The system's host calls both app targets answer (docs/targets.fea
 [dependencies]
 serde_json = "1"
 base64 = "0.22"
+pollster = "0.4"
+
+# the system's side, on the desktops. iOS builds none of it (none of the three has an iOS backend) and answers every
+# call as a headless check does: raea renders there (bench/rerender/ios), with no app UI
+[target.'cfg(not(target_os = "ios"))'.dependencies]
 # a URL in the system's handler
 opener = "0.9"
 # the system clipboard (text)
 arboard = { version = "3.7", default-features = false }
 # the system's file and message dialogs; on Linux the xdg portal, never GTK
 rfd = { version = "0.17", default-features = false, features = ["xdg-portal"] }
-pollster = "0.4"
 
 [features]
 # recorded.rs: T2d's recorded system calls, headless, for each target's test

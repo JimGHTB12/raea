@@ -1,6 +1,7 @@
 //! dialog.message: the system's message dialog (rfd), answered with the index of the button pressed; headless, the
 //! answer a dialog step queued.
 
+#[cfg(not(target_os = "ios"))]
 use rfd::{AsyncMessageDialog, MessageButtons, MessageDialogResult, MessageLevel};
 use serde_json::{Value, json};
 
@@ -18,6 +19,12 @@ pub(crate) fn message(args: &Value, done: Done) {
             None => Err("dialog.message: headless, and no dialog step answers it".into()),
         });
     }
+    #[cfg(not(target_os = "ios"))]
+    system(args, labels, done);
+}
+
+#[cfg(not(target_os = "ios"))]
+fn system(args: &Value, labels: Vec<String>, done: Done) {
     let level = match args["kind"].as_str() {
         Some("warning") => MessageLevel::Warning,
         Some("error") => MessageLevel::Error,
