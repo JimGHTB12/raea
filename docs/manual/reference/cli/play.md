@@ -28,7 +28,7 @@ A key script is `{"FRAME": [keys]}`, each set held from its frame until the next
 ## Usage
 
 ```sh
-raea play EDIT.tsx [--input | --input-script KEYS.json] [--size WxH] [--seconds N|end]   (a game, live; also: --input-log FILE --offscreen --snapshot T FILE --json FILE --seek F FILE --scrub N --baked --autoplay --no-vsync --master --3d)
+raea play EDIT.tsx [--input | --input-script KEYS.json] [--size WxH] [--seconds N|end]   (a game, live; also: --input-log FILE --offscreen --snapshot T FILE --json FILE --seek F FILE --pick X,Y --view YAW,PITCH,DISTANCE --scrub N --baked --autoplay --no-vsync --master --3d)
 ```
 
 Headless: it needs nothing running and opens no window. Takes up to 1 argument besides its flags.
@@ -47,11 +47,13 @@ Headless: it needs nothing running and opens no window. Takes up to 1 argument b
 | `--master` | – | Master a timeline's sound the way its render masters it. |
 | `--no-vsync` | – | Present frames as fast as they're drawn rather than at the display's rate, to measure the work itself. |
 | `--offscreen` | – | Play headless, with no window: what agents and checks use. |
+| `--pick` | `VALUE` | With `--seek`: what is under the point X,Y (page px) of each seeked frame, a line of JSON each: a 3D part (its place in the code, name, box, the point hit) or a page element. Repeatable. Headless only. |
 | `--scrub` | `VALUE` | Jump to N frames spread over the timeline in shuffled order and report what each seek costs. Headless only. |
 | `--seconds` | `N\|end` | How long to play, in seconds, or `end` to play a timeline to its last frame. |
 | `--seek` | `V1 V2` | Jump straight to frame F and save it as a PNG. Repeatable; the report is the seeks alone. Headless only. |
 | `--size` | `WxH` | The stage's size in pixels (1080x1920 by default); a responsive composition lays out at it. |
 | `--snapshot` | `V1 V2` | Save the stage at T seconds as a PNG. Repeatable. Headless only. |
+| `--view` | `VALUE` | With `--seek`: draw the 3D from an orbit instead of the composition's camera: YAW,PITCH,DISTANCE in radians and metres, then optionally X,Y,Z of the point orbited. Headless only. |
 
 <!-- generated:end -->
 
