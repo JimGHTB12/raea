@@ -187,9 +187,8 @@ pub fn verb_list(help: &str) -> Vec<String> {
 /// Where a verb runs (docs/agent-surfaces.md section 4): HEADLESS unless it needs the feed's host.
 fn access(verb: &str) -> &'static str {
     match verb {
-        // the person's libraries live in the raea app's host; a folder an agent adds waits for the person's yes
+        // in the raea app's host: a folder an agent adds waits for the person's yes; what's shown is theirs to answer
         "library" => "HOST, then PERSON to add a folder",
-        // shown in the raea app (started if it's installed), answered by the person; without the app, the Mac's viewer
         "show" => "HOST (starts the app), then PERSON to answer",
         _ => "HEADLESS",
     }
