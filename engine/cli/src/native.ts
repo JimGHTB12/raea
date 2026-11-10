@@ -387,7 +387,7 @@ function postHost(at: string, route: string, a: Record<string, unknown>): any {
   const cut = text.lastIndexOf("\n");
   const [body, code] = [text.slice(0, cut), Number(text.slice(cut + 1))];
   if (r.status !== 0) throw new Error(`the raea app at ${at} didn't answer: ${(r.stderr ?? "").trim()}`);
-  if (!(code >= 200 && code < 300)) throw new Error(body.trim() || `the raea app said ${code}`);
+  if (!(code >= 200 && code < 300)) throw Object.assign(new Error(body.trim() || `the raea app said ${code}`), { code });
   return JSON.parse(body);
 }
 
@@ -447,7 +447,8 @@ function task(a: Record<string, unknown>): unknown {
   try {
     return postHost(at, "/host/task", a);
   } catch (e) {
-    throw new Error(String((e as Error).message).replace(/^raea show: /, ""));
+    const old = (e as { code?: number }).code === 404 && !/^raea show: /.test((e as Error).message); // an app from before --on: its host's bare "not found"
+    throw new Error(old ? "the raea app running here is older than raea show --on; quit it and open it again to update, then mark the comments again" : String((e as Error).message).replace(/^raea show: /, ""));
   }
 }
 
