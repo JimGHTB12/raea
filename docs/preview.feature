@@ -125,6 +125,11 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
     # frame the same bytes. What is left is the script's own pass (its solids are cut again there, through the
     # /3d manifold calls: not kept yet) and the models' loading. A still for Source or a poster is drawn through
     # raea play, one at a time at low priority, and not while a stage the person opened is still opening.
+    # 11-10, models from a real project (the launch film's): a rigged cat under a scaled armature opened with the
+    # camera inside it, and a strand of cheese that seven morph targets pull from 2 cm to 17 cm drew nothing. What
+    # is drawn is measured as posed (raea-sys-frame view bounds, from the same vertices a pick's ray meets), a
+    # model's box counts its morph targets, its view's near plane follows its size, and the page moves the camera
+    # out to what the stage draws. Fourteen of its models list under 3D; four were opened, a part clicked on each.
     @done
     Scenario: PV3b. The store is managed in one place
       Then Settings lists the store by project and kind with sizes, and offers Clear and Rebuild; copies whose source

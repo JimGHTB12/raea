@@ -63,21 +63,16 @@ pub fn orbit_of(camera: &GlobalTransform, target: Vec3) -> Orbit {
     Orbit { yaw: off.x.atan2(off.z), pitch: (off.y / distance).clamp(-1.0, 1.0).asin(), distance, target }
 }
 
-/// The middle and radius of everything drawn (every shown mesh's place), for a camera to frame.
+/// The middle and radius of everything drawn, for a camera to frame: every shown mesh's vertices where the frame
+/// draws them (layer.rs drawn), so a skinned mesh is measured as its joints pose it. Its own box placed by its own
+/// node says nothing of that: a rigged model whose armature is scaled was framed from far inside it.
 pub fn bounds(world: &mut World) -> Option<(Vec3, f32)> {
-    let mut q = world.query::<(&GlobalTransform, &bevy::camera::primitives::Aabb, Option<&InheritedVisibility>)>();
     let (mut lo, mut hi) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
-    for (g, a, shown) in q.iter(world) {
-        if shown.is_some_and(|s| !s.get()) {
-            continue;
+    crate::layer::drawn(world, |_, _, posed, _| {
+        for p in posed.iter().filter(|p| p.is_finite()) {
+            (lo, hi) = (lo.min(*p), hi.max(*p));
         }
-        let (c, h) = (Vec3::from(a.center), Vec3::from(a.half_extents));
-        for k in 0..8 {
-            let corner = c + h * Vec3::new(if k & 1 == 0 { -1.0 } else { 1.0 }, if k & 2 == 0 { -1.0 } else { 1.0 }, if k & 4 == 0 { -1.0 } else { 1.0 });
-            let p = g.transform_point(corner);
-            (lo, hi) = (lo.min(p), hi.max(p));
-        }
-    }
+    });
     (lo.x <= hi.x).then(|| ((lo + hi) * 0.5, ((hi - lo) * 0.5).length()))
 }
 
