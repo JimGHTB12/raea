@@ -15,3 +15,5 @@ raea-runtime-encode = { path = "../../runtime/encode" }
 raea-io-media = { path = "../../io/media", default-features = false }
 raea-page = { path = "../../engine/page" }
 serde_json = "1"
+# a model's lower levels of detail (lod.rs): the simplifier Bevy's meshlets use
+meshopt = "0.6.2"

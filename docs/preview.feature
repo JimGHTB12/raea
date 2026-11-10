@@ -42,6 +42,14 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
     And plain `raea render FILE -o OUT` output stays as it is: nothing here changes a render's defaults
 
   Rule: PV1. The live stage picks 3D parts (engine)
+    # Status 11-09: built. systems/frame pick.rs (the nearest mesh along the pointer's ray from the frame's camera,
+    # skinned meshes as posed; locate: where parts and world points are on the frame now) and view.rs (FreeView, an
+    # orbit held over the composition's camera and given back); runtime/live pick3d.rs (pick: the page's element or
+    # the 3D's part as one picture, a part answered with its JSX's own props; set_view, locate, set_props);
+    # engine/page/stage: stage.pick, stage.view, stage.locate, stage.props, and what it opens is stamped. Checked with
+    # `raea play examples/games/shapes.tsx --offscreen --seek 10 OUT.png --pick 640,330` (shape-2 at
+    # shapes.tsx:28:11#2 with its position and quaternion; the floor; the div where there is no mesh) and
+    # `--view 1.2,0.9,9,0,0.5,0` (drawn from above, the same part under the same point). raea-sys-frame: 3 tests.
 
     Scenario: PV1a. A part under the pointer
       Given a composition with 3D meshes playing on the stage
@@ -60,6 +68,9 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
       And picking uses the camera the frame was drawn from
 
   Rule: PV2. What a thing is (app host)
+    # Status 11-09: built (raea-feed host/preview describe.ts, glb.ts; POST /host/describe). A model's facts come from
+    # its glb's JSON chunk alone (triangles, nodes, clips, its box). Checked on a scratch project: a component (3D,
+    # timed, its four props), a composition (both, 3 s), a model (27,420 triangles), a video, a sound. 5 tests.
 
     Scenario: PV2a. One description of any file
       When the host is asked what a project's file is
@@ -67,6 +78,14 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
         whether a proxy is needed, for a composition, a component, an image, a video, a sound, a model and a font
 
   Rule: PV3. Proxies and levels of detail (app host)
+    # Status 11-09: built (raea-feed host/preview proxies.ts; GET /host/proxy, POST /host/proxies; Settings › General ›
+    # Light copies). thumb, light and peaks are raea's own verbs (media still --width, new; media proxy; media audio);
+    # a model's still is its view rendered; lod is `raea media lod` (new, apps/media lod.rs: meshoptimizer on the
+    # model's own vertices, so skins and UVs are untouched; embedded pictures at most 1024 px; what nothing uses
+    # leaves the file). A render's light copy (editing.feature E4) is the same store's now. Checked: body.glb 27,420
+    # triangles -> 6,854 at level 2, rendered and looked at; a 1280x720 take's still in 0.28 s and light copy in
+    # 0.9 s; a sound's peaks in 0.15 s; Settings said "318 KB used: 3 stills, 1 videos, 1 sounds". 8 + 2 tests.
+    # Not built: a model's level chosen by its size on screen while it plays (it opens light and goes to full once).
 
     Scenario: PV3a. Every medium has its light copies
       Then an image has a thumbnail, a video a poster and a 540-line copy, a sound its peaks, a model a poster and
@@ -78,10 +97,18 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
         is gone are dropped; the store keeps under its limit by dropping the least recently used
 
     Scenario: PV3c. A model's levels of detail
-      Then a heavy model gets lower levels (triangles halved per level, textures at most 1024 px) and the preview
-        draws the level its size on screen calls for, the full model when still
+      Then a heavy model gets lower levels (triangles halved per level, textures at most 1024 px), and its preview
+        opens on one and draws the full model once the view has stood a moment
 
   Rule: PV4. One preview (app)
+    # Status 11-09: built in the raea app, checked in its headless window on a scratch project (raea-feed
+    # src/preview: PreviewStage, stage.ts, Selected, LivePick, AssetPreview). A component's page plays it on the stage:
+    # a click on the cylinder of a five-shape row answered shape-2 at row.tsx:26 item 2 with its props, dragging
+    # `lift` raised the shapes as it moved, Orbit turned the scene. A composition never rendered played on opening,
+    # and a click on its title answered the div at shapes.tsx:8. A model, a video, a still and a sound each opened on
+    # their page from Assets, whose cards are the store's stills. In Chrome there is no stage: the still stays.
+    # Not built: props changed in the selection's card written back to the code from a preview (the editor's
+    # stage.tweak does that for a game); the composition editor's own Select tool still reads the render's layers.
 
     Scenario: PV4a. It opens at once
       When I open a component, a composition or an asset
@@ -99,6 +126,9 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
       Then it is outlined, selected, shown in the outline tree, and its props are the panel's
 
   Rule: PV5. Notes on anything (app)
+    # Status 11-09: built (raea-feed host/preview notes.ts, POST /host/file-notes; kept in the project's
+    # .raea/notes/). Checked: a click on body.glb's chest and a note wrote pin.point [0.00, 1.23, 0.13], and its pin
+    # stayed on the chest through an orbit (stage.locate). 1 test. Not built: the note sent to an agent as a task.
 
     Scenario: PV5a. A note on a model
       When I click a point on a model in its preview and write a note

@@ -13640,6 +13640,7 @@ dependencies = [
 name = "raea-app-media"
 version = "0.1.0"
 dependencies = [
+ "meshopt",
  "raea-io-home",
  "raea-io-media",
  "raea-page",
@@ -14868,6 +14869,7 @@ dependencies = [
  "raea-runtime-page",
  "raea-runtime-react",
  "raea-runtime-sound",
+ "raea-sys-frame",
  "raea-sys-mix",
  "serde_json",
  "twox-hash",

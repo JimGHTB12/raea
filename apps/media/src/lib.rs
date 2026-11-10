@@ -10,6 +10,7 @@
 //!   raea media cuts FILE [--threshold 0.08]                 shot changes (ffmpeg's scene score)
 //!   raea media freezes FILE [--noise 0.001] [--min 2]       held pictures (ffmpeg's freezedetect)
 //!   raea media proxy FILE [--height 720] -o OUT.mp4         a smaller copy
+//!   raea media lod MODEL.glb [--level 1] [--texture 1024] -o OUT.glb   a model at a lower level of detail (triangles halved a level)
 //!   raea media trim FILE --from S --to S -o OUT.mp4         a stretch, frame-exact (re-encoded)
 //!   raea media concat A B ... -o OUT.mp4                    one after another (same aspect)
 //!   raea media encode --size WxH [--fps 60] [--quality Q] [--audio FILE] -o OUT.mp4   raw RGBA frames on stdin, signed
@@ -28,6 +29,8 @@ use serde_json::{Value, json};
 // `raea media|ffmpeg|ffprobe|render|shots` as one in-process command line
 mod command;
 pub use command::command;
+/// a model at a lower level of detail (docs/preview.feature PV3c)
+mod lod;
 mod probe;
 use probe::*;
 mod picture;
@@ -86,11 +89,11 @@ fn num(fl: &BTreeMap<String, String>, k: &str) -> R<Option<f64>> {
 }
 
 /// The verbs `raea media` answers here.
-pub const VERBS: &[&str] = &["probe", "still", "sheet", "audio", "loudness", "motion", "cuts", "freezes", "proxy", "trim", "concat", "encode", "help"];
+pub const VERBS: &[&str] = &["probe", "still", "sheet", "audio", "loudness", "motion", "cuts", "freezes", "proxy", "lod", "trim", "concat", "encode", "help"];
 
 pub fn cli(args: &[String]) -> i32 {
     let Some(verb) = args.first() else {
-        println!("usage: raea media <probe|still|sheet|audio|loudness|motion|cuts|proxy|trim|concat|encode> FILE ... (raea media help)");
+        println!("usage: raea media <probe|still|sheet|audio|loudness|motion|cuts|proxy|lod|trim|concat|encode> FILE ... (raea media help)");
         return 2;
     };
     let (pos, fl) = parse(&args[1..]);
@@ -157,6 +160,10 @@ fn run(verb: &str, pos: &[String], fl: &BTreeMap<String, String>) -> R<Option<Va
             let th = num(fl, "threshold")?.unwrap_or(0.08);
             let (from, to) = range()?;
             cuts(&file()?, th, from, to).map(|(v, _)| Some(v))
+        }
+        "lod" => {
+            let n = |k: &str, d: u32| fl.get(k).and_then(|v| v.parse().ok()).unwrap_or(d);
+            lod::lod(&file()?, n("level", 1), n("texture", 1024), &out()?).map(Some)
         }
         "proxy" => {
             let h = fl.get("height").and_then(|h| h.parse().ok()).unwrap_or(720);
