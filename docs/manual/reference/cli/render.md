@@ -78,7 +78,7 @@ Headless: it needs nothing running and opens no window. Takes up to 1 argument b
 | `--lite` | – | Draw with raea's live view runtime instead of React, as a live game does. Used by the app when it opens a game. |
 | `--manifest` | `render.json` | Write a manifest of the render to this file: every frame's element boxes as drawn, the 3D's clipping and the sounds heard, which `raea check` reads. |
 | `--perception` | `P.json` | The perception the composition's Clock reads (faces, boxes, one for every frame or by frame), when it isn't the `perception.json` beside it. |
-| `--quality` | `draft\|high\|master\|0..1` | Constant-quality encoding: `draft` for previews, `high` for most deliveries, `master` for type and hard edges, or a number from 0 to 1. |
+| `--quality` | `draft\|high\|master\|0..1` | Constant-quality encoding: `draft` for previews, `high` for most deliveries, `master` for type and hard edges, or a number from 0 to 1. On Windows and Linux (OpenH264) it scales the bitrate instead, and once a frame fits at OpenH264's finest quantiser (12), a higher setting writes the same file. |
 | `--review` | `DIR` | Render a 3D scene from six fixed cameras (hero, front, right, top, iso, low), in colour and in clay, to `DIR/colour.png`, `DIR/clay.png` and `DIR/review.json`. |
 | `--stage` | `WxH` | Render a responsive composition, one that lays out from `useVideoConfig()`, at this size. A fixed-size composition ignores it and says so. |
 | `--w` | `W` | Width in pixels for a file with no `<Composition>` or `config` (1080 by default). |
