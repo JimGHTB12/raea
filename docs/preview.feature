@@ -125,8 +125,19 @@ Feature: Preview: anything in a project opens at once, in its space, with its pr
     # back, the stage live through both. Every kind opens: a font's specimen, a document's or code's text, a splat on
     # the stage (turned upright when it has no placement beside it, with Flip), a converted model, and anything
     # else in its Mac app. Composition and component rows have their still. 3 tests (jsx).
-    # In a browser there is no stage, so a preview there is the still; the composition editor's own Select tool
-    # (the move, scale and fade of a part) still reads a render's layers, and Live's pointing is the card's.
+    # In a browser there is no stage, so a preview there is the still.
+    # 11-09 later still, driven in the packaged raea.app (0.1.0-dev.1109.21, unzipped, headless, RAEA_NO_TREE=1): the
+    # composition editor's picture has the render's layers, so Select on a rendered 3D piece outlines a part by its
+    # own shape and names its code (the cylinder: Row row.tsx:26:9), and a piece whose render has 3D layers opens
+    # Live, where a click gives the part's card. That run also found and fixed what only the packaged app showed:
+    # the window wasn't told where the bundled SDK and bundler are (tools/raea-app/launch.sh: RAEA_HOME,
+    # RAEA_BUNDLE_LIB), an <img> can't load a /host/ picture there (HostImg fetches it), a wrapper was removed before
+    # the stage's thread opened it, and a fixed box in the editor's pane is placed from the pane's corner. Seen in
+    # that build: a 3D game's part in the feed's inspector, a composition never rendered live with its title picked,
+    # a component's floor with its code card after an orbit, a model with its pinned note at full detail, an OBJ, a
+    # splat, a font, a document, an image, a sound's peaks, a video played to 2.7 s, eight stills in Assets, and
+    # Settings' Light copies (12 stills, 1 sound, 1 model). A note's Ask an agent was run against a live agent in
+    # the dev window: the session opened with the note and its pin, and the agent began on the model.
 
     @done
     Scenario: PV4a. It opens at once
