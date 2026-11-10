@@ -11,14 +11,22 @@ use std::path::PathBuf;
 /// raea's caches folder, as raea-io-home names it (this crate is below it): ~/Library/Caches/raea on macOS,
 /// %LOCALAPPDATA%\raea\cache on Windows, $XDG_CACHE_HOME/raea or ~/.cache/raea elsewhere.
 fn caches() -> Option<PathBuf> {
-    let var = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty()).map(PathBuf::from);
+    let base = PathBuf::from(std::env::var_os(if cfg!(windows) { "LOCALAPPDATA" } else { "HOME" })?);
+    if base.as_os_str().is_empty() {
+        return None;
+    }
     if cfg!(windows) {
-        return var("LOCALAPPDATA").map(|d| d.join("raea").join("cache"));
+        return Some(base.join("raea").join("cache"));
     }
     if cfg!(target_os = "macos") {
-        return var("HOME").map(|h| h.join("Library/Caches/raea"));
+        return Some(base.join("Library/Caches/raea"));
     }
-    var("XDG_CACHE_HOME").filter(|p| p.is_absolute()).or_else(|| var("HOME").map(|h| h.join(".cache"))).map(|d| d.join("raea"))
+    let xdg = std::env::var_os("XDG_CACHE_HOME").map(PathBuf::from);
+    Some(match xdg {
+        Some(d) if d.is_absolute() => d,
+        _ => base.join(".cache"),
+    }
+    .join("raea"))
 }
 
 fn this_build() -> (u64, u128) {
