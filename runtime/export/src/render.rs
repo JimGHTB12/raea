@@ -48,13 +48,19 @@ pub fn render(args: &[String]) -> R<String> {
             *slot = Some(v);
         }
     }
+    // a layer is a stamped thing (raea_sys_layers), so --layers stamps the source; RAEA_SOURCE_STAMPS=0 keeps them off
+    let layers_on = args.iter().any(|a| a == "--layers") || std::env::var_os("RAEA_LAYERS").is_some_and(|v| v == "1");
+    if layers_on && std::env::var_os("RAEA_SOURCE_STAMPS").is_none() {
+        // SAFETY: before any thread of the render starts (the bundler and React's runtime start below)
+        unsafe { std::env::set_var("RAEA_SOURCE_STAMPS", "1") };
+    }
     bundle_composition(&tsx, &js, &o, None)?;
     let wanted = match (flag(args, "--frame"), flag(args, "--at")) {
         (Some(f), _) => Some(vec![f.parse().map_err(|_| "--frame takes a frame number")?]),
         (_, Some(at)) => Some(at.split(',').map(|f| f.trim().parse::<i64>().map_err(|_| "--at takes frame numbers".to_string())).collect::<R<_>>()?),
         _ => None,
     };
-    let layers = raea_sys_layers::start(args.iter().any(|a| a == "--layers") || std::env::var_os("RAEA_LAYERS").is_some_and(|v| v == "1"), &out, &tsx);
+    let layers = raea_sys_layers::start(layers_on, &out, &tsx);
     *MANIFEST.lock().unwrap() = flag(args, "--manifest").map(PathBuf::from).or(layers);
     TEN_BIT.store(args.iter().any(|a| a == "--10bit"), std::sync::atomic::Ordering::Relaxed);
     AOV.store(args.iter().any(|a| a == "--aov"), std::sync::atomic::Ordering::Relaxed);
